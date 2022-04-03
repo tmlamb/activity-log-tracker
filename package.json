@@ -49,8 +49,10 @@
   },
   "private": true,
   "lint-staged": {
-    "*.{ts,tsx}": "eslint --cache --fix",
-    "*.{ts,tsx}": "prettier --write"
+    "*.{ts,tsx}": [
+      "eslint --cache --fix",
+      "prettier --write"
+    ]
   },
   "husky": {
     "hooks": {
