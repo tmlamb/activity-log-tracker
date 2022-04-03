@@ -7,7 +7,7 @@ type Props = NativeStackScreenProps<StackParamList, 'Logs'>
 
 const logs = [
   {
-    name: 'Workout',
+    name: 'Workouts',
     id: '1',
     activities: [
       { name: 'Squat', id: 1 },

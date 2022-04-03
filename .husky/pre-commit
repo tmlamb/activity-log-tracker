@@ -1,4 +1,13 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+echo 'Checking all the things before committing'
+
+# Check tsconfig for type check errors
+npm run check-types ||
+(
+    echo 'Type Check Failed. Make the changes listed above and try commit again.'
+    false;
+)
+
 npx lint-staged
