@@ -35,7 +35,7 @@ function Tracker({ navigation }: Props) {
               })
             }
           >
-            {item.name}
+            {item.name},
           </Button>
         )}
         keyExtractor={item => item.id}
