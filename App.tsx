@@ -1,47 +1,36 @@
-import {NavigationContainer} from "@react-navigation/native";
-import {createNativeStackNavigator} from "@react-navigation/native-stack";
-import {StatusBar} from "expo-status-bar";
-import React, {useState} from "react";
-import {Button, StyleSheet, Text, View} from "react-native";
-import tw from "twrnc";
+import { NavigationContainer } from '@react-navigation/native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import React from 'react'
+import SingleActivity from './src/screens/SingleActivity'
+import SingleLog from './src/screens/SingleLog'
+import Tracker from './src/screens/Tracker'
 
-function HomeScreen() {
-  const [count, setCount] = useState(0);
-  return (
-    <View style={styles.container}>
-      <Text style={tw`pt-6 bg-blue-100`}>Hello mister Lamb! {count}</Text>
-      <Button title="increment" onPress={() => setCount(count + 1)} />
-      <StatusBar style="auto" />
-    </View>
-  );
+export type StackParamList = {
+  Logs: undefined
+  SingleLog: { logId: string; name: string }
+  SingleActivity: { logId: string; activityId: string; name: string }
 }
 
-function DetailsScreen() {
-  return (
-    <View style={{flex: 1, alignItems: "center", justifyContent: "center"}}>
-      <Text>Details Screen</Text>
-    </View>
-  );
-}
+const AppStack = createNativeStackNavigator<StackParamList>()
 
-const Stack = createNativeStackNavigator();
-
-export default function App() {
+function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home">
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Details" component={DetailsScreen} />
-      </Stack.Navigator>
+      <AppStack.Navigator initialRouteName="Logs">
+        <AppStack.Screen name="Logs" component={Tracker} />
+        <AppStack.Screen
+          name="SingleLog"
+          component={SingleLog}
+          options={({ route }) => ({ title: route.params.name })}
+        />
+        <AppStack.Screen
+          name="SingleActivity"
+          component={SingleActivity}
+          options={({ route }) => ({ title: route.params.name })}
+        />
+      </AppStack.Navigator>
     </NavigationContainer>
-  );
+  )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+export default App
