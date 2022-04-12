@@ -10,6 +10,6 @@ export type ProgramNavigationProp = Props['navigation']
 
 export default function ProgramDetailScreen({ route }: Props) {
   const { programs } = useProgramState()
-  const program = programs.find(p => p.id === route.params.id)
+  const program = programs.find(p => p.entityId === route.params.entityId)
   return <View>{program && <ProgramDetail program={program} />}</View>
 }

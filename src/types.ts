@@ -1,5 +1,5 @@
 export type BaseEntity = {
-  id: string
+  entityId: string
 }
 
 export type StackParamList = {

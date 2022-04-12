@@ -9,7 +9,7 @@ export default (
       }
     | {
         type: 'DELETE_PROGRAM'
-        payload: { id: string }
+        payload: { entityId: string }
       }
     | {
         type: 'RESET'
@@ -26,12 +26,13 @@ export default (
       }
     case 'DELETE_PROGRAM':
       return {
-        programs: state.programs.filter(program => program.id !== action.payload.id)
+        programs: state.programs.filter(program => program.entityId !== action.payload.entityId)
       }
     case 'UPDATE_PROGRAM':
       return {
         programs: state.programs.map(
-          program => (program.id === action.payload.id ? action.payload : undefined) || program
+          program =>
+            (program.entityId === action.payload.entityId ? action.payload : undefined) || program
         )
       }
     case 'RESET':

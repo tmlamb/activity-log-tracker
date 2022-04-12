@@ -14,7 +14,7 @@ export default function ProgramDetail({ program }: Props) {
       <FlatList
         data={program.sessions}
         renderItem={({ item }) => (
-          <NavigationLink id={item.id} screen="SessionDetailScreen">
+          <NavigationLink entityId={item.entityId} screen="SessionDetailScreen">
             <Text>{item.name}</Text>
           </NavigationLink>
         )}

@@ -5,13 +5,8 @@ import { ActivityNavigationProp } from './ActivityDetailScreen'
 import { ProgramNavigationProp } from './ProgramDetailScreen'
 import { SessionNavigationProp } from './SessionDetailScreen'
 
-export default function AppLink({
-  children,
-  id,
-  screen
-}: {
+type Props = {
   children: React.ReactNode
-  id: string | undefined
   screen:
     | 'DashboardScreen'
     | 'ProgramDetailScreen'
@@ -20,7 +15,10 @@ export default function AppLink({
     | 'SessionFormModal'
     | 'ActivityDetailScreen'
     | 'ActivityFormModal'
-}) {
+  entityId?: string
+}
+
+export default function NavigationLink({ children, screen, entityId }: Props) {
   const navigation = useNavigation<
     ProgramNavigationProp | SessionNavigationProp | ActivityNavigationProp
   >()
@@ -28,12 +26,21 @@ export default function AppLink({
   return (
     <Pressable
       onPress={() =>
-        navigation.navigate(screen, {
-          id: id || ''
-        })
+        navigation.navigate(
+          screen,
+          entityId
+            ? {
+                entityId
+              }
+            : undefined
+        )
       }
     >
       {children}
     </Pressable>
   )
+}
+
+NavigationLink.defaultProps = {
+  entityId: undefined
 }

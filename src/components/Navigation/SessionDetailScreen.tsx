@@ -10,7 +10,7 @@ export type SessionNavigationProp = Props['navigation']
 function SessionDetailScreen({ route }: Props) {
   return (
     <View style={tw`dark:bg-black`}>
-      <Text>{route.params.id}</Text>
+      <Text>{route.params.entityId}</Text>
       {/* <Text>{route.params.workout.priority.name}</Text>
       <FlatList
         data={route.params.workout.activities}

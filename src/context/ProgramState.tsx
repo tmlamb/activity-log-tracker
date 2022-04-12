@@ -3,44 +3,44 @@ import React, { createContext, useContext, useEffect, useMemo, useReducer } from
 import { Program } from '../types'
 import ProgramReducer from './ProgramReducer'
 
-export const mock: Program[] = [
-  {
-    name: 'Strength',
-    sessions: [
-      {
-        name: 'Chest',
-        id: '1',
-        start: new Date(),
-        end: undefined,
-        activities: [
-          {
-            id: '1',
-            warmupSets: 3,
-            workSets: 3,
-            reps: 5,
-            load: {
-              value: 77.5,
-              type: 'PERCENT'
-            },
-            rest: 3,
-            exercise: {
-              name: 'Squat',
-              id: '1',
-              muscle: 'Quadriceps',
-              oneRepMax: {
-                value: 100,
-                unit: 'lbs'
-              }
-            }
-          }
-        ]
-      }
-    ],
-    icon: 'test',
-    type: 'Workout Program',
-    id: '1'
-  }
-]
+// export const mock: Program[] = [
+//   {
+//     name: 'Strength',
+//     sessions: [
+//       {
+//         name: 'Chest',
+//         entityId: '1',
+//         start: new Date(),
+//         end: undefined,
+//         activities: [
+//           {
+//             entityId: '1',
+//             warmupSets: 3,
+//             workSets: 3,
+//             reps: 5,
+//             load: {
+//               value: 77.5,
+//               type: 'PERCENT'
+//             },
+//             rest: 3,
+//             exercise: {
+//               name: 'Squat',
+//               entityId: '1',
+//               muscle: 'Quadriceps',
+//               oneRepMax: {
+//                 value: 100,
+//                 unit: 'lbs'
+//               }
+//             }
+//           }
+//         ]
+//       }
+//     ],
+//     icon: 'test',
+//     type: 'Workout Program',
+//     entityId: '1'
+//   }
+// ]
 
 type ProgramContextType = {
   programs: Program[]
@@ -51,7 +51,7 @@ type ProgramContextType = {
 }
 
 const initialState = {
-  programs: mock,
+  programs: [],
   addProgram: () => 0,
   deleteProgram: () => 0,
   updateProgram: () => 0,
@@ -74,10 +74,10 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
           payload: program
         })
       },
-      deleteProgram: (id: string) => {
+      deleteProgram: (entityId: string) => {
         dispatch({
           type: 'DELETE_PROGRAM',
-          payload: { id }
+          payload: { entityId }
         })
       },
       updateProgram: (program: Program) => {
