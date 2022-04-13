@@ -30,7 +30,8 @@ export default function NavigationLink({ children, screen, entityId }: Props) {
           screen,
           entityId
             ? {
-                entityId
+                entityId,
+                name: ''
               }
             : undefined
         )

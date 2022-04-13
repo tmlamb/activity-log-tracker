@@ -15,7 +15,6 @@ export default function App() {
       <ProgramProvider>
         <Navigation />
       </ProgramProvider>
-      <StatusBar />
     </>
   )
 }

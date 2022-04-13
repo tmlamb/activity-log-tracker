@@ -1,19 +1,21 @@
 import { useNavigation } from '@react-navigation/native'
 import React, { useEffect } from 'react'
-import { View } from 'react-native'
+import { ScrollView } from 'react-native'
 import { tw } from '../../tailwind'
-import { primaryTextStyle } from '../Typography'
+import { primaryTextColor } from '../Typography'
 
 export default function ScreenLayout({ children }: { children: React.ReactNode }) {
   const navigation = useNavigation()
   useEffect(() => {
     navigation.setOptions({
       headerStyle: tw`bg-slate-100 dark:bg-black`,
-      headerTitleStyle: primaryTextStyle(),
+      headerTitleStyle: tw.style(primaryTextColor),
       headerShadowVisible: false,
-      headerTintColor: primaryTextStyle().color
+      headerTintColor: tw.style(primaryTextColor).color
     })
   }, [navigation])
 
-  return <View style={tw`w-full h-full p-4 bg-slate-100 dark:bg-black`}>{children}</View>
+  return (
+    <ScrollView style={tw`w-full h-full p-3 bg-slate-100 dark:bg-black`}>{children}</ScrollView>
+  )
 }

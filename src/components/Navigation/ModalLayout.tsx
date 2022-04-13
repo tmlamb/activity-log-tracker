@@ -1,8 +1,8 @@
 import { useNavigation } from '@react-navigation/native'
 import React, { useEffect } from 'react'
-import { View } from 'react-native'
+import { ScrollView } from 'react-native'
 import { tw } from '../../tailwind'
-import { primaryTextStyle } from '../Typography'
+import { primaryTextColor } from '../Typography'
 
 export default function ModalLayout({ children }: { children: React.ReactNode }) {
   const navigation = useNavigation()
@@ -10,11 +10,13 @@ export default function ModalLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     navigation.setOptions({
       headerStyle: tw`bg-white dark:bg-slate-800`,
-      headerTitleStyle: primaryTextStyle(),
+      headerTitleStyle: tw.style(primaryTextColor),
       headerShadowVisible: false,
-      headerTintColor: primaryTextStyle().color
+      headerTintColor: tw.style(primaryTextColor).color
     })
   }, [navigation])
 
-  return <View style={tw`w-full h-full py-6 bg-white dark:bg-slate-800`}>{children}</View>
+  return (
+    <ScrollView style={tw`w-full h-full bg-white py-9 dark:bg-slate-800`}>{children}</ScrollView>
+  )
 }

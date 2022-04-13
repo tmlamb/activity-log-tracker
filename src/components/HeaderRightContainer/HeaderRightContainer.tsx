@@ -1,12 +1,14 @@
 import { useNavigation } from '@react-navigation/native'
 import React, { useLayoutEffect, useMemo } from 'react'
+import { View } from 'react-native'
+import { tw } from '../../tailwind'
 
 type Props = {
   children: React.ReactNode
 }
 
 export default function HeaderRightContainer({ children }: Props) {
-  const memoizedComponent = useMemo(() => children, [children])
+  const memoizedComponent = useMemo(() => <View style={tw`web:mr-4`}>{children}</View>, [children])
   const navigation = useNavigation()
 
   useLayoutEffect(() => {

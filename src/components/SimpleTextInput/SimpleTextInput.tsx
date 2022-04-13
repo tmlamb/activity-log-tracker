@@ -2,7 +2,7 @@ import React from 'react'
 import { TextInput } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import { tw } from '../../tailwind'
-import { primaryTextStyle } from '../Typography'
+import { primaryTextColor } from '../Typography'
 
 type Props = {
   onChangeText: (text: string) => void
@@ -10,6 +10,7 @@ type Props = {
   value: string
   style?: ClassInput
   placeholder: string
+  maxLength?: number
 }
 
 export default function SimpleTextInput({
@@ -17,7 +18,8 @@ export default function SimpleTextInput({
   onBlur,
   value,
   style,
-  placeholder
+  placeholder,
+  maxLength
 }: Props) {
   return (
     <TextInput
@@ -25,16 +27,18 @@ export default function SimpleTextInput({
       onBlur={onBlur}
       value={value}
       style={tw.style(
-        primaryTextStyle(),
-        'p-3 text-lg leading-tight bg-slate-400 dark:bg-slate-700 mb-3',
+        primaryTextColor,
+        'p-3 text-lg leading-tight tracking-wide bg-slate-400 dark:bg-slate-700 mb-9',
         style
       )}
       placeholder={placeholder}
-      //   textAlignVertical="center"
+      placeholderTextColor={tw.color('slate-400')}
+      maxLength={maxLength}
     />
   )
 }
 
 SimpleTextInput.defaultProps = {
-  style: undefined
+  style: undefined,
+  maxLength: undefined
 }

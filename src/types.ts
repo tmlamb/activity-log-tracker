@@ -1,5 +1,6 @@
 export type BaseEntity = {
   entityId: string
+  name: string
 }
 
 export type StackParamList = {
@@ -27,7 +28,6 @@ export type Load = {
 }
 
 export type Exercise = {
-  name: string
   muscle: string
   oneRepMax: Weight
 } & BaseEntity
@@ -38,14 +38,12 @@ export type Weight = {
 }
 
 export type Session = {
-  name: string
   start: Date
   end: Date | undefined
   activities: Activity[]
 } & BaseEntity
 
 export type Program = {
-  name: string
   icon?: string
   type: 'Workout Program'
   sessions: Session[]
