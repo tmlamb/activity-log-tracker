@@ -16,18 +16,25 @@ export default function Routes() {
         name="DashboardScreen"
         component={DashboardScreen}
         options={{
-          title: ''
+          headerTitle: '',
+          title: 'Activity Log Tracker'
         }}
       />
-      <AppStack.Screen name="ProgramDetailScreen" component={ProgramDetailScreen} />
+      <AppStack.Screen
+        name="ProgramDetailScreen"
+        component={ProgramDetailScreen}
+        options={{
+          title: 'Workout Program'
+        }}
+      />
       <AppStack.Screen name="SessionDetailScreen" component={SessionDetailScreen} />
       <AppStack.Screen name="ActivityDetailScreen" component={ActivityDetailScreen} />
       <AppStack.Group screenOptions={{ presentation: 'modal' }}>
         <AppStack.Screen
           name="ProgramFormModal"
           component={ProgramFormModal}
-          options={() => ({
-            title: 'Add Program'
+          options={({ route }) => ({
+            title: route.params ? 'Edit Program' : 'Add Program'
           })}
         />
       </AppStack.Group>

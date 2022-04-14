@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native'
 import React, { useLayoutEffect, useMemo } from 'react'
 import { View } from 'react-native'
-import { tw } from '../../tailwind'
+import { tw } from '../tailwind'
 
 type Props = {
   children: React.ReactNode

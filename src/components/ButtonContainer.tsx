@@ -1,7 +1,7 @@
 import React from 'react'
 import { GestureResponderEvent, Pressable } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
-import { tw } from '../../tailwind'
+import { tw } from '../tailwind'
 
 export default function ButtonContainer({
   children,

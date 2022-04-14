@@ -6,11 +6,12 @@ export type BaseEntity = {
 export type StackParamList = {
   DashboardScreen: undefined
   ProgramDetailScreen: BaseEntity
-  ProgramFormModal: undefined
+  ProgramFormModal: BaseEntity | undefined
   SessionDetailScreen: BaseEntity
   SessionFormModal: undefined
   ActivityDetailScreen: BaseEntity
   ActivityFormModal: undefined
+  EmojiModal: undefined
 }
 
 export type Activity = {
@@ -45,6 +46,5 @@ export type Session = {
 
 export type Program = {
   icon?: string
-  type: 'Workout Program'
   sessions: Session[]
 } & BaseEntity

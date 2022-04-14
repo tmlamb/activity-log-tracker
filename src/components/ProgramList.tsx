@@ -1,10 +1,10 @@
 import React from 'react'
 import { FlatList } from 'react-native'
 import 'react-native-get-random-values'
-import { tw } from '../../tailwind'
-import { Program } from '../../types'
-import NavigationLink from '../Navigation/NavigationLink'
-import { PrimaryText } from '../Typography'
+import { tw } from '../tailwind'
+import { Program } from '../types'
+import NavigationLink from './Navigation/NavigationLink'
+import { PrimaryText } from './Typography'
 
 type Props = {
   programs: Program[]

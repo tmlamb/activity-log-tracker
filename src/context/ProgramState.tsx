@@ -3,44 +3,44 @@ import React, { createContext, useContext, useEffect, useMemo, useReducer } from
 import { Program } from '../types'
 import ProgramReducer from './ProgramReducer'
 
-// export const mock: Program[] = [
-//   {
-//     name: 'Strength',
-//     sessions: [
-//       {
-//         name: 'Chest',
-//         entityId: '1',
-//         start: new Date(),
-//         end: undefined,
-//         activities: [
-//           {
-//             entityId: '1',
-//             warmupSets: 3,
-//             workSets: 3,
-//             reps: 5,
-//             load: {
-//               value: 77.5,
-//               type: 'PERCENT'
-//             },
-//             rest: 3,
-//             exercise: {
-//               name: 'Squat',
-//               entityId: '1',
-//               muscle: 'Quadriceps',
-//               oneRepMax: {
-//                 value: 100,
-//                 unit: 'lbs'
-//               }
-//             }
-//           }
-//         ]
-//       }
-//     ],
-//     icon: 'test',
-//     type: 'Workout Program',
-//     entityId: '1'
-//   }
-// ]
+const mock: Program[] = [
+  {
+    name: 'Strength',
+    sessions: [
+      {
+        name: 'Chest',
+        entityId: '1',
+        start: new Date('2022-04-11T00:00:00.000Z'),
+        end: undefined,
+        activities: [
+          {
+            name: 'TBD',
+            entityId: '1',
+            warmupSets: 3,
+            workSets: 3,
+            reps: 5,
+            load: {
+              value: 77.5,
+              type: 'PERCENT'
+            },
+            rest: 3,
+            exercise: {
+              name: 'Squat',
+              entityId: '1',
+              muscle: 'Quadriceps',
+              oneRepMax: {
+                value: 100,
+                unit: 'lbs'
+              }
+            }
+          }
+        ]
+      }
+    ],
+    icon: 'test',
+    entityId: '1'
+  }
+]
 
 type ProgramContextType = {
   programs: Program[]
@@ -51,7 +51,7 @@ type ProgramContextType = {
 }
 
 const initialState = {
-  programs: [],
+  programs: mock,
   addProgram: () => 0,
   deleteProgram: () => 0,
   updateProgram: () => 0,
@@ -100,7 +100,7 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     AsyncStorage.getItem('programs').then(programs => {
       if (programs) {
-        dispatch({ type: 'RESET', payload: JSON.parse(programs) })
+        // dispatch({ type: 'RESET', payload: JSON.parse(programs) })
       }
     })
   }, [])

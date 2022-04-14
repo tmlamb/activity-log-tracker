@@ -4,30 +4,39 @@ import React from 'react'
 import { View } from 'react-native'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
-import { tw } from '../../tailwind'
-import { Program } from '../../types'
-import { ButtonContainer } from '../ButtonContainer'
-import { HeaderRightContainer } from '../HeaderRightContainer'
-import SimpleSelectInput from '../SimpleSelectInput/SimpleSelectInput'
-import { SimpleTextInput } from '../SimpleTextInput'
-import { SpecialText } from '../Typography'
+import { tw } from '../tailwind'
+import { Program } from '../types'
+import ButtonContainer from './ButtonContainer'
+import HeaderRightContainer from './HeaderRightContainer'
+import SimpleTextInput from './SimpleTextInput'
+import { SpecialText } from './Typography'
+
+// type EditProps = {
+//   program: Program
+//   changeHandler: (program: Program) => void
+// }
 
 type Props = {
-  addProgramHandler: (program: Program) => void
+  changeHandler: (program: Program) => void
+  program?: Program
 }
 
-export default function ProgramForm({ addProgramHandler }: Props) {
+interface PropsFilled extends Props {
+  program: Program
+}
+
+export default function ProgramForm({ changeHandler, program }: PropsFilled) {
   const navigation = useNavigation()
+
   return (
     <Formik
-      initialValues={{ name: '', type: 'Workout Program' }}
+      initialValues={{ name: program.name || '' }}
       onSubmit={values => {
-        addProgramHandler({
+        changeHandler({
           name: values.name,
-          type: 'Workout Program',
-          icon: 'test',
-          entityId: uuidv4(),
-          sessions: []
+          icon: program.icon || 'test',
+          entityId: program.entityId || uuidv4(),
+          sessions: program.sessions || []
         })
         navigation.goBack()
       }}
@@ -45,19 +54,23 @@ export default function ProgramForm({ addProgramHandler }: Props) {
               onBlur={handleBlur('name')}
               value={values.name}
               placeholder="Program Name"
-              maxLength={20}
+              maxLength={25}
             />
-            <SimpleSelectInput
-              name="Program Type"
+            {/* <SimpleSelectInput
+              onChangeOption={handleChange('type')}
+              onBlur={handleChange('type')}
+              label="Type"
               options={[{ name: 'Workout Program', entityId: '0' }]}
-              defaultIndex={0}
+              value={{ name: 'Workout Program', entityId: '0' }}
               disabled
-            />
-
-            {/* <TextInput onChangeText={handleChange('type')} editable={false} value={values.type} /> */}
+            /> */}
           </View>
         </>
       )}
     </Formik>
   )
+}
+
+ProgramForm.defaultProps = {
+  program: {}
 }

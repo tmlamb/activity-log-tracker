@@ -9,7 +9,7 @@ export default function ModalLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     navigation.setOptions({
-      headerStyle: tw`bg-white dark:bg-slate-800`,
+      headerStyle: tw`bg-white dark:bg-slate-900`,
       headerTitleStyle: tw.style(primaryTextColor),
       headerShadowVisible: false,
       headerTintColor: tw.style(primaryTextColor).color
@@ -17,6 +17,6 @@ export default function ModalLayout({ children }: { children: React.ReactNode })
   }, [navigation])
 
   return (
-    <ScrollView style={tw`w-full h-full bg-white py-9 dark:bg-slate-800`}>{children}</ScrollView>
+    <ScrollView style={tw`w-full h-full bg-white py-9 dark:bg-slate-900`}>{children}</ScrollView>
   )
 }

@@ -1,8 +1,8 @@
 import React from 'react'
 import { TextInput } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
-import { tw } from '../../tailwind'
-import { primaryTextColor } from '../Typography'
+import { tw } from '../tailwind'
+import { primaryTextColor } from './Typography'
 
 type Props = {
   onChangeText: (text: string) => void
@@ -28,7 +28,7 @@ export default function SimpleTextInput({
       value={value}
       style={tw.style(
         primaryTextColor,
-        'p-3 text-lg leading-tight tracking-wide bg-slate-400 dark:bg-slate-700 mb-9',
+        'p-3 text-lg leading-tight tracking-wide bg-slate-200 dark:bg-slate-800 mb-9',
         style
       )}
       placeholder={placeholder}

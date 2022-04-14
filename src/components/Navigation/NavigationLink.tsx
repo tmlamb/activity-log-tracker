@@ -3,6 +3,7 @@ import React from 'react'
 import { Pressable } from 'react-native'
 import { ActivityNavigationProp } from './ActivityDetailScreen'
 import { ProgramNavigationProp } from './ProgramDetailScreen'
+import { ProgramFormNavigationProp } from './ProgramFormModal'
 import { SessionNavigationProp } from './SessionDetailScreen'
 
 type Props = {
@@ -16,25 +17,33 @@ type Props = {
     | 'ActivityDetailScreen'
     | 'ActivityFormModal'
   entityId?: string
+  name?: string
 }
 
-export default function NavigationLink({ children, screen, entityId }: Props) {
+export default function NavigationLink({ children, screen, entityId, name }: Props) {
   const navigation = useNavigation<
-    ProgramNavigationProp | SessionNavigationProp | ActivityNavigationProp
+    | ProgramNavigationProp
+    | SessionNavigationProp
+    | ActivityNavigationProp
+    | ProgramFormNavigationProp
   >()
 
   return (
     <Pressable
       onPress={() =>
-        navigation.navigate(
-          screen,
-          entityId
-            ? {
-                entityId,
-                name: ''
-              }
-            : undefined
-        )
+        // navigation.navigate(
+        //   screen,
+        //   entityId
+        //     ? {
+        //         entityId,
+        //         name: name || '',
+        //       }
+        //     : undefined
+        // )
+        navigation.navigate(screen, {
+          entityId: entityId || '',
+          name: name || ''
+        })
       }
     >
       {children}
@@ -43,5 +52,6 @@ export default function NavigationLink({ children, screen, entityId }: Props) {
 }
 
 NavigationLink.defaultProps = {
-  entityId: undefined
+  entityId: undefined,
+  name: undefined
 }
