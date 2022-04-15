@@ -2,10 +2,10 @@ import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
 import { View } from 'react-native'
 import { tw } from '../tailwind'
-import { Program } from '../types'
-import { mapSessionsByDate } from '../utils'
-import Card from './Card'
+import { Program, Session } from '../types'
+import { isToday, mapSessionsByDate } from '../utils'
 import HeaderRightContainer from './HeaderRightContainer'
+import InfoCard from './InfoCard'
 import NavigationLink from './Navigation/NavigationLink'
 import SimpleSectionList from './SimpleSectionList'
 import { SecondaryText, SpecialText } from './Typography'
@@ -14,58 +14,99 @@ type Props = {
   program: Program
 }
 
+// One day in milliseconds
+const oneDay = 1000 * 60 * 60 * 24
+
 export default function ProgramDetail({ program }: Props) {
-  const sessions = mapSessionsByDate(program.sessions)
-  console.log(sessions)
-  if (!sessions.has(new Date().toLocaleDateString())) {
-    sessions.set('Today', [])
+  const formatDate = (date: Date) => {
+    const daysDiff =
+      program && program.sessions && program.sessions.length > 0
+        ? Math.floor((date.getTime() - program.sessions[0].start.getTime()) / oneDay)
+        : 0
+    const week = Math.floor(daysDiff / 7)
+    const day = daysDiff % 7
+    return `${week ? `Week ${week + 1}, ` : ''}Day ${day + 1}${isToday(date) ? ' (Today)' : ''}`
   }
-  console.log(sessions)
+
+  // We need to show the list of workout sessions grouped by date, so we first
+  // convert the array of programs into a map where the key is the program date
+  // and the value is the array of sessions for that date. The date key format
+  // callback will use 'Today' if the date is today, otherwise it will use the
+  // number of weeks and days since the first session, e.g. 'Week 2, Day 4'.
+  const sessions = mapSessionsByDate(program.sessions, formatDate)
+  // The SectionList component expects an array of objects with a 'title' and
+  // 'data' property. The 'title' property will be used as the section header
+  // and the 'data' property will be used as the list of items in that section.
   const sections = Array.from(sessions, ([title, data]) => ({
     title,
     data
-  }))
-
-  console.log(sections)
+  })).reverse() // Reverse to show most recent at the top.
 
   return (
     <>
-      {/* <Card style={tw`rounded-lg`} label="Name" value={program.name} />
-      <FlatList
-        data={program.sessions}
-        renderItem={({ item }) => (
-          <NavigationLink entityId={item.entityId} screen="SessionDetailScreen">
-            <Text>{item.name}</Text>
-          </NavigationLink>
-        )}
-      /> */}
       <HeaderRightContainer>
-        <NavigationLink screen="ProgramFormModal" entityId={program.entityId} name="Edit Program">
+        <NavigationLink screen="SessionFormModal">
           <SpecialText>
             <AntDesign name="plus" size={28} />
-            {/* <SpecialText>Edit</SpecialText> */}
           </SpecialText>
         </NavigationLink>
       </HeaderRightContainer>
 
       <View style={tw`flex flex-col`}>
-        <Card style={tw`rounded-lg mb-9`} label="Name" value={program.name} disabled />
-        {program.sessions.length > 0 && (
+        <NavigationLink
+          screen="ProgramFormModal"
+          navigationParams={{ programId: program.programId }}
+        >
+          <InfoCard style={tw`rounded-xl mb-9`} primaryText={program.name} specialText="Edit" />
+        </NavigationLink>
+        {(!sections || sections.length === 0 || sections[0].title.includes('TODAY')) && (
           <SimpleSectionList
-            style={tw`pb-1.5`}
-            sections={Array.from(mapSessionsByDate(program.sessions), ([title, data]) => ({
-              title,
-              data
-            }))}
-            renderItem={({ index, item, section }) => (
-              <NavigationLink entityId={item.entityId} screen="SessionDetailScreen">
-                <Card
+            style={tw`pb-9`}
+            sections={[{ title: formatDate(new Date()), data: [{ name: 'foo' }] }]}
+            renderItem={({ index, section }) => (
+              <NavigationLink screen="SessionFormModal">
+                <InfoCard
                   style={tw.style(
                     'border-b-2 dark:border-slate-800 border-slate-300',
                     index === 0 ? 'rounded-t-xl' : undefined,
                     index === section.data.length - 1 ? 'rounded-b-xl border-b-0' : undefined
                   )}
-                  label={item.name}
+                  specialText="Plan Workout Session"
+                  // rightIcon={
+                  //   <SecondaryText>
+                  //     <AntDesign name="right" size={16} />
+                  //   </SecondaryText>
+                  // }
+                />
+              </NavigationLink>
+            )}
+          />
+        )}
+        {sections && sections.length > 0 && (
+          <SimpleSectionList
+            style={tw`pb-9`}
+            sections={sections}
+            renderItem={({ index, item, section }) => (
+              <NavigationLink
+                style={tw`mb-9`}
+                navigationParams={{
+                  programId: program.programId,
+                  sessionId: (item as Session).sessionId
+                }}
+                screen="SessionDetailScreen"
+              >
+                <InfoCard
+                  style={tw.style(
+                    'border-b-2 dark:border-slate-800 border-slate-300',
+                    index === 0 ? 'rounded-t-xl' : undefined,
+                    index === section.data.length - 1 ? 'rounded-b-xl border-b-0' : undefined
+                  )}
+                  primaryText={item.name}
+                  rightIcon={
+                    <SecondaryText>
+                      <AntDesign name="right" size={16} />
+                    </SecondaryText>
+                  }
                 />
               </NavigationLink>
             )}

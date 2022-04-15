@@ -3,8 +3,8 @@ import React from 'react'
 import { View } from 'react-native'
 import { tw } from '../../tailwind'
 import { Program } from '../../types'
-import Card from '../Card'
 import HeaderRightContainer from '../HeaderRightContainer'
+import InfoCard from '../InfoCard'
 import NavigationLink from '../Navigation/NavigationLink'
 import SimpleSectionList from '../SimpleSectionList'
 import { PrimaryText, SecondaryText, SpecialText } from '../Typography'
@@ -24,7 +24,7 @@ export default function Dashboard({ programs }: Props) {
         </NavigationLink>
       </HeaderRightContainer>
       <View style={tw`flex flex-col`}>
-        <PrimaryText style={tw`pb-3 text-4xl font-bold tracking-tight`}>
+        <PrimaryText style={tw`text-4xl font-bold tracking-tight pb-9`}>
           Activity Log Tracker
         </PrimaryText>
         {programs.length > 0 && (
@@ -34,16 +34,20 @@ export default function Dashboard({ programs }: Props) {
             renderItem={({ index, item, section }) => (
               <NavigationLink
                 screen="ProgramDetailScreen"
-                entityId={item.entityId}
-                name={item.name}
+                navigationParams={{ programId: (item as Program).programId }}
               >
-                <Card
+                <InfoCard
                   style={tw.style(
-                    'border-b-2 dark:border-slate-800 border-slate-300',
+                    'border-b-2 dark:border-slate-700 border-slate-300',
                     index === 0 ? 'rounded-t-xl' : undefined,
                     index === section.data.length - 1 ? 'rounded-b-xl border-b-0' : undefined
                   )}
-                  label={item.name}
+                  primaryText={item.name}
+                  rightIcon={
+                    <SecondaryText>
+                      <AntDesign name="right" size={16} />
+                    </SecondaryText>
+                  }
                 />
               </NavigationLink>
             )}

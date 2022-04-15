@@ -5,7 +5,7 @@ import { View } from 'react-native'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../tailwind'
-import { Program } from '../types'
+import { Session } from '../types'
 import ButtonContainer from './ButtonContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import InfoCard from './InfoCard'
@@ -14,25 +14,28 @@ import SimpleTextInput from './SimpleTextInput'
 import { SpecialText } from './Typography'
 
 type Props = {
-  changeHandler: (program: Program) => void
-  program?: Program
-  deleteHandler?: (entityId: string) => void
+  changeHandler: (programId: string, session: Session) => void
+  programId: string
+  session?: Session
+  deleteHandler?: (programId: string, sessionId: string) => void
 }
 
-export default function ProgramForm({ changeHandler, program, deleteHandler }: Props) {
+export default function SessionForm({ changeHandler, programId, session, deleteHandler }: Props) {
   const navigation = useNavigation()
   return (
     <Formik
-      initialValues={{ name: (program && program.name) || '' }}
+      initialValues={{ name: (session && session.name) || '' }}
       onSubmit={values => {
         changeHandler(
-          program
-            ? { ...program, name: values.name }
+          programId,
+          session
+            ? { ...session, name: values.name }
             : {
                 name: values.name,
-                icon: 'test',
-                programId: uuidv4(),
-                sessions: []
+                sessionId: uuidv4(),
+                activities: [],
+                start: new Date(),
+                end: undefined
               }
         )
         navigation.goBack()
@@ -50,7 +53,7 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
               onChangeText={handleChange('name')}
               onBlur={handleBlur('name')}
               value={values.name}
-              placeholder="Program Name"
+              placeholder="Session Name"
               maxLength={25}
             />
             {/* <SimpleSelectInput
@@ -61,13 +64,22 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
               value={{ name: 'Workout Program', entityId: '0' }}
               disabled
             /> */}
-            {program && deleteHandler && (
+            {session && deleteHandler && (
               <NavigationLink
-                navigationParams={{ programId: program.programId }}
-                screen="DashboardScreen"
-                callback={() => deleteHandler(program.programId)}
+                navigationParams={{ programId, sessionId: session.sessionId }}
+                screen="ProgramDetailScreen"
+                callback={() => deleteHandler(programId, session.sessionId)}
               >
-                <InfoCard style={tw``} alertText="Delete This Program" />
+                <InfoCard
+                  style={tw``}
+                  // primaryText={item.name}
+                  alertText="Delete This Session"
+                  // rightIcon={
+                  //   <SecondaryText>
+                  //     <AntDesign name="right" size={16} />
+                  //   </SecondaryText>
+                  // }
+                />
               </NavigationLink>
             )}
           </View>
@@ -77,7 +89,7 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
   )
 }
 
-ProgramForm.defaultProps = {
-  program: undefined,
+SessionForm.defaultProps = {
+  session: undefined,
   deleteHandler: undefined
 }

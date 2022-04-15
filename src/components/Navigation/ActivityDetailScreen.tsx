@@ -9,7 +9,7 @@ export type ActivityNavigationProp = Props['navigation']
 function ActivityDetailScreen({ route }: Props) {
   return (
     <View>
-      <Text>{route.params.entityId}</Text>
+      <Text>{route.params.activityId}</Text>
     </View>
   )
 }

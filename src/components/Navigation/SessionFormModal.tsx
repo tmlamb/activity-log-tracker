@@ -2,28 +2,31 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React from 'react'
 import { useProgramState } from '../../context/ProgramState'
 import { StackParamList } from '../../types'
-import ProgramForm from '../ProgramForm'
+import SessionForm from '../SessionForm'
 import ModalLayout from './ModalLayout'
 
-type Props = NativeStackScreenProps<StackParamList, 'ProgramFormModal'>
-export type ProgramFormNavigationProp = Props['navigation']
+type Props = NativeStackScreenProps<StackParamList, 'SessionFormModal'>
+export type SessionFormNavigationProp = Props['navigation']
 
-export default function ProgramFormModal({ route }: Props) {
-  const { programs, addProgram, updateProgram, deleteProgram } = useProgramState()
-  const program = route.params
-    ? programs.find(p => p.programId === route.params?.programId)
+export default function SessionFormModal({ route }: Props) {
+  const { programs, addSession, updateSession, deleteSession } = useProgramState()
+  const session = route.params
+    ? programs
+        .find(p => p.programId === route.params?.programId)
+        ?.sessions.find(s => s.sessionId === route.params?.sessionId)
     : undefined
 
   return (
     <ModalLayout>
-      {program ? (
-        <ProgramForm
-          changeHandler={updateProgram}
-          program={program}
-          deleteHandler={deleteProgram}
+      {session ? (
+        <SessionForm
+          changeHandler={updateSession}
+          programId={route.params?.programId}
+          session={session}
+          deleteHandler={deleteSession}
         />
       ) : (
-        <ProgramForm changeHandler={addProgram} />
+        <SessionForm programId={route.params?.programId} changeHandler={addSession} />
       )}
     </ModalLayout>
   )

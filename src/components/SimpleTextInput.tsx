@@ -32,7 +32,7 @@ export default function SimpleTextInput({
         style
       )}
       placeholder={placeholder}
-      placeholderTextColor={tw.color('slate-400')}
+      placeholderTextColor={tw.color('slate-500')}
       maxLength={maxLength}
     />
   )

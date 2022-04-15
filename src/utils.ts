@@ -9,15 +9,18 @@ export const isToday = (date: Date) => {
   )
 }
 
-export const mapSessionsByDate = (sessions: Session[]) => {
+export const mapSessionsByDate = (
+  sessions: Session[],
+  dateFormatCallback: (date: Date) => string
+) => {
   const map = new Map<string, Session[]>()
   sessions.forEach(session => {
-    const date = isToday(session.start) ? 'Today' : session.start.toLocaleDateString()
-    // const date = session.start.toLocaleDateString()
-    if (!map.has(date)) {
-      map.set(date, [])
+    // const date = isToday(session.start) ? 'Today' : session.start.toLocaleDateString()
+    const dateKey = dateFormatCallback(session.start)
+    if (!map.has(dateKey)) {
+      map.set(dateKey, [])
     }
-    map.get(date)?.push(session)
+    map.get(dateKey)?.push(session)
   })
   return map
 }

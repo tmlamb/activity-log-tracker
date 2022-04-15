@@ -1,20 +1,49 @@
 export type BaseEntity = {
-  entityId: string
   name: string
+}
+
+export type ProgramNavParams = {
+  programId: string
+}
+
+export type ProgramFormNavParams = {
+  programId?: string
+}
+
+export type SessionNavParams = {
+  sessionId: string
+  programId: string
+}
+
+export type SessionFormNavParams = {
+  sessionId?: string
+  programId: string
+}
+
+export type ActivityNavParams = {
+  activityId: string
+  sessionId: string
+  programId: string
+}
+
+export type ActivityFormNavParams = {
+  activityId?: string
+  sessionId: string
+  programId: string
 }
 
 export type StackParamList = {
   DashboardScreen: undefined
-  ProgramDetailScreen: BaseEntity
-  ProgramFormModal: BaseEntity | undefined
-  SessionDetailScreen: BaseEntity
-  SessionFormModal: undefined
-  ActivityDetailScreen: BaseEntity
-  ActivityFormModal: undefined
-  EmojiModal: undefined
+  ProgramDetailScreen: ProgramNavParams
+  ProgramFormModal: ProgramFormNavParams
+  SessionDetailScreen: SessionNavParams
+  SessionFormModal: SessionFormNavParams
+  ActivityDetailScreen: ActivityNavParams
+  ActivityFormModal: ActivityFormNavParams
 }
 
 export type Activity = {
+  activityId: string
   warmupSets: number
   workSets: number
   reps: number
@@ -29,6 +58,7 @@ export type Load = {
 }
 
 export type Exercise = {
+  exerciseId: string
   muscle: string
   oneRepMax: Weight
 } & BaseEntity
@@ -39,12 +69,14 @@ export type Weight = {
 }
 
 export type Session = {
+  sessionId: string
   start: Date
   end: Date | undefined
   activities: Activity[]
 } & BaseEntity
 
 export type Program = {
+  programId: string
   icon?: string
   sessions: Session[]
 } & BaseEntity

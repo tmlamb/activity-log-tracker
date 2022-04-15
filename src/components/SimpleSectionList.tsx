@@ -23,7 +23,7 @@ export default function SimpleSectionList({ sections, style, renderItem }: Props
   return (
     <SectionList
       sections={sections}
-      keyExtractor={item => item.entityId}
+      keyExtractor={(item, index) => `${item.name}_${index}`}
       renderItem={renderItem}
       renderSectionHeader={({ section: { title } }) => (
         <SecondaryText style={tw`ml-4 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>

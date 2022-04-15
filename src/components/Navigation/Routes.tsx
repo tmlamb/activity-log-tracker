@@ -6,6 +6,7 @@ import DashboardScreen from './DashboardScreen'
 import ProgramDetailScreen from './ProgramDetailScreen'
 import ProgramFormModal from './ProgramFormModal'
 import SessionDetailScreen from './SessionDetailScreen'
+import SessionFormModal from './SessionFormModal'
 
 const AppStack = createNativeStackNavigator<StackParamList>()
 
@@ -34,7 +35,14 @@ export default function Routes() {
           name="ProgramFormModal"
           component={ProgramFormModal}
           options={({ route }) => ({
-            title: route.params ? 'Edit Program' : 'Add Program'
+            title: route.params && route.params.programId ? 'Edit Program' : 'Add Program'
+          })}
+        />
+        <AppStack.Screen
+          name="SessionFormModal"
+          component={SessionFormModal}
+          options={({ route }) => ({
+            title: route.params && route.params.sessionId ? 'Edit Session' : 'Add Session'
           })}
         />
       </AppStack.Group>

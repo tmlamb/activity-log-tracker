@@ -15,11 +15,14 @@ export default function ProgramList({ programs }: Props) {
     <FlatList
       data={programs}
       renderItem={({ item }) => (
-        <NavigationLink entityId={item.entityId} screen="ProgramDetailScreen">
+        <NavigationLink
+          navigationParams={{ programId: (item as Program).programId }}
+          screen="ProgramDetailScreen"
+        >
           <PrimaryText style={tw``}>{item.name}</PrimaryText>
         </NavigationLink>
       )}
-      keyExtractor={item => item.entityId}
+      keyExtractor={item => (item as Program).programId}
     />
   )
 }
