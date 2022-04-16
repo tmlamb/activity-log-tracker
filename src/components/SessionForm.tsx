@@ -6,9 +6,11 @@ import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../tailwind'
 import { Session } from '../types'
+import { isToday } from '../utils'
+import { ActivitiesInput } from './ActivitiesInput'
 import ButtonContainer from './ButtonContainer'
+import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
-import InfoCard from './InfoCard'
 import NavigationLink from './Navigation/NavigationLink'
 import SimpleTextInput from './SimpleTextInput'
 import { SpecialText } from './Typography'
@@ -24,17 +26,20 @@ export default function SessionForm({ changeHandler, programId, session, deleteH
   const navigation = useNavigation()
   return (
     <Formik
-      initialValues={{ name: (session && session.name) || '' }}
+      initialValues={{
+        name: (session && session.name) || '',
+        date: (session && session.start) || new Date()
+      }}
       onSubmit={values => {
         changeHandler(
           programId,
           session
-            ? { ...session, name: values.name }
+            ? { ...session, name: values.name, start: new Date(values.date) }
             : {
                 name: values.name,
                 sessionId: uuidv4(),
                 activities: [],
-                start: new Date(),
+                start: values.date,
                 end: undefined
               }
         )
@@ -56,21 +61,20 @@ export default function SessionForm({ changeHandler, programId, session, deleteH
               placeholder="Session Name"
               maxLength={25}
             />
-            {/* <SimpleSelectInput
-              onChangeOption={handleChange('type')}
-              onBlur={handleChange('type')}
-              label="Type"
-              options={[{ name: 'Workout Program', entityId: '0' }]}
-              value={{ name: 'Workout Program', entityId: '0' }}
-              disabled
-            /> */}
+
+            <ActivitiesInput style={tw`mb-9`} activities={session?.activities} />
+
+            <CardInfo
+              primaryText="Date"
+              secondaryText={isToday(values.date) ? 'Today' : values.date.toLocaleDateString()}
+            />
             {session && deleteHandler && (
               <NavigationLink
                 navigationParams={{ programId, sessionId: session.sessionId }}
                 screen="ProgramDetailScreen"
                 callback={() => deleteHandler(programId, session.sessionId)}
               >
-                <InfoCard
+                <CardInfo
                   style={tw``}
                   // primaryText={item.name}
                   alertText="Delete This Session"

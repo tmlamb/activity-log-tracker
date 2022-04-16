@@ -7,8 +7,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../tailwind'
 import { Program } from '../types'
 import ButtonContainer from './ButtonContainer'
+import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
-import InfoCard from './InfoCard'
 import NavigationLink from './Navigation/NavigationLink'
 import SimpleTextInput from './SimpleTextInput'
 import { SpecialText } from './Typography'
@@ -67,7 +67,7 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
                 screen="DashboardScreen"
                 callback={() => deleteHandler(program.programId)}
               >
-                <InfoCard style={tw``} alertText="Delete This Program" />
+                <CardInfo style={tw``} alertText="Delete This Program" />
               </NavigationLink>
             )}
           </View>

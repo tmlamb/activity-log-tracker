@@ -3,8 +3,8 @@ import React from 'react'
 import { View } from 'react-native'
 import { tw } from '../../tailwind'
 import { Program } from '../../types'
+import CardInfo from '../CardInfo'
 import HeaderRightContainer from '../HeaderRightContainer'
-import InfoCard from '../InfoCard'
 import NavigationLink from '../Navigation/NavigationLink'
 import SimpleSectionList from '../SimpleSectionList'
 import { PrimaryText, SecondaryText, SpecialText } from '../Typography'
@@ -36,7 +36,7 @@ export default function Dashboard({ programs }: Props) {
                 screen="ProgramDetailScreen"
                 navigationParams={{ programId: (item as Program).programId }}
               >
-                <InfoCard
+                <CardInfo
                   style={tw.style(
                     'border-b-2 dark:border-slate-700 border-slate-300',
                     index === 0 ? 'rounded-t-xl' : undefined,

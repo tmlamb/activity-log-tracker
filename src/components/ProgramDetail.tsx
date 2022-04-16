@@ -4,8 +4,8 @@ import { View } from 'react-native'
 import { tw } from '../tailwind'
 import { Program, Session } from '../types'
 import { isToday, mapSessionsByDate } from '../utils'
+import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
-import InfoCard from './InfoCard'
 import NavigationLink from './Navigation/NavigationLink'
 import SimpleSectionList from './SimpleSectionList'
 import { SecondaryText, SpecialText } from './Typography'
@@ -57,7 +57,7 @@ export default function ProgramDetail({ program }: Props) {
           screen="ProgramFormModal"
           navigationParams={{ programId: program.programId }}
         >
-          <InfoCard style={tw`rounded-xl mb-9`} primaryText={program.name} specialText="Edit" />
+          <CardInfo style={tw`rounded-xl mb-9`} primaryText={program.name} specialText="Edit" />
         </NavigationLink>
         {(!sections || sections.length === 0 || sections[0].title.includes('TODAY')) && (
           <SimpleSectionList
@@ -65,7 +65,7 @@ export default function ProgramDetail({ program }: Props) {
             sections={[{ title: formatDate(new Date()), data: [{ name: 'foo' }] }]}
             renderItem={({ index, section }) => (
               <NavigationLink screen="SessionFormModal">
-                <InfoCard
+                <CardInfo
                   style={tw.style(
                     'border-b-2 dark:border-slate-800 border-slate-300',
                     index === 0 ? 'rounded-t-xl' : undefined,
@@ -95,7 +95,7 @@ export default function ProgramDetail({ program }: Props) {
                 }}
                 screen="SessionDetailScreen"
               >
-                <InfoCard
+                <CardInfo
                   style={tw.style(
                     'border-b-2 dark:border-slate-800 border-slate-300',
                     index === 0 ? 'rounded-t-xl' : undefined,

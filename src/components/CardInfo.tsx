@@ -14,7 +14,7 @@ type Props = {
   style?: ClassInput
 }
 
-export default function InfoCard({
+export default function CardInfo({
   primaryText,
   secondaryText,
   specialText,
@@ -27,15 +27,17 @@ export default function InfoCard({
       <View style={tw.style('flex flex-row items-center justify-between')}>
         {alertText && <AlertText>{alertText}</AlertText>}
         {primaryText && <PrimaryText style={tw``}>{primaryText}</PrimaryText>}
-        {secondaryText && <SecondaryText style={tw``}>{secondaryText}</SecondaryText>}
-        {specialText && <SpecialText style={tw``}>{specialText}</SpecialText>}
-        {rightIcon}
+        <View style={tw`flex flex-row`}>
+          {secondaryText && <SecondaryText style={tw`pr-1.5`}>{secondaryText}</SecondaryText>}
+          {specialText && <SpecialText style={tw``}>{specialText}</SpecialText>}
+          {rightIcon}
+        </View>
       </View>
     </Card>
   )
 }
 
-InfoCard.defaultProps = {
+CardInfo.defaultProps = {
   primaryText: undefined,
   secondaryText: undefined,
   specialText: undefined,
