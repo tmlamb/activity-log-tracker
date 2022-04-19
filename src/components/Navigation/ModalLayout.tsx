@@ -17,6 +17,8 @@ export default function ModalLayout({ children }: { children: React.ReactNode })
   }, [navigation])
 
   return (
-    <ScrollView style={tw`w-full h-full bg-white py-9 dark:bg-slate-900`}>{children}</ScrollView>
+    <ScrollView style={tw`w-full h-full max-w-2xl mx-auto bg-white py-9 dark:bg-slate-900`}>
+      {children}
+    </ScrollView>
   )
 }

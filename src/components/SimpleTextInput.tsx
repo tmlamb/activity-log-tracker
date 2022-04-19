@@ -11,6 +11,7 @@ type Props = {
   value?: string
   style?: ViewStyle
   textInputStyle?: ClassInput
+  labelStyle?: ClassInput
   label?: string
   placeholder?: string
   maxLength?: number
@@ -32,6 +33,7 @@ export default function SimpleTextInput({
   value,
   style,
   textInputStyle,
+  labelStyle,
   label,
   placeholder,
   maxLength,
@@ -46,9 +48,11 @@ export default function SimpleTextInput({
   }
 
   return (
-    <Card style={tw.style('flex flex-row items-center justify-between relative px-2', style)}>
+    <Card style={tw.style('flex flex-row items-center justify-between relative', style)}>
       {label && (
-        <SecondaryText style={tw`absolute pl-2 web:pl-0 web:relative`}>{label}</SecondaryText>
+        <SecondaryText style={tw.style('absolute pl-4 web:w-2/3 web:relative', labelStyle)}>
+          {label}
+        </SecondaryText>
       )}
       <TextInput
         onChangeText={handleChange}
@@ -56,7 +60,7 @@ export default function SimpleTextInput({
         value={value}
         style={tw.style(
           primaryTextColor,
-          'py-3 px-4 w-full web:w-auto text-lg leading-tight tracking-wide',
+          'py-3 px-4 w-full web:w-1/3 text-lg leading-tight tracking-wide',
           textInputStyle
         )}
         placeholder={placeholder}
@@ -76,6 +80,7 @@ SimpleTextInput.defaultProps = {
   style: undefined,
   onChangeText: (text: string) => text,
   textInputStyle: undefined,
+  labelStyle: undefined,
   maxLength: undefined,
   label: undefined,
   placeholder: undefined,

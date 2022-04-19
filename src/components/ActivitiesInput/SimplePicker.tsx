@@ -22,11 +22,11 @@ interface PropsFilled extends Props {
 export default function SimplePicker({ label, items, style, onValueChange, value }: PropsFilled) {
   return (
     <Card
-      style={tw.style('relative border-b-2 py-2', style, {
+      style={tw.style('relative py-2.5', style, {
         cursor: 'pointer'
       })}
     >
-      <PrimaryText style={tw`absolute py-2 pl-4 web:pt-0`}>{label}</PrimaryText>
+      <PrimaryText style={tw`absolute py-2.5 pl-4 web:pt-0`}>{label}</PrimaryText>
       <RNPickerSelect
         // placeholder={{
         //   label: 'Warmup Sets',

@@ -86,6 +86,7 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
               value={value}
               placeholder="Program Name"
               maxLength={25}
+              style={tw`mb-9`}
               textInputStyle={tw`w-full`}
             />
           )}

@@ -13,6 +13,7 @@ type Props = {
   rightIcon?: React.ReactNode
   leftIcon?: React.ReactNode
   style?: ClassInput
+  reverse?: boolean
 }
 
 export default function CardInfo({
@@ -22,13 +23,19 @@ export default function CardInfo({
   alertText,
   rightIcon,
   leftIcon,
-  style
+  style,
+  reverse
 }: Props) {
   return (
     <Card style={tw.style('py-3 px-4', style)}>
-      <View style={tw.style('flex flex-row items-center justify-between')}>
+      <View
+        style={tw.style(
+          'flex flex-row items-center justify-between',
+          reverse ? 'flex-row-reverse' : undefined
+        )}
+      >
         <View style={tw`flex flex-row items-center justify-start`}>
-          {leftIcon && <View style={tw.style('mr-3')}>{leftIcon}</View>}
+          {leftIcon && <View style={tw.style('mr-4')}>{leftIcon}</View>}
           {alertText && <AlertText style={tw`text-lg leading-tight`}>{alertText}</AlertText>}
           {primaryText && (
             <PrimaryText style={tw`text-lg leading-tight`}>{primaryText}</PrimaryText>
@@ -55,5 +62,6 @@ CardInfo.defaultProps = {
   alertText: undefined,
   rightIcon: undefined,
   leftIcon: undefined,
-  style: undefined
+  style: undefined,
+  reverse: false
 }

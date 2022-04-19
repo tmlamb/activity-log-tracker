@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { View } from 'react-native'
+import { LogBox, View } from 'react-native'
 import { tw } from '../tailwind'
 import { Load } from '../types'
 import SimplePicker from './ActivitiesInput/SimplePicker'
@@ -15,6 +15,9 @@ import { SessionNavigationProp } from './Navigation/SessionDetailScreen'
 import { SessionFormNavigationProp } from './Navigation/SessionFormModal'
 import SimpleTextInput from './SimpleTextInput'
 import { primaryTextColor, SpecialText } from './Typography'
+
+// TODO: Address problem with non-serializable navigation prop (see onSelect function), then remove this ignore statement
+LogBox.ignoreLogs(['Non-serializable values were found in the navigation state'])
 
 type Props = {
   load?: Load
@@ -106,7 +109,7 @@ export default function LoadForm({ load, onSelect }: Props) {
                 placeholder="0"
                 maxLength={2}
                 textAlign="right"
-                style={tw`px-4 py-0 border-b-2 border-l-2`}
+                style={tw`px-4 py-0`}
                 textInputStyle={tw`px-0 py-2.5`}
                 keyboardType="number-pad"
                 selectTextOnFocus
@@ -132,8 +135,8 @@ export default function LoadForm({ load, onSelect }: Props) {
                 placeholder="0"
                 maxLength={4}
                 textAlign="right"
-                style={tw`py-0 border-b-2 border-l-2`}
-                textInputStyle={tw`px-4 py-2.5`}
+                style={tw`px-1 py-0`}
+                textInputStyle={tw`px-4 py-3`}
                 keyboardType="numeric"
                 selectTextOnFocus
                 clearTextOnFocus

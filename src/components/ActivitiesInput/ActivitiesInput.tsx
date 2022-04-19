@@ -76,7 +76,7 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
           <View style={tw`flex flex-row items-center justify-between w-6/12 pr-1`}>
             <ButtonContainer onPress={() => removeActivity(index)}>
               <AlertText style={tw`p-2 -ml-2`}>
-                <AntDesign name="minuscircle" size={20} />
+                <AntDesign name="minuscircle" size={16} />
               </AlertText>
             </ButtonContainer>
             <SpecialText style={tw`tracking-tight text-lg w-9/12 pl-2.5`}>
@@ -108,7 +108,8 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
               maxLength={2}
               textAlign="right"
               style={tw`py-0 border-b-2 border-l-2`}
-              textInputStyle={tw`px-0 py-2.5`}
+              textInputStyle={tw`px-0 pb-2.5 pt-3`}
+              labelStyle={tw`px-2`}
               keyboardType="number-pad"
               selectTextOnFocus
               clearTextOnFocus
@@ -136,6 +137,7 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
               textAlign="right"
               style={tw`py-0 border-b-2 border-l-2`}
               textInputStyle={tw`px-0 py-2.5`}
+              labelStyle={tw`px-2`}
               keyboardType="number-pad"
               selectTextOnFocus
               clearTextOnFocus
@@ -163,6 +165,7 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
               textAlign="right"
               style={tw`py-0 border-b-2 border-l-2`}
               textInputStyle={tw`px-0 py-2.5`}
+              labelStyle={tw`px-2`}
               keyboardType="number-pad"
               selectTextOnFocus
               clearTextOnFocus
@@ -214,6 +217,7 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
               textAlign="right"
               style={tw`py-0 border-l-2`}
               textInputStyle={tw`px-0 py-2.5`}
+              labelStyle={tw`px-2`}
               selectTextOnFocus
               clearTextOnFocus
               keyboardType="number-pad"
@@ -230,6 +234,7 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
             </SpecialText>
           }
           primaryText="Plan Workout Activity"
+          style={tw`py-2.5`}
         />
       </ButtonContainer>
     </View>

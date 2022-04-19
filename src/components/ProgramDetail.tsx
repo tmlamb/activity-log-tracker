@@ -73,6 +73,7 @@ export default function ProgramDetail({ program }: Props) {
                     index === section.data.length - 1 ? 'rounded-b-xl border-b-0' : undefined
                   )}
                   specialText="Plan Workout Session"
+                  reverse
                   // rightIcon={
                   //   <SecondaryText>
                   //     <AntDesign name="right" size={16} />

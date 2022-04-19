@@ -15,5 +15,9 @@ export default function ScreenLayout({ children }: { children: React.ReactNode }
     })
   }, [navigation])
 
-  return <View style={tw`w-full h-full px-4 py-9 bg-slate-50 dark:bg-black`}>{children}</View>
+  return (
+    <View style={tw`w-full h-full max-w-2xl px-4 mx-auto py-9 bg-slate-50 dark:bg-black`}>
+      {children}
+    </View>
+  )
 }
