@@ -26,7 +26,7 @@ type Props = {
 
 type FormData = {
   type: 'RPE' | 'PERCENT'
-  value: number
+  value: number | undefined
 }
 
 export default function LoadForm({ load, onSelect }: Props) {
@@ -42,7 +42,8 @@ export default function LoadForm({ load, onSelect }: Props) {
     control,
     handleSubmit,
     watch,
-    formState: { errors }
+    formState: { errors, isValid },
+    setValue
   } = useForm<FormData>({
     defaultValues: {
       type: load && load.type,
@@ -50,20 +51,16 @@ export default function LoadForm({ load, onSelect }: Props) {
     }
   })
   const type = watch('type')
-  //   const [state, setState] = useState<Partial<Load>>(load || {})
-  //   const handleSubmit = () => {
-  //     onSelect({ type: state.type!, value: state.value! })
-  //     navigation.goBack()
-  //   }
+
   const onSubmit = (data: FormData) => {
-    onSelect({ type: data.type, value: data.value })
+    onSelect({ type: data.type, value: data.value || 0 })
     navigation.goBack()
   }
 
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)}>
+        <ButtonContainer onPress={handleSubmit(onSubmit)} disabled={!isValid}>
           <SpecialText style={tw`font-bold`}>Done</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
@@ -84,10 +81,10 @@ export default function LoadForm({ load, onSelect }: Props) {
                   color: tw.style(primaryTextColor).color as string
                 }
               ]}
-              //   onValueChange={(value: string) =>
-              //     setState({ ...load, type: value === 'PERCENT' ? 'PERCENT' : 'RPE' })
-              //   }
-              onValueChange={onChange}
+              onValueChange={v => {
+                setValue('value', 0)
+                onChange(v)
+              }}
               value={value}
               style={tw`px-4 mb-9`}
             />
@@ -98,19 +95,21 @@ export default function LoadForm({ load, onSelect }: Props) {
           <Controller
             control={control}
             rules={{
-              required: true
+              required: true,
+              min: 1,
+              max: 10
             }}
             render={({ field: { onChange, onBlur, value } }) => (
               <SimpleTextInput
                 label="RPE Value"
                 onChangeText={onChange}
                 onBlur={onBlur}
-                value={value.toString()}
+                value={(value && value.toString()) || undefined}
                 placeholder="0"
                 maxLength={2}
                 textAlign="right"
-                style={tw`px-4 py-0`}
-                textInputStyle={tw`px-0 py-2.5`}
+                style={tw`px-0 py-0`}
+                textInputStyle={tw`px-4 py-3`}
                 keyboardType="number-pad"
                 selectTextOnFocus
                 clearTextOnFocus
@@ -124,18 +123,20 @@ export default function LoadForm({ load, onSelect }: Props) {
           <Controller
             control={control}
             rules={{
-              required: true
+              required: true,
+              min: 1,
+              max: 100
             }}
             render={({ field: { onChange, onBlur, value } }) => (
               <SimpleTextInput
                 label="% of 1RM"
                 onChangeText={onChange}
                 onBlur={onBlur}
-                value={value.toString()}
+                value={(value && value.toString()) || undefined}
                 placeholder="0"
                 maxLength={4}
                 textAlign="right"
-                style={tw`px-1 py-0`}
+                style={tw`px-0 py-0`}
                 textInputStyle={tw`px-4 py-3`}
                 keyboardType="numeric"
                 selectTextOnFocus

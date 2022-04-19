@@ -11,7 +11,8 @@ export default function ScreenLayout({ children }: { children: React.ReactNode }
       headerStyle: tw`bg-slate-50 dark:bg-black`,
       headerTitleStyle: tw.style(primaryTextColor),
       headerShadowVisible: false,
-      headerTintColor: tw.style(primaryTextColor).color
+      headerTintColor: tw.style(primaryTextColor).color,
+      headerBackTitleStyle: tw.style(primaryTextColor)
     })
   }, [navigation])
 

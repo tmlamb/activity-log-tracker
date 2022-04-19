@@ -49,27 +49,9 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
   }
 
   return (
-    // <Formik
-    //   initialValues={{ name: (program && program.name) || '' }}
-    //   onSubmit={values => {
-    //     changeHandler(
-    //       program
-    //         ? { ...program, name: values.name }
-    //         : {
-    //             name: values.name,
-    //             icon: 'test',
-    //             programId: uuidv4(),
-    //             sessions: []
-    //           }
-    //     )
-    //     navigation.goBack()
-    //   }}
-    // >
-    //   {({ handleSubmit, handleChange, handleBlur, values }) => (
     <>
       <HeaderRightContainer>
         <ButtonContainer onPress={handleSubmit(onSubmit)}>
-          {/* <ButtonContainer onPress={handleSubmit as (values: unknown) => void}> */}
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>

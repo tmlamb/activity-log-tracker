@@ -15,9 +15,6 @@ export default function SessionFormModal({ route }: Props) {
         .find(p => p.programId === route.params?.programId)
         ?.sessions.find(s => s.sessionId === route.params?.sessionId)
     : undefined
-  // const { load, activityId } = route.params.newLoad
-  //   ? route.params.newLoad
-  //   : { load: undefined, activityId: undefined }
 
   return (
     <ModalLayout>
@@ -34,16 +31,3 @@ export default function SessionFormModal({ route }: Props) {
     </ModalLayout>
   )
 }
-
-// type Props = NativeStackScreenProps<StackParamList, 'ProgramDetailScreen'>
-// export type ProgramNavigationProp = Props['navigation']
-
-// export default function ProgramDetailScreen({ route }: Props) {
-//   const { programs } = useProgramState()
-//   const program = programs.find(p => p.entityId === route.params.entityId)
-//   return (
-//     <ScreenLayout>
-//       <View>{program && <ProgramDetail program={program} />}</View>
-//     </ScreenLayout>
-//   )
-// }

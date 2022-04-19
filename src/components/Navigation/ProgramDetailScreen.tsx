@@ -11,7 +11,6 @@ export type ProgramNavigationProp = Props['navigation']
 
 export default function ProgramDetailScreen({ route }: Props) {
   const { programs } = useProgramState()
-  type test = typeof route.params
   const program = programs.find(p => p.programId === route.params.programId)
   return (
     <ScreenLayout>

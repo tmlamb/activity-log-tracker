@@ -115,16 +115,7 @@ export default function SessionForm({ changeHandler, programId, session, deleteH
             screen="ProgramDetailScreen"
             callback={() => deleteHandler(programId, session.sessionId)}
           >
-            <CardInfo
-              style={tw``}
-              // primaryText={item.name}
-              alertText="Delete This Session"
-              // rightIcon={
-              //   <SecondaryText>
-              //     <AntDesign name="right" size={16} />
-              //   </SecondaryText>
-              // }
-            />
+            <CardInfo style={tw``} alertText="Delete This Session" />
           </NavigationLink>
         )}
       </View>

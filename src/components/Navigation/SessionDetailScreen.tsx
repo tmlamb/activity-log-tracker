@@ -11,20 +11,6 @@ function SessionDetailScreen({ route }: Props) {
   return (
     <View style={tw`dark:bg-black`}>
       <Text>{route.params.sessionId}</Text>
-      {/* <Text>{route.params.workout.priority.name}</Text>
-      <FlatList
-        data={route.params.workout.activities}
-        renderItem={({ item }) => (
-          <Button
-            title={`Go to ${item.exercise.name}`}
-            onPress={() =>
-              navigation.navigate('ActivityScreen', {
-                activity: item
-              })
-            }
-          />
-        )}
-      /> */}
     </View>
   )
 }

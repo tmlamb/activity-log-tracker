@@ -6,19 +6,22 @@ import { tw } from '../tailwind'
 export default function ButtonContainer({
   children,
   style,
-  onPress
+  onPress,
+  disabled
 }: {
   children: React.ReactNode
   onPress: (ev: NativeSyntheticEvent<NativeTouchEvent>) => void
   style?: ClassInput
+  disabled?: boolean
 }) {
   return (
-    <Pressable style={tw.style(style)} onPress={onPress}>
+    <Pressable style={tw.style(style)} disabled={disabled} onPress={onPress}>
       {children}
     </Pressable>
   )
 }
 
 ButtonContainer.defaultProps = {
-  style: undefined
+  style: undefined,
+  disabled: false
 }

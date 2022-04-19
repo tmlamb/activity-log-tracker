@@ -48,26 +48,8 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
     setActivities(activities.slice(0, index).concat(activities.slice(index + 1)))
   }
 
-  // const onSelectLoad = useCallback(
-  //   (change: { load: Load; activityId: string }) => {
-  //     handleChange(
-  //       activities.map(
-  //         item =>
-  //           (item.activityId === change.activityId
-  //             ? {
-  //                 ...(activities.find(a => a.activityId === change.activityId) || {}),
-  //                 load: change.load
-  //               }
-  //             : undefined) || item
-  //       )
-  //     )
-  //   },
-  //   [activities, handleChange]
-  // )
-
   return (
     <View style={tw.style(style)}>
-      {/* For each activity: */}
       {activities.map((activity, index) => (
         <Card
           key={activity.activityId}

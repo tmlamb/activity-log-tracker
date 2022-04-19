@@ -28,16 +28,3 @@ export default function ProgramFormModal({ route }: Props) {
     </ModalLayout>
   )
 }
-
-// type Props = NativeStackScreenProps<StackParamList, 'ProgramDetailScreen'>
-// export type ProgramNavigationProp = Props['navigation']
-
-// export default function ProgramDetailScreen({ route }: Props) {
-//   const { programs } = useProgramState()
-//   const program = programs.find(p => p.entityId === route.params.entityId)
-//   return (
-//     <ScreenLayout>
-//       <View>{program && <ProgramDetail program={program} />}</View>
-//     </ScreenLayout>
-//   )
-// }

@@ -15,7 +15,6 @@ export const mapSessionsByDate = (
 ) => {
   const map = new Map<string, Session[]>()
   sessions.forEach(session => {
-    // const date = isToday(session.start) ? 'Today' : session.start.toLocaleDateString()
     const dateKey = dateFormatCallback(session.start)
     if (!map.has(dateKey)) {
       map.set(dateKey, [])
