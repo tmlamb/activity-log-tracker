@@ -15,6 +15,9 @@ export default function SessionFormModal({ route }: Props) {
         .find(p => p.programId === route.params?.programId)
         ?.sessions.find(s => s.sessionId === route.params?.sessionId)
     : undefined
+  // const { load, activityId } = route.params.newLoad
+  //   ? route.params.newLoad
+  //   : { load: undefined, activityId: undefined }
 
   return (
     <ModalLayout>

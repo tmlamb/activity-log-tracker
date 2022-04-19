@@ -1,58 +1,108 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
-import { View } from 'react-native'
+import { Platform } from 'react-native'
 import RNPickerSelect from 'react-native-picker-select'
+import { ClassInput } from 'twrnc/dist/esm/types'
 import { tw } from '../../tailwind'
-import { SecondaryText } from '../Typography'
+import Card from '../Card'
+import { PrimaryText, SecondaryText, secondaryTextColor } from '../Typography'
 
-export default function SimplePicker() {
+type Props = {
+  label: string
+  items: { label: string; value: string; color: string }[]
+  style?: ClassInput
+  onValueChange?: (value: string) => void
+  value?: string
+}
+
+interface PropsFilled extends Props {
+  onValueChange: (value: string) => void
+}
+
+export default function SimplePicker({ label, items, style, onValueChange, value }: PropsFilled) {
   return (
-    <View style={tw`p-2`}>
+    <Card
+      style={tw.style('relative border-b-2 py-2', style, {
+        cursor: 'pointer'
+      })}
+    >
+      <PrimaryText style={tw`absolute py-2 pl-4 web:pt-0`}>{label}</PrimaryText>
       <RNPickerSelect
-        placeholder={{
-          label: 'Warmup Sets',
-          value: 3,
-          color: '#9EA0A4'
-        }}
+        // placeholder={{
+        //   label: 'Warmup Sets',
+        //   value: 3,
+        //   color: '#9EA0A4'
+        // }}
+        placeholder={{}}
+        pickerProps={{}}
         style={{
           inputAndroid: {
-            backgroundColor: 'transparent'
+            backgroundColor: 'transparent',
+            borderColor: 'transparent',
+            alignItems: 'center',
+            fontSize: 18,
+            paddingRight: 7,
+            color: tw.style(secondaryTextColor).color as string
           },
           inputWeb: {
             backgroundColor: 'transparent',
-            borderColor: 'transparent'
+            borderColor: 'transparent',
+            fontSize: 18,
+            textAlign: 'right',
+            color: tw.style(secondaryTextColor).color as string
           },
           inputIOS: {
             backgroundColor: 'transparent',
-            borderColor: 'transparent'
+            borderColor: 'transparent',
+            alignItems: 'center',
+            fontSize: 18,
+            paddingRight: 7,
+            color: tw.style(secondaryTextColor).color as string
           },
           inputAndroidContainer: {},
-          inputIOSContainer: {},
+          inputIOSContainer: {
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'flex-end'
+          },
           iconContainer: {
-            // top: 5,
-            // right: 15
+            position: 'relative'
+          },
+          placeholder: {
+            color: tw.style(secondaryTextColor).color as string
+          },
+          modalViewMiddle: {
+            backgroundColor: tw.style('dark:bg-slate-900 bg-slate-200').backgroundColor as string
+          },
+          modalViewBottom: {
+            backgroundColor: tw.style('dark:bg-black bg-white').backgroundColor as string
           }
         }}
-        onValueChange={value => console.log(value)}
-        items={[
-          { label: '1', value: '1' },
-          { label: '2', value: '2' },
-          { label: '3', value: '3' },
-          { label: '4', value: '4' },
-          { label: '5', value: '5' },
-          { label: '6', value: '6' },
-          { label: '7', value: '7' },
-          { label: '8', value: '8' },
-          { label: '9', value: '9' },
-          { label: '10', value: '10' }
-        ]}
+        onValueChange={v => {
+          onValueChange(v)
+        }}
+        modalProps={{
+          style: {
+            backgroundColor: 'black'
+          }
+        }}
+        value={value}
+        items={items}
         // eslint-disable-next-line react/no-unstable-nested-components
-        Icon={() => (
-          <SecondaryText>
-            <AntDesign name="right" size={16} />
-          </SecondaryText>
-        )}
+        Icon={() =>
+          Platform.OS !== 'web' && (
+            <SecondaryText>
+              <AntDesign name="right" size={16} />
+            </SecondaryText>
+          )
+        }
       />
-    </View>
+    </Card>
   )
+}
+
+SimplePicker.defaultProps = {
+  style: undefined,
+  onValueChange: (value: string) => value,
+  value: undefined
 }

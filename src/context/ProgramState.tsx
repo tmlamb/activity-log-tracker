@@ -14,7 +14,6 @@ const mock: Program[] = [
         end: undefined,
         activities: [
           {
-            name: 'TBD',
             activityId: '1',
             warmupSets: 3,
             workSets: 3,
@@ -44,7 +43,6 @@ const mock: Program[] = [
         end: undefined,
         activities: [
           {
-            name: 'TBD',
             activityId: '1',
             warmupSets: 3,
             workSets: 3,
@@ -73,7 +71,6 @@ const mock: Program[] = [
         end: undefined,
         activities: [
           {
-            name: 'TBD',
             activityId: '1',
             warmupSets: 3,
             workSets: 3,
@@ -103,7 +100,6 @@ const mock: Program[] = [
         end: undefined,
         activities: [
           {
-            name: 'TBD',
             activityId: '1',
             warmupSets: 3,
             workSets: 3,
@@ -126,7 +122,6 @@ const mock: Program[] = [
         ]
       }
     ],
-    icon: 'test',
     programId: '1'
   }
 ]

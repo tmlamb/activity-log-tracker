@@ -11,6 +11,7 @@ type Props = {
   specialText?: string
   alertText?: string
   rightIcon?: React.ReactNode
+  leftIcon?: React.ReactNode
   style?: ClassInput
 }
 
@@ -20,16 +21,26 @@ export default function CardInfo({
   specialText,
   alertText,
   rightIcon,
+  leftIcon,
   style
 }: Props) {
   return (
-    <Card style={style}>
+    <Card style={tw.style('py-3 px-4', style)}>
       <View style={tw.style('flex flex-row items-center justify-between')}>
-        {alertText && <AlertText>{alertText}</AlertText>}
-        {primaryText && <PrimaryText style={tw``}>{primaryText}</PrimaryText>}
-        <View style={tw`flex flex-row`}>
-          {secondaryText && <SecondaryText style={tw`pr-1.5`}>{secondaryText}</SecondaryText>}
-          {specialText && <SpecialText style={tw``}>{specialText}</SpecialText>}
+        <View style={tw`flex flex-row items-center justify-start`}>
+          {leftIcon && <View style={tw.style('mr-3')}>{leftIcon}</View>}
+          {alertText && <AlertText style={tw`text-lg leading-tight`}>{alertText}</AlertText>}
+          {primaryText && (
+            <PrimaryText style={tw`text-lg leading-tight`}>{primaryText}</PrimaryText>
+          )}
+        </View>
+        <View style={tw`flex flex-row items-center justify-start`}>
+          {secondaryText && (
+            <SecondaryText style={tw`pr-1.5 leading-tight text-lg`}>{secondaryText}</SecondaryText>
+          )}
+          {specialText && (
+            <SpecialText style={tw`text-lg leading-tight`}>{specialText}</SpecialText>
+          )}
           {rightIcon}
         </View>
       </View>
@@ -42,6 +53,7 @@ CardInfo.defaultProps = {
   secondaryText: undefined,
   specialText: undefined,
   alertText: undefined,
-  rightIcon: React.Fragment,
+  rightIcon: undefined,
+  leftIcon: undefined,
   style: undefined
 }

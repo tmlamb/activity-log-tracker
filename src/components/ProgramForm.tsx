@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native'
-import { Formik } from 'formik'
 import React from 'react'
+import { Controller, useForm } from 'react-hook-form'
 import { View } from 'react-native'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
@@ -19,61 +19,89 @@ type Props = {
   deleteHandler?: (entityId: string) => void
 }
 
+type FormData = {
+  name: string
+}
+
 export default function ProgramForm({ changeHandler, program, deleteHandler }: Props) {
   const navigation = useNavigation()
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<FormData>({
+    defaultValues: {
+      name: (program && program.name) || ''
+    }
+  })
+  const onSubmit = (data: FormData) => {
+    changeHandler(
+      program
+        ? { ...program, name: data.name }
+        : {
+            name: data.name,
+            programId: uuidv4(),
+            sessions: []
+          }
+    )
+    navigation.goBack()
+  }
+
   return (
-    <Formik
-      initialValues={{ name: (program && program.name) || '' }}
-      onSubmit={values => {
-        changeHandler(
-          program
-            ? { ...program, name: values.name }
-            : {
-                name: values.name,
-                icon: 'test',
-                programId: uuidv4(),
-                sessions: []
-              }
-        )
-        navigation.goBack()
-      }}
-    >
-      {({ handleSubmit, handleChange, handleBlur, values }) => (
-        <>
-          <HeaderRightContainer>
-            <ButtonContainer onPress={handleSubmit as (values: unknown) => void}>
-              <SpecialText style={tw`font-bold`}>Save</SpecialText>
-            </ButtonContainer>
-          </HeaderRightContainer>
-          <View style={tw`flex flex-col`}>
+    // <Formik
+    //   initialValues={{ name: (program && program.name) || '' }}
+    //   onSubmit={values => {
+    //     changeHandler(
+    //       program
+    //         ? { ...program, name: values.name }
+    //         : {
+    //             name: values.name,
+    //             icon: 'test',
+    //             programId: uuidv4(),
+    //             sessions: []
+    //           }
+    //     )
+    //     navigation.goBack()
+    //   }}
+    // >
+    //   {({ handleSubmit, handleChange, handleBlur, values }) => (
+    <>
+      <HeaderRightContainer>
+        <ButtonContainer onPress={handleSubmit(onSubmit)}>
+          {/* <ButtonContainer onPress={handleSubmit as (values: unknown) => void}> */}
+          <SpecialText style={tw`font-bold`}>Save</SpecialText>
+        </ButtonContainer>
+      </HeaderRightContainer>
+      <View style={tw`flex flex-col`}>
+        <Controller
+          control={control}
+          rules={{
+            required: true
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
             <SimpleTextInput
-              onChangeText={handleChange('name')}
-              onBlur={handleBlur('name')}
-              value={values.name}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              value={value}
               placeholder="Program Name"
               maxLength={25}
+              textInputStyle={tw`w-full`}
             />
-            {/* <SimpleSelectInput
-              onChangeOption={handleChange('type')}
-              onBlur={handleChange('type')}
-              label="Type"
-              options={[{ name: 'Workout Program', entityId: '0' }]}
-              value={{ name: 'Workout Program', entityId: '0' }}
-              disabled
-            /> */}
-            {program && deleteHandler && (
-              <NavigationLink
-                navigationParams={{ programId: program.programId }}
-                screen="DashboardScreen"
-                callback={() => deleteHandler(program.programId)}
-              >
-                <CardInfo style={tw``} alertText="Delete This Program" />
-              </NavigationLink>
-            )}
-          </View>
-        </>
-      )}
-    </Formik>
+          )}
+          name="name"
+        />
+        {program && deleteHandler && (
+          <NavigationLink
+            navigationParams={{ programId: program.programId }}
+            screen="DashboardScreen"
+            callback={() => deleteHandler(program.programId)}
+          >
+            <CardInfo style={tw``} alertText="Delete This Program" />
+          </NavigationLink>
+        )}
+      </View>
+    </>
   )
 }
 

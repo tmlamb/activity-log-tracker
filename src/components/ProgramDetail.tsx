@@ -63,11 +63,12 @@ export default function ProgramDetail({ program }: Props) {
           <SimpleSectionList
             style={tw`pb-9`}
             sections={[{ title: formatDate(new Date()), data: [{ name: 'foo' }] }]}
+            keyExtractor={(item, index) => `${index}`}
             renderItem={({ index, section }) => (
               <NavigationLink screen="SessionFormModal">
                 <CardInfo
                   style={tw.style(
-                    'border-b-2 dark:border-slate-800 border-slate-300',
+                    'border-b-2',
                     index === 0 ? 'rounded-t-xl' : undefined,
                     index === section.data.length - 1 ? 'rounded-b-xl border-b-0' : undefined
                   )}
@@ -86,6 +87,7 @@ export default function ProgramDetail({ program }: Props) {
           <SimpleSectionList
             style={tw`pb-9`}
             sections={sections}
+            keyExtractor={session => (session as Session).sessionId}
             renderItem={({ index, item, section }) => (
               <NavigationLink
                 style={tw`mb-9`}
@@ -97,11 +99,11 @@ export default function ProgramDetail({ program }: Props) {
               >
                 <CardInfo
                   style={tw.style(
-                    'border-b-2 dark:border-slate-800 border-slate-300',
+                    'border-b-2',
                     index === 0 ? 'rounded-t-xl' : undefined,
                     index === section.data.length - 1 ? 'rounded-b-xl border-b-0' : undefined
                   )}
-                  primaryText={item.name}
+                  primaryText={(item as Session).name}
                   rightIcon={
                     <SecondaryText>
                       <AntDesign name="right" size={16} />

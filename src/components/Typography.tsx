@@ -5,6 +5,8 @@ import { tw } from '../tailwind'
 
 export const primaryTextColor = 'text-slate-900 dark:text-white'
 export const secondaryTextColor = 'text-slate-500 dark:text-slate-400'
+export const specialTextColor = 'text-teal-600 dark:text-teal-500'
+export const alertTextColor = 'text-red-500 dark:text-red-400'
 
 type CommonProps = {
   children: React.ReactNode
@@ -12,19 +14,19 @@ type CommonProps = {
 }
 
 export function PrimaryText({ children, style }: CommonProps) {
-  return <Text style={tw.style('text-lg', primaryTextColor, style)}>{children}</Text>
+  return <Text style={tw.style(primaryTextColor, 'text-lg', style)}>{children}</Text>
 }
 
 export function SecondaryText({ children, style }: CommonProps) {
-  return <Text style={tw.style('text-lg', secondaryTextColor, style)}>{children}</Text>
+  return <Text style={tw.style(secondaryTextColor, 'text-lg', style)}>{children}</Text>
 }
 
 export function SpecialText({ children, style }: CommonProps) {
-  return <Text style={tw.style('text-lg text-teal-600 dark:text-teal-500', style)}>{children}</Text>
+  return <Text style={tw.style(specialTextColor, 'text-lg', style)}>{children}</Text>
 }
 
 export function AlertText({ children, style }: CommonProps) {
-  return <Text style={tw.style('text-lg text-red-500 dark:text-red-400', style)}>{children}</Text>
+  return <Text style={tw.style(alertTextColor, 'text-lg', style)}>{children}</Text>
 }
 
 PrimaryText.defaultProps = {

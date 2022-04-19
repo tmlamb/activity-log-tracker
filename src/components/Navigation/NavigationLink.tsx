@@ -3,8 +3,17 @@ import React from 'react'
 import { Pressable } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import { tw } from '../../tailwind'
-import { ActivityNavParams, ProgramNavParams, SessionNavParams } from '../../types'
+import {
+  ActivityFormNavParams,
+  ActivityNavParams,
+  LoadFormNavParams,
+  ProgramFormNavParams,
+  ProgramNavParams,
+  SessionFormNavParams,
+  SessionNavParams
+} from '../../types'
 import { ActivityNavigationProp } from './ActivityDetailScreen'
+import { LoadFormNavigationProp } from './LoadFormModal'
 import { ProgramNavigationProp } from './ProgramDetailScreen'
 import { ProgramFormNavigationProp } from './ProgramFormModal'
 import { SessionNavigationProp } from './SessionDetailScreen'
@@ -20,7 +29,16 @@ type Props = {
     | 'SessionFormModal'
     | 'ActivityDetailScreen'
     | 'ActivityFormModal'
-  navigationParams?: ProgramNavParams | SessionNavParams | ActivityNavParams | undefined
+    | 'LoadFormModal'
+  navigationParams?:
+    | ProgramNavParams
+    | SessionNavParams
+    | ActivityNavParams
+    | LoadFormNavParams
+    | ActivityFormNavParams
+    | ProgramFormNavParams
+    | SessionFormNavParams
+    | undefined
   callback?: () => void
   style?: ClassInput
 }
@@ -42,6 +60,7 @@ export default function NavigationLink({
     | ActivityNavigationProp
     | ProgramFormNavigationProp
     | SessionFormNavigationProp
+    | LoadFormNavigationProp
   >()
 
   return (

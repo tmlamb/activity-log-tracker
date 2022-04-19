@@ -1,11 +1,11 @@
 import { useNavigation } from '@react-navigation/native'
-import { Formik } from 'formik'
 import React from 'react'
+import { Controller, useForm } from 'react-hook-form'
 import { View } from 'react-native'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../tailwind'
-import { Session } from '../types'
+import { Activity, Session } from '../types'
 import { isToday } from '../utils'
 import { ActivitiesInput } from './ActivitiesInput'
 import ButtonContainer from './ButtonContainer'
@@ -22,74 +22,113 @@ type Props = {
   deleteHandler?: (programId: string, sessionId: string) => void
 }
 
+type FormData = {
+  name: string
+  date: Date
+  activities: Activity[]
+}
+
 export default function SessionForm({ changeHandler, programId, session, deleteHandler }: Props) {
   const navigation = useNavigation()
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<FormData>({
+    defaultValues: {
+      name: (session && session.name) || '',
+      date: (session && session.start) || new Date(),
+      activities: (session && session.activities) || []
+    }
+  })
+
+  const onSubmit = (data: FormData) => {
+    changeHandler(
+      programId,
+      session
+        ? { ...session, name: data.name, start: data.date }
+        : {
+            name: data.name,
+            sessionId: uuidv4(),
+            activities: [],
+            start: data.date,
+            end: undefined
+          }
+    )
+    navigation.goBack()
+  }
+
   return (
-    <Formik
-      initialValues={{
-        name: (session && session.name) || '',
-        date: (session && session.start) || new Date()
-      }}
-      onSubmit={values => {
-        changeHandler(
-          programId,
-          session
-            ? { ...session, name: values.name, start: new Date(values.date) }
-            : {
-                name: values.name,
-                sessionId: uuidv4(),
-                activities: [],
-                start: values.date,
-                end: undefined
-              }
-        )
-        navigation.goBack()
-      }}
-    >
-      {({ handleSubmit, handleChange, handleBlur, values }) => (
-        <>
-          <HeaderRightContainer>
-            <ButtonContainer onPress={handleSubmit as (values: unknown) => void}>
-              <SpecialText style={tw`font-bold`}>Save</SpecialText>
-            </ButtonContainer>
-          </HeaderRightContainer>
-          <View style={tw`flex flex-col`}>
+    <>
+      <HeaderRightContainer>
+        <ButtonContainer onPress={handleSubmit(onSubmit)}>
+          <SpecialText style={tw`font-bold`}>Save</SpecialText>
+        </ButtonContainer>
+      </HeaderRightContainer>
+      <View style={tw`flex flex-col`}>
+        <Controller
+          control={control}
+          rules={{
+            required: true
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
             <SimpleTextInput
-              onChangeText={handleChange('name')}
-              onBlur={handleBlur('name')}
-              value={values.name}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              value={value}
               placeholder="Session Name"
               maxLength={25}
+              style={tw`mb-9`}
+              textInputStyle={tw`w-full`}
             />
+          )}
+          name="name"
+        />
+        <Controller
+          control={control}
+          rules={{
+            required: true
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <ActivitiesInput onChange={onChange} onBlur={onBlur} value={value} style={tw`mb-9`} />
+          )}
+          name="activities"
+        />
 
-            <ActivitiesInput style={tw`mb-9`} activities={session?.activities} />
-
+        <Controller
+          control={control}
+          rules={{
+            required: true
+          }}
+          render={({ field: { value } }) => (
             <CardInfo
               primaryText="Date"
-              secondaryText={isToday(values.date) ? 'Today' : values.date.toLocaleDateString()}
+              secondaryText={isToday(value) ? 'Today' : value.toLocaleDateString()}
             />
-            {session && deleteHandler && (
-              <NavigationLink
-                navigationParams={{ programId, sessionId: session.sessionId }}
-                screen="ProgramDetailScreen"
-                callback={() => deleteHandler(programId, session.sessionId)}
-              >
-                <CardInfo
-                  style={tw``}
-                  // primaryText={item.name}
-                  alertText="Delete This Session"
-                  // rightIcon={
-                  //   <SecondaryText>
-                  //     <AntDesign name="right" size={16} />
-                  //   </SecondaryText>
-                  // }
-                />
-              </NavigationLink>
-            )}
-          </View>
-        </>
-      )}
-    </Formik>
+          )}
+          name="date"
+        />
+        {session && deleteHandler && (
+          <NavigationLink
+            navigationParams={{ programId, sessionId: session.sessionId }}
+            screen="ProgramDetailScreen"
+            callback={() => deleteHandler(programId, session.sessionId)}
+          >
+            <CardInfo
+              style={tw``}
+              // primaryText={item.name}
+              alertText="Delete This Session"
+              // rightIcon={
+              //   <SecondaryText>
+              //     <AntDesign name="right" size={16} />
+              //   </SecondaryText>
+              // }
+            />
+          </NavigationLink>
+        )}
+      </View>
+    </>
   )
 }
 

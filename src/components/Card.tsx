@@ -9,7 +9,16 @@ type Props = {
 }
 
 export default function Card({ style, children }: Props) {
-  return <View style={tw.style('dark:bg-slate-800 bg-slate-200 px-4 py-2', style)}>{children}</View>
+  return (
+    <View
+      style={tw.style(
+        'dark:bg-slate-800 dark:border-slate-700 border-slate-300 bg-slate-200',
+        style
+      )}
+    >
+      {children}
+    </View>
+  )
 }
 
 Card.defaultProps = {

@@ -29,6 +29,7 @@ export default function Dashboard({ programs }: Props) {
         </PrimaryText>
         {programs.length > 0 && (
           <SimpleSectionList
+            keyExtractor={program => (program as Program).programId}
             style={tw`pb-1.5`}
             sections={[{ title: 'Workout Programs', data: programs }]}
             renderItem={({ index, item, section }) => (
@@ -38,11 +39,11 @@ export default function Dashboard({ programs }: Props) {
               >
                 <CardInfo
                   style={tw.style(
-                    'border-b-2 dark:border-slate-700 border-slate-300',
+                    'border-b-2',
                     index === 0 ? 'rounded-t-xl' : undefined,
                     index === section.data.length - 1 ? 'rounded-b-xl border-b-0' : undefined
                   )}
-                  primaryText={item.name}
+                  primaryText={(item as Program).name}
                   rightIcon={
                     <SecondaryText>
                       <AntDesign name="right" size={16} />

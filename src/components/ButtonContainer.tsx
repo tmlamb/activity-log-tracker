@@ -1,5 +1,5 @@
 import React from 'react'
-import { GestureResponderEvent, Pressable } from 'react-native'
+import { NativeSyntheticEvent, NativeTouchEvent, Pressable } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import { tw } from '../tailwind'
 
@@ -9,7 +9,7 @@ export default function ButtonContainer({
   onPress
 }: {
   children: React.ReactNode
-  onPress: (event: GestureResponderEvent) => void | null | undefined
+  onPress: (ev: NativeSyntheticEvent<NativeTouchEvent>) => void
   style?: ClassInput
 }) {
   return (

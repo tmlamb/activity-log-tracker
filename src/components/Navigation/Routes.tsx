@@ -3,6 +3,7 @@ import React from 'react'
 import { StackParamList } from '../../types'
 import ActivityDetailScreen from './ActivityDetailScreen'
 import DashboardScreen from './DashboardScreen'
+import LoadFormModal from './LoadFormModal'
 import ProgramDetailScreen from './ProgramDetailScreen'
 import ProgramFormModal from './ProgramFormModal'
 import SessionDetailScreen from './SessionDetailScreen'
@@ -43,6 +44,13 @@ export default function Routes() {
           component={SessionFormModal}
           options={({ route }) => ({
             title: route.params && route.params.sessionId ? 'Edit Session' : 'Add Session'
+          })}
+        />
+        <AppStack.Screen
+          name="LoadFormModal"
+          component={LoadFormModal}
+          options={({ route }) => ({
+            title: 'Select Load'
           })}
         />
       </AppStack.Group>
