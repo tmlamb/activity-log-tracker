@@ -50,7 +50,7 @@ export default function SimpleTextInput({
   return (
     <Card style={tw.style('flex flex-row items-center justify-between relative', style)}>
       {label && (
-        <SecondaryText style={tw.style('absolute pl-4 web:w-3/4 web:relative', labelStyle)}>
+        <SecondaryText style={tw.style('absolute pl-4 web:w-4/5 web:relative', labelStyle)}>
           {label}
         </SecondaryText>
       )}
@@ -60,7 +60,7 @@ export default function SimpleTextInput({
         value={value}
         style={tw.style(
           primaryTextColor,
-          'py-3 px-4 w-full web:w-1/4 text-lg leading-tight tracking-wide',
+          'py-3 px-4 w-full web:w-1/5 text-lg leading-tight tracking-wide',
           textInputStyle
         )}
         placeholder={placeholder}
