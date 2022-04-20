@@ -74,11 +74,6 @@ export default function ProgramDetail({ program }: Props) {
                   )}
                   specialText="Plan Workout Session"
                   reverse
-                  // rightIcon={
-                  //   <SecondaryText>
-                  //     <AntDesign name="right" size={16} />
-                  //   </SecondaryText>
-                  // }
                 />
               </NavigationLink>
             )}

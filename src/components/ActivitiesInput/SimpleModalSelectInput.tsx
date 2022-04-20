@@ -20,6 +20,7 @@ type Props<T> = {
   value?: T
   stringify?: (value: T) => string
   style?: ClassInput
+  textStyle?: ClassInput
   screen:
     | 'DashboardScreen'
     | 'ProgramDetailScreen'
@@ -51,12 +52,14 @@ export default function SimpleModalSelectInput<T>({
   style,
   screen,
   navigationParams,
-  stringify
+  stringify,
+  textStyle
 }: PropsFilled<T>) {
   return (
     <NavigationLink screen={screen} navigationParams={navigationParams}>
       <CardInfo
         style={tw.style(style)}
+        textStyle={tw.style(tw.style(textStyle))}
         primaryText={label}
         secondaryText={value && stringify(value)}
         rightIcon={
@@ -72,5 +75,6 @@ export default function SimpleModalSelectInput<T>({
 SimpleModalSelectInput.defaultProps = {
   value: undefined,
   style: undefined,
-  stringify: (value: unknown) => value as string
+  stringify: (value: unknown) => value as string,
+  textStyle: undefined
 }

@@ -3,6 +3,7 @@ import React from 'react'
 import { StackParamList } from '../../types'
 import ActivityDetailScreen from './ActivityDetailScreen'
 import DashboardScreen from './DashboardScreen'
+import ExerciseSelectModal from './ExerciseSelectModal'
 import LoadFormModal from './LoadFormModal'
 import ProgramDetailScreen from './ProgramDetailScreen'
 import ProgramFormModal from './ProgramFormModal'
@@ -51,6 +52,13 @@ export default function Routes() {
           component={LoadFormModal}
           options={({ route }) => ({
             title: 'Select Load'
+          })}
+        />
+        <AppStack.Screen
+          name="ExerciseSelectModal"
+          component={ExerciseSelectModal}
+          options={({ route }) => ({
+            title: 'Select Exercise'
           })}
         />
       </AppStack.Group>

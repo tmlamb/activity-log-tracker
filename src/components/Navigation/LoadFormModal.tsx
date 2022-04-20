@@ -7,7 +7,7 @@ import ModalLayout from './ModalLayout'
 type Props = NativeStackScreenProps<StackParamList, 'LoadFormModal'>
 export type LoadFormNavigationProp = Props['navigation']
 
-export default function ProgramFormModal({ route }: Props) {
+export default function LoadFormModal({ route }: Props) {
   const { load, onSelect } = route.params
 
   return (

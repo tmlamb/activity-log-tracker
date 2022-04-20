@@ -13,6 +13,7 @@ type Props = {
   rightIcon?: React.ReactNode
   leftIcon?: React.ReactNode
   style?: ClassInput
+  textStyle?: ClassInput
   reverse?: boolean
 }
 
@@ -24,6 +25,7 @@ export default function CardInfo({
   rightIcon,
   leftIcon,
   style,
+  textStyle,
   reverse
 }: Props) {
   return (
@@ -38,17 +40,23 @@ export default function CardInfo({
           {leftIcon && <View style={tw.style('mr-4')}>{leftIcon}</View>}
           {alertText && <AlertText style={tw`text-lg leading-tight`}>{alertText}</AlertText>}
           {primaryText && (
-            <PrimaryText style={tw`text-lg leading-tight`}>{primaryText}</PrimaryText>
+            <PrimaryText style={tw.style('text-lg leading-tight', textStyle)}>
+              {primaryText}
+            </PrimaryText>
           )}
         </View>
         <View style={tw`flex flex-row items-center justify-start`}>
           {secondaryText && (
-            <SecondaryText style={tw`pr-1.5 leading-tight text-lg`}>{secondaryText}</SecondaryText>
+            <SecondaryText style={tw.style('pr-1.5 leading-tight text-lg', textStyle)}>
+              {secondaryText}
+            </SecondaryText>
           )}
           {specialText && (
-            <SpecialText style={tw`text-lg leading-tight`}>{specialText}</SpecialText>
+            <SpecialText style={tw.style('text-lg leading-tight', textStyle)}>
+              {specialText}
+            </SpecialText>
           )}
-          {rightIcon}
+          <View style={tw``}>{rightIcon}</View>
         </View>
       </View>
     </Card>
@@ -63,5 +71,6 @@ CardInfo.defaultProps = {
   rightIcon: undefined,
   leftIcon: undefined,
   style: undefined,
+  textStyle: undefined,
   reverse: false
 }

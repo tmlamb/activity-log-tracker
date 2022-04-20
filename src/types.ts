@@ -37,6 +37,11 @@ export type LoadFormNavParams = {
   onSelect: (load: Load) => void
 }
 
+export type ExerciseSelectNavParams = {
+  exercise?: Exercise
+  onSelect: (exercise: Exercise) => void
+}
+
 export type StackParamList = {
   DashboardScreen: undefined
   ProgramDetailScreen: ProgramNavParams
@@ -46,6 +51,7 @@ export type StackParamList = {
   ActivityDetailScreen: ActivityNavParams
   ActivityFormModal: ActivityFormNavParams
   LoadFormModal: LoadFormNavParams
+  ExerciseSelectModal: ExerciseSelectNavParams
 }
 
 export type Activity = {

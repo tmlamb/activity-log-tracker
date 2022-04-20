@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { LogBox, View } from 'react-native'
 import { tw } from '../tailwind'
@@ -57,6 +57,11 @@ export default function LoadForm({ load, onSelect }: Props) {
     navigation.goBack()
   }
 
+  useEffect(() => {
+    console.log('errors', errors)
+    console.log('isValid', isValid)
+  })
+
   return (
     <>
       <HeaderRightContainer>
@@ -109,7 +114,7 @@ export default function LoadForm({ load, onSelect }: Props) {
                 maxLength={2}
                 textAlign="right"
                 style={tw`px-0 py-0`}
-                textInputStyle={tw`px-4 py-3`}
+                textInputStyle={tw`px-4 py-3 text-right`}
                 keyboardType="number-pad"
                 selectTextOnFocus
                 clearTextOnFocus
@@ -137,7 +142,7 @@ export default function LoadForm({ load, onSelect }: Props) {
                 maxLength={4}
                 textAlign="right"
                 style={tw`px-0 py-0`}
-                textInputStyle={tw`px-4 py-3`}
+                textInputStyle={tw`px-4 py-3 text-right web:w-1/4`}
                 keyboardType="numeric"
                 selectTextOnFocus
                 clearTextOnFocus

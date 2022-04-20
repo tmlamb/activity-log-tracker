@@ -6,6 +6,7 @@ import { tw } from '../../tailwind'
 import {
   ActivityFormNavParams,
   ActivityNavParams,
+  ExerciseSelectNavParams,
   LoadFormNavParams,
   ProgramFormNavParams,
   ProgramNavParams,
@@ -13,6 +14,7 @@ import {
   SessionNavParams
 } from '../../types'
 import { ActivityNavigationProp } from './ActivityDetailScreen'
+import { ExerciseSelectNavigationProp } from './ExerciseSelectModal'
 import { LoadFormNavigationProp } from './LoadFormModal'
 import { ProgramNavigationProp } from './ProgramDetailScreen'
 import { ProgramFormNavigationProp } from './ProgramFormModal'
@@ -30,6 +32,7 @@ type Props = {
     | 'ActivityDetailScreen'
     | 'ActivityFormModal'
     | 'LoadFormModal'
+    | 'ExerciseSelectModal'
   navigationParams?:
     | ProgramNavParams
     | SessionNavParams
@@ -38,6 +41,7 @@ type Props = {
     | ActivityFormNavParams
     | ProgramFormNavParams
     | SessionFormNavParams
+    | ExerciseSelectNavParams
     | undefined
   callback?: () => void
   style?: ClassInput
@@ -61,6 +65,7 @@ export default function NavigationLink({
     | ProgramFormNavigationProp
     | SessionFormNavigationProp
     | LoadFormNavigationProp
+    | ExerciseSelectNavigationProp
   >()
 
   return (

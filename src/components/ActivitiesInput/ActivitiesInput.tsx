@@ -5,10 +5,11 @@ import 'react-native-get-random-values'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../../tailwind'
-import { Activity } from '../../types'
+import { Activity, Exercise } from '../../types'
 import ButtonContainer from '../ButtonContainer'
 import Card from '../Card'
 import CardInfo from '../CardInfo'
+import NavigationLink from '../Navigation/NavigationLink'
 import SimpleTextInput from '../SimpleTextInput'
 import { AlertText, SecondaryText, SpecialText } from '../Typography'
 import SimpleModalSelectInput from './SimpleModalSelectInput'
@@ -55,20 +56,29 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
           key={activity.activityId}
           style={tw`flex flex-row items-center justify-between px-4 border-b-2`}
         >
-          <View style={tw`flex flex-row items-center justify-between w-6/12 pr-1`}>
+          <View style={tw`flex flex-row items-center justify-start w-1/2 pr-1`}>
             <ButtonContainer onPress={() => removeActivity(index)}>
               <AlertText style={tw`p-2 -ml-2`}>
                 <AntDesign name="minuscircle" size={16} />
               </AlertText>
             </ButtonContainer>
-            <SpecialText style={tw`tracking-tight text-lg w-9/12 pl-2.5`}>
-              Barbell Bench Press
-            </SpecialText>
-            <SecondaryText style={tw`w-1/12`}>
+            <NavigationLink
+              screen="ExerciseSelectModal"
+              navigationParams={{
+                exercise: activity.exercise,
+                onSelect: (exercise: Exercise) => null
+              }}
+              style={tw`flex flex-row items-center justify-start`}
+            >
+              <SpecialText style={tw`px-2 text-lg tracking-tight web:text-base`}>
+                {activity.exercise ? activity.exercise?.name : 'Select Exercise'}
+              </SpecialText>
+            </NavigationLink>
+            <SecondaryText style={tw`pt-0.5`}>
               <AntDesign name="right" size={16} />
             </SecondaryText>
           </View>
-          <View style={tw`flex flex-col items-stretch justify-between w-6/12`}>
+          <View style={tw`flex flex-col items-stretch justify-between w-1/2`}>
             <SimpleTextInput
               label="Warmup Sets"
               onChangeText={text => {
@@ -90,8 +100,8 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
               maxLength={2}
               textAlign="right"
               style={tw`py-0 border-b-2 border-l-2`}
-              textInputStyle={tw`px-0 pb-2.5 pt-3`}
-              labelStyle={tw`px-2`}
+              textInputStyle={tw`px-0 pb-2.5 pt-3 web:text-base`}
+              labelStyle={tw`px-2 web:text-base`}
               keyboardType="number-pad"
               selectTextOnFocus
               clearTextOnFocus
@@ -118,8 +128,8 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
               maxLength={2}
               textAlign="right"
               style={tw`py-0 border-b-2 border-l-2`}
-              textInputStyle={tw`px-0 py-2.5`}
-              labelStyle={tw`px-2`}
+              textInputStyle={tw`px-0 py-2.5 web:text-base`}
+              labelStyle={tw`px-2 web:text-base`}
               keyboardType="number-pad"
               selectTextOnFocus
               clearTextOnFocus
@@ -146,8 +156,8 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
               maxLength={2}
               textAlign="right"
               style={tw`py-0 border-b-2 border-l-2`}
-              textInputStyle={tw`px-0 py-2.5`}
-              labelStyle={tw`px-2`}
+              textInputStyle={tw`px-0 py-2.5 web:text-base`}
+              labelStyle={tw`px-2 web:text-base`}
               keyboardType="number-pad"
               selectTextOnFocus
               clearTextOnFocus
@@ -157,6 +167,7 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
               label="Load"
               value={activity.load}
               style={tw`py-2 pl-2 pr-0 border-b-2 border-l-2`}
+              textStyle={tw`web:text-base`}
               screen="LoadFormModal"
               navigationParams={{
                 load: activity.load,
@@ -198,8 +209,8 @@ export default function ActivitiesInput({ onChange, onBlur, value, style }: Prop
               maxLength={2}
               textAlign="right"
               style={tw`py-0 border-l-2`}
-              textInputStyle={tw`px-0 py-2.5`}
-              labelStyle={tw`px-2`}
+              textInputStyle={tw`px-0 py-2.5 web:text-base`}
+              labelStyle={tw`px-2 web:text-base`}
               selectTextOnFocus
               clearTextOnFocus
               keyboardType="number-pad"
