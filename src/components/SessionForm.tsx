@@ -1,13 +1,13 @@
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { View } from 'react-native'
+import { ScrollView } from 'react-native'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../tailwind'
-import { Activity, Session } from '../types'
+import { Exercise, Session, WorkoutSet } from '../types'
 import { isToday } from '../utils'
-import { ActivitiesInput } from './ActivitiesInput'
+import ActivitiesInput from './ActivitiesInput/ActivitiesInput'
 import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
@@ -19,40 +19,97 @@ type Props = {
   changeHandler: (programId: string, session: Session) => void
   programId: string
   session?: Session
+  exercises?: Exercise[]
   deleteHandler?: (programId: string, sessionId: string) => void
 }
 
-type FormData = {
-  name: string
-  date: Date
-  activities: Activity[]
-}
-
-export default function SessionForm({ changeHandler, programId, session, deleteHandler }: Props) {
+export default function SessionForm({
+  changeHandler,
+  programId,
+  session,
+  exercises,
+  deleteHandler
+}: Props) {
   const navigation = useNavigation()
 
   const {
     control,
     handleSubmit,
+    setValue,
+    getValues,
     formState: { errors }
-  } = useForm<FormData>({
+  } = useForm<Partial<Session>>({
     defaultValues: {
       name: (session && session.name) || '',
-      date: (session && session.start) || new Date(),
+      start: (session && session.start) || new Date(),
       activities: (session && session.activities) || []
     }
   })
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = (data: Partial<Session>) => {
+    // console.log('form data', data)
+    // console.log('programId', programId)
+
+    // const sections = Array.from(session.activities, activity => ({
+    //   title: `${exercises.find(exercise => exercise.exerciseId === activity.exerciseId)!.name}`,
+    //   data: [
+    //     ...(Array.from(Array(activity.warmupSets)).map((item, index) => ({
+    //       set: {
+    //         type: 'Warm-up'
+    //       },
+    //       activity,
+    //       session,
+    //       program,
+    //       index
+    //     })) as SetCardProps[]),
+    //     ...(Array.from(Array(activity.workSets)).map((item, index) => ({
+    //       set: {
+    //         type: 'Work'
+    //       },
+    //       activity,
+    //       session,
+    //       program,
+    //       index
+    //     })) as SetCardProps[])
+    //   ]
+    // }))
+    console.log('data', data)
+    console.log('data.activities', data.activities)
+    console.log('data.activities[0].workoutSets', data.activities![0].workoutSets)
+    data.activities!.forEach(activity => {
+      activity.workoutSets.push(
+        ...Array.from(Array(activity.warmupSets)).map(
+          (item, index) =>
+            ({
+              type: 'Warm-up',
+              workoutSetId: uuidv4()
+            } as WorkoutSet)
+        ),
+        ...Array.from(Array(activity.workSets)).map(
+          (item, index) =>
+            ({
+              type: 'Work',
+              workoutSetId: uuidv4()
+            } as WorkoutSet)
+        )
+      )
+    })
+
     changeHandler(
       programId,
       session
-        ? { ...session, name: data.name, start: data.date }
+        ? {
+            name: data.name!,
+            sessionId: session.sessionId!,
+            activities: data.activities!,
+            start: data.start!,
+            end: session.end!
+          }
         : {
-            name: data.name,
+            name: data.name!,
             sessionId: uuidv4(),
-            activities: [],
-            start: data.date,
+            activities: data.activities!,
+            start: data.start!,
             end: undefined
           }
     )
@@ -66,7 +123,7 @@ export default function SessionForm({ changeHandler, programId, session, deleteH
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
-      <View style={tw`flex flex-col`}>
+      <ScrollView style={tw`flex flex-col`}>
         <Controller
           control={control}
           rules={{
@@ -85,16 +142,8 @@ export default function SessionForm({ changeHandler, programId, session, deleteH
           )}
           name="name"
         />
-        <Controller
-          control={control}
-          rules={{
-            required: true
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <ActivitiesInput onChange={onChange} onBlur={onBlur} value={value} style={tw`mb-9`} />
-          )}
-          name="activities"
-        />
+
+        <ActivitiesInput {...{ control, getValues, setValue, exercises }} />
 
         <Controller
           control={control}
@@ -104,10 +153,11 @@ export default function SessionForm({ changeHandler, programId, session, deleteH
           render={({ field: { value } }) => (
             <CardInfo
               primaryText="Date"
-              secondaryText={isToday(value) ? 'Today' : value.toLocaleDateString()}
+              secondaryText={isToday(value) ? 'Today' : value!.toLocaleDateString()}
+              style={tw`mb-9`}
             />
           )}
-          name="date"
+          name="start"
         />
         {session && deleteHandler && (
           <NavigationLink
@@ -118,12 +168,13 @@ export default function SessionForm({ changeHandler, programId, session, deleteH
             <CardInfo style={tw``} alertText="Delete This Session" />
           </NavigationLink>
         )}
-      </View>
+      </ScrollView>
     </>
   )
 }
 
 SessionForm.defaultProps = {
   session: undefined,
-  deleteHandler: undefined
+  deleteHandler: undefined,
+  exercises: undefined
 }

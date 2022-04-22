@@ -11,7 +11,8 @@ import {
   ProgramFormNavParams,
   ProgramNavParams,
   SessionFormNavParams,
-  SessionNavParams
+  SessionNavParams,
+  WorkoutSetNavParams
 } from '../../types'
 import { ActivityNavigationProp } from './ActivityDetailScreen'
 import { ExerciseSelectNavigationProp } from './ExerciseSelectModal'
@@ -20,6 +21,7 @@ import { ProgramNavigationProp } from './ProgramDetailScreen'
 import { ProgramFormNavigationProp } from './ProgramFormModal'
 import { SessionNavigationProp } from './SessionDetailScreen'
 import { SessionFormNavigationProp } from './SessionFormModal'
+import { WorkoutSetNavigationProp } from './WorkoutSetDetailScreen'
 
 type Props = {
   children: React.ReactNode
@@ -33,6 +35,7 @@ type Props = {
     | 'ActivityFormModal'
     | 'LoadFormModal'
     | 'ExerciseSelectModal'
+    | 'WorkoutSetDetailScreen'
   navigationParams?:
     | ProgramNavParams
     | SessionNavParams
@@ -42,6 +45,7 @@ type Props = {
     | ProgramFormNavParams
     | SessionFormNavParams
     | ExerciseSelectNavParams
+    | WorkoutSetNavParams
     | undefined
   callback?: () => void
   style?: ClassInput
@@ -66,6 +70,7 @@ export default function NavigationLink({
     | SessionFormNavigationProp
     | LoadFormNavigationProp
     | ExerciseSelectNavigationProp
+    | WorkoutSetNavigationProp
   >()
 
   return (

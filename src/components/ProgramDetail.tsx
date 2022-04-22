@@ -17,6 +17,25 @@ type Props = {
 // One day in milliseconds
 const oneDay = 1000 * 60 * 60 * 24
 
+export function SessionFormLink({
+  programId,
+  sessionId,
+  children
+}: {
+  programId: string
+  sessionId?: string
+  children: React.ReactNode
+}) {
+  return (
+    <NavigationLink screen="SessionFormModal" navigationParams={{ programId, sessionId }}>
+      {children}
+    </NavigationLink>
+  )
+}
+SessionFormLink.defaultProps = {
+  sessionId: undefined
+}
+
 export default function ProgramDetail({ program }: Props) {
   const formatDate = (date: Date) => {
     const daysDiff =
@@ -45,11 +64,11 @@ export default function ProgramDetail({ program }: Props) {
   return (
     <>
       <HeaderRightContainer>
-        <NavigationLink screen="SessionFormModal">
+        <SessionFormLink programId={program.programId}>
           <SpecialText>
             <AntDesign name="plus" size={28} />
           </SpecialText>
-        </NavigationLink>
+        </SessionFormLink>
       </HeaderRightContainer>
 
       <View style={tw`flex flex-col`}>
@@ -57,15 +76,20 @@ export default function ProgramDetail({ program }: Props) {
           screen="ProgramFormModal"
           navigationParams={{ programId: program.programId }}
         >
-          <CardInfo style={tw`rounded-xl mb-9`} primaryText={program.name} specialText="Edit" />
+          <CardInfo
+            style={tw`rounded-t-xl border-b-2`}
+            primaryText={program.name}
+            specialText="Edit"
+          />
         </NavigationLink>
+        <CardInfo style={tw`rounded-b-xl mb-9`} specialText="Explore Data" reverse />
         {(!sections || sections.length === 0 || sections[0].title.includes('TODAY')) && (
           <SimpleSectionList
             style={tw`pb-9`}
             sections={[{ title: formatDate(new Date()), data: [{ name: 'foo' }] }]}
             keyExtractor={(item, index) => `${index}`}
             renderItem={({ index, section }) => (
-              <NavigationLink screen="SessionFormModal">
+              <SessionFormLink programId={program.programId}>
                 <CardInfo
                   style={tw.style(
                     'border-b-2',
@@ -75,7 +99,7 @@ export default function ProgramDetail({ program }: Props) {
                   specialText="Plan Workout Session"
                   reverse
                 />
-              </NavigationLink>
+              </SessionFormLink>
             )}
           />
         )}
@@ -86,7 +110,7 @@ export default function ProgramDetail({ program }: Props) {
             keyExtractor={session => (session as Session).sessionId}
             renderItem={({ index, item, section }) => (
               <NavigationLink
-                style={tw`mb-9`}
+                style={tw``}
                 navigationParams={{
                   programId: program.programId,
                   sessionId: (item as Session).sessionId
@@ -97,7 +121,7 @@ export default function ProgramDetail({ program }: Props) {
                   style={tw.style(
                     'border-b-2',
                     index === 0 ? 'rounded-t-xl' : undefined,
-                    index === section.data.length - 1 ? 'rounded-b-xl border-b-0' : undefined
+                    index === section.data.length - 1 ? 'rounded-b-xl border-b-0 mb-9' : undefined
                   )}
                   primaryText={(item as Session).name}
                   rightIcon={

@@ -8,11 +8,11 @@ type Props = NativeStackScreenProps<StackParamList, 'LoadFormModal'>
 export type LoadFormNavigationProp = Props['navigation']
 
 export default function LoadFormModal({ route }: Props) {
-  const { load, onSelect } = route.params
+  const { value, onChangeSelect } = route.params
 
   return (
     <ModalLayout>
-      <LoadForm load={load} onSelect={onSelect} />
+      <LoadForm load={value} onSelect={onChangeSelect} />
     </ModalLayout>
   )
 }

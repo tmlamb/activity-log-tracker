@@ -1,8 +1,9 @@
-import { Session } from './types'
+import { Load, Session } from './types'
 
-export const isToday = (date: Date) => {
+export const isToday = (date?: Date) => {
   const today = new Date()
   return (
+    date &&
     date.getDate() === today.getDate() &&
     date.getMonth() === today.getMonth() &&
     date.getFullYear() === today.getFullYear()
@@ -23,3 +24,6 @@ export const mapSessionsByDate = (
   })
   return map
 }
+
+export const stringifyLoad = (load: Load) =>
+  load.type === 'PERCENT' ? `${load.value}%` : `RPE ${load.value}`

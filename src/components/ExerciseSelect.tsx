@@ -1,43 +1,38 @@
 import { useNavigation } from '@react-navigation/native'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { LogBox, View } from 'react-native'
+import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../tailwind'
 import { Exercise } from '../types'
 import ButtonContainer from './ButtonContainer'
 import HeaderRightContainer from './HeaderRightContainer'
-import { ActivityNavigationProp } from './Navigation/ActivityDetailScreen'
-import { ExerciseSelectNavigationProp } from './Navigation/ExerciseSelectModal'
-import { LoadFormNavigationProp } from './Navigation/LoadFormModal'
-import { ProgramNavigationProp } from './Navigation/ProgramDetailScreen'
-import { ProgramFormNavigationProp } from './Navigation/ProgramFormModal'
-import { SessionNavigationProp } from './Navigation/SessionDetailScreen'
-import { SessionFormNavigationProp } from './Navigation/SessionFormModal'
-import { PrimaryText, SpecialText } from './Typography'
+import SelectList from './SelectList'
+import { SpecialText } from './Typography'
 
 // TODO: Address problem with non-serializable navigation prop (see onSelect function), then remove this ignore statement
 LogBox.ignoreLogs(['Non-serializable values were found in the navigation state'])
 
 type Props = {
-  exercise?: Exercise
-  exercises: Exercise[]
-  onSelect: (exercise: Exercise) => void
+  exerciseId?: string
+  availableExercises: Partial<Exercise>[]
+  usedExercises?: Exercise[]
+  onSelect: (exerciseId: string) => void
+  addExercise: (exercise: Exercise) => void
 }
 
 type FormData = {
-  exercise: Exercise | undefined
+  exercise: Partial<Exercise> | undefined
 }
 
-export default function LoadForm({ exercise, exercises, onSelect }: Props) {
-  const navigation = useNavigation<
-    | ProgramNavigationProp
-    | SessionNavigationProp
-    | ActivityNavigationProp
-    | ProgramFormNavigationProp
-    | SessionFormNavigationProp
-    | LoadFormNavigationProp
-    | ExerciseSelectNavigationProp
-  >()
+export default function ExerciseSelect({
+  exerciseId,
+  availableExercises,
+  usedExercises,
+  onSelect,
+  addExercise
+}: Props) {
+  const navigation = useNavigation()
   const {
     control,
     handleSubmit,
@@ -46,20 +41,76 @@ export default function LoadForm({ exercise, exercises, onSelect }: Props) {
     setValue
   } = useForm<FormData>({
     defaultValues: {
-      exercise
+      exercise: usedExercises?.find(exercise => exerciseId === exercise.exerciseId)
     }
   })
-  const type = watch('exercise')
+  const selectedExercise = watch('exercise')
+
+  const combinedOptions = availableExercises
+  if (availableExercises) {
+    if (usedExercises) {
+      // setExerciseOptions([...exerciseOptions, ...usedExercises.map(exercise => ({}))])
+      usedExercises.forEach(usedExercise => {
+        const foundIndex = combinedOptions.findIndex(
+          availableExercise => availableExercise.name === usedExercise.name
+        )
+        if (foundIndex >= 0) combinedOptions.splice(foundIndex, 1, usedExercise)
+        else combinedOptions.push(usedExercise)
+      })
+    }
+  }
+
+  const [exerciseOptions, setExerciseOptions] = React.useState<Partial<Exercise>[]>(combinedOptions)
+
+  // useEffect(() => {
+  //   console.log('useEffect')
+  //   if (availableExercises) {
+  //     const combinedOptions = [...availableExercises]
+  //     if (usedExercises) {
+  //       // setExerciseOptions([...exerciseOptions, ...usedExercises.map(exercise => ({}))])
+  //       usedExercises.forEach(usedExercise => {
+  //         const foundIndex = exerciseOptions.findIndex(
+  //           availableExercise => availableExercise.exerciseId === usedExercise.exerciseId
+  //         )
+  //         if (foundIndex >= 0) combinedOptions.splice(foundIndex, 1, usedExercise)
+  //         else combinedOptions.push(usedExercise)
+  //       })
+  //     }
+  //     setExerciseOptions(combinedOptions)
+  //   }
+  // }, [availableExercises, exerciseOptions, usedExercises])
 
   const onSubmit = (data: FormData) => {
-    onSelect(data.exercise!)
+    if (data.exercise?.exerciseId) {
+      onSelect(data.exercise.exerciseId)
+    } else {
+      const newExercise = {
+        exerciseId: uuidv4(),
+        name: data.exercise?.name || '',
+        muscle: data.exercise?.muscle || ''
+      }
+      addExercise(newExercise)
+      onSelect(newExercise.exerciseId)
+    }
+
+    // onSelect({
+    //   exerciseId: uuidv4(),
+    //   name: data.exercise?.name || '',
+    //   muscle: data.exercise?.muscle || ''
+    // })
     navigation.goBack()
   }
+
+  useEffect(() => {
+    // console.log('errors', errors)
+    // console.log('isValid', isValid)
+    // console.log('selectedExercise', selectedExercise)
+  })
 
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)} disabled={!isValid}>
+        <ButtonContainer onPress={handleSubmit(onSubmit)}>
           <SpecialText style={tw`font-bold`}>Done</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
@@ -70,6 +121,14 @@ export default function LoadForm({ exercise, exercises, onSelect }: Props) {
             required: true
           }}
           render={({ field: { onChange, value } }) => (
+            <SelectList
+              items={exerciseOptions}
+              onValueChange={onChange}
+              value={value}
+              style={tw``}
+              stringify={item => (item as Exercise).name}
+              keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
+            />
             // <SimplePicker
             //   label="Load Type"
             //   items={[
@@ -84,7 +143,6 @@ export default function LoadForm({ exercise, exercises, onSelect }: Props) {
             //   value={value}
             //   style={tw`px-4 mb-9`}
             // />
-            <PrimaryText>Pick an exercise</PrimaryText>
           )}
           name="exercise"
         />
@@ -93,6 +151,7 @@ export default function LoadForm({ exercise, exercises, onSelect }: Props) {
   )
 }
 
-LoadForm.defaultProps = {
-  exercise: undefined
+ExerciseSelect.defaultProps = {
+  exerciseId: undefined,
+  usedExercises: undefined
 }

@@ -7,12 +7,6 @@ import { Load } from '../types'
 import SimplePicker from './ActivitiesInput/SimplePicker'
 import ButtonContainer from './ButtonContainer'
 import HeaderRightContainer from './HeaderRightContainer'
-import { ActivityNavigationProp } from './Navigation/ActivityDetailScreen'
-import { LoadFormNavigationProp } from './Navigation/LoadFormModal'
-import { ProgramNavigationProp } from './Navigation/ProgramDetailScreen'
-import { ProgramFormNavigationProp } from './Navigation/ProgramFormModal'
-import { SessionNavigationProp } from './Navigation/SessionDetailScreen'
-import { SessionFormNavigationProp } from './Navigation/SessionFormModal'
 import SimpleTextInput from './SimpleTextInput'
 import { primaryTextColor, SpecialText } from './Typography'
 
@@ -24,27 +18,15 @@ type Props = {
   onSelect: (load: Load) => void
 }
 
-type FormData = {
-  type: 'RPE' | 'PERCENT'
-  value: number | undefined
-}
-
 export default function LoadForm({ load, onSelect }: Props) {
-  const navigation = useNavigation<
-    | ProgramNavigationProp
-    | SessionNavigationProp
-    | ActivityNavigationProp
-    | ProgramFormNavigationProp
-    | SessionFormNavigationProp
-    | LoadFormNavigationProp
-  >()
+  const navigation = useNavigation()
   const {
     control,
     handleSubmit,
     watch,
     formState: { errors, isValid },
     setValue
-  } = useForm<FormData>({
+  } = useForm<Partial<Load>>({
     defaultValues: {
       type: load && load.type,
       value: load && load.value
@@ -52,14 +34,15 @@ export default function LoadForm({ load, onSelect }: Props) {
   })
   const type = watch('type')
 
-  const onSubmit = (data: FormData) => {
-    onSelect({ type: data.type, value: data.value || 0 })
+  const onSubmit = (data: Partial<Load>) => {
+    // console.log('submitted!')
+    onSelect({ type: data.type!, value: data.value || 0 })
     navigation.goBack()
   }
 
   useEffect(() => {
-    console.log('errors', errors)
-    console.log('isValid', isValid)
+    // console.log('errors', errors)
+    // console.log('isValid', isValid)
   })
 
   return (

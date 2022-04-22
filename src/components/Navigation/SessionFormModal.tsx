@@ -9,7 +9,8 @@ type Props = NativeStackScreenProps<StackParamList, 'SessionFormModal'>
 export type SessionFormNavigationProp = Props['navigation']
 
 export default function SessionFormModal({ route }: Props) {
-  const { programs, addSession, updateSession, deleteSession } = useProgramState()
+  const { programs, exercises, addSession, updateSession, deleteSession } = useProgramState()
+  // console.log('route', route)
   const session = route.params
     ? programs
         .find(p => p.programId === route.params?.programId)
@@ -23,10 +24,15 @@ export default function SessionFormModal({ route }: Props) {
           changeHandler={updateSession}
           programId={route.params?.programId}
           session={session}
+          exercises={exercises}
           deleteHandler={deleteSession}
         />
       ) : (
-        <SessionForm programId={route.params?.programId} changeHandler={addSession} />
+        <SessionForm
+          programId={route.params?.programId}
+          exercises={exercises}
+          changeHandler={addSession}
+        />
       )}
     </ModalLayout>
   )
