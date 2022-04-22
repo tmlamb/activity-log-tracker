@@ -10,11 +10,13 @@ type Props = NativeStackScreenProps<StackParamList, 'WorkoutSetDetailScreen'>
 export type WorkoutSetNavigationProp = Props['navigation']
 
 function WorkoutSetDetailScreen({ route }: Props) {
-  const { programs, exercises } = useProgramState()
+  const { programs, exercises, updateWorkoutSet } = useProgramState()
   const program = programs.find(p => p.programId === route.params.programId)
   const session = program?.sessions.find(s => s.sessionId === route.params.sessionId)
   const activity = session?.activities.find(a => a.activityId === route.params.activityId)
-  const workoutSet = activity?.workoutSets.find(ws => ws.workoutSetId === route.params.workoutSetId)
+  const workoutSet =
+    activity?.workSets.find(ws => ws.workoutSetId === route.params.workoutSetId) ||
+    activity?.warmupSets.find(ws => ws.workoutSetId === route.params.workoutSetId)
 
   return (
     <ScreenLayout>
@@ -26,6 +28,7 @@ function WorkoutSetDetailScreen({ route }: Props) {
             activity={activity!}
             workoutSet={workoutSet!}
             exercises={exercises}
+            updateWorkoutSet={updateWorkoutSet}
           />
         )}
       </View>

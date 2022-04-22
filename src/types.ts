@@ -60,20 +60,28 @@ export type StackParamList = {
 
 export type WorkoutSet = {
   workoutSetId: string
-  type: 'Warm-up' | 'Work'
   start?: Date
   end?: Date
+  type: 'Warm-up' | 'Work'
+  actualWeight?: Weight
+  actualReps?: number
+}
+
+export type WarmupSet = WorkoutSet & {
+  type: 'Warm-up'
+}
+export type WorkSet = WorkoutSet & {
+  type: 'Work'
 }
 
 export type Activity = {
   activityId: string
-  warmupSets?: number // planned
-  workSets: number // sets
   reps: number
   load: Load
   rest: number
   exerciseId: string
-  workoutSets: WorkoutSet[] // recording of actual sets
+  warmupSets: WarmupSet[]
+  workSets: WorkSet[]
 }
 
 export type Load = {

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
-import { Activity, Exercise, Program, Session } from '../types'
+import { Activity, Exercise, Program, Session, WorkoutSet } from '../types'
 import ProgramReducer from './ProgramReducer'
 
 const mockPrograms: Program[] = [
@@ -15,16 +15,14 @@ const mockPrograms: Program[] = [
         activities: [
           {
             activityId: '1',
-            warmupSets: 3,
-            workSets: 3,
             reps: 5,
             load: {
-              value: 77.5,
+              value: 0.775,
               type: 'PERCENT'
             },
             rest: 3,
             exerciseId: '1',
-            workoutSets: [
+            warmupSets: [
               {
                 workoutSetId: '1',
                 type: 'Warm-up'
@@ -36,7 +34,9 @@ const mockPrograms: Program[] = [
               {
                 workoutSetId: '3',
                 type: 'Warm-up'
-              },
+              }
+            ],
+            workSets: [
               {
                 workoutSetId: '4',
                 type: 'Work'
@@ -62,16 +62,14 @@ const mockPrograms: Program[] = [
         activities: [
           {
             activityId: '2',
-            warmupSets: 3,
-            workSets: 3,
             reps: 5,
             load: {
-              value: 77.5,
+              value: 0.775,
               type: 'PERCENT'
             },
             rest: 3,
             exerciseId: '1',
-            workoutSets: [
+            warmupSets: [
               {
                 workoutSetId: '1',
                 type: 'Warm-up'
@@ -83,7 +81,9 @@ const mockPrograms: Program[] = [
               {
                 workoutSetId: '3',
                 type: 'Warm-up'
-              },
+              }
+            ],
+            workSets: [
               {
                 workoutSetId: '4',
                 type: 'Work'
@@ -108,16 +108,14 @@ const mockPrograms: Program[] = [
         activities: [
           {
             activityId: '3',
-            warmupSets: 3,
-            workSets: 3,
             reps: 5,
             load: {
-              value: 77.5,
+              value: 0.775,
               type: 'PERCENT'
             },
             rest: 3,
             exerciseId: '1',
-            workoutSets: [
+            warmupSets: [
               {
                 workoutSetId: '1',
                 type: 'Warm-up'
@@ -129,7 +127,9 @@ const mockPrograms: Program[] = [
               {
                 workoutSetId: '3',
                 type: 'Warm-up'
-              },
+              }
+            ],
+            workSets: [
               {
                 workoutSetId: '4',
                 type: 'Work'
@@ -155,16 +155,14 @@ const mockPrograms: Program[] = [
         activities: [
           {
             activityId: '4',
-            warmupSets: 3,
-            workSets: 3,
             reps: 5,
             load: {
-              value: 77.5,
+              value: 0.775,
               type: 'PERCENT'
             },
             rest: 3,
             exerciseId: '1',
-            workoutSets: [
+            warmupSets: [
               {
                 workoutSetId: '1',
                 type: 'Warm-up'
@@ -176,7 +174,9 @@ const mockPrograms: Program[] = [
               {
                 workoutSetId: '3',
                 type: 'Warm-up'
-              },
+              }
+            ],
+            workSets: [
               {
                 workoutSetId: '4',
                 type: 'Work'
@@ -224,19 +224,19 @@ type ProgramContextType = {
   reset: (programs: Program[], exercises: Exercise[]) => void
   addExercise: (exercise: Exercise) => void
   updateExercise: (exercise: Exercise) => void
-  addWorkoutSet: (programId: string, sessionId: string, activityId: string, workoutSet: any) => void
+  // addWorkoutSet: (programId: string, sessionId: string, activityId: string, workoutSet: any) => void
   updateWorkoutSet: (
     programId: string,
     sessionId: string,
     activityId: string,
-    workoutSet: any
+    workoutSet: WorkoutSet
   ) => void
-  deleteWorkoutSet: (
-    programId: string,
-    sessionId: string,
-    activityId: string,
-    workoutSetId: string
-  ) => void
+  // deleteWorkoutSet: (
+  //   programId: string,
+  //   sessionId: string,
+  //   activityId: string,
+  //   workoutSetId: string
+  // ) => void
 }
 
 const initialState = {
@@ -254,9 +254,7 @@ const initialState = {
   reset: () => 0,
   addExercise: () => 0,
   updateExercise: () => 0,
-  addWorkoutSet: () => 0,
-  updateWorkoutSet: () => 0,
-  deleteWorkoutSet: () => 0
+  updateWorkoutSet: () => 0
 }
 
 const ProgramContext = createContext<ProgramContextType>(initialState)
@@ -342,37 +340,15 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
           payload: exercise
         })
       },
-      addWorkoutSet: (
-        programId: string,
-        sessionId: string,
-        activityId: string,
-        workoutSet: any
-      ) => {
-        dispatch({
-          type: 'ADD_WORKOUT_SET',
-          payload: { programId, sessionId, activityId, workoutSet }
-        })
-      },
       updateWorkoutSet: (
         programId: string,
         sessionId: string,
         activityId: string,
-        workoutSet: any
+        workoutSet: WorkoutSet
       ) => {
         dispatch({
           type: 'UPDATE_WORKOUT_SET',
           payload: { programId, sessionId, activityId, workoutSet }
-        })
-      },
-      deleteWorkoutSet: (
-        programId: string,
-        sessionId: string,
-        activityId: string,
-        workoutSetId: string
-      ) => {
-        dispatch({
-          type: 'DELETE_WORKOUT_SET',
-          payload: { programId, sessionId, activityId, workoutSetId }
         })
       }
     }),

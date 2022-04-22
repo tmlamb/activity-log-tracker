@@ -26,7 +26,7 @@ export default function SimpleSectionList({ sections, style, renderItem, keyExtr
       keyExtractor={keyExtractor}
       renderItem={renderItem}
       renderSectionHeader={({ section: { title } }) => (
-        <SecondaryText style={tw`ml-4 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
+        <SecondaryText style={tw`pl-4 pb-1.5 uppercase text-sm bg-slate-50`}>{title}</SecondaryText>
       )}
       style={tw.style('', style)}
     />

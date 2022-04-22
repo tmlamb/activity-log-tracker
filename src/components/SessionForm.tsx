@@ -5,7 +5,7 @@ import { ScrollView } from 'react-native'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../tailwind'
-import { Exercise, Session, WorkoutSet } from '../types'
+import { Exercise, Session } from '../types'
 import { isToday } from '../utils'
 import ActivitiesInput from './ActivitiesInput/ActivitiesInput'
 import ButtonContainer from './ButtonContainer'
@@ -47,54 +47,6 @@ export default function SessionForm({
   })
 
   const onSubmit = (data: Partial<Session>) => {
-    // console.log('form data', data)
-    // console.log('programId', programId)
-
-    // const sections = Array.from(session.activities, activity => ({
-    //   title: `${exercises.find(exercise => exercise.exerciseId === activity.exerciseId)!.name}`,
-    //   data: [
-    //     ...(Array.from(Array(activity.warmupSets)).map((item, index) => ({
-    //       set: {
-    //         type: 'Warm-up'
-    //       },
-    //       activity,
-    //       session,
-    //       program,
-    //       index
-    //     })) as SetCardProps[]),
-    //     ...(Array.from(Array(activity.workSets)).map((item, index) => ({
-    //       set: {
-    //         type: 'Work'
-    //       },
-    //       activity,
-    //       session,
-    //       program,
-    //       index
-    //     })) as SetCardProps[])
-    //   ]
-    // }))
-    console.log('data', data)
-    console.log('data.activities', data.activities)
-    console.log('data.activities[0].workoutSets', data.activities![0].workoutSets)
-    data.activities!.forEach(activity => {
-      activity.workoutSets.push(
-        ...Array.from(Array(activity.warmupSets)).map(
-          (item, index) =>
-            ({
-              type: 'Warm-up',
-              workoutSetId: uuidv4()
-            } as WorkoutSet)
-        ),
-        ...Array.from(Array(activity.workSets)).map(
-          (item, index) =>
-            ({
-              type: 'Work',
-              workoutSetId: uuidv4()
-            } as WorkoutSet)
-        )
-      )
-    })
-
     changeHandler(
       programId,
       session

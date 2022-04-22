@@ -1,5 +1,10 @@
-import React from 'react'
-import { Activity, Exercise, Program, Session, WorkoutSet } from '../types'
+import React, { useCallback, useEffect } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import { tw } from '../tailwind'
+import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
+import { stringifyLoad } from '../utils'
+import CardInfo from './CardInfo'
+import SimpleTextInput from './SimpleTextInput'
 
 type Props = {
   program: Program
@@ -7,6 +12,12 @@ type Props = {
   activity: Activity
   workoutSet: WorkoutSet
   exercises: Exercise[]
+  updateWorkoutSet: (
+    programId: string,
+    sessionId: string,
+    activityId: string,
+    workoutSet: WorkoutSet
+  ) => void
 }
 
 // type SetCardProps = {
@@ -46,44 +57,166 @@ type Props = {
 //   )
 // }
 
+// Defined warmup set percentages in relation to one rep max based on number of warmup sets.
+const warmupPercentages: { [key: number]: number[] } = {
+  1: [0.5],
+  2: [0.4, 0.6],
+  3: [0.4, 0.5, 0.6],
+  4: [0.4, 0.5, 0.6, 0.7],
+  5: [0.3, 0.4, 0.5, 0.6, 0.7]
+}
+
 export default function WorkoutSetDetail({
   program,
   session,
   activity,
   workoutSet,
-  exercises
+  exercises,
+  updateWorkoutSet
 }: Props) {
-  // console.log(session)
-  // This process creates the partial workout set data based on the planned activities,
-  // and arranges it for the section list.
-  //   const sections = Array.from(session.activities, ac => ({
-  //     title: `${exercises.find(exercise => exercise.exerciseId === a.exerciseId)!.name}`,
-  //     data: [
-  //       ...(Array.from(Array(a.warmupSets)).map((item, index) => ({
-  //         set: {
-  //           type: 'Warm-up'
-  //         },
-  //         activity,
-  //         index
-  //       })) as SetCardProps[]),
-  //       ...(Array.from(Array(a.workSets)).map((item, index) => ({
-  //         set: {
-  //           type: 'Work'
-  //         },
-  //         activity,
-  //         index
-  //       })) as SetCardProps[])
-  //     ]
-  //   }))
+  console.log(workoutSet)
+  const exercise = exercises.find(e => e.exerciseId === activity.exerciseId)!
 
-  // console.log('sections', sections)
+  const warmupPercent =
+    workoutSet.type === 'Warm-up'
+      ? warmupPercentages[activity.warmupSets.length][
+          activity.warmupSets.indexOf(workoutSet as WarmupSet)
+        ]
+      : 0
+
+  const {
+    control,
+    watch,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { errors }
+  } = useForm<WorkoutSet>({
+    defaultValues: {
+      workoutSetId: workoutSet.workoutSetId,
+      type: workoutSet.type,
+      actualWeight: workoutSet.actualWeight,
+      actualReps: workoutSet.actualReps,
+      start: workoutSet && workoutSet.start,
+      end: workoutSet && workoutSet.end
+    }
+  })
+
+  const onSubmit = useCallback(
+    (data: WorkoutSet) => {
+      console.log('data', data)
+      updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
+        ...workoutSet,
+        actualWeight: data.actualWeight,
+        actualReps: data.actualReps
+      })
+    },
+    [activity.activityId, program.programId, session.sessionId, updateWorkoutSet, workoutSet]
+  )
+
+  useEffect(() => {
+    console.log('useeffect')
+    const subscription = watch(() => handleSubmit(onSubmit)())
+    return () => subscription.unsubscribe()
+  }, [handleSubmit, onSubmit, watch])
 
   return (
     <>
       {/* <HeaderRightContainer>
       </HeaderRightContainer> */}
+      <CardInfo
+        style={tw`rounded-t-xl border-b-2`}
+        primaryText="Exercise"
+        secondaryText={exercise.name}
+      />
+      {workoutSet.type === 'Warm-up' ? (
+        <>
+          <CardInfo
+            style={tw`rounded-b-xl mb-9`}
+            primaryText="Warm-up Load"
+            secondaryText={`${String(warmupPercent * 100)}%`}
+          />
+          {/* <CardInfo
+            style={tw`rounded-b-xl border-b-0 mb-9`}
+            primaryText="Warm-up Reps"
+            secondaryText={stringifyLoad(activity.load)}
+          /> */}
+        </>
+      ) : (
+        <>
+          <CardInfo
+            style={tw`border-b-2`}
+            primaryText="Target Load"
+            secondaryText={stringifyLoad(activity.load)}
+          />
+          <CardInfo
+            style={tw`rounded-b-xl border-b-0 mb-9`}
+            primaryText="Target Reps"
+            secondaryText={String(activity.reps)}
+          />
+        </>
+      )}
 
-      {/* <CardInfo style={tw`rounded-t-xl`} primaryText="Exercise" secondaryText={} />
+      <Controller
+        control={control}
+        rules={{
+          required: false
+        }}
+        render={({ field: { onChange, onBlur, value } }) => (
+          <SimpleTextInput
+            label="Actual Weight (lbs)"
+            onChangeText={v =>
+              onChange({
+                value: Number(v),
+                unit: 'lbs'
+              })
+            }
+            onBlur={() => {
+              handleSubmit(onSubmit)
+              onBlur()
+            }}
+            value={value ? String(value.value) : undefined}
+            placeholder="0"
+            maxLength={4}
+            textAlign="right"
+            style={tw`border-b-2 rounded-t-xl`}
+            textInputStyle={tw`text-right web:text-base`}
+            labelStyle={tw`web:text-base`}
+            keyboardType="number-pad"
+            numeric
+          />
+        )}
+        name="actualWeight"
+      />
+
+      <Controller
+        control={control}
+        rules={{
+          required: false
+        }}
+        render={({ field: { onChange, onBlur, value } }) => (
+          <SimpleTextInput
+            label="Actual Reps"
+            onChangeText={onChange}
+            onBlur={() => {
+              console.log('testing')
+              handleSubmit(onSubmit)
+              onBlur()
+            }}
+            value={value ? String(value) : undefined}
+            placeholder="0"
+            maxLength={2}
+            textAlign="right"
+            style={tw`rounded-b-xl`}
+            textInputStyle={tw`text-right web:text-base`}
+            labelStyle={tw`web:text-base`}
+            keyboardType="number-pad"
+            numeric
+          />
+        )}
+        name="actualReps"
+      />
+      {/* 
 
       <SimpleSectionList
         style={tw``}

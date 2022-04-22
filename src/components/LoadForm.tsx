@@ -92,7 +92,7 @@ export default function LoadForm({ load, onSelect }: Props) {
                 label="RPE Value"
                 onChangeText={onChange}
                 onBlur={onBlur}
-                value={(value && value.toString()) || undefined}
+                value={(value && String(value)) || undefined}
                 placeholder="0"
                 maxLength={2}
                 textAlign="right"
@@ -120,7 +120,7 @@ export default function LoadForm({ load, onSelect }: Props) {
                 label="% of 1RM"
                 onChangeText={onChange}
                 onBlur={onBlur}
-                value={(value && value.toString()) || undefined}
+                value={(value && String(value / 100)) || undefined}
                 placeholder="0"
                 maxLength={4}
                 textAlign="right"

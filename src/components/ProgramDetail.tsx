@@ -85,7 +85,7 @@ export default function ProgramDetail({ program }: Props) {
         <CardInfo style={tw`rounded-b-xl mb-9`} specialText="Explore Data" reverse />
         {(!sections || sections.length === 0 || sections[0].title.includes('TODAY')) && (
           <SimpleSectionList
-            style={tw`pb-9`}
+            style={tw`mb-9`}
             sections={[{ title: formatDate(new Date()), data: [{ name: 'foo' }] }]}
             keyExtractor={(item, index) => `${index}`}
             renderItem={({ index, section }) => (
@@ -105,7 +105,7 @@ export default function ProgramDetail({ program }: Props) {
         )}
         {sections && sections.length > 0 && (
           <SimpleSectionList
-            style={tw`pb-9`}
+            style={tw`mb-64`}
             sections={sections}
             keyExtractor={session => (session as Session).sessionId}
             renderItem={({ index, item, section }) => (

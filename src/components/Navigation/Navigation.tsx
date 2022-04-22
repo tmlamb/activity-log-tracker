@@ -2,7 +2,6 @@ import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React from 'react'
 import { StackParamList } from '../../types'
-import ActivityDetailScreen from './ActivityDetailScreen'
 import DashboardScreen from './DashboardScreen'
 import ExerciseSelectModal from './ExerciseSelectModal'
 import LoadFormModal from './LoadFormModal'
@@ -10,6 +9,7 @@ import ProgramDetailScreen from './ProgramDetailScreen'
 import ProgramFormModal from './ProgramFormModal'
 import SessionDetailScreen from './SessionDetailScreen'
 import SessionFormModal from './SessionFormModal'
+import WorkoutSetDetailScreen from './WorkoutSetDetailScreen'
 
 const AppStack = createNativeStackNavigator<StackParamList>()
 
@@ -37,7 +37,11 @@ export default function Navigation() {
           component={SessionDetailScreen}
           options={{ title: 'Workout Session' }}
         />
-        <AppStack.Screen name="ActivityDetailScreen" component={ActivityDetailScreen} />
+        <AppStack.Screen
+          name="WorkoutSetDetailScreen"
+          component={WorkoutSetDetailScreen}
+          options={({ route }) => ({ title: route.params.title })}
+        />
         <AppStack.Group screenOptions={{ presentation: 'modal' }}>
           <AppStack.Screen
             name="ProgramFormModal"

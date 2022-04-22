@@ -1,4 +1,4 @@
-import { Load, Session } from './types'
+import { Load, Session, Weight } from './types'
 
 export const isToday = (date?: Date) => {
   const today = new Date()
@@ -27,3 +27,5 @@ export const mapSessionsByDate = (
 
 export const stringifyLoad = (load: Load) =>
   load.type === 'PERCENT' ? `${load.value}%` : `RPE ${load.value}`
+
+export const stringifyWeight = (weight: Weight) => `${weight.value} ${weight.unit}`

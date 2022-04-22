@@ -1,4 +1,4 @@
-import { Activity, Exercise, Program, Session, WorkoutSet } from '../types'
+import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet, WorkSet } from '../types'
 
 export default (
   state: { programs: Program[]; exercises: Exercise[] },
@@ -50,7 +50,7 @@ export default (
         payload: Exercise
       }
     | {
-        type: 'ADD_WORKOUT_SET' | 'UPDATE_WORKOUT_SET'
+        type: 'UPDATE_WORKOUT_SET'
         payload: {
           programId: string
           sessionId: string
@@ -58,15 +58,15 @@ export default (
           workoutSet: WorkoutSet
         }
       }
-    | {
-        type: 'DELETE_WORKOUT_SET'
-        payload: {
-          programId: string
-          sessionId: string
-          activityId: string
-          workoutSetId: string
-        }
-      }
+    // | {
+    //     type: 'DELETE_WORKOUT_SET'
+    //     payload: {
+    //       programId: string
+    //       sessionId: string
+    //       activityId: string
+    //       workoutSetId: string
+    //     }
+    //   }
     | {
         type: undefined
       }
@@ -98,7 +98,6 @@ export default (
         exercises: [...action.payload.exercises]
       }
     case 'ADD_SESSION':
-      // console.log('num activities saved', action.payload.session.activities.length)
       return {
         programs: state.programs.map(
           program =>
@@ -225,38 +224,6 @@ export default (
         ),
         programs: state.programs
       }
-    case 'ADD_WORKOUT_SET':
-      return {
-        programs: state.programs.map(
-          program =>
-            (program.programId === action.payload.programId
-              ? {
-                  ...program,
-                  sessions: program.sessions.map(
-                    session =>
-                      (session.sessionId === action.payload.sessionId
-                        ? {
-                            ...session,
-                            activities: session.activities.map(
-                              activity =>
-                                (activity.activityId === action.payload.activityId
-                                  ? {
-                                      ...activity,
-                                      workoutSets: [
-                                        ...activity.workoutSets,
-                                        action.payload.workoutSet
-                                      ]
-                                    }
-                                  : undefined) || activity
-                            )
-                          }
-                        : undefined) || session
-                  )
-                }
-              : undefined) || program
-        ),
-        exercises: state.exercises
-      }
     case 'UPDATE_WORKOUT_SET': {
       return {
         programs: state.programs.map(
@@ -274,45 +241,21 @@ export default (
                                 (activity.activityId === action.payload.activityId
                                   ? {
                                       ...activity,
-                                      workoutSets: activity.workoutSets.map(
-                                        workoutSet =>
-                                          (workoutSet.workoutSetId ===
+
+                                      workSets: activity.workSets.map(
+                                        workSet =>
+                                          (workSet.workoutSetId ===
                                           action.payload.workoutSet.workoutSetId
-                                            ? action.payload.workoutSet
-                                            : undefined) || workoutSet
-                                      )
-                                    }
-                                  : undefined) || activity
-                            )
-                          }
-                        : undefined) || session
-                  )
-                }
-              : undefined) || program
-        ),
-        exercises: state.exercises
-      }
-    }
-    case 'DELETE_WORKOUT_SET': {
-      return {
-        programs: state.programs.map(
-          program =>
-            (program.programId === action.payload.programId
-              ? {
-                  ...program,
-                  sessions: program.sessions.map(
-                    session =>
-                      (session.sessionId === action.payload.sessionId
-                        ? {
-                            ...session,
-                            activities: session.activities.map(
-                              activity =>
-                                (activity.activityId === action.payload.activityId
-                                  ? {
-                                      ...activity,
-                                      workoutSets: activity.workoutSets.filter(
-                                        workoutSet =>
-                                          workoutSet.workoutSetId !== action.payload.workoutSetId
+                                            ? (action.payload.workoutSet as WorkSet)
+                                            : undefined) || workSet
+                                      ),
+
+                                      warmupSets: activity.warmupSets.map(
+                                        warmupSet =>
+                                          (warmupSet.workoutSetId ===
+                                          action.payload.workoutSet.workoutSetId
+                                            ? (action.payload.workoutSet as WarmupSet)
+                                            : undefined) || warmupSet
                                       )
                                     }
                                   : undefined) || activity

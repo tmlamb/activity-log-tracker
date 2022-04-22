@@ -10,7 +10,7 @@ import {
 import { View } from 'react-native'
 import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../../tailwind'
-import { Exercise, Session } from '../../types'
+import { Exercise, Session, WarmupSet, WorkSet } from '../../types'
 import { stringifyLoad } from '../../utils'
 import ButtonContainer from '../ButtonContainer'
 import Card from '../Card'
@@ -78,14 +78,31 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
               <Controller
                 control={control}
                 rules={{
-                  required: true
+                  required: false
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
                   <SimpleTextInput
                     label="Warmup Sets"
-                    onChangeText={v => onChange(Number(v))}
+                    onChangeText={v => {
+                      const newLength = Number(v)
+                      const newValue = [...value]
+                      if (newLength < value.length) {
+                        newValue.splice(newLength, newValue.length - newLength)
+                      } else if (newLength > newValue.length) {
+                        newValue.push(
+                          ...Array.from(Array(newLength - newValue.length)).map(
+                            () =>
+                              ({
+                                workoutSetId: uuidv4(),
+                                type: 'Warm-up'
+                              } as WarmupSet)
+                          )
+                        )
+                      }
+                      onChange(newValue)
+                    }}
                     onBlur={onBlur}
-                    value={value?.toString()}
+                    value={String(value.length)}
                     placeholder="0"
                     maxLength={2}
                     textAlign="right"
@@ -109,9 +126,27 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                 render={({ field: { onChange, onBlur, value } }) => (
                   <SimpleTextInput
                     label="Work Sets"
-                    onChangeText={v => onChange(Number(v))}
+                    // onChangeText={v => onChange(Number(v))}
+                    onChangeText={v => {
+                      const newLength = Number(v)
+                      const newValue = [...value]
+                      if (newLength < value.length) {
+                        newValue.splice(newLength, newValue.length - newLength)
+                      } else if (newLength > newValue.length) {
+                        newValue.push(
+                          ...Array.from(Array(newLength - newValue.length)).map(
+                            () =>
+                              ({
+                                workoutSetId: uuidv4(),
+                                type: 'Work'
+                              } as WorkSet)
+                          )
+                        )
+                      }
+                      onChange(newValue)
+                    }}
                     onBlur={onBlur}
-                    value={value?.toString()}
+                    value={String(value.length)}
                     placeholder="0"
                     maxLength={2}
                     textAlign="right"
@@ -136,7 +171,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                     label="Repetitions"
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    value={value?.toString()}
+                    value={String(value)}
                     placeholder="0"
                     maxLength={2}
                     textAlign="right"
@@ -180,7 +215,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                     label="Rest (minutes)"
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    value={value?.toString()}
+                    value={String(value)}
                     placeholder="0"
                     maxLength={2}
                     textAlign="right"
@@ -201,13 +236,12 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
         <ButtonContainer
           onPress={() =>
             append({
-              warmupSets: 0,
-              workSets: 3,
+              warmupSets: [],
+              workSets: Array(3).fill({ workoutSetId: uuidv4(), type: 'Work' }),
               reps: 3,
               load: { type: 'PERCENT', value: 77.5 },
               rest: 3,
-              activityId: uuidv4(),
-              workoutSets: []
+              activityId: uuidv4()
             })
           }
         >
