@@ -203,7 +203,7 @@ const mockExercises: Exercise[] = [
     name: 'Squat',
     muscle: 'Quadriceps',
     oneRepMax: {
-      value: 100,
+      value: 106,
       unit: 'lbs'
     }
   }

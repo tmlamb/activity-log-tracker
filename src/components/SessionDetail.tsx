@@ -47,10 +47,9 @@ function SetCard({ set, activity, session, program, index }: SetCardProps) {
     >
       <CardInfo
         primaryText={title}
-        // secondaryText={set.type === 'Work' ? stringifyLoad(activity.load) : undefined}
         specialText={
           index === 0 && (set.type === 'Warm-up' || activity.warmupSets.length === 0)
-            ? 'Start'
+            ? 'Ready'
             : undefined
         }
         rightIcon={
@@ -119,7 +118,7 @@ export default function SessionDetail({ program, session, exercises }: Props) {
         renderItem={({ index, item, section }) => (
           // eslint-disable-next-line react/jsx-props-no-spreading
           <SetCard {...(item as SetCardProps)} />
-          // I wouldn't spread but typescript complains about this... not sure why
+          // I wouldn't spread but typescript complains about this... not sure why:
           // <SetCard
           //   set={(item as SetCardProps).set}
           //   activity={(item as SetCardProps).activity}

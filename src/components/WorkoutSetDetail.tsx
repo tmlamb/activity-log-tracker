@@ -2,7 +2,7 @@ import React, { useCallback, useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { tw } from '../tailwind'
 import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
-import { stringifyLoad } from '../utils'
+import { round5, stringifyLoad } from '../utils'
 import CardInfo from './CardInfo'
 import SimpleTextInput from './SimpleTextInput'
 
@@ -74,7 +74,6 @@ export default function WorkoutSetDetail({
   exercises,
   updateWorkoutSet
 }: Props) {
-  console.log(workoutSet)
   const exercise = exercises.find(e => e.exerciseId === activity.exerciseId)!
 
   const warmupPercent =
@@ -83,6 +82,11 @@ export default function WorkoutSetDetail({
           activity.warmupSets.indexOf(workoutSet as WarmupSet)
         ]
       : 0
+
+  const workPercent =
+    workoutSet.type === 'Work' && activity.load.type === 'PERCENT' ? activity.load.value : 0
+
+  const targetWeight = round5(exercise.oneRepMax!.value * (warmupPercent || workPercent))
 
   const {
     control,
@@ -104,7 +108,6 @@ export default function WorkoutSetDetail({
 
   const onSubmit = useCallback(
     (data: WorkoutSet) => {
-      console.log('data', data)
       updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
         ...workoutSet,
         actualWeight: data.actualWeight,
@@ -115,7 +118,6 @@ export default function WorkoutSetDetail({
   )
 
   useEffect(() => {
-    console.log('useeffect')
     const subscription = watch(() => handleSubmit(onSubmit)())
     return () => subscription.unsubscribe()
   }, [handleSubmit, onSubmit, watch])
@@ -134,7 +136,7 @@ export default function WorkoutSetDetail({
           <CardInfo
             style={tw`rounded-b-xl mb-9`}
             primaryText="Warm-up Load"
-            secondaryText={`${String(warmupPercent * 100)}%`}
+            secondaryText={`${String(warmupPercent * 100)}% / ${targetWeight}lbs`}
           />
           {/* <CardInfo
             style={tw`rounded-b-xl border-b-0 mb-9`}
@@ -147,7 +149,9 @@ export default function WorkoutSetDetail({
           <CardInfo
             style={tw`border-b-2`}
             primaryText="Target Load"
-            secondaryText={stringifyLoad(activity.load)}
+            secondaryText={`${stringifyLoad(activity.load)}${
+              activity.load.type === 'PERCENT' ? `/ ${targetWeight}lbs` : ''
+            }`}
           />
           <CardInfo
             style={tw`rounded-b-xl border-b-0 mb-9`}
@@ -175,7 +179,11 @@ export default function WorkoutSetDetail({
               handleSubmit(onSubmit)
               onBlur()
             }}
-            value={value ? String(value.value) : undefined}
+            value={
+              value
+                ? String(value.value)
+                : String(round5(exercise.oneRepMax!.value * (warmupPercent || workPercent)))
+            }
             placeholder="0"
             maxLength={4}
             textAlign="right"
@@ -199,7 +207,6 @@ export default function WorkoutSetDetail({
             label="Actual Reps"
             onChangeText={onChange}
             onBlur={() => {
-              console.log('testing')
               handleSubmit(onSubmit)
               onBlur()
             }}

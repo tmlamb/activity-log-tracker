@@ -36,6 +36,7 @@ export default function LoadForm({ load, onSelect }: Props) {
 
   const onSubmit = (data: Partial<Load>) => {
     // console.log('submitted!')
+    // console.log(data)
     onSelect({ type: data.type!, value: data.value || 0 })
     navigation.goBack()
   }
@@ -43,7 +44,7 @@ export default function LoadForm({ load, onSelect }: Props) {
   useEffect(() => {
     // console.log('errors', errors)
     // console.log('isValid', isValid)
-  })
+  }, [errors, isValid])
 
   return (
     <>
@@ -112,15 +113,19 @@ export default function LoadForm({ load, onSelect }: Props) {
             control={control}
             rules={{
               required: true,
-              min: 1,
-              max: 100
+              min: 0.1,
+              max: 1
             }}
             render={({ field: { onChange, onBlur, value } }) => (
               <SimpleTextInput
                 label="% of 1RM"
-                onChangeText={onChange}
+                onChangeText={v => {
+                  // console.log(value)
+                  console.log((Number(v) / 100).toFixed(2))
+                  onChange((Number(v) / 100).toFixed(2))
+                }}
                 onBlur={onBlur}
-                value={(value && String(value / 100)) || undefined}
+                value={(value && String(+(value * 100).toFixed(2))) || undefined}
                 placeholder="0"
                 maxLength={4}
                 textAlign="right"

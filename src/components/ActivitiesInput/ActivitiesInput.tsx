@@ -239,7 +239,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
               warmupSets: [],
               workSets: Array(3).fill({ workoutSetId: uuidv4(), type: 'Work' }),
               reps: 3,
-              load: { type: 'PERCENT', value: 77.5 },
+              load: { type: 'PERCENT', value: 0.775 },
               rest: 3,
               activityId: uuidv4()
             })
