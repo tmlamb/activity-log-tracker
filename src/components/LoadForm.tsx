@@ -4,10 +4,10 @@ import { Controller, useForm } from 'react-hook-form'
 import { LogBox, View } from 'react-native'
 import { tw } from '../tailwind'
 import { Load } from '../types'
-import SimplePicker from './ActivitiesInput/SimplePicker'
+import Picker from './ActivitiesInput/Picker'
 import ButtonContainer from './ButtonContainer'
 import HeaderRightContainer from './HeaderRightContainer'
-import SimpleTextInput from './SimpleTextInput'
+import TextInput from './TextInput'
 import { primaryTextColor, SpecialText } from './Typography'
 
 // TODO: Address problem with non-serializable navigation prop (see onSelect function), then remove this ignore statement
@@ -60,7 +60,7 @@ export default function LoadForm({ load, onSelect }: Props) {
             required: true
           }}
           render={({ field: { onChange, value } }) => (
-            <SimplePicker
+            <Picker
               label="Load Type"
               items={[
                 { label: 'RPE', value: 'RPE', color: tw.style(primaryTextColor).color as string },
@@ -89,7 +89,7 @@ export default function LoadForm({ load, onSelect }: Props) {
               max: 10
             }}
             render={({ field: { onChange, onBlur, value } }) => (
-              <SimpleTextInput
+              <TextInput
                 label="RPE Value"
                 onChangeText={onChange}
                 onBlur={onBlur}
@@ -117,7 +117,7 @@ export default function LoadForm({ load, onSelect }: Props) {
               max: 1
             }}
             render={({ field: { onChange, onBlur, value } }) => (
-              <SimpleTextInput
+              <TextInput
                 label="% of 1RM"
                 onChangeText={v => {
                   // console.log(value)

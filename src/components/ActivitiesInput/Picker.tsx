@@ -19,7 +19,7 @@ interface PropsFilled extends Props {
   onValueChange: (value: string) => void
 }
 
-export default function SimplePicker({ label, items, style, onValueChange, value }: PropsFilled) {
+export default function Picker({ label, items, style, onValueChange, value }: PropsFilled) {
   return (
     <Card
       style={tw.style(
@@ -104,7 +104,7 @@ export default function SimplePicker({ label, items, style, onValueChange, value
   )
 }
 
-SimplePicker.defaultProps = {
+Picker.defaultProps = {
   style: undefined,
   onValueChange: (value: string) => value,
   value: undefined

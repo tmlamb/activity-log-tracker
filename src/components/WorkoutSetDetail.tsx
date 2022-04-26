@@ -4,7 +4,7 @@ import { tw } from '../tailwind'
 import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import { round5, stringifyLoad } from '../utils'
 import CardInfo from './CardInfo'
-import SimpleTextInput from './SimpleTextInput'
+import TextInput from './TextInput'
 
 type Props = {
   program: Program
@@ -86,7 +86,15 @@ export default function WorkoutSetDetail({
   const workPercent =
     workoutSet.type === 'Work' && activity.load.type === 'PERCENT' ? activity.load.value : 0
 
-  const targetWeight = round5(exercise.oneRepMax!.value * (warmupPercent || workPercent))
+  const targetWeight =
+    exercise.oneRepMax && round5(exercise.oneRepMax.value * (warmupPercent || workPercent))
+
+  const weightPreset = targetWeight ? String(targetWeight) : undefined
+  console.log('program', program)
+  console.log('session', session)
+  console.log('activity', activity)
+  console.log('exercise', exercise)
+  console.log('workoutSet', workoutSet)
 
   const {
     control,
@@ -127,7 +135,7 @@ export default function WorkoutSetDetail({
       {/* <HeaderRightContainer>
       </HeaderRightContainer> */}
       <CardInfo
-        style={tw`rounded-t-xl border-b-2`}
+        style={tw`border-b-2 rounded-t-xl`}
         primaryText="Exercise"
         secondaryText={exercise.name}
       />
@@ -136,10 +144,12 @@ export default function WorkoutSetDetail({
           <CardInfo
             style={tw`rounded-b-xl mb-9`}
             primaryText="Warm-up Load"
-            secondaryText={`${String(warmupPercent * 100)}% / ${targetWeight}lbs`}
+            secondaryText={`${String(warmupPercent * 100)}%${
+              targetWeight ? ` / ${targetWeight}lbs` : ''
+            }`}
           />
           {/* <CardInfo
-            style={tw`rounded-b-xl border-b-0 mb-9`}
+            style={tw`border-b-0 rounded-b-xl mb-9`}
             primaryText="Warm-up Reps"
             secondaryText={stringifyLoad(activity.load)}
           /> */}
@@ -150,11 +160,11 @@ export default function WorkoutSetDetail({
             style={tw`border-b-2`}
             primaryText="Target Load"
             secondaryText={`${stringifyLoad(activity.load)}${
-              activity.load.type === 'PERCENT' ? `/ ${targetWeight}lbs` : ''
+              activity.load.type === 'PERCENT' && targetWeight ? `/ ${targetWeight}lbs` : ''
             }`}
           />
           <CardInfo
-            style={tw`rounded-b-xl border-b-0 mb-9`}
+            style={tw`border-b-0 rounded-b-xl mb-9`}
             primaryText="Target Reps"
             secondaryText={String(activity.reps)}
           />
@@ -167,7 +177,7 @@ export default function WorkoutSetDetail({
           required: false
         }}
         render={({ field: { onChange, onBlur, value } }) => (
-          <SimpleTextInput
+          <TextInput
             label="Actual Weight (lbs)"
             onChangeText={v =>
               onChange({
@@ -179,11 +189,7 @@ export default function WorkoutSetDetail({
               handleSubmit(onSubmit)
               onBlur()
             }}
-            value={
-              value
-                ? String(value.value)
-                : String(round5(exercise.oneRepMax!.value * (warmupPercent || workPercent)))
-            }
+            value={value ? String(value.value) : weightPreset}
             placeholder="0"
             maxLength={4}
             textAlign="right"
@@ -203,7 +209,7 @@ export default function WorkoutSetDetail({
           required: false
         }}
         render={({ field: { onChange, onBlur, value } }) => (
-          <SimpleTextInput
+          <TextInput
             label="Actual Reps"
             onChangeText={onChange}
             onBlur={() => {
@@ -223,20 +229,6 @@ export default function WorkoutSetDetail({
         )}
         name="actualReps"
       />
-      {/* 
-
-      <SimpleSectionList
-        style={tw``}
-        sections={sections}
-        keyExtractor={(item, index) => `${index}`}
-        renderItem={({ index, item, section }) => (
-          <SetCard
-            set={(item as SetCardProps).set}
-            activity={(item as SetCardProps).activity}
-            index={(item as SetCardProps).index}
-          />
-        )}
-      /> */}
     </>
   )
 }

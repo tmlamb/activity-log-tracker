@@ -1,12 +1,11 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
-import { View } from 'react-native'
+import { SectionList, View } from 'react-native'
 import { tw } from '../../tailwind'
 import { Program } from '../../types'
 import CardInfo from '../CardInfo'
 import HeaderRightContainer from '../HeaderRightContainer'
 import NavigationLink from '../Navigation/NavigationLink'
-import SimpleSectionList from '../SimpleSectionList'
 import { PrimaryText, SecondaryText, SpecialText } from '../Typography'
 
 type Props = {
@@ -28,10 +27,13 @@ export default function Dashboard({ programs }: Props) {
           Activity Log Tracker
         </PrimaryText>
         {programs.length > 0 && (
-          <SimpleSectionList
+          <SectionList
             keyExtractor={program => (program as Program).programId}
             style={tw`pb-1.5`}
             sections={[{ title: 'Workout Programs', data: programs }]}
+            renderSectionHeader={({ section: { title } }) => (
+              <SecondaryText style={tw`pl-4 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
+            )}
             renderItem={({ index, item, section }) => (
               <NavigationLink
                 screen="ProgramDetailScreen"

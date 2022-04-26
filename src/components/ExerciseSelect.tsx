@@ -129,20 +129,6 @@ export default function ExerciseSelect({
               stringify={item => (item as Exercise).name}
               keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
             />
-            // <SimplePicker
-            //   label="Load Type"
-            //   items={[
-            //     { label: 'RPE', value: 'RPE', color: tw.style(primaryTextColor).color as string },
-            //     {
-            //       label: 'Percent',
-            //       value: 'PERCENT',
-            //       color: tw.style(primaryTextColor).color as string
-            //     }
-            //   ]}
-            //   onValueChange={onChange}
-            //   value={value}
-            //   style={tw`px-4 mb-9`}
-            // />
           )}
           name="exercise"
         />

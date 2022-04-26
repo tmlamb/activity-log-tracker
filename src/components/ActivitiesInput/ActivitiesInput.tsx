@@ -15,7 +15,7 @@ import { stringifyLoad } from '../../utils'
 import ButtonContainer from '../ButtonContainer'
 import Card from '../Card'
 import CardInfo from '../CardInfo'
-import SimpleTextInput from '../SimpleTextInput'
+import TextInput from '../TextInput'
 import { AlertText, SpecialText } from '../Typography'
 import ModalSelectInput from './ModalSelectInput'
 // import NestedArray from './nestedFieldArray'
@@ -81,7 +81,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                   required: false
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <SimpleTextInput
+                  <TextInput
                     label="Warmup Sets"
                     onChangeText={v => {
                       const newLength = Number(v)
@@ -124,7 +124,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                   min: 1
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <SimpleTextInput
+                  <TextInput
                     label="Work Sets"
                     // onChangeText={v => onChange(Number(v))}
                     onChangeText={v => {
@@ -167,7 +167,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                   required: true
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <SimpleTextInput
+                  <TextInput
                     label="Repetitions"
                     onChangeText={onChange}
                     onBlur={onBlur}
@@ -211,7 +211,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                   required: true
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <SimpleTextInput
+                  <TextInput
                     label="Rest (minutes)"
                     onChangeText={onChange}
                     onBlur={onBlur}
@@ -237,7 +237,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
           onPress={() =>
             append({
               warmupSets: [],
-              workSets: Array(3).fill({ workoutSetId: uuidv4(), type: 'Work' }),
+              workSets: Array.from(Array(3)).map(() => ({ workoutSetId: uuidv4(), type: 'Work' })),
               reps: 3,
               load: { type: 'PERCENT', value: 0.775 },
               rest: 3,

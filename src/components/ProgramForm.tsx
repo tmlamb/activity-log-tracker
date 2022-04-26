@@ -10,7 +10,7 @@ import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
 import NavigationLink from './Navigation/NavigationLink'
-import SimpleTextInput from './SimpleTextInput'
+import TextInput from './TextInput'
 import { SpecialText } from './Typography'
 
 type Props = {
@@ -62,7 +62,7 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
             required: true
           }}
           render={({ field: { onChange, onBlur, value } }) => (
-            <SimpleTextInput
+            <TextInput
               onChangeText={onChange}
               onBlur={onBlur}
               value={value}

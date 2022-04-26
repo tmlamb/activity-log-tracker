@@ -1,11 +1,11 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
+import { SectionList } from 'react-native'
 import { tw } from '../tailwind'
 import { Activity, Exercise, Program, Session, WarmupSet, WorkSet } from '../types'
 import CardInfo from './CardInfo'
 import NavigationLink from './Navigation/NavigationLink'
 import { SessionFormLink } from './ProgramDetail'
-import SimpleSectionList from './SimpleSectionList'
 import { SecondaryText } from './Typography'
 
 type Props = {
@@ -110,11 +110,14 @@ export default function SessionDetail({ program, session, exercises }: Props) {
       </SessionFormLink>
       <CardInfo style={tw`rounded-b-xl mb-9`} specialText="Start Workout Session" reverse />
 
-      <SimpleSectionList
+      <SectionList
         style={tw`mb-32`}
         sections={sections}
         // sections={[{ title: 'Today', data: [{ name: 'foo' }] }]}
         keyExtractor={(item, index) => `${index}`}
+        renderSectionHeader={({ section: { title } }) => (
+          <SecondaryText style={tw`pl-4 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
+        )}
         renderItem={({ index, item, section }) => (
           // eslint-disable-next-line react/jsx-props-no-spreading
           <SetCard {...(item as SetCardProps)} />

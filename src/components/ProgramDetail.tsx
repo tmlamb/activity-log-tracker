@@ -1,13 +1,12 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
-import { View } from 'react-native'
+import { SectionList, View } from 'react-native'
 import { tw } from '../tailwind'
 import { Program, Session } from '../types'
 import { isToday, mapSessionsByDate } from '../utils'
 import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
 import NavigationLink from './Navigation/NavigationLink'
-import SimpleSectionList from './SimpleSectionList'
 import { SecondaryText, SpecialText } from './Typography'
 
 type Props = {
@@ -84,7 +83,7 @@ export default function ProgramDetail({ program }: Props) {
         </NavigationLink>
         <CardInfo style={tw`rounded-b-xl mb-9`} specialText="Explore Data" reverse />
         {(!sections || sections.length === 0 || sections[0].title.includes('TODAY')) && (
-          <SimpleSectionList
+          <SectionList
             style={tw`mb-9`}
             sections={[{ title: formatDate(new Date()), data: [{ name: 'foo' }] }]}
             keyExtractor={(item, index) => `${index}`}
@@ -101,13 +100,19 @@ export default function ProgramDetail({ program }: Props) {
                 />
               </SessionFormLink>
             )}
+            renderSectionHeader={({ section: { title } }) => (
+              <SecondaryText style={tw`pl-4 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
+            )}
           />
         )}
         {sections && sections.length > 0 && (
-          <SimpleSectionList
+          <SectionList
             style={tw`mb-64`}
             sections={sections}
             keyExtractor={session => (session as Session).sessionId}
+            renderSectionHeader={({ section: { title } }) => (
+              <SecondaryText style={tw`pl-4 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
+            )}
             renderItem={({ index, item, section }) => (
               <NavigationLink
                 style={tw``}

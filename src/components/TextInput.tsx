@@ -1,5 +1,5 @@
 import React from 'react'
-import { KeyboardTypeOptions, TextInput, ViewStyle } from 'react-native'
+import { KeyboardTypeOptions, TextInput as NativeTextInput, ViewStyle } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import { tw } from '../tailwind'
 import Card from './Card'
@@ -27,7 +27,7 @@ interface PropsFilled extends Props {
   keyboardType: KeyboardTypeOptions
 }
 
-export default function SimpleTextInput({
+export default function TextInput({
   onChangeText,
   onBlur,
   value,
@@ -54,7 +54,7 @@ export default function SimpleTextInput({
           {label}
         </SecondaryText>
       )}
-      <TextInput
+      <NativeTextInput
         onChangeText={handleChange}
         onBlur={onBlur}
         value={value}
@@ -75,7 +75,7 @@ export default function SimpleTextInput({
   )
 }
 
-SimpleTextInput.defaultProps = {
+TextInput.defaultProps = {
   value: undefined,
   style: undefined,
   onChangeText: (text: string) => text,
