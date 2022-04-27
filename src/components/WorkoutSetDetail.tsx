@@ -160,7 +160,7 @@ export default function WorkoutSetDetail({
             style={tw`border-b-2`}
             primaryText="Target Load"
             secondaryText={`${stringifyLoad(activity.load)}${
-              activity.load.type === 'PERCENT' && targetWeight ? `/ ${targetWeight}lbs` : ''
+              activity.load.type === 'PERCENT' && targetWeight ? ` / ${targetWeight}lbs` : ''
             }`}
           />
           <CardInfo

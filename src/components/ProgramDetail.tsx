@@ -70,7 +70,7 @@ export default function ProgramDetail({ program }: Props) {
         </SessionFormLink>
       </HeaderRightContainer>
 
-      <View style={tw`flex flex-col`}>
+      <View style={tw``}>
         <NavigationLink
           screen="ProgramFormModal"
           navigationParams={{ programId: program.programId }}

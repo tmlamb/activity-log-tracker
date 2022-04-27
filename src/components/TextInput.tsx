@@ -48,7 +48,7 @@ export default function TextInput({
   }
 
   return (
-    <Card style={tw.style('flex flex-row items-center justify-between relative', style)}>
+    <Card style={tw.style('flex-row items-center justify-between relative', style)}>
       {label && (
         <SecondaryText style={tw.style('absolute pl-4 web:w-4/5 web:relative', labelStyle)}>
           {label}

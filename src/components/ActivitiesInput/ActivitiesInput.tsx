@@ -16,7 +16,7 @@ import ButtonContainer from '../ButtonContainer'
 import Card from '../Card'
 import CardInfo from '../CardInfo'
 import TextInput from '../TextInput'
-import { AlertText, SpecialText } from '../Typography'
+import { SpecialText } from '../Typography'
 import ModalSelectInput from './ModalSelectInput'
 // import NestedArray from './nestedFieldArray'
 
@@ -42,16 +42,13 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
     <>
       <View style={tw`mb-9`}>
         {fields.map((item, index) => (
-          <Card
-            key={item.activityId}
-            style={tw`flex flex-row items-center justify-between px-4 border-b-2`}
-          >
-            <View style={tw`flex flex-row items-center justify-start flex-initial w-1/2`}>
-              <ButtonContainer onPress={() => remove(index)}>
+          <Card key={item.activityId} style={tw`flex-row justify-between border-b-2`}>
+            <View style={tw`flex-initial w-1/2`}>
+              {/* <ButtonContainer onPress={() => remove(index)}>
                 <AlertText style={tw`p-2 -mx-2 `}>
                   <AntDesign name="minuscircle" size={16} />
                 </AlertText>
-              </ButtonContainer>
+              </ButtonContainer> */}
               <Controller
                 control={control}
                 rules={{
@@ -63,18 +60,21 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                     value={value}
                     onChangeSelect={onChange}
                     onBlur={onBlur}
-                    textStyle={tw`w-10/12 -mr-1 web:w-20 web:sm:w-44 web:md:w-64 web:lg:w-80`}
+                    textStyle={tw``}
                     placeholder="Select Exercise"
-                    style={tw`flex-initial`}
-                    stringify={exerciseId =>
-                      exercises!.find(exercise => exercise.exerciseId === exerciseId)!.name
+                    style={tw``}
+                    // stringify={exerciseId =>
+                    //   exercises!.find(exercise => exercise.exerciseId === exerciseId)!.name
+                    // }
+                    stringify={() =>
+                      'This is a test of how very long strings are super-overwhelmingly annoying'
                     }
                   />
                 )}
                 name={`activities.${index}.exerciseId`}
               />
             </View>
-            <View style={tw`flex flex-col items-stretch justify-between flex-initial w-1/2`}>
+            <View style={tw`justify-between flex-initial w-1/2`}>
               <Controller
                 control={control}
                 rules={{
@@ -107,7 +107,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                     maxLength={2}
                     textAlign="right"
                     style={tw`py-0 border-b-2 border-l-2`}
-                    textInputStyle={tw`px-0 pb-2.5 pt-3 text-right web:text-base`}
+                    textInputStyle={tw`pl-0 pb-2.5 pt-3 text-right web:text-base`}
                     labelStyle={tw`px-2 web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
@@ -151,7 +151,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                     maxLength={2}
                     textAlign="right"
                     style={tw`py-0 border-b-2 border-l-2`}
-                    textInputStyle={tw`px-0 py-2.5 text-right web:text-base`}
+                    textInputStyle={tw`pl-0 py-2.5 text-right web:text-base`}
                     labelStyle={tw`px-2 web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
@@ -176,7 +176,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                     maxLength={2}
                     textAlign="right"
                     style={tw`py-0 border-b-2 border-l-2`}
-                    textInputStyle={tw`px-0 py-2.5 text-right web:text-base`}
+                    textInputStyle={tw`pl-0 py-2.5 text-right web:text-base`}
                     labelStyle={tw`px-2 web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
@@ -195,7 +195,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                   <ModalSelectInput
                     label="Load"
                     value={value}
-                    style={tw`py-2 pl-2 pr-0 border-b-2 border-l-2`}
+                    style={tw`py-2 pl-2 pr-3.5 border-b-2 border-l-2`}
                     textStyle={tw`web:text-base`}
                     screen="LoadFormModal"
                     onChangeSelect={onChange}
@@ -220,7 +220,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                     maxLength={2}
                     textAlign="right"
                     style={tw`py-0 border-l-2`}
-                    textInputStyle={tw`px-0 py-2.5 text-right web:text-base`}
+                    textInputStyle={tw`pl-0 py-2.5 text-right web:text-base`}
                     labelStyle={tw`px-2 web:text-base`}
                     selectTextOnFocus
                     clearTextOnFocus

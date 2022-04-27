@@ -55,7 +55,7 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
-      <View style={tw`flex flex-col`}>
+      <View style={tw``}>
         <Controller
           control={control}
           rules={{

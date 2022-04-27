@@ -65,7 +65,7 @@ export default function ModalSelectInput({
           }
         />
       </SelectModalNavigationLink> */}
-      <ButtonContainer onPress={() => navigation.navigate(screen, params)}>
+      <ButtonContainer style={tw``} onPress={() => navigation.navigate(screen, params)}>
         <CardInfo
           style={tw.style(style)}
           textStyle={tw.style(textStyle)}

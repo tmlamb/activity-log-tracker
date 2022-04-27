@@ -22,7 +22,7 @@ export default function Dashboard({ programs }: Props) {
           </SpecialText>
         </NavigationLink>
       </HeaderRightContainer>
-      <View style={tw`flex flex-col`}>
+      <View style={tw``}>
         <PrimaryText style={tw`text-4xl font-bold tracking-tight pb-9`}>
           Activity Log Tracker
         </PrimaryText>

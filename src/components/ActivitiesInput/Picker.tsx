@@ -23,7 +23,7 @@ export default function Picker({ label, items, style, onValueChange, value }: Pr
   return (
     <Card
       style={tw.style(
-        'relative py-2.5 web:p-0 web:flex web:flex-row web:justify-between web:items-center',
+        'relative py-2.5 web:p-0 web:flex-row web:justify-between web:items-center',
         style,
         {
           cursor: 'pointer'

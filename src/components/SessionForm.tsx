@@ -76,7 +76,7 @@ export default function SessionForm({
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
-      <ScrollView style={tw`flex flex-col`}>
+      <ScrollView style={tw``}>
         <Controller
           control={control}
           rules={{
