@@ -8,7 +8,7 @@ type Props = {
 }
 
 export default function HeaderRightContainer({ children }: Props) {
-  const memoizedComponent = useMemo(() => <View style={tw`web:mr-4`}>{children}</View>, [children])
+  const memoizedComponent = useMemo(() => <View style={tw`web:mr-3`}>{children}</View>, [children])
   const navigation = useNavigation()
 
   useLayoutEffect(() => {

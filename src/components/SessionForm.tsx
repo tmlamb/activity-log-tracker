@@ -34,6 +34,7 @@ export default function SessionForm({
 
   const {
     control,
+    watch,
     handleSubmit,
     setValue,
     getValues,
@@ -96,7 +97,7 @@ export default function SessionForm({
           name="name"
         />
 
-        <ActivitiesInput {...{ control, getValues, setValue, exercises }} />
+        <ActivitiesInput {...{ control, watch, getValues, setValue, exercises }} />
 
         <Controller
           control={control}

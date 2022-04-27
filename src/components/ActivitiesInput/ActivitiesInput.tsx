@@ -1,11 +1,11 @@
-import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
 import {
   Control,
   Controller,
   useFieldArray,
   UseFormGetValues,
-  UseFormSetValue
+  UseFormSetValue,
+  UseFormWatch
 } from 'react-hook-form'
 import { View } from 'react-native'
 import { v4 as uuidv4 } from 'uuid'
@@ -16,34 +16,36 @@ import ButtonContainer from '../ButtonContainer'
 import Card from '../Card'
 import CardInfo from '../CardInfo'
 import TextInput from '../TextInput'
-import { SpecialText } from '../Typography'
+import { AlertText } from '../Typography'
 import ModalSelectInput from './ModalSelectInput'
 // import NestedArray from './nestedFieldArray'
 
-let renderCount = 0
+const renderCount = 0
 
 type Props = {
   control: Control<Partial<Session>, unknown>
+  watch: UseFormWatch<Partial<Session>>
   setValue: UseFormSetValue<Partial<Session>>
   getValues: UseFormGetValues<Partial<Session>>
   exercises?: Exercise[]
 }
 
-export default function ActivitiesInput({ control, setValue, getValues, exercises }: Props) {
-  // console.log('exercises', exercises)
+export default function ActivitiesInput({ control, watch, setValue, getValues, exercises }: Props) {
   const { fields, append, remove, prepend } = useFieldArray({
     control,
     name: 'activities'
   })
 
-  renderCount += 1
+  const watchActivities = watch('activities')
+
+  // renderCount += 1
 
   return (
     <>
       <View style={tw`mb-9`}>
         {fields.map((item, index) => (
           <Card key={item.activityId} style={tw`flex-row justify-between border-b-2`}>
-            <View style={tw`flex-initial w-1/2`}>
+            <View style={tw`flex-initial justify-evenly w-1/2`}>
               {/* <ButtonContainer onPress={() => remove(index)}>
                 <AlertText style={tw`p-2 -mx-2 `}>
                   <AntDesign name="minuscircle" size={16} />
@@ -62,17 +64,37 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                     onBlur={onBlur}
                     textStyle={tw``}
                     placeholder="Select Exercise"
-                    style={tw``}
-                    // stringify={exerciseId =>
-                    //   exercises!.find(exercise => exercise.exerciseId === exerciseId)!.name
-                    // }
-                    stringify={() =>
-                      'This is a test of how very long strings are super-overwhelmingly annoying'
+                    style={tw` pl-2`}
+                    stringify={exerciseId =>
+                      exercises!.find(exercise => exercise.exerciseId === exerciseId)!.name
                     }
+                    // stringify={() => 'This is a test of how very super-overwhelmingly test sucks!!'}
                   />
                 )}
                 name={`activities.${index}.exerciseId`}
               />
+              <View style={tw`items-center flex-row mx-auto`}>
+                <CardInfo
+                  style={tw`p-0 px-1 border-2 items-center`}
+                  textStyle={tw`text-base`}
+                  secondaryText="1RM (lbs)"
+                />
+                <CardInfo
+                  style={tw`p-0 px-1 border-2 border-l-0 justify-center`}
+                  textStyle={tw`text-base`}
+                  secondaryText={String(
+                    exercises?.find(
+                      exercise => exercise.exerciseId === watchActivities![index].exerciseId
+                    )?.oneRepMax?.value || '???'
+                  )}
+                />
+              </View>
+              <ButtonContainer style={tw`self-start mx-3 py-2.5`} onPress={() => remove(index)}>
+                {/* <AlertText style={tw`mr-3`}>
+                  <AntDesign name="minuscircle" size={16} />
+                </AlertText> */}
+                <AlertText>Remove Activity</AlertText>
+              </ButtonContainer>
             </View>
             <View style={tw`justify-between flex-initial w-1/2`}>
               <Controller
@@ -195,7 +217,7 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
                   <ModalSelectInput
                     label="Load"
                     value={value}
-                    style={tw`py-2 pl-2 pr-3.5 border-b-2 border-l-2`}
+                    style={tw`py-2 pl-2 pr-2.5 border-b-2 border-l-2`}
                     textStyle={tw`web:text-base`}
                     screen="LoadFormModal"
                     onChangeSelect={onChange}
@@ -246,13 +268,14 @@ export default function ActivitiesInput({ control, setValue, getValues, exercise
           }
         >
           <CardInfo
-            leftIcon={
-              <SpecialText>
-                <AntDesign name="pluscircle" size={16} />
-              </SpecialText>
-            }
-            primaryText="Plan Workout Activity"
+            // leftIcon={
+            //   <SpecialText>
+            //     <AntDesign name="pluscircle" size={16} />
+            //   </SpecialText>
+            // }
+            specialText="Add Activity"
             style={tw``}
+            reverse
           />
         </ButtonContainer>
       </View>

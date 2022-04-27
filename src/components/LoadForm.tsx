@@ -75,7 +75,7 @@ export default function LoadForm({ load, onSelect }: Props) {
                 onChange(v)
               }}
               value={value}
-              style={tw`px-4 mb-9`}
+              style={tw`px-3 mb-9`}
             />
           )}
           name="type"
@@ -98,7 +98,7 @@ export default function LoadForm({ load, onSelect }: Props) {
                 maxLength={2}
                 textAlign="right"
                 style={tw`px-0 py-0`}
-                textInputStyle={tw`px-4 py-3 text-right`}
+                textInputStyle={tw`px-3 py-2.5 text-right`}
                 keyboardType="number-pad"
                 selectTextOnFocus
                 clearTextOnFocus
@@ -130,7 +130,7 @@ export default function LoadForm({ load, onSelect }: Props) {
                 maxLength={4}
                 textAlign="right"
                 style={tw`px-0 py-0`}
-                textInputStyle={tw`px-4 py-3 text-right web:w-1/4`}
+                textInputStyle={tw`px-3 py-2.5 text-right web:w-1/4`}
                 keyboardType="numeric"
                 selectTextOnFocus
                 clearTextOnFocus

@@ -32,7 +32,7 @@ export default function Dashboard({ programs }: Props) {
             style={tw`pb-1.5`}
             sections={[{ title: 'Workout Programs', data: programs }]}
             renderSectionHeader={({ section: { title } }) => (
-              <SecondaryText style={tw`pl-4 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
+              <SecondaryText style={tw`pl-3 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
             )}
             renderItem={({ index, item, section }) => (
               <NavigationLink
@@ -57,7 +57,7 @@ export default function Dashboard({ programs }: Props) {
           />
         )}
         {programs.length < 1 && (
-          <SecondaryText style={tw`pl-4 text-xs`}>
+          <SecondaryText style={tw`pl-3 text-xs`}>
             Add a new program to your Activity Log Tracker list using the &apos;+&apos; button in
             the upper right.
           </SecondaryText>

@@ -101,7 +101,7 @@ export default function ProgramDetail({ program }: Props) {
               </SessionFormLink>
             )}
             renderSectionHeader={({ section: { title } }) => (
-              <SecondaryText style={tw`pl-4 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
+              <SecondaryText style={tw`pl-3 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
             )}
           />
         )}
@@ -111,7 +111,7 @@ export default function ProgramDetail({ program }: Props) {
             sections={sections}
             keyExtractor={session => (session as Session).sessionId}
             renderSectionHeader={({ section: { title } }) => (
-              <SecondaryText style={tw`pl-4 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
+              <SecondaryText style={tw`pl-3 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
             )}
             renderItem={({ index, item, section }) => (
               <NavigationLink
@@ -140,7 +140,7 @@ export default function ProgramDetail({ program }: Props) {
           />
         )}
         {program.sessions.length < 1 && (
-          <SecondaryText style={tw`pl-4 text-xs`}>
+          <SecondaryText style={tw`pl-3 text-xs`}>
             Start tracking workouts by planning a session.
           </SecondaryText>
         )}

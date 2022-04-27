@@ -70,8 +70,11 @@ export default function ModalSelectInput({
           style={tw.style(style)}
           textStyle={tw.style(textStyle)}
           primaryText={label}
-          secondaryText={value && stringify && stringify(value)}
-          specialText={!value ? placeholder : undefined}
+          secondaryText={(!placeholder && value && stringify && stringify(value)) as string}
+          specialText={
+            (!value ? placeholder : undefined) ||
+            (value && placeholder && stringify && stringify(value))
+          }
           rightIcon={
             <SecondaryText>
               <AntDesign name="right" size={16} />

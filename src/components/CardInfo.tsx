@@ -31,7 +31,7 @@ export default function CardInfo({
   return (
     <Card
       style={tw.style(
-        'py-3 px-4 flex-row justify-between',
+        'py-2.5 px-3 flex-row justify-between',
         reverse ? 'flex-row-reverse' : undefined,
         style
       )}
@@ -42,8 +42,8 @@ export default function CardInfo({
           reverse ? 'flex-row-reverse' : undefined
         )}
       > */}
-      <View style={tw`flex-row flex-shrink`}>
-        {leftIcon && <View style={tw.style('mr-4 -mt-1 -mb-1')}>{leftIcon}</View>}
+      <View style={tw`flex-row items-center flex-shrink`}>
+        {leftIcon && <View style={tw.style('mr-3 -mt-1 -mb-1')}>{leftIcon}</View>}
         {alertText && (
           <AlertText style={tw.style('text-lg leading-tight', textStyle)}>{alertText}</AlertText>
         )}
@@ -53,10 +53,14 @@ export default function CardInfo({
           </PrimaryText>
         )}
       </View>
-      <View style={tw`flex-row items-center flex-shrink`}>
+      <View style={tw`flex-row items-center justify-between flex-shrink`}>
         {secondaryText && (
           <SecondaryText
-            style={tw.style('leading-tight text-lg', reverse ? 'pl-0' : undefined, textStyle)}
+            style={tw.style(
+              'leading-tight text-lg flex-shrink',
+              reverse ? 'pl-0' : undefined,
+              textStyle
+            )}
           >
             {secondaryText}
           </SecondaryText>
@@ -64,7 +68,7 @@ export default function CardInfo({
         {specialText && (
           <SpecialText
             style={tw.style(
-              'pl-1.5 text-lg leading-tight',
+              'pl-1.5 text-lg flex-shrink leading-tight',
               reverse ? 'pl-0' : undefined,
               textStyle
             )}
@@ -72,7 +76,7 @@ export default function CardInfo({
             {specialText}
           </SpecialText>
         )}
-        {rightIcon && <View style={tw`pl-1.5 -mt-1 -mb-1`}>{rightIcon}</View>}
+        {rightIcon && <View style={tw`pl-2`}>{rightIcon}</View>}
       </View>
       {/* </View> */}
     </Card>

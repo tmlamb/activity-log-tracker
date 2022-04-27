@@ -18,7 +18,7 @@ export default function ScreenLayout({ children }: { children: React.ReactNode }
 
   return (
     <View style={tw`w-full h-full py-9 bg-slate-50 dark:bg-black`}>
-      <View style={tw`w-full max-w-2xl px-4 mx-auto`}>{children}</View>
+      <View style={tw`w-full max-w-2xl px-3 mx-auto`}>{children}</View>
     </View>
   )
 }

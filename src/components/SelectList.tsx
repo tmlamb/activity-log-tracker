@@ -23,7 +23,7 @@ export default function SelectList({
   keyExtractor
 }: Props) {
   return (
-    <ScrollView style={tw`px-4`}>
+    <ScrollView style={tw`px-3`}>
       {items.map((item, index) => (
         // <View key={keyExtractor(item)}>
         //   <PrimaryText>{stringify(item)}</PrimaryText>

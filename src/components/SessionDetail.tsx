@@ -116,7 +116,7 @@ export default function SessionDetail({ program, session, exercises }: Props) {
         // sections={[{ title: 'Today', data: [{ name: 'foo' }] }]}
         keyExtractor={(item, index) => `${index}`}
         renderSectionHeader={({ section: { title } }) => (
-          <SecondaryText style={tw`pl-4 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
+          <SecondaryText style={tw`pl-3 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
         )}
         renderItem={({ index, item, section }) => (
           // eslint-disable-next-line react/jsx-props-no-spreading
