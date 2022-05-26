@@ -15,11 +15,11 @@ type Props = {
   label?: string
   placeholder?: string
   maxLength?: number
-  textAlign?: 'left' | 'right' | 'center'
   selectTextOnFocus?: boolean
   clearTextOnFocus?: boolean
   keyboardType?: KeyboardTypeOptions
   numeric?: boolean
+  editable?: boolean
 }
 
 interface PropsFilled extends Props {
@@ -37,11 +37,11 @@ export default function TextInput({
   label,
   placeholder,
   maxLength,
-  textAlign,
   selectTextOnFocus,
   clearTextOnFocus,
   keyboardType,
-  numeric
+  numeric,
+  editable
 }: PropsFilled) {
   const handleChange = (text: string) => {
     onChangeText(numeric ? text.replace(/[^0-9|\\.]/g, '') : text)
@@ -67,9 +67,11 @@ export default function TextInput({
         placeholderTextColor={tw.color(secondaryTextColor)}
         maxLength={maxLength}
         keyboardType={keyboardType}
-        textAlign={textAlign}
+        textAlign={label ? 'right' : undefined}
         selectTextOnFocus={selectTextOnFocus}
         clearTextOnFocus={clearTextOnFocus}
+        editable={editable}
+        multiline
       />
     </Card>
   )
@@ -84,9 +86,9 @@ TextInput.defaultProps = {
   maxLength: undefined,
   label: undefined,
   placeholder: undefined,
-  textAlign: 'left',
   selectTextOnFocus: false,
   clearTextOnFocus: false,
   numeric: false,
-  keyboardType: 'default'
+  keyboardType: 'default',
+  editable: true
 }

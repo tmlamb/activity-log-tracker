@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React from 'react'
 import { StackParamList } from '../../types'
 import DashboardScreen from './DashboardScreen'
+import ExerciseFormModal from './ExerciseFormModal'
 import ExerciseSelectModal from './ExerciseSelectModal'
 import LoadFormModal from './LoadFormModal'
 import ProgramDetailScreen from './ProgramDetailScreen'
@@ -69,6 +70,13 @@ export default function Navigation() {
             component={ExerciseSelectModal}
             options={({ route }) => ({
               title: 'Select Exercise'
+            })}
+          />
+          <AppStack.Screen
+            name="ExerciseFormModal"
+            component={ExerciseFormModal}
+            options={({ route }) => ({
+              title: 'Edit Exercise'
             })}
           />
         </AppStack.Group>

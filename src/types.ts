@@ -37,6 +37,10 @@ export type ModalSelectParams<T> = {
   onChangeSelect: (value: T) => void
 }
 
+export type ExerciseFormNavParams = {
+  exerciseId?: string
+}
+
 export type WorkoutSetNavParams = {
   title: string
   workoutSetId: string
@@ -55,6 +59,7 @@ export type StackParamList = {
   ActivityFormModal: ActivityFormNavParams
   LoadFormModal: LoadFormNavParams
   ExerciseSelectModal: ExerciseSelectNavParams
+  ExerciseFormModal: ExerciseFormNavParams
   WorkoutSetDetailScreen: WorkoutSetNavParams
 }
 

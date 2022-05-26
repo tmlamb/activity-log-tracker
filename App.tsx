@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar'
 import React from 'react'
 import { useDeviceContext } from 'twrnc'
 import { Navigation } from './src/components/Navigation'
+import { ExerciseDataProvider } from './src/context/ExerciseDataState'
 import { ProgramProvider } from './src/context/ProgramState'
 import { tw } from './src/tailwind'
 
@@ -13,7 +14,9 @@ export default function App() {
     <>
       <StatusBar />
       <ProgramProvider>
-        <Navigation />
+        <ExerciseDataProvider>
+          <Navigation />
+        </ExerciseDataProvider>
       </ProgramProvider>
     </>
   )

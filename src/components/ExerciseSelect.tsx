@@ -46,21 +46,21 @@ export default function ExerciseSelect({
   })
   const selectedExercise = watch('exercise')
 
-  const combinedOptions = availableExercises
-  if (availableExercises) {
-    if (usedExercises) {
-      // setExerciseOptions([...exerciseOptions, ...usedExercises.map(exercise => ({}))])
-      usedExercises.forEach(usedExercise => {
-        const foundIndex = combinedOptions.findIndex(
-          availableExercise => availableExercise.name === usedExercise.name
-        )
-        if (foundIndex >= 0) combinedOptions.splice(foundIndex, 1, usedExercise)
-        else combinedOptions.push(usedExercise)
-      })
-    }
-  }
+  // const combinedOptions = availableExercises
+  // if (availableExercises) {
+  //   if (usedExercises) {
+  //     // setExerciseOptions([...exerciseOptions, ...usedExercises.map(exercise => ({}))])
+  //     usedExercises.forEach(usedExercise => {
+  //       const foundIndex = combinedOptions.findIndex(
+  //         availableExercise => availableExercise.name === usedExercise.name
+  //       )
+  //       if (foundIndex >= 0) combinedOptions.splice(foundIndex, 1, usedExercise)
+  //       else combinedOptions.push(usedExercise)
+  //     })
+  //   }
+  // }
 
-  const [exerciseOptions, setExerciseOptions] = React.useState<Partial<Exercise>[]>(combinedOptions)
+  // const [exerciseOptions, setExerciseOptions] = React.useState<Partial<Exercise>[]>(combinedOptions)
 
   // useEffect(() => {
   //   console.log('useEffect')
@@ -121,14 +121,26 @@ export default function ExerciseSelect({
             required: true
           }}
           render={({ field: { onChange, value } }) => (
-            <SelectList
-              items={exerciseOptions}
-              onValueChange={onChange}
-              value={value}
-              style={tw``}
-              stringify={item => (item as Exercise).name}
-              keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
-            />
+            <>
+              {usedExercises && (
+                <SelectList
+                  items={usedExercises}
+                  onValueChange={onChange}
+                  value={value}
+                  style={tw``}
+                  stringify={item => (item as Exercise).name}
+                  keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
+                />
+              )}
+              <SelectList
+                items={availableExercises}
+                onValueChange={onChange}
+                value={value}
+                style={tw``}
+                stringify={item => (item as Exercise).name}
+                keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
+              />
+            </>
           )}
           name="exercise"
         />

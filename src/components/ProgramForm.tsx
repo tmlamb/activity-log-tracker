@@ -16,7 +16,7 @@ import { SpecialText } from './Typography'
 type Props = {
   changeHandler: (program: Program) => void
   program?: Program
-  deleteHandler?: (entityId: string) => void
+  deleteHandler?: (programId: string) => void
 }
 
 type FormData = {

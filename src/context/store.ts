@@ -1,7 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
+import create from 'zustand'
 import { Activity, Exercise, Program, Session, WorkoutSet } from '../types'
-import ProgramReducer from './ProgramReducer'
 
 const mockPrograms: Program[] = [
   {
@@ -209,7 +207,7 @@ const mockExercises: Exercise[] = [
   }
 ]
 
-type ProgramContextType = {
+interface WorkoutStateStorage {
   programs: Program[]
   exercises: Exercise[]
   addProgram: (program: Program) => void
@@ -224,22 +222,18 @@ type ProgramContextType = {
   reset: (programs: Program[], exercises: Exercise[]) => void
   addExercise: (exercise: Exercise) => void
   updateExercise: (exercise: Exercise) => void
-  // addWorkoutSet: (programId: string, sessionId: string, activityId: string, workoutSet: any) => void
   updateWorkoutSet: (
     programId: string,
     sessionId: string,
     activityId: string,
     workoutSet: WorkoutSet
   ) => void
-  // deleteWorkoutSet: (
-  //   programId: string,
-  //   sessionId: string,
-  //   activityId: string,
-  //   workoutSetId: string
-  // ) => void
 }
 
-const initialState = {
+const useWorkoutStore = create<WorkoutStateStorage>(set => ({
+  //   bears: 0,
+  //   increasePopulation: () => set(state => ({ programs: state.programs + 1 })),
+  //   removeAllBears: () => set({ bears: 0 })
   programs: mockPrograms,
   exercises: mockExercises,
   addProgram: () => 0,
@@ -255,129 +249,6 @@ const initialState = {
   addExercise: () => 0,
   updateExercise: () => 0,
   updateWorkoutSet: () => 0
-}
+}))
 
-const ProgramContext = createContext<ProgramContextType>(initialState)
-
-export const useProgramState = () => useContext(ProgramContext)
-
-export function ProgramProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(ProgramReducer, initialState)
-
-  const programContextMemoized = useMemo(
-    () => ({
-      programs: state.programs,
-      exercises: state.exercises,
-      addProgram: (program: Program) => {
-        dispatch({
-          type: 'ADD_PROGRAM',
-          payload: program
-        })
-      },
-      deleteProgram: (programId: string) => {
-        dispatch({
-          type: 'DELETE_PROGRAM',
-          payload: { programId }
-        })
-      },
-      updateProgram: (program: Program) => {
-        dispatch({
-          type: 'UPDATE_PROGRAM',
-          payload: program
-        })
-      },
-      reset: (programs: Program[], exercises: Exercise[]) => {
-        dispatch({
-          type: 'RESET',
-          payload: { programs, exercises }
-        })
-      },
-      addSession: (programId: string, session: Session) => {
-        dispatch({
-          type: 'ADD_SESSION',
-          payload: { programId, session }
-        })
-      },
-      updateSession: (programId: string, session: Session) => {
-        dispatch({
-          type: 'UPDATE_SESSION',
-          payload: { programId, session }
-        })
-      },
-      deleteSession: (programId: string, sessionId: string) => {
-        dispatch({
-          type: 'DELETE_SESSION',
-          payload: { programId, sessionId }
-        })
-      },
-      addActivity: (programId: string, sessionId: string, activity: Activity) => {
-        dispatch({
-          type: 'ADD_ACTIVITY',
-          payload: { programId, sessionId, activity }
-        })
-      },
-      updateActivity: (programId: string, sessionId: string, activity: Activity) => {
-        dispatch({
-          type: 'UPDATE_ACTIVITY',
-          payload: { programId, sessionId, activity }
-        })
-      },
-      deleteActivity: (programId: string, sessionId: string, activityId: string) => {
-        dispatch({
-          type: 'DELETE_ACTIVITY',
-          payload: { programId, sessionId, activityId }
-        })
-      },
-      addExercise: (exercise: Exercise) => {
-        dispatch({
-          type: 'ADD_EXERCISE',
-          payload: exercise
-        })
-      },
-      updateExercise: (exercise: Exercise) => {
-        dispatch({
-          type: 'UPDATE_EXERCISE',
-          payload: exercise
-        })
-      },
-      updateWorkoutSet: (
-        programId: string,
-        sessionId: string,
-        activityId: string,
-        workoutSet: WorkoutSet
-      ) => {
-        dispatch({
-          type: 'UPDATE_WORKOUT_SET',
-          payload: { programId, sessionId, activityId, workoutSet }
-        })
-      }
-    }),
-    [state.programs, state.exercises]
-  )
-
-  // Reloads from async storage on mount
-  useEffect(() => {
-    AsyncStorage.getItem('programs').then(programs => {
-      if (programs) {
-        AsyncStorage.getItem('exercises').then(exercises => {
-          if (exercises) {
-            // dispatch({
-            //   type: 'RESET',
-            //   payload: { programs: JSON.parse(programs), exercises: JSON.parse(exercises) }
-            // })
-          }
-        })
-      }
-    })
-  }, [])
-
-  // Saves to async storage on state change
-  useEffect(() => {
-    AsyncStorage.setItem('programs', JSON.stringify(state.programs))
-    AsyncStorage.setItem('exercises', JSON.stringify(state.exercises))
-  }, [state])
-
-  return (
-    <ProgramContext.Provider value={programContextMemoized}>{children}</ProgramContext.Provider>
-  )
-}
+export default useWorkoutStore

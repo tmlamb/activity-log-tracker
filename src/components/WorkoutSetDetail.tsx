@@ -192,7 +192,6 @@ export default function WorkoutSetDetail({
             value={value ? String(value.value) : weightPreset}
             placeholder="0"
             maxLength={4}
-            textAlign="right"
             style={tw`border-b-2 rounded-t-xl`}
             textInputStyle={tw`text-right web:text-base`}
             labelStyle={tw`web:text-base`}
@@ -219,7 +218,6 @@ export default function WorkoutSetDetail({
             value={value ? String(value) : undefined}
             placeholder="0"
             maxLength={2}
-            textAlign="right"
             style={tw`rounded-b-xl`}
             textInputStyle={tw`text-right web:text-base`}
             labelStyle={tw`web:text-base`}

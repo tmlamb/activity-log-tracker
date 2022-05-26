@@ -96,7 +96,6 @@ export default function LoadForm({ load, onSelect }: Props) {
                 value={(value && String(value)) || undefined}
                 placeholder="0"
                 maxLength={2}
-                textAlign="right"
                 style={tw`px-0 py-0`}
                 textInputStyle={tw`px-3 py-2.5 text-right`}
                 keyboardType="number-pad"
@@ -120,15 +119,18 @@ export default function LoadForm({ load, onSelect }: Props) {
               <TextInput
                 label="% of 1RM"
                 onChangeText={v => {
-                  // console.log(value)
+                  console.log(v)
                   console.log((Number(v) / 100).toFixed(2))
-                  onChange((Number(v) / 100).toFixed(2))
+                  const newVal = Number(v) / 100
+                  if (Number.isNaN(newVal)) {
+                    return
+                  }
+                  onChange(newVal.toFixed(2))
                 }}
                 onBlur={onBlur}
                 value={(value && String(+(value * 100).toFixed(2))) || undefined}
                 placeholder="0"
                 maxLength={4}
-                textAlign="right"
                 style={tw`px-0 py-0`}
                 textInputStyle={tw`px-3 py-2.5 text-right web:w-1/4`}
                 keyboardType="numeric"

@@ -1,25 +1,26 @@
-import React, { createContext, useContext, useMemo, useReducer } from 'react'
-// import { exerciseCsvFile } from '../../assets/exercises.csv'
+import Papa from 'papaparse'
+import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
 import { Exercise } from '../types'
+import exerciseData from './exerciseData'
 import ExerciseDataReducer from './ExerciseDataReducer'
 
 const mockExercises: Partial<Exercise>[] = [
-  {
-    name: 'Squat',
-    muscle: 'Quadriceps'
-  },
-  {
-    name: 'Bench Press',
-    muscle: 'Chest'
-  },
-  {
-    name: 'Deadlift',
-    muscle: 'Back'
-  },
-  {
-    name: 'Overhead Press',
-    muscle: 'Deltoids'
-  }
+  // {
+  //   name: 'Squat',
+  //   muscle: 'Quadriceps'
+  // },
+  // {
+  //   name: 'Bench Press',
+  //   muscle: 'Chest'
+  // },
+  // {
+  //   name: 'Deadlift',
+  //   muscle: 'Back'
+  // },
+  // {
+  //   name: 'Overhead Press',
+  //   muscle: 'Deltoids'
+  // }
 ]
 
 type ExerciseDataContextType = {
@@ -37,7 +38,6 @@ const initialState = {
 const ExerciseDataContext = createContext<ExerciseDataContextType>(initialState)
 
 export const useExerciseDataState = () => useContext(ExerciseDataContext)
-
 export function ExerciseDataProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(ExerciseDataReducer, initialState)
 
@@ -61,31 +61,39 @@ export function ExerciseDataProvider({ children }: { children: React.ReactNode }
   )
 
   // Reloads from async storage on mount
-  //   useEffect(() => {
-  // AsyncStorage.getItem('exerciseData').then(exercises => {
-  //   if (exercises) {
-  //     dispatch({
-  //       type: 'RESET',
-  //       payload: JSON.parse(exercises)
-  //     })
-  //   }
-  // })
-  //   }, [])
+  // useEffect(() => {
+  //   AsyncStorage.getItem('exerciseData').then(exercises => {
+  //     if (exercises) {
+  //       dispatch({
+  //         type: 'RESET',
+  //         payload: JSON.parse(exercises)
+  //       })
+  //     }
+  //   })
+  // }, [])
+
+  // Saves to async storage on state change
+  // useEffect(() => {
+  //   AsyncStorage.setItem('exerciseData', JSON.stringify(state.exercises))
+  // }, [state])
 
   // Reloads from csv file on mount
-  //   useEffect(() => {
-  // const csvFile = exerciseCsvFile
-  // const exercises = csvFile
-  //   .split('\n')
-  //   .map((line: { split: (arg0: string) => [unknown, unknown] }) => {
-  //     const [name, muscle] = line.split(',')
-  //     return { name, muscle }
-  //   })
-  // dispatch({
-  //   type: 'RESET',
-  //   payload: exercises
-  // })
-  //   }, [])
+  useEffect(() => {
+    async function getData() {
+      const results = Papa.parse<Partial<Exercise>>(exerciseData(), { header: true }) // object with { data, errors, meta }
+      const rows = results.data // array of objects
+
+      const exercises: Partial<Exercise>[] = rows.map(row => ({
+        name: row.name,
+        muscle: row.muscle
+      }))
+      dispatch({
+        type: 'RESET',
+        payload: exercises
+      })
+    }
+    getData()
+  }, [])
 
   return (
     <ExerciseDataContext.Provider value={exerciseContextMemoized}>
