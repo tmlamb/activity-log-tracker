@@ -1,10 +1,10 @@
 import React from 'react'
-import useWorkoutStore from '../../context/store'
+import useWorkoutStore from '../../hooks/use-workout-store'
 import { Dashboard } from '../Dashboard'
 import ScreenLayout from './ScreenLayout'
 
 function DashboardScreen() {
-  const { programs } = useWorkoutStore()
+  const programs = useWorkoutStore(state => state.programs)
   return (
     <ScreenLayout>
       <Dashboard programs={programs} />

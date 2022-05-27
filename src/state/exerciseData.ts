@@ -1,3 +1,5 @@
+// Data used to populate the list of available exercises when adding an activitiy to a workout.
+// See use-workout-store.ts for user specific exercise data.
 export default function exerciseData() {
   return `name,muscle
 Ab crunch machine,Abdominals

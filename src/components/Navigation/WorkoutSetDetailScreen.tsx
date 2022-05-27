@@ -1,7 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React from 'react'
 import { View } from 'react-native'
-import { useProgramState } from '../../context/ProgramState'
+import useWorkoutStore from '../../hooks/use-workout-store'
 import { StackParamList } from '../../types'
 import WorkoutSetDetail from '../WorkoutSetDetail'
 import ScreenLayout from './ScreenLayout'
@@ -10,7 +10,10 @@ type Props = NativeStackScreenProps<StackParamList, 'WorkoutSetDetailScreen'>
 export type WorkoutSetNavigationProp = Props['navigation']
 
 function WorkoutSetDetailScreen({ route }: Props) {
-  const { programs, exercises, updateWorkoutSet } = useProgramState()
+  const programs = useWorkoutStore(store => store.programs)
+  const exercises = useWorkoutStore(store => store.exercises)
+  const updateWorkoutSet = useWorkoutStore(store => store.updateWorkoutSet)
+
   const program = programs.find(p => p.programId === route.params.programId)
   const session = program?.sessions.find(s => s.sessionId === route.params.sessionId)
   const activity = session?.activities.find(a => a.activityId === route.params.activityId)

@@ -1,7 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React from 'react'
 import { View } from 'react-native'
-import { useProgramState } from '../../context/ProgramState'
+import useWorkoutStore from '../../hooks/use-workout-store'
 import { StackParamList } from '../../types'
 import SessionDetail from '../SessionDetail'
 import ScreenLayout from './ScreenLayout'
@@ -10,7 +10,8 @@ type Props = NativeStackScreenProps<StackParamList, 'SessionDetailScreen'>
 export type SessionNavigationProp = Props['navigation']
 
 function SessionDetailScreen({ route }: Props) {
-  const { programs, exercises } = useProgramState()
+  const programs = useWorkoutStore(state => state.programs)
+  const exercises = useWorkoutStore(state => state.exercises)
   const program = programs.find(p => p.programId === route.params.programId)
   const session = program?.sessions.find(s => s.sessionId === route.params.sessionId)
 
