@@ -90,11 +90,11 @@ export default function WorkoutSetDetail({
     exercise.oneRepMax && round5(exercise.oneRepMax.value * (warmupPercent || workPercent))
 
   const weightPreset = targetWeight ? String(targetWeight) : undefined
-  console.log('program', program)
-  console.log('session', session)
-  console.log('activity', activity)
-  console.log('exercise', exercise)
-  console.log('workoutSet', workoutSet)
+  // console.log('program', program)
+  // console.log('session', session)
+  // console.log('activity', activity)
+  // console.log('exercise', exercise)
+  // console.log('workoutSet', workoutSet)
 
   const {
     control,

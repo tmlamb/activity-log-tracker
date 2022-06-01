@@ -63,7 +63,6 @@ export default function ExerciseSelect({
   // const [exerciseOptions, setExerciseOptions] = React.useState<Partial<Exercise>[]>(combinedOptions)
 
   // useEffect(() => {
-  //   console.log('useEffect')
   //   if (availableExercises) {
   //     const combinedOptions = [...availableExercises]
   //     if (usedExercises) {

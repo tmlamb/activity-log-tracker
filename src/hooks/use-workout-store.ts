@@ -199,6 +199,8 @@ const mockPrograms: Program[] = [
   }
 ]
 
+console.log(mockPrograms)
+
 const mockExercises: Exercise[] = [
   {
     exerciseId: '1',
@@ -426,7 +428,86 @@ const useWorkoutStore = create<WorkoutStore>()(
       }),
       {
         name: 'workout-storage',
-        getStorage: () => AsyncStorage
+        getStorage: () => AsyncStorage,
+        // serialize: store => {
+        //   const programs = store.state?.programs.map(program => ({
+        //     ...program,
+        //     sessions: program.sessions.map(session => ({
+        //       ...session,
+        //       activities: session.activities.map(activity => ({
+        //         ...activity,
+        //         warmupSets: activity.warmupSets.map(warmupSet => ({
+        //           ...warmupSet,
+        //           start: new Date(String(warmupSet.start))
+        //         })),
+        //         workSets: activity.workSets.map(workSet => ({
+        //           ...workSet,
+        //           start: new Date(String(workSet.start))
+        //         }))
+        //       }))
+        //     }))
+        //     // createdAt: (todo?.createdAt as Date)?.getTime(),
+        //   }))
+        //   return JSON.stringify(programs)
+        // },
+        deserialize: (serializedState: string) => {
+          const programsWithParsedDates = JSON.parse(serializedState).programs.map(
+            (program: Program) => ({
+              ...program,
+              sessions: program.sessions.map(session => ({
+                ...session,
+                activities: session.activities.map(activity => ({
+                  ...activity,
+                  warmupSets: activity.warmupSets.map(warmupSet => ({
+                    ...warmupSet,
+                    start: new Date(String(warmupSet.start))
+                  })),
+                  workSets: activity.workSets.map(workSet => ({
+                    ...workSet,
+                    start: new Date(String(workSet.start))
+                  }))
+                }))
+              }))
+            })
+          )
+
+          return {
+            state: {
+              programsWithParsedDates
+            }
+          }
+        }
+        // serialize: state => JSON.stringify(state),
+        // deserialize: str => {
+        //   const parsed = JSON.parse(str)
+
+        //   let { programs }: WorkoutStore = parsed
+
+        //   const newPrograms = programs.map(program =>
+        //     program.sessions.map(session =>
+        //       session.activities.map(activity => {
+        //         activity.warmupSets.map(workoutSet => {
+        //           const dateParsed: WorkoutSet = {
+        //             ...workoutSet,
+        //             start: new Date(String(workoutSet.start)),
+        //             end: new Date(String(workoutSet.end))
+        //           }
+        //           return dateParsed
+        //         })
+        //         activity.workSets.map(workoutSet => {
+        //           workoutSet.start = new Date(workoutSet.start)
+        //           workoutSet.end = new Date(workoutSet.end)
+        //           return workoutSet
+        //         })
+        //         return activity
+        //       })
+        //     )
+        //   )
+
+        //   programs = newPrograms
+
+        //   return parsed
+        // }
       }
     )
   )
