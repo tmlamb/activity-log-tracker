@@ -1,7 +1,7 @@
 // export type Activity = {
 // id: string
 // warmupSets: number
-// workSets: number
+// mainSets: number
 // reps: number
 // load: Load
 // rest: number

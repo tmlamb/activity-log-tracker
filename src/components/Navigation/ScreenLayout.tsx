@@ -1,12 +1,12 @@
 import { useNavigation } from '@react-navigation/native'
-import React, { useEffect } from 'react'
+import React from 'react'
 import { View } from 'react-native'
 import { tw } from '../../tailwind'
 import { primaryTextColor } from '../Typography'
 
 export default function ScreenLayout({ children }: { children: React.ReactNode }) {
   const navigation = useNavigation()
-  useEffect(() => {
+  React.useEffect(() => {
     navigation.setOptions({
       headerStyle: tw`bg-slate-50 dark:bg-black`,
       headerTitleStyle: tw.style(primaryTextColor),

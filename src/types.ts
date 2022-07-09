@@ -67,7 +67,7 @@ export type WorkoutSet = {
   workoutSetId: string
   start?: Date
   end?: Date
-  type: 'Warm-up' | 'Work'
+  type: 'Warm-up' | 'Main'
   actualWeight?: Weight
   actualReps?: number
 }
@@ -75,8 +75,8 @@ export type WorkoutSet = {
 export type WarmupSet = WorkoutSet & {
   type: 'Warm-up'
 }
-export type WorkSet = WorkoutSet & {
-  type: 'Work'
+export type MainSet = WorkoutSet & {
+  type: 'Main'
 }
 
 export type Activity = {
@@ -86,7 +86,7 @@ export type Activity = {
   rest: number
   exerciseId: string
   warmupSets: WarmupSet[]
-  workSets: WorkSet[]
+  mainSets: MainSet[]
 }
 
 export type Load = {

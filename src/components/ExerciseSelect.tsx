@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native'
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { LogBox, View } from 'react-native'
 import { v4 as uuidv4 } from 'uuid'
@@ -33,51 +33,11 @@ export default function ExerciseSelect({
   addExercise
 }: Props) {
   const navigation = useNavigation()
-  const {
-    control,
-    handleSubmit,
-    watch,
-    formState: { errors, isValid },
-    setValue
-  } = useForm<FormData>({
+  const { control, handleSubmit } = useForm<FormData>({
     defaultValues: {
       exercise: usedExercises?.find(exercise => exerciseId === exercise.exerciseId)
     }
   })
-  const selectedExercise = watch('exercise')
-
-  // const combinedOptions = availableExercises
-  // if (availableExercises) {
-  //   if (usedExercises) {
-  //     // setExerciseOptions([...exerciseOptions, ...usedExercises.map(exercise => ({}))])
-  //     usedExercises.forEach(usedExercise => {
-  //       const foundIndex = combinedOptions.findIndex(
-  //         availableExercise => availableExercise.name === usedExercise.name
-  //       )
-  //       if (foundIndex >= 0) combinedOptions.splice(foundIndex, 1, usedExercise)
-  //       else combinedOptions.push(usedExercise)
-  //     })
-  //   }
-  // }
-
-  // const [exerciseOptions, setExerciseOptions] = React.useState<Partial<Exercise>[]>(combinedOptions)
-
-  // useEffect(() => {
-  //   if (availableExercises) {
-  //     const combinedOptions = [...availableExercises]
-  //     if (usedExercises) {
-  //       // setExerciseOptions([...exerciseOptions, ...usedExercises.map(exercise => ({}))])
-  //       usedExercises.forEach(usedExercise => {
-  //         const foundIndex = exerciseOptions.findIndex(
-  //           availableExercise => availableExercise.exerciseId === usedExercise.exerciseId
-  //         )
-  //         if (foundIndex >= 0) combinedOptions.splice(foundIndex, 1, usedExercise)
-  //         else combinedOptions.push(usedExercise)
-  //       })
-  //     }
-  //     setExerciseOptions(combinedOptions)
-  //   }
-  // }, [availableExercises, exerciseOptions, usedExercises])
 
   const onSubmit = (data: FormData) => {
     if (data.exercise?.exerciseId) {
@@ -92,19 +52,8 @@ export default function ExerciseSelect({
       onSelect(newExercise.exerciseId)
     }
 
-    // onSelect({
-    //   exerciseId: uuidv4(),
-    //   name: data.exercise?.name || '',
-    //   muscle: data.exercise?.muscle || ''
-    // })
     navigation.goBack()
   }
-
-  useEffect(() => {
-    // console.log('errors', errors)
-    // console.log('isValid', isValid)
-    // console.log('selectedExercise', selectedExercise)
-  })
 
   return (
     <>

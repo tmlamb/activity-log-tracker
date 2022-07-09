@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect } from 'react'
+import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { tw } from '../tailwind'
 import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import { round5, stringifyLoad } from '../utils'
+import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
 import TextInput from './TextInput'
 
@@ -11,7 +12,7 @@ type Props = {
   session: Session
   activity: Activity
   workoutSet: WorkoutSet
-  exercises: Exercise[]
+  exercise: Exercise
   updateWorkoutSet: (
     programId: string,
     sessionId: string,
@@ -19,43 +20,6 @@ type Props = {
     workoutSet: WorkoutSet
   ) => void
 }
-
-// type SetCardProps = {
-//   set: Partial<WorkoutSet>
-//   activity: Activity
-//   index: number
-// }
-
-// function SetCard({ set, activity, index }: SetCardProps) {
-//   // console.log(set)
-//   // console.log(index)
-//   return (
-//     <NavigationLink screen="SetDetailScreen" navigationParams={{ title: `Warm-up Set 1` }}>
-//       <CardInfo
-//         primaryText={`${set.type} Set ${index + 1}`}
-//         secondaryText={set.type === 'Work' ? stringifyLoad(activity.load) : undefined}
-//         specialText={
-//           index === 0 && (set.type === 'Warm-up' || activity.warmupSets === 0) ? 'Start' : undefined
-//         }
-//         rightIcon={
-//           <SecondaryText>
-//             <AntDesign name="right" size={16} />
-//           </SecondaryText>
-//         }
-//         textStyle={tw`web:text-base web:sm:text-lg `}
-//         style={tw.style(
-//           'border-b-2',
-//           index === 0 && (set.type === 'Warm-up' || activity.warmupSets === 0)
-//             ? 'rounded-t-xl'
-//             : undefined,
-//           index === activity.workSets - 1 && set.type === 'Work'
-//             ? 'rounded-b-xl border-b-0 mb-9'
-//             : undefined
-//         )}
-//       />
-//     </NavigationLink>
-//   )
-// }
 
 // Defined warmup set percentages in relation to one rep max based on number of warmup sets.
 const warmupPercentages: { [key: number]: number[] } = {
@@ -71,11 +35,9 @@ export default function WorkoutSetDetail({
   session,
   activity,
   workoutSet,
-  exercises,
+  exercise,
   updateWorkoutSet
 }: Props) {
-  const exercise = exercises.find(e => e.exerciseId === activity.exerciseId)!
-
   const warmupPercent =
     workoutSet.type === 'Warm-up'
       ? warmupPercentages[activity.warmupSets.length][
@@ -84,26 +46,14 @@ export default function WorkoutSetDetail({
       : 0
 
   const workPercent =
-    workoutSet.type === 'Work' && activity.load.type === 'PERCENT' ? activity.load.value : 0
+    workoutSet.type === 'Main' && activity.load.type === 'PERCENT' ? activity.load.value : 0
 
   const targetWeight =
     exercise.oneRepMax && round5(exercise.oneRepMax.value * (warmupPercent || workPercent))
 
   const weightPreset = targetWeight ? String(targetWeight) : undefined
-  // console.log('program', program)
-  // console.log('session', session)
-  // console.log('activity', activity)
-  // console.log('exercise', exercise)
-  // console.log('workoutSet', workoutSet)
 
-  const {
-    control,
-    watch,
-    handleSubmit,
-    setValue,
-    getValues,
-    formState: { errors }
-  } = useForm<WorkoutSet>({
+  const { control, watch, handleSubmit } = useForm<WorkoutSet>({
     defaultValues: {
       workoutSetId: workoutSet.workoutSetId,
       type: workoutSet.type,
@@ -114,7 +64,7 @@ export default function WorkoutSetDetail({
     }
   })
 
-  const onSubmit = useCallback(
+  const onSubmit = React.useCallback(
     (data: WorkoutSet) => {
       updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
         ...workoutSet,
@@ -125,7 +75,7 @@ export default function WorkoutSetDetail({
     [activity.activityId, program.programId, session.sessionId, updateWorkoutSet, workoutSet]
   )
 
-  useEffect(() => {
+  React.useEffect(() => {
     const subscription = watch(() => handleSubmit(onSubmit)())
     return () => subscription.unsubscribe()
   }, [handleSubmit, onSubmit, watch])
@@ -218,7 +168,7 @@ export default function WorkoutSetDetail({
             value={value ? String(value) : undefined}
             placeholder="0"
             maxLength={2}
-            style={tw`rounded-b-xl`}
+            style={tw`rounded-b-xl mb-9`}
             textInputStyle={tw`text-right web:text-base`}
             labelStyle={tw`web:text-base`}
             keyboardType="number-pad"
@@ -227,6 +177,30 @@ export default function WorkoutSetDetail({
         )}
         name="actualReps"
       />
+      <ButtonContainer
+        onPress={() =>
+          // append({
+          //   warmupSets: [],
+          //   mainSets: Array.from(Array(3)).map(() => ({ workoutSetId: uuidv4(), type: 'Main' })),
+          //   reps: 3,
+          //   load: { type: 'PERCENT', value: 0.775 },
+          //   rest: 3,
+          //   activityId: uuidv4()
+          // })
+          console.log('completeddd')
+        }
+      >
+        <CardInfo
+          // leftIcon={
+          //   <SpecialText>
+          //     <AntDesign name="pluscircle" size={16} />
+          //   </SpecialText>
+          // }
+          specialText="Complete Set"
+          style={tw`rounded-xl`}
+          reverse
+        />
+      </ButtonContainer>
     </>
   )
 }

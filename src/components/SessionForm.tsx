@@ -48,7 +48,7 @@ export default function SessionForm({
   })
 
   const onSubmit = (data: Partial<Session>) => {
-    // console.log(data)
+    console.log(data)
     changeHandler(
       programId,
       session
@@ -57,7 +57,7 @@ export default function SessionForm({
             sessionId: session.sessionId!,
             activities: data.activities!,
             start: data.start!,
-            end: session.end!
+            end: session.end
           }
         : {
             name: data.name!,

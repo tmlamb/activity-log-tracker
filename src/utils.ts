@@ -25,8 +25,8 @@ export const mapSessionsByDate = (
   return map
 }
 
-export const stringifyLoad = (load: Load) =>
-  load.type === 'PERCENT' ? `${load.value * 100}%` : `RPE ${load.value}`
+export const stringifyLoad = ({ type, value }: Load) =>
+  type === 'PERCENT' ? `${(value * 100).toFixed(2)}%` : `RPE ${value}`
 
 export const stringifyWeight = (weight: Weight) => `${weight.value} ${weight.unit}`
 

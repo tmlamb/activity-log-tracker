@@ -23,42 +23,22 @@ export default function SelectList({
   keyExtractor
 }: Props) {
   return (
-    // <ScrollView style={tw`px-3`}>
-    //   {items.map((item, index) => (
-    //     // <View key={keyExtractor(item)}>
-    //     //   <PrimaryText>{stringify(item)}</PrimaryText>
-    //     // </View>
-    //     <ButtonContainer key={keyExtractor(item, index)} onPress={() => onValueChange(item)}>
-    //       <CardInfo
-    //         primaryText={stringify(item)}
-    //         style={tw.style(
-    //           'border-b-2',
-    //           index === 0 ? 'rounded-t-xl' : undefined,
-    //           index === items.length - 1 ? 'rounded-b-xl border-b-0' : undefined
-    //         )}
-    //       />
-    //     </ButtonContainer>
-    //   ))}
-    // </ScrollView>
     <FlatList
       data={items}
       keyExtractor={keyExtractor}
       style={tw`flex-grow pb-36`}
-      renderItem={({ item, index }) => {
-        console.log('')
-        return (
-          <ButtonContainer onPress={() => onValueChange(item)}>
-            <CardInfo
-              primaryText={stringify(item)}
-              style={tw.style(
-                'border-b-2',
-                index === 0 ? 'rounded-t-xl' : undefined,
-                index === items.length - 1 ? 'rounded-b-xl border-b-0' : undefined
-              )}
-            />
-          </ButtonContainer>
-        )
-      }}
+      renderItem={({ item, index }) => (
+        <ButtonContainer onPress={() => onValueChange(item)}>
+          <CardInfo
+            primaryText={stringify(item)}
+            style={tw.style(
+              'border-b-2',
+              index === 0 ? 'rounded-t-xl' : undefined,
+              index === items.length - 1 ? 'rounded-b-xl border-b-0' : undefined
+            )}
+          />
+        </ButtonContainer>
+      )}
     />
   )
 }

@@ -1,5 +1,12 @@
 import React from 'react'
-import { KeyboardTypeOptions, TextInput as NativeTextInput, ViewStyle } from 'react-native'
+import {
+  KeyboardTypeOptions,
+  NativeSyntheticEvent,
+  TextInput as NativeTextInput,
+  TextInputChangeEventData,
+  TextInputKeyPressEventData,
+  ViewStyle
+} from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import { tw } from '../tailwind'
 import Card from './Card'
@@ -7,6 +14,7 @@ import { primaryTextColor, SecondaryText, secondaryTextColor } from './Typograph
 
 type Props = {
   onChangeText?: (text: string) => void
+  onChange?: ((e: NativeSyntheticEvent<TextInputChangeEventData>) => void) | undefined
   onBlur: (e: unknown) => void
   value?: string
   style?: ViewStyle
@@ -20,6 +28,8 @@ type Props = {
   keyboardType?: KeyboardTypeOptions
   numeric?: boolean
   editable?: boolean
+  selection?: { start: number; end?: number } | undefined
+  onKeyPress?: ((e: NativeSyntheticEvent<TextInputKeyPressEventData>) => void) | undefined
 }
 
 interface PropsFilled extends Props {
@@ -29,6 +39,7 @@ interface PropsFilled extends Props {
 
 export default function TextInput({
   onChangeText,
+  onChange,
   onBlur,
   value,
   style,
@@ -41,7 +52,9 @@ export default function TextInput({
   clearTextOnFocus,
   keyboardType,
   numeric,
-  editable
+  editable,
+  selection,
+  onKeyPress
 }: PropsFilled) {
   const handleChange = (text: string) => {
     onChangeText(numeric ? text.replace(/[^0-9|\\.]/g, '') : text)
@@ -56,6 +69,7 @@ export default function TextInput({
       )}
       <NativeTextInput
         onChangeText={handleChange}
+        onChange={onChange}
         onBlur={onBlur}
         value={value}
         style={tw.style(
@@ -71,6 +85,8 @@ export default function TextInput({
         selectTextOnFocus={selectTextOnFocus}
         clearTextOnFocus={clearTextOnFocus}
         editable={editable}
+        selection={selection}
+        onKeyPress={onKeyPress}
         multiline
       />
     </Card>
@@ -81,6 +97,7 @@ TextInput.defaultProps = {
   value: undefined,
   style: undefined,
   onChangeText: (text: string) => text,
+  onChange: undefined,
   textInputStyle: undefined,
   labelStyle: undefined,
   maxLength: undefined,
@@ -90,5 +107,7 @@ TextInput.defaultProps = {
   clearTextOnFocus: false,
   numeric: false,
   keyboardType: 'default',
-  editable: true
+  editable: true,
+  selection: undefined,
+  onKeyPress: undefined
 }

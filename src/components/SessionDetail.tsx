@@ -1,8 +1,9 @@
 import { AntDesign } from '@expo/vector-icons'
+import { format } from 'date-fns'
 import React from 'react'
 import { SectionList } from 'react-native'
 import { tw } from '../tailwind'
-import { Activity, Exercise, Program, Session, WarmupSet, WorkSet } from '../types'
+import { Activity, Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import CardInfo from './CardInfo'
 import NavigationLink from './Navigation/NavigationLink'
 import { SessionFormLink } from './ProgramDetail'
@@ -14,26 +15,24 @@ type Props = {
   exercises: Exercise[]
 }
 
-type SetCardProps =
-  | {
-      set: WarmupSet
-      activity: Activity
-      session: Session
-      program: Program
-      index: number
-    }
-  | {
-      set: WorkSet
-      activity: Activity
-      session: Session
-      program: Program
-      index: number
-    }
+type WorkoutSetCardProps = {
+  workoutSet: WarmupSet | MainSet
+  activity: Activity
+  session: Session
+  program: Program
+  index: number
+  status: 'Ready' | 'Done' | 'Planned'
+}
 
-function SetCard({ set, activity, session, program, index }: SetCardProps) {
-  // console.log(set)
-  // console.log(index)
-  const title = `${set.type} Set ${index + 1}`
+function WorkoutSetCard({
+  workoutSet,
+  activity,
+  session,
+  program,
+  index,
+  status
+}: WorkoutSetCardProps) {
+  const title = `${workoutSet.type} Set ${index + 1}`
   return (
     <NavigationLink
       screen="WorkoutSetDetailScreen"
@@ -42,16 +41,13 @@ function SetCard({ set, activity, session, program, index }: SetCardProps) {
         programId: program.programId,
         sessionId: session.sessionId,
         activityId: activity.activityId,
-        workoutSetId: set.workoutSetId
+        workoutSetId: workoutSet.workoutSetId
       }}
     >
       <CardInfo
         primaryText={title}
-        specialText={
-          index === 0 && (set.type === 'Warm-up' || activity.warmupSets.length === 0)
-            ? 'Ready'
-            : undefined
-        }
+        specialText={status === 'Ready' ? status : undefined}
+        secondaryText={['Planned', 'Done'].includes(status) ? status : undefined}
         rightIcon={
           <SecondaryText>
             <AntDesign name="right" size={16} />
@@ -60,10 +56,11 @@ function SetCard({ set, activity, session, program, index }: SetCardProps) {
         textStyle={tw`web:text-base web:sm:text-lg `}
         style={tw.style(
           'border-b-2',
-          index === 0 && (set.type === 'Warm-up' || activity.warmupSets.length === 0)
+          index === 0 && (workoutSet.type === 'Warm-up' || activity.warmupSets.length === 0)
             ? 'rounded-t-xl'
             : undefined,
-          index === activity.workSets.length - 1 && set.type === 'Work'
+          index === activity.warmupSets.length + activity.mainSets.length - 1 &&
+            workoutSet.type === 'Main'
             ? 'rounded-b-xl border-b-0 mb-9'
             : undefined
         )}
@@ -72,35 +69,60 @@ function SetCard({ set, activity, session, program, index }: SetCardProps) {
   )
 }
 export default function SessionDetail({ program, session, exercises }: Props) {
+  console.log(session)
+
+  const sessionStarted = React.useMemo(
+    () =>
+      // {
+      //   const activities = session.activities.filter(activity => {
+      //     const sets = [...activity.warmupSets, ...activity.mainSets].filter(
+      //       workoutSet => workoutSet.start
+      //     )
+      //     console.log(sets)
+      //     return !!sets.length
+      //   })
+      //   console.log(activities)
+      //   return !!activities.length
+      // },
+      !!session.activities.filter(
+        activity =>
+          !![...activity.warmupSets, ...activity.mainSets].filter(workoutSet => workoutSet.start)
+            .length
+      ).length,
+    [session.activities]
+  )
+
+  const deriveStatus = (workoutSet: WorkoutSet, index: number) => {
+    if (sessionStarted) {
+      if (workoutSet.end) {
+        return 'Done'
+      }
+      if (workoutSet.start) {
+        return 'Ready'
+      }
+      return 'Planned'
+    }
+    return index === 0 ? 'Ready' : 'Planned'
+  }
+
   // This process maps the workout set data by activity for the section list.
-  const sections: { title: string; data: SetCardProps[] }[] = Array.from(
+  const sections: { title: string; data: WorkoutSetCardProps[] }[] = Array.from(
     session.activities,
     activity => ({
       title: `${exercises.find(exercise => exercise.exerciseId === activity.exerciseId)!.name}`,
-      data: [
-        ...activity.warmupSets.map((set, index) => ({
-          set,
-          activity,
-          session,
-          program,
-          index
-        })),
-        ...activity.workSets.map((set, index) => ({
-          set,
-          activity,
-          session,
-          program,
-          index
-        }))
-      ]
+      data: [...activity.warmupSets, ...activity.mainSets].map((workoutSet, index) => ({
+        workoutSet,
+        activity,
+        session,
+        program,
+        index,
+        status: deriveStatus(workoutSet, index)
+      }))
     })
   )
 
   return (
     <>
-      {/* <HeaderRightContainer>
-      </HeaderRightContainer> */}
-
       <SessionFormLink programId={program.programId} sessionId={session.sessionId}>
         <CardInfo
           style={tw`border-b-2 rounded-t-xl`}
@@ -108,27 +130,28 @@ export default function SessionDetail({ program, session, exercises }: Props) {
           specialText="Edit"
         />
       </SessionFormLink>
-      <CardInfo style={tw`rounded-b-xl mb-9`} specialText="Start Workout Session" reverse />
+      <CardInfo
+        style={tw`rounded-b-xl mb-9`}
+        primaryText="Start Time"
+        secondaryText={sessionStarted ? format(session.start, 'yyyy-MM-dd') : 'Not Started'}
+      />
 
       <SectionList
         style={tw`mb-32`}
         sections={sections}
-        // sections={[{ title: 'Today', data: [{ name: 'foo' }] }]}
-        keyExtractor={(item, index) => `${index}`}
+        keyExtractor={item => `${item.workoutSet.workoutSetId}`}
         renderSectionHeader={({ section: { title } }) => (
           <SecondaryText style={tw`pl-3 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
         )}
-        renderItem={({ index, item, section }) => (
-          // eslint-disable-next-line react/jsx-props-no-spreading
-          <SetCard {...(item as SetCardProps)} />
-          // I wouldn't spread but typescript complains about this... not sure why:
-          // <SetCard
-          //   set={(item as SetCardProps).set}
-          //   activity={(item as SetCardProps).activity}
-          //   session={(item as SetCardProps).session}
-          //   program={(item as SetCardProps).program}
-          //   index={(item as SetCardProps).index}
-          // />
+        renderItem={({ item }) => (
+          <WorkoutSetCard
+            workoutSet={item.workoutSet}
+            activity={item.activity}
+            session={item.session}
+            program={item.program}
+            index={item.index}
+            status={item.status}
+          />
         )}
       />
     </>

@@ -13,12 +13,12 @@ function WorkoutSetDetailScreen({ route }: Props) {
   const programs = useWorkoutStore(store => store.programs)
   const exercises = useWorkoutStore(store => store.exercises)
   const updateWorkoutSet = useWorkoutStore(store => store.updateWorkoutSet)
-
   const program = programs.find(p => p.programId === route.params.programId)
   const session = program?.sessions.find(s => s.sessionId === route.params.sessionId)
   const activity = session?.activities.find(a => a.activityId === route.params.activityId)
+  const exercise = exercises.find(e => e.exerciseId === activity?.exerciseId)
   const workoutSet =
-    activity?.workSets.find(ws => ws.workoutSetId === route.params.workoutSetId) ||
+    activity?.mainSets.find(ws => ws.workoutSetId === route.params.workoutSetId) ||
     activity?.warmupSets.find(ws => ws.workoutSetId === route.params.workoutSetId)
 
   return (
@@ -30,7 +30,7 @@ function WorkoutSetDetailScreen({ route }: Props) {
             program={program!}
             activity={activity!}
             workoutSet={workoutSet!}
-            exercises={exercises}
+            exercise={exercise!}
             updateWorkoutSet={updateWorkoutSet}
           />
         )}

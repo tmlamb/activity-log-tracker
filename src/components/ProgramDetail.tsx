@@ -37,7 +37,6 @@ SessionFormLink.defaultProps = {
 
 export default function ProgramDetail({ program }: Props) {
   const formatDate = (date: Date) => {
-    console.log(date)
     const daysDiff =
       program && program.sessions && program.sessions.length > 0
         ? Math.floor((date.getTime() - program.sessions[0].start.getTime()) / oneDay)

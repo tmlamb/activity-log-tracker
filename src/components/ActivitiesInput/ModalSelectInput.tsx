@@ -48,8 +48,6 @@ export default function ModalSelectInput({
         }
       : { value: value as Load, onChangeSelect: onChangeSelect as (value: Load) => void }
 
-  // console.log(params)
-
   return (
     <>
       {/* <SelectModalNavigationLink screen={screen} navigationParams={{ value, onChangeSelect }}>

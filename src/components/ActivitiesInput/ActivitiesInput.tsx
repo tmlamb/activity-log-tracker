@@ -11,7 +11,7 @@ import {
 import { View } from 'react-native'
 import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../../tailwind'
-import { Exercise, Session, WarmupSet, WorkSet } from '../../types'
+import { Exercise, MainSet, Session, WarmupSet } from '../../types'
 import { stringifyLoad } from '../../utils'
 import ButtonContainer from '../ButtonContainer'
 import Card from '../Card'
@@ -20,9 +20,6 @@ import NavigationLink from '../Navigation/NavigationLink'
 import TextInput from '../TextInput'
 import { AlertText, SecondaryText } from '../Typography'
 import ModalSelectInput from './ModalSelectInput'
-// import NestedArray from './nestedFieldArray'
-
-const renderCount = 0
 
 type Props = {
   control: Control<Partial<Session>, unknown>
@@ -159,7 +156,7 @@ export default function ActivitiesInput({ control, watch, setValue, getValues, e
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
                   <TextInput
-                    label="Work Sets"
+                    label="Main Sets"
                     // onChangeText={v => onChange(Number(v))}
                     onChangeText={v => {
                       const newLength = Number(v)
@@ -172,8 +169,8 @@ export default function ActivitiesInput({ control, watch, setValue, getValues, e
                             () =>
                               ({
                                 workoutSetId: uuidv4(),
-                                type: 'Work'
-                              } as WorkSet)
+                                type: 'Main'
+                              } as MainSet)
                           )
                         )
                       }
@@ -192,7 +189,7 @@ export default function ActivitiesInput({ control, watch, setValue, getValues, e
                     numeric
                   />
                 )}
-                name={`activities.${index}.workSets`}
+                name={`activities.${index}.mainSets`}
               />
               <Controller
                 control={control}
@@ -268,7 +265,7 @@ export default function ActivitiesInput({ control, watch, setValue, getValues, e
           onPress={() =>
             append({
               warmupSets: [],
-              workSets: Array.from(Array(3)).map(() => ({ workoutSetId: uuidv4(), type: 'Work' })),
+              mainSets: Array.from(Array(3)).map(() => ({ workoutSetId: uuidv4(), type: 'Main' })),
               reps: 3,
               load: { type: 'PERCENT', value: 0.775 },
               rest: 3,
