@@ -5,6 +5,7 @@ import { StackParamList } from '../../types'
 import DashboardScreen from './DashboardScreen'
 import ExerciseFormModal from './ExerciseFormModal'
 import ExerciseSelectModal from './ExerciseSelectModal'
+import ExerciseSettingsScreen from './ExerciseSettingsScreen'
 import LoadFormModal from './LoadFormModal'
 import ProgramDetailScreen from './ProgramDetailScreen'
 import ProgramFormModal from './ProgramFormModal'
@@ -17,7 +18,12 @@ const AppStack = createNativeStackNavigator<StackParamList>()
 export default function Navigation() {
   return (
     <NavigationContainer>
-      <AppStack.Navigator initialRouteName="DashboardScreen">
+      <AppStack.Navigator
+        // Modals are too easy to dismiss by gesture - We will force users to use a
+        // "Cancel" button to avoid unintended data loss.
+        screenOptions={{ gestureEnabled: false }}
+        initialRouteName="DashboardScreen"
+      >
         <AppStack.Screen
           name="DashboardScreen"
           component={DashboardScreen}
@@ -42,6 +48,11 @@ export default function Navigation() {
           name="WorkoutSetDetailScreen"
           component={WorkoutSetDetailScreen}
           options={({ route }) => ({ title: route.params.title })}
+        />
+        <AppStack.Screen
+          name="ExerciseSettingsScreen"
+          component={ExerciseSettingsScreen}
+          options={{ title: 'Manage Exercises' }}
         />
         <AppStack.Group screenOptions={{ presentation: 'modal' }}>
           <AppStack.Screen
@@ -76,7 +87,7 @@ export default function Navigation() {
             name="ExerciseFormModal"
             component={ExerciseFormModal}
             options={({ route }) => ({
-              title: 'Edit Exercise'
+              title: route.params && route.params.exerciseId ? 'Edit Exercise' : 'Add Exercise'
             })}
           />
         </AppStack.Group>

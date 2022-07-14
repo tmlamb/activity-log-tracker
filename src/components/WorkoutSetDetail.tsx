@@ -1,11 +1,16 @@
+import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { ScrollView, View } from 'react-native'
+import useWorkoutStore from '../hooks/use-workout-store'
 import { tw } from '../tailwind'
 import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import { round5, stringifyLoad } from '../utils'
 import ButtonContainer from './ButtonContainer'
+import Card from './Card'
 import CardInfo from './CardInfo'
 import TextInput from './TextInput'
+import { PrimaryText, SecondaryText } from './Typography'
 
 type Props = {
   program: Program
@@ -19,15 +24,24 @@ type Props = {
     activityId: string,
     workoutSet: WorkoutSet
   ) => void
+  updateSession: (programId: string, session: Session) => void
 }
 
 // Defined warmup set percentages in relation to one rep max based on number of warmup sets.
 const warmupPercentages: { [key: number]: number[] } = {
-  1: [0.5],
+  1: [0.6],
   2: [0.4, 0.6],
   3: [0.4, 0.5, 0.6],
   4: [0.4, 0.5, 0.6, 0.7],
   5: [0.3, 0.4, 0.5, 0.6, 0.7]
+}
+
+const isNextWorkoutSet = (workoutSet: WorkoutSet, activity: Activity) => {
+  const nextPlannedWorkoutSet = [...activity.warmupSets, ...activity.mainSets].find(ws =>
+    ['Planned', 'Ready'].includes(ws.status)
+  )
+
+  return nextPlannedWorkoutSet && nextPlannedWorkoutSet.workoutSetId === workoutSet.workoutSetId
 }
 
 export default function WorkoutSetDetail({
@@ -36,40 +50,92 @@ export default function WorkoutSetDetail({
   activity,
   workoutSet,
   exercise,
-  updateWorkoutSet
+  updateWorkoutSet,
+  updateSession
 }: Props) {
-  const warmupPercent =
-    workoutSet.type === 'Warm-up'
-      ? warmupPercentages[activity.warmupSets.length][
-          activity.warmupSets.indexOf(workoutSet as WarmupSet)
-        ]
-      : 0
+  const navigation = useNavigation()
 
-  const workPercent =
-    workoutSet.type === 'Main' && activity.load.type === 'PERCENT' ? activity.load.value : 0
+  const warmupPercent = React.useMemo(
+    () =>
+      workoutSet.type === 'Warmup'
+        ? warmupPercentages[activity.warmupSets.length][
+            activity.warmupSets.indexOf(workoutSet as WarmupSet)
+          ]
+        : 0,
+    [activity.warmupSets, workoutSet]
+  )
 
-  const targetWeight =
-    exercise.oneRepMax && round5(exercise.oneRepMax.value * (warmupPercent || workPercent))
+  const workPercent = React.useMemo(
+    () =>
+      workoutSet.type === 'Main' && activity.load.type === 'PERCENT' ? activity.load.value : 0,
+    [activity.load.type, activity.load.value, workoutSet.type]
+  )
 
-  const weightPreset = targetWeight ? String(targetWeight) : undefined
+  const targetWeight = React.useMemo(
+    () =>
+      exercise.oneRepMax ? round5(exercise.oneRepMax.value * (warmupPercent || workPercent)) : 0,
+    [exercise.oneRepMax, warmupPercent, workPercent]
+  )
 
-  const { control, watch, handleSubmit } = useForm<WorkoutSet>({
+  const {
+    control,
+    watch,
+    handleSubmit,
+    trigger,
+    setValue,
+    formState: { errors }
+  } = useForm<WorkoutSet>({
     defaultValues: {
-      workoutSetId: workoutSet.workoutSetId,
-      type: workoutSet.type,
-      actualWeight: workoutSet.actualWeight,
-      actualReps: workoutSet.actualReps,
-      start: workoutSet && workoutSet.start,
-      end: workoutSet && workoutSet.end
+      actualWeight: workoutSet.actualWeight || { value: targetWeight, unit: 'lbs' },
+      actualReps: workoutSet.actualReps || activity.reps,
+      start: workoutSet.start,
+      end: workoutSet.end,
+      status: workoutSet.status,
+      feedback: workoutSet.feedback
     }
   })
+  const [elapsedTimeSeconds, setElapsedTimeSeconds] = React.useState(
+    // eslint-disable-next-line no-nested-ternary
+    workoutSet.start
+      ? workoutSet.end
+        ? Math.ceil((workoutSet.end.getTime() - workoutSet.start.getTime()) / 1000)
+        : Math.ceil((new Date().getTime() - workoutSet.start.getTime()) / 1000)
+      : 0
+  )
+
+  React.useEffect(() => {
+    const timer = () => {
+      setElapsedTimeSeconds(Math.ceil((new Date().getTime() - workoutSet.start!.getTime()) / 1000))
+    }
+
+    if (workoutSet.status === 'Ready' && workoutSet.start) {
+      const id = setInterval(timer, 1000)
+      return () => {
+        clearInterval(id)
+      }
+    }
+    return undefined
+  }, [elapsedTimeSeconds, workoutSet.start, workoutSet.status])
+
+  const isStartable = React.useMemo<boolean>(
+    () =>
+      workoutSet.status === 'Planned' &&
+      [...activity.warmupSets, ...activity.mainSets].find(ws =>
+        ['Planned', 'Ready'].includes(ws.status)
+      )?.workoutSetId === workoutSet.workoutSetId,
+    [activity.mainSets, activity.warmupSets, workoutSet.status, workoutSet.workoutSetId]
+  )
 
   const onSubmit = React.useCallback(
     (data: WorkoutSet) => {
       updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
         ...workoutSet,
         actualWeight: data.actualWeight,
-        actualReps: data.actualReps
+        actualReps: data.actualReps,
+        start: data.start,
+        end: data.end,
+        status: data.status,
+        feedback: data.feedback
       })
     },
     [activity.activityId, program.programId, session.sessionId, updateWorkoutSet, workoutSet]
@@ -81,30 +147,86 @@ export default function WorkoutSetDetail({
   }, [handleSubmit, onSubmit, watch])
 
   return (
-    <>
-      {/* <HeaderRightContainer>
-      </HeaderRightContainer> */}
+    <ScrollView style={tw`flex-grow px-3 pt-9 pb-36`}>
+      {(isStartable && (
+        <ButtonContainer
+          style={tw`mb-9`}
+          onPress={() => {
+            setElapsedTimeSeconds(1) // Without this, the UI pauses at 0 and skips straight to 2.
+
+            setValue('start', new Date())
+            setValue('status', 'Ready')
+            handleSubmit(onSubmit)
+
+            // TODO: Need a better way to handle getting updated state from a nested object..
+            const latestSession = useWorkoutStore
+              .getState()
+              .programs.find(p => p.programId === program.programId)
+              ?.sessions.find(s => s.sessionId === session.sessionId)
+
+            if (session.status === 'Planned') {
+              updateSession(program.programId, {
+                ...latestSession!,
+                status: 'Ready',
+                start: new Date()
+              })
+            }
+          }}
+        >
+          <CardInfo specialText={`Start ${workoutSet.type} Set`} style={tw`rounded-xl`} reverse />
+        </ButtonContainer>
+      )) ||
+        (workoutSet.status === 'Ready' && (
+          <ButtonContainer
+            style={tw`mb-9`}
+            onPress={() => {
+              const now = new Date()
+              setValue('end', now)
+              setValue('status', 'Done')
+              handleSubmit(onSubmit)
+
+              const nextWorkoutSet = [...activity.warmupSets, ...activity.mainSets].find(
+                (ws, index, obj) =>
+                  obj[index - 1] && obj[index - 1].workoutSetId === workoutSet.workoutSetId
+              )
+
+              if (nextWorkoutSet) {
+                updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
+                  ...nextWorkoutSet,
+                  start: now,
+                  status: 'Ready'
+                })
+              }
+
+              navigation.goBack()
+            }}
+          >
+            <CardInfo
+              specialText={`Complete ${workoutSet.type} Set`}
+              style={tw`rounded-xl`}
+              reverse
+            />
+          </ButtonContainer>
+        ))}
       <CardInfo
-        style={tw`border-b-2 rounded-t-xl`}
+        style={tw.style(
+          workoutSet.type === 'Main' || exercise.oneRepMax
+            ? 'border-b-2 rounded-t-xl'
+            : 'rounded-xl'
+        )}
         primaryText="Exercise"
         secondaryText={exercise.name}
       />
-      {workoutSet.type === 'Warm-up' ? (
-        <>
-          <CardInfo
-            style={tw`rounded-b-xl mb-9`}
-            primaryText="Warm-up Load"
-            secondaryText={`${String(warmupPercent * 100)}%${
-              targetWeight ? ` / ${targetWeight}lbs` : ''
-            }`}
-          />
-          {/* <CardInfo
-            style={tw`border-b-0 rounded-b-xl mb-9`}
-            primaryText="Warm-up Reps"
-            secondaryText={stringifyLoad(activity.load)}
-          /> */}
-        </>
-      ) : (
+      {workoutSet.type === 'Warmup' && exercise.oneRepMax && (
+        <CardInfo
+          style={tw`rounded-b-xl`}
+          primaryText="Warmup Load"
+          secondaryText={`${String(warmupPercent * 100)}%${
+            targetWeight ? ` / ${targetWeight}lbs` : ''
+          }`}
+        />
+      )}
+      {workoutSet.type === 'Main' && (
         <>
           <CardInfo
             style={tw`border-b-2`}
@@ -114,93 +236,157 @@ export default function WorkoutSetDetail({
             }`}
           />
           <CardInfo
-            style={tw`border-b-0 rounded-b-xl mb-9`}
+            style={tw`border-b-2`}
             primaryText="Target Reps"
             secondaryText={String(activity.reps)}
+          />
+          <CardInfo
+            primaryText="Target Rest"
+            secondaryText={`${String(activity.rest)} minutes`}
+            style={tw`rounded-b-xl`}
           />
         </>
       )}
 
-      <Controller
-        control={control}
-        rules={{
-          required: false
-        }}
-        render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
-            label="Actual Weight (lbs)"
-            onChangeText={v =>
-              onChange({
-                value: Number(v),
-                unit: 'lbs'
-              })
-            }
-            onBlur={() => {
-              handleSubmit(onSubmit)
-              onBlur()
+      {workoutSet.status !== 'Planned' && (
+        <>
+          <Controller
+            control={control}
+            rules={{
+              required: true,
+              min: 1
             }}
-            value={value ? String(value.value) : weightPreset}
-            placeholder="0"
-            maxLength={4}
-            style={tw`border-b-2 rounded-t-xl`}
-            textInputStyle={tw`text-right web:text-base`}
-            labelStyle={tw`web:text-base`}
-            keyboardType="number-pad"
-            numeric
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                label="Actual Weight (lbs)"
+                onChangeText={newValue => {
+                  onChange({
+                    value: Number(newValue),
+                    unit: 'lbs'
+                  })
+                }}
+                onBlur={() => {
+                  handleSubmit(onSubmit)
+                  onBlur()
+                }}
+                value={value ? String(value.value) : undefined}
+                placeholder="0"
+                maxLength={4}
+                style={tw`border-b-2 rounded-t-xl mt-9`}
+                textInputStyle={tw`text-right web:text-base`}
+                labelStyle={tw`web:text-base`}
+                keyboardType="number-pad"
+                numeric
+                selectTextOnFocus
+              />
+            )}
+            name="actualWeight"
           />
-        )}
-        name="actualWeight"
-      />
 
-      <Controller
-        control={control}
-        rules={{
-          required: false
-        }}
-        render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
-            label="Actual Reps"
-            onChangeText={onChange}
-            onBlur={() => {
-              handleSubmit(onSubmit)
-              onBlur()
+          <Controller
+            control={control}
+            rules={{
+              required: true,
+              min: 1
             }}
-            value={value ? String(value) : undefined}
-            placeholder="0"
-            maxLength={2}
-            style={tw`rounded-b-xl mb-9`}
-            textInputStyle={tw`text-right web:text-base`}
-            labelStyle={tw`web:text-base`}
-            keyboardType="number-pad"
-            numeric
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                label="Actual Reps"
+                onChangeText={onChange}
+                onBlur={() => {
+                  handleSubmit(onSubmit)
+                  onBlur()
+                }}
+                value={value ? String(value) : undefined}
+                placeholder="0"
+                maxLength={2}
+                style={tw`border-b-2`}
+                textInputStyle={tw`text-right web:text-base`}
+                labelStyle={tw`web:text-base`}
+                keyboardType="number-pad"
+                numeric
+                selectTextOnFocus
+              />
+            )}
+            name="actualReps"
           />
-        )}
-        name="actualReps"
-      />
-      <ButtonContainer
-        onPress={() =>
-          // append({
-          //   warmupSets: [],
-          //   mainSets: Array.from(Array(3)).map(() => ({ workoutSetId: uuidv4(), type: 'Main' })),
-          //   reps: 3,
-          //   load: { type: 'PERCENT', value: 0.775 },
-          //   rest: 3,
-          //   activityId: uuidv4()
-          // })
-          console.log('completeddd')
-        }
-      >
-        <CardInfo
-          // leftIcon={
-          //   <SpecialText>
-          //     <AntDesign name="pluscircle" size={16} />
-          //   </SpecialText>
-          // }
-          specialText="Complete Set"
-          style={tw`rounded-xl`}
-          reverse
-        />
-      </ButtonContainer>
-    </>
+          <CardInfo
+            primaryText="Elapsed Time"
+            secondaryText={`${String(Math.floor(elapsedTimeSeconds / 60)).padStart(
+              2,
+              '0'
+            )}:${String(elapsedTimeSeconds % 60).padStart(2, '0')}`}
+            style={tw`rounded-b-xl`}
+          />
+
+          {workoutSet.type === 'Main' && (
+            <Controller
+              control={control}
+              rules={{
+                required: true
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Card style={tw`flex-row rounded-xl justify-evenly mt-9`}>
+                  <View
+                    style={tw.style(
+                      'items-center w-1/3 rounded-l-xl dark:border-slate-700 border-slate-300 bg-sky-300 dark:bg-sky-400',
+                      value === 'Easy' ? 'border-0 opacity-100' : 'border-2 opacity-40'
+                    )}
+                  >
+                    <ButtonContainer
+                      style={tw`items-center self-stretch py-1.5`}
+                      onPress={() => {
+                        setValue('feedback', 'Easy')
+                        handleSubmit(onSubmit)
+                      }}
+                    >
+                      <PrimaryText>Easy</PrimaryText>
+                    </ButtonContainer>
+                  </View>
+                  <View
+                    style={tw.style(
+                      'items-center w-1/3 dark:border-slate-700 border-slate-300',
+                      value === 'Neutral' ? 'border-0 opacity-100' : 'border-2 opacity-40'
+                    )}
+                  >
+                    <ButtonContainer
+                      style={tw`items-center self-stretch py-1.5`}
+                      onPress={() => {
+                        setValue('feedback', 'Neutral')
+                        handleSubmit(onSubmit)
+                      }}
+                    >
+                      <PrimaryText>Neutral</PrimaryText>
+                    </ButtonContainer>
+                  </View>
+                  <View
+                    style={tw.style(
+                      'items-center w-1/3 dark:border-slate-700 border-slate-300 bg-red-300 rounded-r-xl dark:bg-red-400',
+                      value === 'Hard' ? 'border-0 opacity-100' : 'border-2 opacity-40'
+                    )}
+                  >
+                    <ButtonContainer
+                      style={tw`items-center self-stretch py-1.5`}
+                      onPress={() => {
+                        setValue('feedback', 'Hard')
+                        handleSubmit(onSubmit)
+                      }}
+                    >
+                      <PrimaryText>Hard</PrimaryText>
+                    </ButtonContainer>
+                  </View>
+                </Card>
+              )}
+              name="feedback"
+            />
+          )}
+        </>
+      )}
+      {workoutSet.status === 'Planned' && !isNextWorkoutSet(workoutSet, activity) && (
+        <SecondaryText style={tw`pl-3 text-xs mt-9`}>
+          Complete the previous Workout Sets for this Exercise before continuing.
+        </SecondaryText>
+      )}
+    </ScrollView>
   )
 }

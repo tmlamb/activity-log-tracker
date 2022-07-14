@@ -6,8 +6,10 @@ import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../tailwind'
 import { Program } from '../types'
+import { spaceReplace } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
+import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import NavigationLink from './Navigation/NavigationLink'
 import TextInput from './TextInput'
@@ -38,9 +40,9 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
   const onSubmit = (data: FormData) => {
     changeHandler(
       program
-        ? { ...program, name: data.name }
+        ? { ...program, name: spaceReplace(data.name) }
         : {
-            name: data.name,
+            name: spaceReplace(data.name),
             programId: uuidv4(),
             sessions: []
           }
@@ -51,11 +53,21 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)}>
+        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`py-2`}>
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
-      <View style={tw``}>
+      <HeaderLeftContainer>
+        <ButtonContainer
+          onPress={() => {
+            navigation.goBack()
+          }}
+          style={tw`py-2`}
+        >
+          <SpecialText>Cancel</SpecialText>
+        </ButtonContainer>
+      </HeaderLeftContainer>
+      <View style={tw`flex-grow py-9`}>
         <Controller
           control={control}
           rules={{
@@ -66,7 +78,7 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
               onChangeText={onChange}
               onBlur={onBlur}
               value={value}
-              placeholder="Program Name"
+              label="Program Name"
               maxLength={25}
               style={tw`mb-9`}
               textInputStyle={tw`w-full`}

@@ -1,24 +1,26 @@
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { LogBox, View } from 'react-native'
+import { View } from 'react-native'
 import { tw } from '../tailwind'
-import { Load } from '../types'
+import { Exercise, Load } from '../types'
 import Picker from './ActivitiesInput/Picker'
 import ButtonContainer from './ButtonContainer'
+import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import TextInput from './TextInput'
-import { primaryTextColor, SpecialText } from './Typography'
-
-// TODO: Address problem with non-serializable navigation prop (see onSelect function), then remove this ignore statement
-LogBox.ignoreLogs(['Non-serializable values were found in the navigation state'])
+import { alertTextColor, primaryTextColor, SecondaryText, SpecialText } from './Typography'
 
 type Props = {
   load?: Load
-  onSelect: (load: Load) => void
+  exercise?: Exercise
+  updateExercise: (exercise: Exercise) => void
+  onSelect: (value: Load) => void
 }
 
-export default function LoadForm({ load, onSelect }: Props) {
+type FormData = Partial<Load> & { oneRepMaxVal: number }
+
+export default function LoadForm({ load, exercise, updateExercise, onSelect }: Props) {
   const navigation = useNavigation()
   const {
     control,
@@ -26,16 +28,27 @@ export default function LoadForm({ load, onSelect }: Props) {
     watch,
     formState: { isValid },
     setValue
-  } = useForm<Partial<Load>>({
+  } = useForm<FormData>({
     defaultValues: {
       type: load && load.type,
-      value: load && load.value
+      value: load && load.value,
+      oneRepMaxVal: exercise?.oneRepMax?.value
     }
   })
   const type = watch('type')
+  const onSubmit = (data: FormData) => {
+    if (data.type === 'PERCENT' && exercise && !exercise.oneRepMax && !data.oneRepMaxVal) {
+      return
+    }
 
-  const onSubmit = (data: Partial<Load>) => {
-    onSelect({ type: data.type!, value: data.value || 0 })
+    if (data.type === 'PERCENT' && exercise && data.oneRepMaxVal) {
+      updateExercise({ ...exercise, oneRepMax: { value: data.oneRepMaxVal, unit: 'lbs' } })
+    }
+
+    onSelect({
+      type: data.type!,
+      value: data.value || 0
+    })
     navigation.goBack()
   }
 
@@ -66,7 +79,7 @@ export default function LoadForm({ load, onSelect }: Props) {
     const decimalValue = `0.${value.length === 1 ? '0' : ''}${value.replace('.', '')}`
     // If the value is unchanged and the field length is less than 5, then the user has
     // used the backspace key to delete the decimal point. Since we are adding the decimal
-    // point automatically for the user, it's only good manners to delete it for them automatically,
+    // point automatically for the user, we should also delete it for them automatically,
     // along with the next character, which they are most likely expecting to be deleted.
     if (decimalValue === oldValue && oldValue.length < 5) {
       return decimalValue.slice(0, -1)
@@ -77,11 +90,20 @@ export default function LoadForm({ load, onSelect }: Props) {
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)} disabled={!isValid}>
+        <ButtonContainer onPress={handleSubmit(onSubmit)}>
           <SpecialText style={tw`font-bold`}>Done</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
-      <View>
+      <HeaderLeftContainer>
+        <ButtonContainer
+          onPress={() => {
+            navigation.goBack()
+          }}
+        >
+          <SpecialText>Cancel</SpecialText>
+        </ButtonContainer>
+      </HeaderLeftContainer>
+      <View style={tw`flex-grow py-9`}>
         <Controller
           control={control}
           rules={{
@@ -103,7 +125,7 @@ export default function LoadForm({ load, onSelect }: Props) {
                 onChange(v)
               }}
               value={value}
-              style={tw`px-3 mb-9`}
+              style={tw`px-3`}
             />
           )}
           name="type"
@@ -124,11 +146,11 @@ export default function LoadForm({ load, onSelect }: Props) {
                 value={(value && String(value)) || undefined}
                 placeholder="0"
                 maxLength={2}
-                style={tw`px-0 py-0`}
+                style={tw`px-0 py-0 mt-9`}
                 textInputStyle={tw`px-3 py-2.5 text-right`}
                 keyboardType="number-pad"
                 selectTextOnFocus
-                clearTextOnFocus
+                // clearTextOnFocus
                 numeric
               />
             )}
@@ -136,42 +158,66 @@ export default function LoadForm({ load, onSelect }: Props) {
           />
         )}
         {type === 'PERCENT' && (
-          <Controller
-            control={control}
-            rules={{
-              required: true,
-              min: 0.001,
-              max: 0.999
-            }}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label="% of One Rep Max"
-                onChangeText={newValue => {
-                  onChange(percentStringToNum(newValue, String(value)))
-                  // const normalizedNewValue = `0.${
-                  //   newValue.length === 1 ? '0' : ''
-                  // }${newValue.replace('.', '')}`
-
-                  // if (normalizedNewValue === String(value) && String(value).length < 5) {
-                  //   onChange(normalizedNewValue.slice(0, -1))
-                  // } else {
-                  //   onChange(normalizedNewValue)
-                  // }
-                }}
-                onBlur={onBlur}
-                value={percentNumToString(value)}
-                placeholder="00.00"
-                maxLength={5}
-                style={tw`px-0 py-0 `}
-                textInputStyle={tw`px-3 py-2.5 web:w-1/4`}
-                keyboardType="number-pad"
-                selectTextOnFocus
-                clearTextOnFocus
-                numeric
-              />
+          <>
+            <Controller
+              control={control}
+              rules={{
+                required: true,
+                min: 0.001,
+                max: 0.999
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="% of One Rep Max"
+                  onChangeText={newValue => {
+                    onChange(percentStringToNum(newValue, String(value)))
+                  }}
+                  onBlur={onBlur}
+                  value={percentNumToString(value)}
+                  placeholder="00.00"
+                  maxLength={5}
+                  style={tw`mt-9`}
+                  textInputStyle={tw`web:w-1/4`}
+                  keyboardType="number-pad"
+                  selectTextOnFocus
+                  numeric
+                />
+              )}
+              name="value"
+            />
+            {exercise && !exercise?.oneRepMax && (
+              <>
+                <SecondaryText style={tw`uppercase px-3 text-sm mt-9 mb-1.5`}>
+                  {exercise.name}
+                </SecondaryText>
+                <Controller
+                  control={control}
+                  rules={{
+                    required: false
+                  }}
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      label="One Rep Max (lbs)"
+                      placeholder="Required"
+                      placeholderTextColor={tw.color(alertTextColor)}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      value={(value && String(value)) || undefined}
+                      maxLength={4}
+                      style={tw``}
+                      textInputStyle={tw``}
+                      keyboardType="number-pad"
+                      numeric
+                    />
+                  )}
+                  name="oneRepMaxVal"
+                />
+                <SecondaryText style={tw`px-3 py-1.5 text-xs`}>
+                  Enter a One Rep Max for this exercise in order to use the Percent load type.
+                </SecondaryText>
+              </>
             )}
-            name="value"
-          />
+          </>
         )}
       </View>
     </>
@@ -179,5 +225,6 @@ export default function LoadForm({ load, onSelect }: Props) {
 }
 
 LoadForm.defaultProps = {
-  load: undefined
+  load: undefined,
+  exercise: undefined
 }

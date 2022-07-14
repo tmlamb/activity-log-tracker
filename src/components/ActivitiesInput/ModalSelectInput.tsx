@@ -1,87 +1,60 @@
 import { AntDesign } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
-import { Noop } from 'react-hook-form'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import { tw } from '../../tailwind'
-import { Load } from '../../types'
+import { ModalSelectParams } from '../../types'
 import ButtonContainer from '../ButtonContainer'
 import CardInfo from '../CardInfo'
-import { ExerciseSelectNavigationProp } from '../Navigation/ExerciseSelectModal'
-import { LoadFormNavigationProp } from '../Navigation/LoadFormModal'
 import { SecondaryText } from '../Typography'
 
-type Props = {
+type Props<T> = {
   label?: string
-  value?: Load | string
-  stringify?: (value: any) => string
+  value?: T
+  stringify?: (value: T) => string
   style?: ClassInput
-  onChangeSelect: ((value: Load) => void) | ((value: string) => void)
-  onBlur: Noop
+  onChangeSelect: (value: T) => void
   placeholder?: string
   textStyle?: ClassInput
-  screen: 'ExerciseSelectModal' | 'LoadFormModal'
+  modalParams?: { [key: string]: string | undefined }
+  modalScreen: string
 }
 
-// interface PropsFilled extends Props {
-//   stringify: (value: any) => string
-// }
-
-export default function ModalSelectInput({
+export default function ModalSelectInput<T>({
   label,
   value,
   style,
   onChangeSelect,
-  onBlur,
-  screen,
   placeholder,
   stringify,
-  textStyle
-}: Props) {
-  const navigation = useNavigation<LoadFormNavigationProp | ExerciseSelectNavigationProp>()
-
-  const params =
-    screen === 'ExerciseSelectModal'
-      ? {
-          value: value && (value as string),
-          onChangeSelect: onChangeSelect as (value: string) => void
-        }
-      : { value: value as Load, onChangeSelect: onChangeSelect as (value: Load) => void }
+  textStyle,
+  modalParams,
+  modalScreen
+}: Props<T>) {
+  const navigation = useNavigation<ModalSelectParams<T>>()
 
   return (
-    <>
-      {/* <SelectModalNavigationLink screen={screen} navigationParams={{ value, onChangeSelect }}>
-        <CardInfo
-          style={tw.style(style)}
-          textStyle={tw.style(tw.style(textStyle))}
-          primaryText={label}
-          secondaryText={value && stringify(value)}
-          rightIcon={
-            <SecondaryText>
-              <AntDesign name="right" size={16} />
-            </SecondaryText>
-          }
-        />
-      </SelectModalNavigationLink> */}
-      <ButtonContainer style={tw``} onPress={() => navigation.navigate(screen, params)}>
-        <CardInfo
-          style={tw.style(style)}
-          textStyle={tw.style(textStyle)}
-          primaryText={label}
-          secondaryText={(!placeholder && value && stringify && stringify(value)) as string}
-          specialText={
-            (!value ? placeholder : undefined) ||
-            (value && placeholder && stringify && stringify(value))
-          }
-          rightIcon={
-            <SecondaryText>
-              <AntDesign name="right" size={16} />
-            </SecondaryText>
-          }
-          reverse={placeholder ? true : undefined}
-        />
-      </ButtonContainer>
-    </>
+    <ButtonContainer
+      style={tw``}
+      onPress={() => navigation.navigate(modalScreen, { value, onChangeSelect, ...modalParams })}
+    >
+      <CardInfo
+        style={tw.style(style)}
+        textStyle={tw.style(textStyle)}
+        primaryText={label}
+        secondaryText={(!placeholder && value && stringify && stringify(value)) as string}
+        specialText={
+          (!value ? placeholder : undefined) ||
+          (value && placeholder && stringify && stringify(value))
+        }
+        rightIcon={
+          <SecondaryText style={tw`mt-0.5`}>
+            <AntDesign name="right" size={16} />
+          </SecondaryText>
+        }
+        reverse={placeholder ? true : undefined}
+      />
+    </ButtonContainer>
   )
 }
 
@@ -91,5 +64,6 @@ ModalSelectInput.defaultProps = {
   style: undefined,
   stringify: undefined,
   textStyle: undefined,
-  placeholder: undefined
+  placeholder: undefined,
+  modalParams: undefined
 }

@@ -1,5 +1,6 @@
 import React from 'react'
 import {
+  ColorValue,
   KeyboardTypeOptions,
   NativeSyntheticEvent,
   TextInput as NativeTextInput,
@@ -15,13 +16,14 @@ import { primaryTextColor, SecondaryText, secondaryTextColor } from './Typograph
 type Props = {
   onChangeText?: (text: string) => void
   onChange?: ((e: NativeSyntheticEvent<TextInputChangeEventData>) => void) | undefined
-  onBlur: (e: unknown) => void
+  onBlur?: (e: unknown) => void
   value?: string
   style?: ViewStyle
   textInputStyle?: ClassInput
   labelStyle?: ClassInput
   label?: string
   placeholder?: string
+  placeholderTextColor?: ColorValue
   maxLength?: number
   selectTextOnFocus?: boolean
   clearTextOnFocus?: boolean
@@ -30,7 +32,18 @@ type Props = {
   editable?: boolean
   selection?: { start: number; end?: number } | undefined
   onKeyPress?: ((e: NativeSyntheticEvent<TextInputKeyPressEventData>) => void) | undefined
+  innerRef?: React.LegacyRef<NativeTextInput> | undefined
 }
+
+// Why is this necessary? Because when we right justify the text in
+// our TextInput, any trailing whitespace in the field gets treated
+// as space to be removed so that the text is right aligned. This
+// causes our users spaces to be ignored visually until they enter
+// a non-whitespace character. Luckily &nbsp; (\u00a0) does not
+// behave this way.
+const nbspReplace = (str: string) => str.replace(/\u0020/, '\u00a0')
+
+const numericReplace = (str: string) => str.replace(/[^0-9|\\.]/g, '')
 
 interface PropsFilled extends Props {
   onChangeText: (text: string) => void
@@ -47,6 +60,7 @@ export default function TextInput({
   labelStyle,
   label,
   placeholder,
+  placeholderTextColor,
   maxLength,
   selectTextOnFocus,
   clearTextOnFocus,
@@ -54,10 +68,12 @@ export default function TextInput({
   numeric,
   editable,
   selection,
-  onKeyPress
+  onKeyPress,
+  innerRef
 }: PropsFilled) {
   const handleChange = (text: string) => {
-    onChangeText(numeric ? text.replace(/[^0-9|\\.]/g, '') : text)
+    const normalizedText = nbspReplace(numeric ? numericReplace(text) : text)
+    onChangeText(normalizedText)
   }
 
   return (
@@ -74,20 +90,24 @@ export default function TextInput({
         value={value}
         style={tw.style(
           primaryTextColor,
-          'py-3 px-3 w-full web:w-1/5 text-lg leading-tight tracking-wide',
+          'py-2.5 px-3 w-full web:w-1/5 text-lg leading-tight tracking-wide',
           textInputStyle
         )}
         placeholder={placeholder}
-        placeholderTextColor={tw.color(secondaryTextColor)}
+        placeholderTextColor={placeholderTextColor || tw.color(secondaryTextColor)}
         maxLength={maxLength}
         keyboardType={keyboardType}
         textAlign={label ? 'right' : undefined}
+        textAlignVertical="top"
         selectTextOnFocus={selectTextOnFocus}
         clearTextOnFocus={clearTextOnFocus}
         editable={editable}
         selection={selection}
         onKeyPress={onKeyPress}
         multiline
+        numberOfLines={1}
+        scrollEnabled={false}
+        ref={innerRef}
       />
     </Card>
   )
@@ -98,16 +118,19 @@ TextInput.defaultProps = {
   style: undefined,
   onChangeText: (text: string) => text,
   onChange: undefined,
+  onBlur: undefined,
   textInputStyle: undefined,
   labelStyle: undefined,
   maxLength: undefined,
   label: undefined,
   placeholder: undefined,
+  placeholderTextColor: undefined,
   selectTextOnFocus: false,
   clearTextOnFocus: false,
   numeric: false,
   keyboardType: 'default',
   editable: true,
   selection: undefined,
-  onKeyPress: undefined
+  onKeyPress: undefined,
+  innerRef: undefined
 }

@@ -14,11 +14,21 @@ function SessionDetailScreen({ route }: Props) {
   const exercises = useWorkoutStore(state => state.exercises)
   const program = programs.find(p => p.programId === route.params.programId)
   const session = program?.sessions.find(s => s.sessionId === route.params.sessionId)
+  const updateSession = useWorkoutStore(store => store.updateSession)
+  const updateWorkoutSet = useWorkoutStore(store => store.updateWorkoutSet)
 
   return (
     <ScreenLayout>
       <View>
-        {session && <SessionDetail session={session} program={program!} exercises={exercises} />}
+        {session && (
+          <SessionDetail
+            session={session}
+            program={program!}
+            exercises={exercises}
+            changeHandler={updateSession}
+            updateWorkoutSet={updateWorkoutSet}
+          />
+        )}
       </View>
     </ScreenLayout>
   )

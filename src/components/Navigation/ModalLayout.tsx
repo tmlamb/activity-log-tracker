@@ -17,10 +17,8 @@ export default function ModalLayout({ children }: { children: React.ReactNode })
   }, [navigation])
 
   return (
-    <View style={tw`w-full h-full bg-white py-9 dark:bg-slate-900`}>
-      <View style={tw`w-full max-w-2xl px-0 mx-auto`}>{children}</View>
-      {/* <View style={tw`w-full h-full max-w-2xl mx-auto bg-white py-9 dark:bg-slate-900`}> */}
-      {/* {children} */}
+    <View style={tw`flex-row justify-center flex-grow bg-white dark:bg-slate-900`}>
+      <View style={tw`flex-grow max-w-2xl`}>{children}</View>
     </View>
   )
 }

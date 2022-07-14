@@ -1,42 +1,39 @@
 import React from 'react'
-import { FlatList } from 'react-native'
+import { FlatList, ListRenderItem } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import { tw } from '../tailwind'
 import ButtonContainer from './ButtonContainer'
-import CardInfo from './CardInfo'
 
 type Props = {
   items: Partial<unknown>[]
-  onValueChange: (value: Partial<unknown>) => void
-  value?: Partial<unknown>
   style?: ClassInput
-  stringify: (value: Partial<unknown>) => string
   keyExtractor: (value: Partial<unknown>, index: number) => string
+  scrollEnabled?: boolean
+  ListHeaderComponent?: JSX.Element
+  renderItem: ListRenderItem<Partial<unknown>> | null | undefined
+  onSelect: (value: Partial<unknown>) => void
 }
 
 export default function SelectList({
   items,
-  onValueChange,
-  value,
   style,
-  stringify,
-  keyExtractor
+  keyExtractor,
+  scrollEnabled,
+  ListHeaderComponent,
+  renderItem,
+  onSelect
 }: Props) {
   return (
     <FlatList
+      ListHeaderComponent={ListHeaderComponent}
+      contentContainerStyle={tw`pb-36`}
       data={items}
+      scrollEnabled={scrollEnabled}
       keyExtractor={keyExtractor}
-      style={tw`flex-grow pb-36`}
-      renderItem={({ item, index }) => (
-        <ButtonContainer onPress={() => onValueChange(item)}>
-          <CardInfo
-            primaryText={stringify(item)}
-            style={tw.style(
-              'border-b-2',
-              index === 0 ? 'rounded-t-xl' : undefined,
-              index === items.length - 1 ? 'rounded-b-xl border-b-0' : undefined
-            )}
-          />
+      style={tw.style(style, 'flex-grow')}
+      renderItem={theItem => (
+        <ButtonContainer onPress={() => onSelect(theItem.item)}>
+          {renderItem && renderItem(theItem)}
         </ButtonContainer>
       )}
     />
@@ -45,5 +42,6 @@ export default function SelectList({
 
 SelectList.defaultProps = {
   style: undefined,
-  value: undefined
+  scrollEnabled: true,
+  ListHeaderComponent: undefined
 }

@@ -30,12 +30,12 @@ export default function Picker({ label, items, style, onValueChange, value }: Pr
         }
       )}
     >
-      <PrimaryText style={tw`absolute web:relative web:w-1/3 py-2.5 pl-4 web:pl-0`}>
+      <PrimaryText style={tw`absolute pt-2 pl-4 web:relative web:w-1/3 web:pl-0`}>
         {label}
       </PrimaryText>
       <View>
         <RNPickerSelect
-          placeholder={{}}
+          placeholder={{ key: ' ' }}
           pickerProps={{}}
           style={{
             inputAndroid: {
@@ -93,7 +93,7 @@ export default function Picker({ label, items, style, onValueChange, value }: Pr
           // eslint-disable-next-line react/no-unstable-nested-components
           Icon={() =>
             Platform.OS !== 'web' && (
-              <SecondaryText>
+              <SecondaryText style={tw`-my-0.5`}>
                 <AntDesign name="right" size={16} />
               </SecondaryText>
             )

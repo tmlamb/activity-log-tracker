@@ -11,44 +11,69 @@ const mockPrograms: Program[] = [
       {
         name: 'Chest',
         sessionId: '1',
-        start: new Date('2022-04-01T00:00:00.000Z'),
-        end: undefined,
+        start: new Date('2022-04-01T04:22:30.000Z'),
+        end: new Date('2022-04-01T05:21:30.000Z'),
+        status: 'Done',
         activities: [
           {
             activityId: '1',
             reps: 5,
             load: {
-              value: 0.775,
-              type: 'PERCENT'
+              value: 8,
+              type: 'RPE'
             },
             rest: 3,
             exerciseId: '1',
             warmupSets: [
               {
                 workoutSetId: '1',
-                type: 'Warm-up'
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '2',
-                type: 'Warm-up'
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '3',
-                type: 'Warm-up'
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
               }
             ],
             mainSets: [
               {
                 workoutSetId: '4',
-                type: 'Main'
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '5',
-                type: 'Main'
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '6',
-                type: 'Main'
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
               }
             ]
           }
@@ -59,7 +84,8 @@ const mockPrograms: Program[] = [
         name: 'Chest',
         sessionId: '2',
         start: new Date('2022-04-10T00:00:00.000Z'),
-        end: undefined,
+        end: new Date('2022-04-10T01:21:30.000Z'),
+        status: 'Done',
         activities: [
           {
             activityId: '2',
@@ -73,29 +99,53 @@ const mockPrograms: Program[] = [
             warmupSets: [
               {
                 workoutSetId: '1',
-                type: 'Warm-up'
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-10T00:00:00.000Z'),
+                end: new Date('2022-04-10T01:21:30.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '2',
-                type: 'Warm-up'
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-10T00:00:00.000Z'),
+                end: new Date('2022-04-10T01:21:30.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '3',
-                type: 'Warm-up'
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-10T00:00:00.000Z'),
+                end: new Date('2022-04-10T01:21:30.000Z'),
+                feedback: 'Neutral'
               }
             ],
             mainSets: [
               {
                 workoutSetId: '4',
-                type: 'Main'
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-10T00:00:00.000Z'),
+                end: new Date('2022-04-10T01:21:30.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '5',
-                type: 'Main'
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-10T00:00:00.000Z'),
+                end: new Date('2022-04-10T01:21:30.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '6',
-                type: 'Main'
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-10T00:00:00.000Z'),
+                end: new Date('2022-04-10T01:21:30.000Z'),
+                feedback: 'Neutral'
               }
             ]
           }
@@ -105,7 +155,8 @@ const mockPrograms: Program[] = [
         name: 'Chest',
         sessionId: '3',
         start: new Date('2022-04-11T00:00:00.000Z'),
-        end: undefined,
+        end: new Date('2022-04-11T10:01:00.000Z'),
+        status: 'Done',
         activities: [
           {
             activityId: '3',
@@ -119,29 +170,53 @@ const mockPrograms: Program[] = [
             warmupSets: [
               {
                 workoutSetId: '1',
-                type: 'Warm-up'
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-11T00:00:00.000Z'),
+                end: new Date('2022-04-11T10:01:00.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '2',
-                type: 'Warm-up'
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-11T00:00:00.000Z'),
+                end: new Date('2022-04-11T10:01:00.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '3',
-                type: 'Warm-up'
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-11T00:00:00.000Z'),
+                end: new Date('2022-04-11T10:01:00.000Z'),
+                feedback: 'Neutral'
               }
             ],
             mainSets: [
               {
                 workoutSetId: '4',
-                type: 'Main'
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-11T00:00:00.000Z'),
+                end: new Date('2022-04-11T10:01:00.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '5',
-                type: 'Main'
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-11T00:00:00.000Z'),
+                end: new Date('2022-04-11T10:01:00.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '6',
-                type: 'Main'
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-11T00:00:00.000Z'),
+                end: new Date('2022-04-11T10:01:00.000Z'),
+                feedback: 'Neutral'
               }
             ]
           }
@@ -153,6 +228,7 @@ const mockPrograms: Program[] = [
         sessionId: '4',
         start: new Date('2022-04-16T00:00:00.000Z'),
         end: undefined,
+        status: 'Ready',
         activities: [
           {
             activityId: '4',
@@ -166,29 +242,52 @@ const mockPrograms: Program[] = [
             warmupSets: [
               {
                 workoutSetId: '1',
-                type: 'Warm-up'
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-16T00:00:00.000Z'),
+                end: new Date('2022-04-16T00:00:00.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '2',
-                type: 'Warm-up'
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-16T00:00:00.000Z'),
+                end: new Date('2022-04-16T00:00:00.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '3',
-                type: 'Warm-up'
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-16T00:00:00.000Z'),
+                end: new Date('2022-04-16T00:00:00.000Z'),
+                feedback: 'Neutral'
               }
             ],
             mainSets: [
               {
                 workoutSetId: '4',
-                type: 'Main'
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-16T00:00:00.000Z'),
+                end: new Date('2022-04-16T00:00:00.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '5',
-                type: 'Main'
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-16T00:00:00.000Z'),
+                end: new Date('2022-04-16T00:00:00.000Z'),
+                feedback: 'Neutral'
               },
               {
                 workoutSetId: '6',
-                type: 'Main'
+                type: 'Main',
+                status: 'Ready',
+                start: new Date('2022-04-16T00:00:00.000Z'),
+                feedback: 'Neutral'
               }
             ]
           }
@@ -202,8 +301,7 @@ const mockPrograms: Program[] = [
 const mockExercises: Exercise[] = [
   {
     exerciseId: '1',
-    name: 'Squat',
-    muscle: 'Quadriceps',
+    name: 'Back Squat',
     oneRepMax: {
       value: 106,
       unit: 'lbs'
@@ -225,6 +323,7 @@ export interface WorkoutStore {
   deleteActivity: (programId: string, sessionId: string, activityId: string) => void
   addExercise: (exercise: Exercise) => void
   updateExercise: (exercise: Exercise) => void
+  deleteExercise: (exerciseId: string) => void
   updateWorkoutSet: (
     programId: string,
     sessionId: string,
@@ -236,8 +335,8 @@ export interface WorkoutStore {
 const useWorkoutStore = create<WorkoutStore>()(
   persist(
     set => ({
-      programs: mockPrograms,
-      exercises: mockExercises,
+      programs: [], // mockPrograms,
+      exercises: [], // mockExercises,
       addProgram: (program: Program) => {
         set(
           produce((state: WorkoutStore) => {
@@ -254,7 +353,7 @@ const useWorkoutStore = create<WorkoutStore>()(
               throw new Error('Program not found')
             }
 
-            current.name = program.name
+            current.name = program.name.trim()
             current.sessions = program.sessions
           })
         )
@@ -285,10 +384,11 @@ const useWorkoutStore = create<WorkoutStore>()(
               throw new Error('Session not found')
             }
 
-            current.name = session.name
+            current.name = session.name.trim()
             current.start = session.start
             current.end = session.end
             current.activities = session.activities
+            current.status = session.status
           })
         )
       },
@@ -390,9 +490,16 @@ const useWorkoutStore = create<WorkoutStore>()(
               throw new Error('Exercise not found')
             }
 
-            current.name = exercise.name
-            current.muscle = exercise.muscle
+            current.name = exercise.name.trim()
             current.oneRepMax = exercise.oneRepMax
+          })
+        )
+      },
+      deleteExercise: (exerciseId: string) => {
+        set(
+          produce((state: WorkoutStore) => {
+            const exerciseIndex = state.exercises.findIndex(el => el.exerciseId === exerciseId)
+            state.exercises.splice(exerciseIndex, 1)
           })
         )
       },
@@ -425,7 +532,6 @@ const useWorkoutStore = create<WorkoutStore>()(
             const current =
               activity.mainSets.find(el => el.workoutSetId === workoutSet.workoutSetId) ||
               activity.warmupSets.find(el => el.workoutSetId === workoutSet.workoutSetId)
-
             if (!current) {
               throw new Error('WorkoutSet not found')
             }
@@ -434,6 +540,8 @@ const useWorkoutStore = create<WorkoutStore>()(
             current.actualWeight = workoutSet.actualWeight
             current.end = workoutSet.end
             current.start = workoutSet.start
+            current.status = workoutSet.status
+            current.feedback = workoutSet.feedback
           })
         )
       }

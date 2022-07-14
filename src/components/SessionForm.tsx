@@ -1,15 +1,16 @@
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { ScrollView } from 'react-native'
+import { KeyboardAvoidingView, ScrollView } from 'react-native'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../tailwind'
 import { Exercise, Session } from '../types'
-import { isToday } from '../utils'
+import { spaceReplace } from '../utils'
 import ActivitiesInput from './ActivitiesInput/ActivitiesInput'
 import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
+import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import NavigationLink from './Navigation/NavigationLink'
 import TextInput from './TextInput'
@@ -42,29 +43,30 @@ export default function SessionForm({
   } = useForm<Partial<Session>>({
     defaultValues: {
       name: (session && session.name) || '',
-      start: (session && session.start) || new Date(),
+      start: (session && session.start) || undefined,
       activities: (session && session.activities) || []
     }
   })
 
   const onSubmit = (data: Partial<Session>) => {
-    console.log(data)
     changeHandler(
       programId,
       session
         ? {
-            name: data.name!,
+            name: spaceReplace(data.name!),
             sessionId: session.sessionId!,
             activities: data.activities!,
-            start: data.start!,
-            end: session.end
+            start: session.start,
+            end: session.end,
+            status: session.status
           }
         : {
-            name: data.name!,
+            name: spaceReplace(data.name!),
             sessionId: uuidv4(),
             activities: data.activities!,
-            start: data.start!,
-            end: undefined
+            start: undefined,
+            end: undefined,
+            status: 'Planned'
           }
     )
     navigation.goBack()
@@ -73,56 +75,54 @@ export default function SessionForm({
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)}>
+        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`py-2`}>
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
-      <ScrollView style={tw``}>
-        <Controller
-          control={control}
-          rules={{
-            required: true
+      <HeaderLeftContainer>
+        <ButtonContainer
+          style={tw`py-2`}
+          onPress={() => {
+            navigation.goBack()
           }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              onChangeText={onChange}
-              onBlur={onBlur}
-              value={value}
-              placeholder="Session Name"
-              maxLength={25}
-              style={tw`mb-9`}
-              textInputStyle={tw`w-full`}
-            />
-          )}
-          name="name"
-        />
+        >
+          <SpecialText>Cancel</SpecialText>
+        </ButtonContainer>
+      </HeaderLeftContainer>
+      <KeyboardAvoidingView style={tw`flex-1`} keyboardVerticalOffset={114} behavior="padding">
+        <ScrollView style={tw`flex-grow pt-9`} contentContainerStyle={tw`pb-48`}>
+          <Controller
+            control={control}
+            rules={{
+              required: true
+            }}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                onChangeText={onChange}
+                onBlur={onBlur}
+                value={value}
+                label="Session Name"
+                maxLength={25}
+                style={tw`mb-9`}
+                textInputStyle={tw`w-full`}
+              />
+            )}
+            name="name"
+          />
 
-        <ActivitiesInput {...{ control, watch, getValues, setValue, exercises }} />
+          <ActivitiesInput {...{ control, watch, getValues, setValue, exercises, session }} />
 
-        <Controller
-          control={control}
-          rules={{
-            required: true
-          }}
-          render={({ field: { value } }) => (
-            <CardInfo
-              primaryText="Date"
-              secondaryText={isToday(value) ? 'Today' : value!.toLocaleDateString()}
-              style={tw`mb-9`}
-            />
+          {session && deleteHandler && (
+            <NavigationLink
+              navigationParams={{ programId, sessionId: session.sessionId }}
+              screen="ProgramDetailScreen"
+              callback={() => deleteHandler(programId, session.sessionId)}
+            >
+              <CardInfo style={tw``} alertText="Delete This Session" />
+            </NavigationLink>
           )}
-          name="start"
-        />
-        {session && deleteHandler && (
-          <NavigationLink
-            navigationParams={{ programId, sessionId: session.sessionId }}
-            screen="ProgramDetailScreen"
-            callback={() => deleteHandler(programId, session.sessionId)}
-          >
-            <CardInfo style={tw``} alertText="Delete This Session" />
-          </NavigationLink>
-        )}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </>
   )
 }

@@ -28,17 +28,19 @@ export type ActivityFormNavParams = {
   programId: string
 }
 
-export type LoadFormNavParams = ModalSelectParams<Load>
+export type LoadFormNavParams = ModalSelectParams<Load> & { exerciseId: string }
 
-export type ExerciseSelectNavParams = ModalSelectParams<string>
+export type ExerciseSelectNavParams = ModalSelectParams<Exercise>
 
 export type ModalSelectParams<T> = {
+  [x: string]: any
   value?: T
   onChangeSelect: (value: T) => void
 }
 
 export type ExerciseFormNavParams = {
   exerciseId?: string
+  name?: string
 }
 
 export type WorkoutSetNavParams = {
@@ -51,6 +53,7 @@ export type WorkoutSetNavParams = {
 
 export type StackParamList = {
   DashboardScreen: undefined
+  ExerciseSettingsScreen: undefined
   ProgramDetailScreen: ProgramNavParams
   ProgramFormModal: ProgramFormNavParams
   SessionDetailScreen: SessionNavParams
@@ -67,13 +70,15 @@ export type WorkoutSet = {
   workoutSetId: string
   start?: Date
   end?: Date
-  type: 'Warm-up' | 'Main'
+  status: 'Planned' | 'Ready' | 'Done'
+  type: 'Warmup' | 'Main'
   actualWeight?: Weight
   actualReps?: number
+  feedback: 'Easy' | 'Neutral' | 'Hard'
 }
 
 export type WarmupSet = WorkoutSet & {
-  type: 'Warm-up'
+  type: 'Warmup'
 }
 export type MainSet = WorkoutSet & {
   type: 'Main'
@@ -97,20 +102,20 @@ export type Load = {
 export type Exercise = {
   name: string
   exerciseId: string
-  muscle: string
-  oneRepMax?: Weight
+  oneRepMax: Weight
 }
 
 export type Weight = {
   value: number
-  unit: 'lbs'
+  unit: 'lbs' | 'kg'
 }
 
 export type Session = {
   name: string
   sessionId: string
-  start: Date
+  start?: Date
   end?: Date
+  status: 'Planned' | 'Ready' | 'Done'
   activities: Activity[]
 }
 

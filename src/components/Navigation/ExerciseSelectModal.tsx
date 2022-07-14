@@ -18,7 +18,7 @@ export default function ExerciseSelectModal({ route }: Props) {
   return (
     <ModalLayout>
       <ExerciseSelect
-        exerciseId={value}
+        exercise={value}
         onSelect={onChangeSelect}
         availableExercises={availableExercises}
         usedExercises={usedExercises}

@@ -1,32 +1,32 @@
+import { AntDesign } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { LogBox, View } from 'react-native'
 import { v4 as uuidv4 } from 'uuid'
 import { tw } from '../tailwind'
 import { Exercise } from '../types'
+import { sortByName } from '../utils'
 import ButtonContainer from './ButtonContainer'
+import CardInfo from './CardInfo'
+import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import SelectList from './SelectList'
-import { SpecialText } from './Typography'
-
-// TODO: Address problem with non-serializable navigation prop (see onSelect function), then remove this ignore statement
-LogBox.ignoreLogs(['Non-serializable values were found in the navigation state'])
+import { SecondaryText, SpecialText } from './Typography'
 
 type Props = {
-  exerciseId?: string
+  exercise?: Exercise
   availableExercises: Partial<Exercise>[]
   usedExercises?: Exercise[]
-  onSelect: (exerciseId: string) => void
+  onSelect: (exercise: Exercise) => void
   addExercise: (exercise: Exercise) => void
 }
 
 type FormData = {
-  exercise: Partial<Exercise> | undefined
+  exercise?: Partial<Exercise>
 }
 
 export default function ExerciseSelect({
-  exerciseId,
+  exercise: initialValue,
   availableExercises,
   usedExercises,
   onSelect,
@@ -35,25 +35,32 @@ export default function ExerciseSelect({
   const navigation = useNavigation()
   const { control, handleSubmit } = useForm<FormData>({
     defaultValues: {
-      exercise: usedExercises?.find(exercise => exerciseId === exercise.exerciseId)
+      exercise: initialValue
     }
   })
 
-  const onSubmit = (data: FormData) => {
-    if (data.exercise?.exerciseId) {
-      onSelect(data.exercise.exerciseId)
-    } else {
-      const newExercise = {
-        exerciseId: uuidv4(),
-        name: data.exercise?.name || '',
-        muscle: data.exercise?.muscle || ''
+  const onSubmit = ({ exercise: selectedExercise }: FormData) => {
+    if (selectedExercise) {
+      let submittedExercise = selectedExercise as Exercise
+      if (!selectedExercise.exerciseId) {
+        submittedExercise = { ...submittedExercise, exerciseId: uuidv4() } as Exercise
+        addExercise(submittedExercise)
       }
-      addExercise(newExercise)
-      onSelect(newExercise.exerciseId)
-    }
 
-    navigation.goBack()
+      onSelect(submittedExercise)
+      navigation.goBack()
+    }
   }
+
+  const exercisesSortedAndDeduped = React.useMemo(
+    () =>
+      sortByName([...(usedExercises || [])]).concat(
+        availableExercises.filter(
+          availableExercise => !usedExercises?.find(e => e.name === availableExercise.name)
+        )
+      ),
+    [availableExercises, usedExercises]
+  )
 
   return (
     <>
@@ -62,42 +69,84 @@ export default function ExerciseSelect({
           <SpecialText style={tw`font-bold`}>Done</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
-      <View>
-        <Controller
-          control={control}
-          rules={{
-            required: true
+      <HeaderLeftContainer>
+        <ButtonContainer
+          onPress={() => {
+            navigation.goBack()
           }}
-          render={({ field: { onChange, value } }) => (
-            <>
-              {usedExercises && (
-                <SelectList
-                  items={usedExercises}
-                  onValueChange={onChange}
-                  value={value}
-                  style={tw``}
-                  stringify={item => (item as Exercise).name}
-                  keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
+        >
+          <SpecialText>Cancel</SpecialText>
+        </ButtonContainer>
+      </HeaderLeftContainer>
+      <Controller
+        control={control}
+        rules={{
+          required: false
+        }}
+        render={({ field: { onChange, onBlur, value: selectedExercise } }) => (
+          <SelectList
+            style={tw`flex-grow px-3 pt-9`}
+            keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
+            items={exercisesSortedAndDeduped}
+            onSelect={item => {
+              onChange(item as Exercise)
+            }}
+            renderItem={({ item, index }) => (
+              <>
+                <CardInfo
+                  rightIcon={
+                    (item as Exercise).name === selectedExercise?.name && (
+                      <SpecialText>
+                        <AntDesign name="check" size={22} />
+                      </SpecialText>
+                    )
+                  }
+                  primaryText={(item as Exercise).name}
+                  style={tw.style(
+                    'border-b-2',
+                    index === 0 || (usedExercises && index === usedExercises.length)
+                      ? 'rounded-t-xl'
+                      : undefined,
+                    (usedExercises && index === usedExercises.length - 1) ||
+                      index === exercisesSortedAndDeduped.length - 1
+                      ? 'border-b-0 rounded-b-xl mb-6'
+                      : undefined
+                  )}
                 />
-              )}
-              <SelectList
-                items={availableExercises}
-                onValueChange={onChange}
-                value={value}
-                style={tw``}
-                stringify={item => (item as Exercise).name}
-                keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
-              />
-            </>
-          )}
-          name="exercise"
-        />
-      </View>
+                {usedExercises && index === usedExercises.length - 1 && (
+                  <SecondaryText style={tw`pl-3 pb-1 mt-0 text-sm`}>
+                    Available Exercises
+                  </SecondaryText>
+                )}
+              </>
+            )}
+            ListHeaderComponent={
+              <>
+                <SecondaryText style={tw`pl-3 pb-1 text-sm`}>Current Selection</SecondaryText>
+                <CardInfo
+                  primaryText="Exercise"
+                  secondaryText={selectedExercise?.name}
+                  style={tw`rounded-xl`}
+                />
+
+                {(usedExercises && usedExercises.length > 0 && (
+                  <SecondaryText style={tw`pl-3 pb-1 mt-6 text-sm`}>Recent Exercises</SecondaryText>
+                )) || (
+                  <SecondaryText style={tw`pl-3 pb-1 mt-6 text-sm`}>
+                    Available Exercises
+                  </SecondaryText>
+                )}
+              </>
+            }
+          />
+        )}
+        name="exercise"
+      />
     </>
   )
 }
 
 ExerciseSelect.defaultProps = {
-  exerciseId: undefined,
+  exercise: undefined,
   usedExercises: undefined
 }

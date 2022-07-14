@@ -10,6 +10,7 @@ type Props = {
   secondaryText?: string
   specialText?: string
   alertText?: string
+  centeredText?: string
   rightIcon?: React.ReactNode
   leftIcon?: React.ReactNode
   style?: ClassInput
@@ -22,6 +23,7 @@ export default function CardInfo({
   secondaryText,
   specialText,
   alertText,
+  centeredText,
   rightIcon,
   leftIcon,
   style,
@@ -36,14 +38,9 @@ export default function CardInfo({
         style
       )}
     >
-      {/* <View
-        style={tw.style(
-          'flex flex-row items-center justify-between',
-          reverse ? 'flex-row-reverse' : undefined
-        )}
-      > */}
-      <View style={tw`flex-row items-center flex-shrink`}>
-        {leftIcon && <View style={tw.style('mr-3 -mt-1 -mb-1')}>{leftIcon}</View>}
+      <View style={tw.style('flex-row items-center mr-5', leftIcon ? 'pl-6 relative' : undefined)}>
+        {/* flex-shrink? */}
+        {leftIcon && <View style={tw.style('absolute left-0')}>{leftIcon}</View>}
         {alertText && (
           <AlertText style={tw.style('text-lg leading-tight', textStyle)}>{alertText}</AlertText>
         )}
@@ -53,11 +50,26 @@ export default function CardInfo({
           </PrimaryText>
         )}
       </View>
-      <View style={tw`flex-row items-center justify-between flex-shrink`}>
-        {secondaryText && (
+      {centeredText && (
+        <View style={tw`flex-row items-center justify-between flex-shrink`}>
           <SecondaryText
             style={tw.style(
               'leading-tight text-lg flex-shrink',
+              reverse ? 'pl-0' : undefined,
+              textStyle
+            )}
+          >
+            {centeredText}
+          </SecondaryText>
+        </View>
+      )}
+      <View style={tw`flex-row items-center justify-between flex-shrink`}>
+        {secondaryText && (
+          <SecondaryText
+            numberOfLines={1}
+            style={tw.style(
+              'leading-tight text-lg flex-shrink',
+              rightIcon ? 'pr-5' : undefined,
               reverse ? 'pl-0' : undefined,
               textStyle
             )}
@@ -69,6 +81,7 @@ export default function CardInfo({
           <SpecialText
             style={tw.style(
               'pl-1.5 text-lg flex-shrink leading-tight',
+              rightIcon ? 'pr-5' : undefined,
               reverse ? 'pl-0' : undefined,
               textStyle
             )}
@@ -76,9 +89,8 @@ export default function CardInfo({
             {specialText}
           </SpecialText>
         )}
-        {rightIcon && <View style={tw`pl-2`}>{rightIcon}</View>}
+        {rightIcon && <View style={tw`absolute right-0`}>{rightIcon}</View>}
       </View>
-      {/* </View> */}
     </Card>
   )
 }
@@ -88,6 +100,7 @@ CardInfo.defaultProps = {
   secondaryText: undefined,
   specialText: undefined,
   alertText: undefined,
+  centeredText: undefined,
   rightIcon: undefined,
   leftIcon: undefined,
   style: undefined,
