@@ -90,12 +90,13 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)}>
-          <SpecialText style={tw`font-bold`}>Done</SpecialText>
+        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`py-4 -my-4 px-4 -mr-4`}>
+          <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
       <HeaderLeftContainer>
         <ButtonContainer
+          style={tw`py-4 -my-4 px-4 -ml-4`}
           onPress={() => {
             navigation.goBack()
           }}

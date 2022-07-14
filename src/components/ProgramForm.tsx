@@ -53,7 +53,7 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`py-2`}>
+        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`py-4 -my-4 px-4 -mr-4`}>
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
@@ -62,7 +62,7 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
           onPress={() => {
             navigation.goBack()
           }}
-          style={tw`py-2`}
+          style={tw`py-4 -my-4 px-4 -ml-4`}
         >
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>

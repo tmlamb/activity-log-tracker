@@ -151,7 +151,7 @@ export default function SessionDetail({
     <>
       <HeaderRightContainer>
         <NavigationLink
-          style={tw`py-2`}
+          style={tw`px-4 py-4 -my-4 -mr-4`}
           screen="SessionFormModal"
           navigationParams={{ programId: program.programId, sessionId: session.sessionId }}
         >

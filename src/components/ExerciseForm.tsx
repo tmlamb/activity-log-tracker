@@ -78,12 +78,13 @@ export default function ExerciseForm({
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)}>
+        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`py-4 -my-4 px-4 -mr-4`}>
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
       <HeaderLeftContainer>
         <ButtonContainer
+          style={tw`px-4 py-4 -my-4 -ml-4`}
           onPress={() => {
             navigation.goBack()
           }}

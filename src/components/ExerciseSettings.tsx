@@ -28,7 +28,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
   return (
     <>
       <HeaderRightContainer>
-        <NavigationLink screen="ExerciseFormModal" style={tw`py-2 pr-2.5 pl-4 -mr-4`}>
+        <NavigationLink screen="ExerciseFormModal" style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}>
           <SpecialText>
             <AntDesign name="plus" size={28} />
           </SpecialText>

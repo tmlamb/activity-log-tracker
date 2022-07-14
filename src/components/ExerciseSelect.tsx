@@ -65,12 +65,13 @@ export default function ExerciseSelect({
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)}>
+        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`px-4 py-4 -my-4 -mr-4`}>
           <SpecialText style={tw`font-bold`}>Done</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
       <HeaderLeftContainer>
         <ButtonContainer
+          style={tw`px-4 py-4 -my-4 -ml-4`}
           onPress={() => {
             navigation.goBack()
           }}
@@ -114,7 +115,7 @@ export default function ExerciseSelect({
                   )}
                 />
                 {usedExercises && index === usedExercises.length - 1 && (
-                  <SecondaryText style={tw`pl-3 pb-1 mt-0 text-sm`}>
+                  <SecondaryText style={tw`pb-1 pl-3 mt-0 text-sm`}>
                     Available Exercises
                   </SecondaryText>
                 )}
@@ -122,7 +123,7 @@ export default function ExerciseSelect({
             )}
             ListHeaderComponent={
               <>
-                <SecondaryText style={tw`pl-3 pb-1 text-sm`}>Current Selection</SecondaryText>
+                <SecondaryText style={tw`pb-1 pl-3 text-sm`}>Current Selection</SecondaryText>
                 <CardInfo
                   primaryText="Exercise"
                   secondaryText={selectedExercise?.name}
@@ -130,9 +131,9 @@ export default function ExerciseSelect({
                 />
 
                 {(usedExercises && usedExercises.length > 0 && (
-                  <SecondaryText style={tw`pl-3 pb-1 mt-6 text-sm`}>Recent Exercises</SecondaryText>
+                  <SecondaryText style={tw`pb-1 pl-3 mt-6 text-sm`}>Recent Exercises</SecondaryText>
                 )) || (
-                  <SecondaryText style={tw`pl-3 pb-1 mt-6 text-sm`}>
+                  <SecondaryText style={tw`pb-1 pl-3 mt-6 text-sm`}>
                     Available Exercises
                   </SecondaryText>
                 )}

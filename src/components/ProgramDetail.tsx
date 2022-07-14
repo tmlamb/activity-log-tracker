@@ -80,7 +80,7 @@ export default function ProgramDetail({ program }: Props) {
         <NavigationLink
           screen="ProgramFormModal"
           navigationParams={{ programId: program.programId }}
-          style={tw`py-2`}
+          style={tw`py-4 -my-4 px-4 -mr-4`}
         >
           <SpecialText>Edit</SpecialText>
         </NavigationLink>

@@ -17,14 +17,14 @@ export default function Dashboard({ programs }: Props) {
   return (
     <>
       <HeaderRightContainer>
-        <NavigationLink screen="ProgramFormModal" style={tw`py-2 pr-2.5 pl-4 -mr-4`}>
+        <NavigationLink screen="ProgramFormModal" style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}>
           <SpecialText>
             <AntDesign name="plus" size={28} />
           </SpecialText>
         </NavigationLink>
       </HeaderRightContainer>
       <HeaderLeftContainer>
-        <NavigationLink screen="ExerciseSettingsScreen" style={tw`py-2 pl-2.5 pr-4 -ml-4`}>
+        <NavigationLink screen="ExerciseSettingsScreen" style={tw`py-6 pl-3 pr-8 -my-6 -ml-4`}>
           <SpecialText>
             <AntDesign name="setting" size={24} />
           </SpecialText>

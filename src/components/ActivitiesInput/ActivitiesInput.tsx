@@ -85,7 +85,8 @@ export default function ActivitiesInput({
               name={`activities.${index}.exerciseId`}
             />
             <ButtonContainer
-              style={tw`p-1 mr-2.5 mt-1.5 top-0 right-0 absolute`}
+              // style={tw`p-1 mr-2.5 mt-1.5 top-0 right-0 absolute`}
+              style={tw`py-2 pr-2 pl-1 ml-2 mt-0 top-0 left-0 absolute`}
               onPress={() => remove(index)}
             >
               <AlertText style={tw``}>
@@ -251,42 +252,44 @@ export default function ActivitiesInput({
           </View>
         </Card>
       ))}
-      <ButtonContainer
-        onPress={() =>
-          append({
-            warmupSets: Array.from(Array(3)).map(() => ({
-              workoutSetId: uuidv4(),
-              type: 'Warmup',
-              status: session?.status === 'Done' ? 'Done' : 'Planned',
-              start: session?.status === 'Done' ? session.end : undefined,
-              end: session?.status === 'Done' ? session.end : undefined,
-              feedback: 'Neutral'
-            })),
-            mainSets: Array.from(Array(3)).map(() => ({
-              workoutSetId: uuidv4(),
-              type: 'Main',
-              status: session?.status === 'Done' ? 'Done' : 'Planned',
-              start: session?.status === 'Done' ? session.end : undefined,
-              end: session?.status === 'Done' ? session.end : undefined,
-              feedback: 'Neutral'
-            })),
-            reps: 3,
-            load: undefined,
-            rest: 3,
-            activityId: uuidv4()
-          })
-        }
-      >
-        <CardInfo
-          leftIcon={
-            <SpecialText style={tw``}>
-              <AntDesign name="pluscircle" size={16} />
+      <CardInfo
+        leftIcon={
+          <ButtonContainer
+            onPress={() =>
+              append({
+                warmupSets: Array.from(Array(3)).map(() => ({
+                  workoutSetId: uuidv4(),
+                  type: 'Warmup',
+                  status: session?.status === 'Done' ? 'Done' : 'Planned',
+                  start: session?.status === 'Done' ? session.end : undefined,
+                  end: session?.status === 'Done' ? session.end : undefined,
+                  feedback: 'Neutral'
+                })),
+                mainSets: Array.from(Array(3)).map(() => ({
+                  workoutSetId: uuidv4(),
+                  type: 'Main',
+                  status: session?.status === 'Done' ? 'Done' : 'Planned',
+                  start: session?.status === 'Done' ? session.end : undefined,
+                  end: session?.status === 'Done' ? session.end : undefined,
+                  feedback: 'Neutral'
+                })),
+                reps: 3,
+                load: undefined,
+                rest: 3,
+                activityId: uuidv4()
+              })
+            }
+          >
+            <SpecialText style={tw`py-3.5`}>
+              <AntDesign style={tw``} name="pluscircle" size={16} />
+              &nbsp;&nbsp;Add Activity
             </SpecialText>
-          }
-          primaryText="Add Activity"
-          style={tw``}
-        />
-      </ButtonContainer>
+          </ButtonContainer>
+        }
+        // primaryText="Add Activity"
+        textStyle={tw``}
+        style={tw`py-5`}
+      />
     </View>
   )
 }
