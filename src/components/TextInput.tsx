@@ -90,7 +90,7 @@ export default function TextInput({
         value={value}
         style={tw.style(
           primaryTextColor,
-          'py-2.5 px-3 w-full web:w-1/5 text-lg leading-tight tracking-wide',
+          'py-2.5 px-3 w-full web:w-2/5 text-lg leading-tight tracking-wide',
           textInputStyle
         )}
         placeholder={placeholder}

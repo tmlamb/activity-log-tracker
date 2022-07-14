@@ -46,6 +46,13 @@ export default function Dashboard({ programs }: Props) {
               Add a new workout program using the &apos;+&apos; button in the upper right.
             </SecondaryText>
           )) ||
+          (programs.length < 2 &&
+            programs.reduce((total, program) => total + program.sessions.length, 0) < 3 && (
+              <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
+                Open the workout program and use it to track daily sessions. You probably only need
+                one of these to start.
+              </SecondaryText>
+            )) ||
           undefined
         }
         renderSectionHeader={({ section: { title, data } }) => (

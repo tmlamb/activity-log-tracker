@@ -162,29 +162,31 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
               )}
               name="value"
             />
-            <View>
-              <FlatList
-                data={[
-                  { key: 'Measures intensity of a given weight and number of reps' },
-                  { key: 'Values are on 1 - 10 scale:' },
-                  { key: '\u2022 10 - another rep would have been impossible' },
-                  { key: '\u2022 9 - you left one in the tank' },
-                  { key: '\u2022 8 - you could have done a couple more' },
-                  { key: '\u2022 etc...' }
-                ]}
-                ListHeaderComponent={
-                  <SecondaryText style={tw`mt-9 text-sm px-3 mb-1.5`}>
-                    Rate of Perceived Exertion scale
+            <FlatList
+              data={[
+                { key: '\u2022 10 - another rep would have been impossible' },
+                { key: '\u2022 9 - you left one in the tank' },
+                { key: '\u2022 8 - you could have done a couple more' },
+                { key: '\u2022 etc...' }
+              ]}
+              ListHeaderComponent={
+                <View style={tw`px-3 mb-1 mt-9`}>
+                  <SecondaryText style={tw`text-sm mb-1.5`}>
+                    Rate of Perceived Exertion scale (RPE)
                   </SecondaryText>
-                }
-                renderItem={({ item }) => (
-                  <View style={tw`flex-wrap flex-row items-center justify-start ml-6`}>
-                    {/* <SecondaryText style={tw`text-lg ml-0`}>{'\u2022'}</SecondaryText> */}
-                    <SecondaryText style={tw`text-xs mb-1`}>{`${item.key}`}</SecondaryText>
-                  </View>
-                )}
-              />
-            </View>
+                  <SecondaryText style={tw`text-xs px-2`}>
+                    Measures intensity of a given weight and number of reps. Values are on a 1-10
+                    scale:
+                  </SecondaryText>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <View style={tw`flex-wrap flex-row items-center justify-start ml-6`}>
+                  {/* <SecondaryText style={tw`text-lg ml-0`}>{'\u2022'}</SecondaryText> */}
+                  <SecondaryText style={tw`text-xs mb-1`}>{`${item.key}`}</SecondaryText>
+                </View>
+              )}
+            />
           </>
         )}
         {type === 'PERCENT' && (
@@ -247,6 +249,18 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
                 </SecondaryText>
               </>
             )}
+            <View style={tw`px-3 mb-1 mt-9`}>
+              <SecondaryText style={tw`text-sm mb-1.5`}>One Rep Max (1RM)</SecondaryText>
+              <SecondaryText style={tw`text-xs px-2`}>
+                Heaviest weight that can be lifted for one rep.
+              </SecondaryText>
+              <SecondaryText style={tw`text-sm mb-1.5 mt-9`}>
+                Percentage of One Rep Max (%1RM)
+              </SecondaryText>
+              <SecondaryText style={tw`text-xs px-2`}>
+                A way to quantify the amount to be lifted in a set, proportional to the 1RM.
+              </SecondaryText>
+            </View>
           </>
         )}
       </View>

@@ -127,7 +127,7 @@ export default function ActivitiesInput({
                   placeholder="0"
                   maxLength={2}
                   style={tw`py-0 border-b-2 border-l-2`}
-                  textInputStyle={tw`pl-0 pb-2.5 pt-3 text-right web:text-base`}
+                  textInputStyle={tw`pl-0 pr-6 pb-2.5 pt-3 text-right web:text-base`}
                   labelStyle={tw`px-2 web:text-base`}
                   keyboardType="number-pad"
                   selectTextOnFocus
@@ -173,7 +173,7 @@ export default function ActivitiesInput({
                   placeholder="0"
                   maxLength={2}
                   style={tw`py-0 border-b-2 border-l-2`}
-                  textInputStyle={tw`pl-0 py-2.5 text-right web:text-base`}
+                  textInputStyle={tw`pl-0 py-2.5 pr-6 text-right web:text-base`}
                   labelStyle={tw`px-2 web:text-base`}
                   keyboardType="number-pad"
                   selectTextOnFocus
@@ -196,7 +196,7 @@ export default function ActivitiesInput({
                   placeholder="0"
                   maxLength={2}
                   style={tw`py-0 border-b-2 border-l-2`}
-                  textInputStyle={tw`pl-0 py-2.5 text-right web:text-base`}
+                  textInputStyle={tw`pl-0 py-2.5 pr-6 text-right web:text-base`}
                   labelStyle={tw`px-2 web:text-base`}
                   keyboardType="number-pad"
                   selectTextOnFocus
@@ -240,7 +240,7 @@ export default function ActivitiesInput({
                   placeholder="0"
                   maxLength={2}
                   style={tw`py-0 border-l-2`}
-                  textInputStyle={tw`pl-0 py-2.5 text-right web:text-base`}
+                  textInputStyle={tw`pl-0 py-2.5 pr-6 text-right web:text-base`}
                   labelStyle={tw`px-2 web:text-base`}
                   selectTextOnFocus
                   keyboardType="number-pad"

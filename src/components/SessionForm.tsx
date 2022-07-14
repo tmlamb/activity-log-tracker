@@ -90,7 +90,7 @@ export default function SessionForm({
         </ButtonContainer>
       </HeaderLeftContainer>
       <KeyboardAvoidingView style={tw`flex-1`} keyboardVerticalOffset={114} behavior="padding">
-        <ScrollView style={tw`flex-grow pt-9`} contentContainerStyle={tw`pb-48`}>
+        <ScrollView style={tw`flex-1 pt-9`} contentContainerStyle={tw`pb-48`}>
           <Controller
             control={control}
             rules={{
@@ -104,7 +104,7 @@ export default function SessionForm({
                 label="Session Name"
                 maxLength={25}
                 style={tw`mb-9`}
-                textInputStyle={tw`w-full`}
+                textInputStyle={tw``}
               />
             )}
             name="name"
