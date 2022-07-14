@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { View } from 'react-native'
+import { FlatList, View } from 'react-native'
 import { tw } from '../tailwind'
 import { Exercise, Load } from '../types'
 import Picker from './ActivitiesInput/Picker'
@@ -113,7 +113,11 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
             <Picker
               label="Load Type"
               items={[
-                { label: 'RPE', value: 'RPE', color: tw.style(primaryTextColor).color as string },
+                {
+                  label: 'RPE',
+                  value: 'RPE',
+                  color: tw.style(primaryTextColor).color as string
+                },
                 {
                   label: 'Percent',
                   value: 'PERCENT',
@@ -131,31 +135,56 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
           name="type"
         />
         {type === 'RPE' && (
-          <Controller
-            control={control}
-            rules={{
-              required: true,
-              min: 1,
-              max: 10
-            }}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label="RPE Value"
-                onChangeText={onChange}
-                onBlur={onBlur}
-                value={(value && String(value)) || undefined}
-                placeholder="0"
-                maxLength={2}
-                style={tw`px-0 py-0 mt-9`}
-                textInputStyle={tw`px-3 py-2.5 text-right`}
-                keyboardType="number-pad"
-                selectTextOnFocus
-                // clearTextOnFocus
-                numeric
+          <>
+            <Controller
+              control={control}
+              rules={{
+                required: true,
+                min: 1,
+                max: 10
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="RPE Value"
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  value={(value && String(value)) || undefined}
+                  placeholder="0"
+                  maxLength={2}
+                  style={tw`px-0 py-0 mt-9`}
+                  textInputStyle={tw`px-3 py-2.5 text-right`}
+                  keyboardType="number-pad"
+                  selectTextOnFocus
+                  // clearTextOnFocus
+                  numeric
+                />
+              )}
+              name="value"
+            />
+            <View>
+              <FlatList
+                data={[
+                  { key: 'Measures intensity of a given weight and number of reps' },
+                  { key: 'Values are on 1 - 10 scale:' },
+                  { key: '\u2022 10 - another rep would have been impossible' },
+                  { key: '\u2022 9 - you left one in the tank' },
+                  { key: '\u2022 8 - you could have done a couple more' },
+                  { key: '\u2022 etc...' }
+                ]}
+                ListHeaderComponent={
+                  <SecondaryText style={tw`mt-9 text-sm px-3 mb-1.5`}>
+                    Rate of Perceived Exertion scale
+                  </SecondaryText>
+                }
+                renderItem={({ item }) => (
+                  <View style={tw`flex-wrap flex-row items-center justify-start ml-6`}>
+                    {/* <SecondaryText style={tw`text-lg ml-0`}>{'\u2022'}</SecondaryText> */}
+                    <SecondaryText style={tw`text-xs mb-1`}>{`${item.key}`}</SecondaryText>
+                  </View>
+                )}
               />
-            )}
-            name="value"
-          />
+            </View>
+          </>
         )}
         {type === 'PERCENT' && (
           <>

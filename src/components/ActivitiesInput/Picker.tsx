@@ -1,7 +1,7 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
 import { Platform, View } from 'react-native'
-import RNPickerSelect from 'react-native-picker-select'
+import RNPickerSelect, { Item as RNPickerSelectItem } from 'react-native-picker-select'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import { tw } from '../../tailwind'
 import Card from '../Card'
@@ -9,7 +9,7 @@ import { PrimaryText, SecondaryText, secondaryTextColor } from '../Typography'
 
 type Props = {
   label: string
-  items: { label: string; value: string; color: string }[]
+  items: RNPickerSelectItem[] // { label: string; value: string; color: string }[]
   style?: ClassInput
   onValueChange?: (value: string) => void
   value?: string
