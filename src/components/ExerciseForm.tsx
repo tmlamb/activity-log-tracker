@@ -44,7 +44,8 @@ export default function ExerciseForm({
   } = useForm<Exercise>({
     defaultValues: {
       name: (exercise && exercise.name) || name || '',
-      oneRepMax: (exercise && exercise.oneRepMax) || undefined
+      oneRepMax: (exercise && exercise.oneRepMax) || undefined,
+      primaryMuscle: (exercise && exercise.primaryMuscle) || undefined
     }
   })
   const onSubmit = (data: Exercise) => {
@@ -58,10 +59,16 @@ export default function ExerciseForm({
 
     changeHandler(
       exercise
-        ? { ...exercise, name: spaceReplace(data.name), oneRepMax: data.oneRepMax }
+        ? {
+            ...exercise,
+            name: spaceReplace(data.name),
+            oneRepMax: data.oneRepMax,
+            primaryMuscle: data.primaryMuscle && spaceReplace(data.primaryMuscle)
+          }
         : {
             name: spaceReplace(data.name),
             oneRepMax: data.oneRepMax,
+            primaryMuscle: data.primaryMuscle && spaceReplace(data.primaryMuscle),
             exerciseId: uuidv4()
           }
     )
@@ -123,6 +130,24 @@ export default function ExerciseForm({
             />
           )}
           name="oneRepMax"
+        />
+        <Controller
+          control={control}
+          rules={{
+            required: false
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInput
+              label="Primary Muscle"
+              onChangeText={onChange}
+              onBlur={onBlur}
+              value={value}
+              maxLength={25}
+              style={tw`mb-9`}
+              textInputStyle={tw`pl-32`}
+            />
+          )}
+          name="primaryMuscle"
         />
         {exercise && deleteHandler && (
           <ButtonContainer

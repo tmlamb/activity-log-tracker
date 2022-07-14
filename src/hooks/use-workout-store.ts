@@ -494,6 +494,7 @@ const useWorkoutStore = create<WorkoutStore>()(
 
             current.name = exercise.name.trim()
             current.oneRepMax = exercise.oneRepMax
+            current.primaryMuscle = exercise.primaryMuscle?.trim()
           })
         )
       },

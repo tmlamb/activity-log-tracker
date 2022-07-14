@@ -103,6 +103,7 @@ export type Exercise = {
   name: string
   exerciseId: string
   oneRepMax: Weight
+  primaryMuscle?: string
 }
 
 export type Weight = {
