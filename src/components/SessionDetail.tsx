@@ -77,6 +77,14 @@ function WorkoutSetCard({
   )
 }
 
+const calculateElapsedTimeSeconds = (start?: Date, end?: Date) =>
+  // eslint-disable-next-line no-nested-ternary
+  start
+    ? end
+      ? Math.ceil((end.getTime() - start.getTime()) / 1000)
+      : Math.ceil((new Date().getTime() - start.getTime()) / 1000)
+    : 0
+
 export default function SessionDetail({
   program,
   session,
@@ -85,24 +93,19 @@ export default function SessionDetail({
   updateWorkoutSet
 }: Props) {
   const [elapsedTimeSeconds, setElapsedTimeSeconds] = React.useState(
-    // eslint-disable-next-line no-nested-ternary
-    session.start
-      ? session.end
-        ? Math.ceil((session.end.getTime() - session.start.getTime()) / 1000)
-        : Math.ceil((new Date().getTime() - session.start.getTime()) / 1000)
-      : 0
+    calculateElapsedTimeSeconds(session.start, session.end)
   )
 
   React.useEffect(() => {
-    const timer = () => {
-      setElapsedTimeSeconds(Math.ceil((new Date().getTime() - session.start!.getTime()) / 1000))
-    }
+    setElapsedTimeSeconds(calculateElapsedTimeSeconds(session.start, session.end))
+  }, [session.end, session.start])
+
+  React.useEffect(() => {
+    const timer = () => setElapsedTimeSeconds(calculateElapsedTimeSeconds(session.start))
 
     if (session.status === 'Ready' && session.start) {
       const id = setInterval(timer, 1000)
-      return () => {
-        clearInterval(id)
-      }
+      return () => clearInterval(id)
     }
     return undefined
   }, [elapsedTimeSeconds, session.start, session.status])
@@ -151,7 +154,7 @@ export default function SessionDetail({
     <>
       <HeaderRightContainer>
         <NavigationLink
-          style={tw`px-4 py-4 -my-4 -mr-4`}
+          style={tw`py-2`}
           screen="SessionFormModal"
           navigationParams={{ programId: program.programId, sessionId: session.sessionId }}
         >
@@ -195,10 +198,12 @@ export default function SessionDetail({
                 />
                 <CardInfo
                   primaryText="Elapsed Time"
-                  secondaryText={`${String(Math.floor(elapsedTimeSeconds / 60)).padStart(
+                  secondaryText={`${String(Math.floor(elapsedTimeSeconds / 60 / 60)).padStart(
                     2,
                     '0'
-                  )}:${String(elapsedTimeSeconds % 60).padStart(2, '0')}`}
+                  )}:${String(Math.floor(elapsedTimeSeconds / 60) % 60).padStart(2, '0')}:${String(
+                    elapsedTimeSeconds % 60
+                  ).padStart(2, '0')}`}
                   style={tw`rounded-b-xl`}
                 />
               </>
@@ -208,6 +213,7 @@ export default function SessionDetail({
             </PrimaryText>
           </>
         }
+        // ${String(Math.floor(elapsedTimeSeconds / 60 / 60)).padStart(2, '0')}:
         renderSectionHeader={({ section: { title } }) => (
           <SecondaryText style={tw`pl-3 pb-1.5 uppercase font-bold text-sm`}>{title}</SecondaryText>
         )}

@@ -18,7 +18,6 @@ import {
 import { ActivityNavigationProp } from './ActivityDetailScreen'
 import { ExerciseFormNavigationProp } from './ExerciseFormModal'
 import { ExerciseSelectNavigationProp } from './ExerciseSelectModal'
-import { ExerciseSettingsNavigationProp } from './ExerciseSettingsScreen'
 import { LoadFormNavigationProp } from './LoadFormModal'
 import { ProgramNavigationProp } from './ProgramDetailScreen'
 import { ProgramFormNavigationProp } from './ProgramFormModal'
@@ -30,6 +29,7 @@ type Props = {
   children: React.ReactNode
   screen:
     | 'DashboardScreen'
+    | 'SettingsScreen'
     | 'ExerciseSettingsScreen'
     | 'ProgramDetailScreen'
     | 'ProgramFormModal'
@@ -78,7 +78,6 @@ export default function NavigationLink({
     | ExerciseSelectNavigationProp
     | ExerciseFormNavigationProp
     | WorkoutSetNavigationProp
-    | ExerciseSettingsNavigationProp
   >()
 
   return (

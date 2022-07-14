@@ -1,4 +1,5 @@
 import { useNavigation } from '@react-navigation/native'
+import { add } from 'date-fns'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { KeyboardAvoidingView, ScrollView } from 'react-native'
@@ -24,6 +25,22 @@ type Props = {
   deleteHandler?: (programId: string, sessionId: string) => void
 }
 
+const dateToElapsedTime = (start: Date, end: Date) => {
+  console.log('start, end', start, end)
+  const elapsedTimeSeconds = Math.ceil((end.getTime() - start.getTime()) / 1000)
+
+  return String(Math.floor(elapsedTimeSeconds / 60))
+}
+
+// Converts the percent string to it's numeric value. The old value is needed to detect the case where
+// the value to the left of the decimal is getting deleted.
+const elapsedTimeToEndDate = (start: Date, elapsedTime: string) => {
+  console.log('start, elapsed', start, elapsedTime)
+  const endDate = add(start, { minutes: Number(elapsedTime) })
+  console.log(endDate)
+  return endDate
+}
+
 export default function SessionForm({
   changeHandler,
   programId,
@@ -43,7 +60,7 @@ export default function SessionForm({
   } = useForm<Partial<Session>>({
     defaultValues: {
       name: (session && session.name) || '',
-      start: (session && session.start) || undefined,
+      end: (session && session.end) || undefined,
       activities: (session && session.activities) || []
     }
   })
@@ -57,7 +74,7 @@ export default function SessionForm({
             sessionId: session.sessionId!,
             activities: data.activities!,
             start: session.start,
-            end: session.end,
+            end: data.end,
             status: session.status
           }
         : {
@@ -111,6 +128,39 @@ export default function SessionForm({
           />
 
           <ActivitiesInput {...{ control, watch, getValues, setValue, exercises, session }} />
+
+          {session && session.status === 'Done' && session.start && (
+            <Controller
+              control={control}
+              rules={{
+                required: false
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="Elapsed Time (minutes)"
+                  onChangeText={newValue =>
+                    newValue &&
+                    session.start &&
+                    onChange(
+                      (newValue &&
+                        session.start &&
+                        elapsedTimeToEndDate(session.start, newValue)) ||
+                        ''
+                    )
+                  }
+                  onBlur={onBlur}
+                  value={value && session.start && dateToElapsedTime(session.start, value)}
+                  maxLength={3}
+                  style={tw`mb-9`}
+                  textInputStyle={tw`web:w-1/4`}
+                  keyboardType="number-pad"
+                  selectTextOnFocus
+                  numeric
+                />
+              )}
+              name="end"
+            />
+          )}
 
           {session && deleteHandler && (
             <NavigationLink

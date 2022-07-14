@@ -11,6 +11,7 @@ import ProgramDetailScreen from './ProgramDetailScreen'
 import ProgramFormModal from './ProgramFormModal'
 import SessionDetailScreen from './SessionDetailScreen'
 import SessionFormModal from './SessionFormModal'
+import SettingsScreen from './SettingsScreen'
 import WorkoutSetDetailScreen from './WorkoutSetDetailScreen'
 
 const AppStack = createNativeStackNavigator<StackParamList>()
@@ -48,6 +49,11 @@ export default function Navigation() {
           name="WorkoutSetDetailScreen"
           component={WorkoutSetDetailScreen}
           options={({ route }) => ({ title: route.params.title })}
+        />
+        <AppStack.Screen
+          name="SettingsScreen"
+          component={SettingsScreen}
+          options={{ title: 'Settings' }}
         />
         <AppStack.Screen
           name="ExerciseSettingsScreen"

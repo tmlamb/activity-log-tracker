@@ -72,7 +72,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
         )}
         ListHeaderComponent={
           (usedExercises && usedExercises.length > 0 && (
-            <SecondaryText style={tw`pl-3 pb-1 mt-6 text-sm`}>Recent Exercises</SecondaryText>
+            <SecondaryText style={tw`pl-3 pb-1 mt-6 text-sm`}>Your Exercises</SecondaryText>
           )) || (
             <SecondaryText style={tw`pl-3 pb-1 mt-6 text-sm`}>Available Exercises</SecondaryText>
           )

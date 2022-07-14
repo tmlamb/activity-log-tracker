@@ -24,7 +24,7 @@ export default function Dashboard({ programs }: Props) {
         </NavigationLink>
       </HeaderRightContainer>
       <HeaderLeftContainer>
-        <NavigationLink screen="ExerciseSettingsScreen" style={tw`py-6 pl-3 pr-8 -my-6 -ml-4`}>
+        <NavigationLink screen="SettingsScreen" style={tw`py-6 pl-3 pr-8 -my-6 -ml-4`}>
           <SpecialText>
             <AntDesign name="setting" size={24} />
           </SpecialText>
@@ -41,19 +41,19 @@ export default function Dashboard({ programs }: Props) {
           </PrimaryText>
         }
         ListFooterComponent={
-          (programs.length < 1 && (
-            <SecondaryText style={tw`pl-3 text-xs`}>
-              Add a new workout program using the &apos;+&apos; button in the upper right.
-            </SecondaryText>
-          )) ||
-          (programs.length < 2 &&
-            programs.reduce((total, program) => total + program.sessions.length, 0) < 3 && (
-              <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
-                Open the workout program and use it to track daily sessions. You probably only need
-                one of these to start.
+          <>
+            {programs.length < 1 && (
+              <SecondaryText style={tw`pb-4 pl-3 text-xs`}>
+                Add a new workout program using the &apos;+&apos; button in the upper right.
               </SecondaryText>
-            )) ||
-          undefined
+            )}
+            {programs.reduce((total, program) => total + program.sessions.length, 0) < 4 && (
+              <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
+                Workout programs can be used to track daily sessions. You probably only need one of
+                these to start.
+              </SecondaryText>
+            )}
+          </>
         }
         renderSectionHeader={({ section: { title, data } }) => (
           <SecondaryText style={tw`pl-3 pb-1.5 uppercase text-sm`}>

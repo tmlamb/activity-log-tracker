@@ -123,19 +123,17 @@ export default function ExerciseSelect({
             )}
             ListHeaderComponent={
               <>
-                <SecondaryText style={tw`pb-1 pl-3 text-sm`}>Current Selection</SecondaryText>
+                {/* <SecondaryText style={tw`pb-1 pl-3 text-sm`}>Current Selection</SecondaryText>
                 <CardInfo
                   primaryText="Exercise"
                   secondaryText={selectedExercise?.name}
                   style={tw`rounded-xl`}
-                />
+                /> */}
 
                 {(usedExercises && usedExercises.length > 0 && (
-                  <SecondaryText style={tw`pb-1 pl-3 mt-6 text-sm`}>Recent Exercises</SecondaryText>
+                  <SecondaryText style={tw`pb-1 pl-3 text-sm`}>Your Exercises</SecondaryText>
                 )) || (
-                  <SecondaryText style={tw`pb-1 pl-3 mt-6 text-sm`}>
-                    Available Exercises
-                  </SecondaryText>
+                  <SecondaryText style={tw`pb-1 pl-3 text-sm`}>Available Exercises</SecondaryText>
                 )}
               </>
             }

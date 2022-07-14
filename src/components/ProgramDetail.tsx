@@ -118,8 +118,14 @@ export default function ProgramDetail({ program }: Props) {
                     <SessionFormLink programId={program.programId}>
                       <CardInfo
                         style={tw.style('rounded-xl mb-6')}
-                        specialText="Plan Workout Session"
-                        reverse
+                        leftIcon={
+                          <SpecialText style={tw``}>
+                            <AntDesign style={tw``} name="pluscircle" size={16} />
+                            &nbsp;&nbsp;Plan Workout Session
+                          </SpecialText>
+                        }
+                        specialText=" "
+                        textStyle={tw``}
                       />
                     </SessionFormLink>
                     {program.sessions.length < 1 && (
@@ -170,10 +176,23 @@ export default function ProgramDetail({ program }: Props) {
                   <SessionFormLink programId={program.programId}>
                     <CardInfo
                       style={tw.style('rounded-b-xl mb-6')}
-                      specialText="Plan Workout Session"
-                      reverse
+                      leftIcon={
+                        <SpecialText style={tw``}>
+                          <AntDesign style={tw``} name="pluscircle" size={16} />
+                          &nbsp;&nbsp;Plan Workout Session
+                        </SpecialText>
+                      }
+                      specialText=" "
+                      textStyle={tw``}
                     />
                   </SessionFormLink>
+                  // <SessionFormLink programId={program.programId}>
+                  //   <CardInfo
+                  //     style={tw.style('rounded-b-xl mb-6')}
+                  //     specialText="Plan Workout Session"
+                  //     reverse
+                  //   />
+                  // </SessionFormLink>
                 )}
               </>
             )}

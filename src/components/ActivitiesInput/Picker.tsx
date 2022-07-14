@@ -35,7 +35,7 @@ export default function Picker({ label, items, style, onValueChange, value }: Pr
       </PrimaryText>
       <View>
         <RNPickerSelect
-          placeholder={{ key: ' ' }}
+          placeholder={{ inputLabel: 'Select' }}
           pickerProps={{}}
           style={{
             inputAndroid: {

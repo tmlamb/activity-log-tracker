@@ -53,6 +53,7 @@ export type WorkoutSetNavParams = {
 
 export type StackParamList = {
   DashboardScreen: undefined
+  SettingsScreen: undefined
   ExerciseSettingsScreen: undefined
   ProgramDetailScreen: ProgramNavParams
   ProgramFormModal: ProgramFormNavParams
