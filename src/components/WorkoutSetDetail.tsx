@@ -148,6 +148,8 @@ export default function WorkoutSetDetail({
     [activity.activityId, program.programId, session.sessionId, updateWorkoutSet, workoutSet]
   )
 
+  const actualWeightWatcher = watch('actualWeight')
+
   React.useEffect(() => {
     const subscription = watch(() => handleSubmit(onSubmit)())
     return () => subscription.unsubscribe()
@@ -394,13 +396,9 @@ export default function WorkoutSetDetail({
           Complete the previous Workout Sets for this Exercise before continuing.
         </SecondaryText>
       )}
-      <PlateChart
-        style={tw`mt-9`}
-        totalWeight={{
-          value: 145,
-          unit: 'lbs'
-        }}
-      />
+      {actualWeightWatcher && actualWeightWatcher.value > 0 && (
+        <PlateChart style={tw`px-3 mt-9`} totalWeight={actualWeightWatcher} />
+      )}
     </ScrollView>
   )
 }

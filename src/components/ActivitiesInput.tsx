@@ -220,10 +220,7 @@ export default function ActivitiesInput({
                   modalParams={{
                     exerciseId: (watchActivities && watchActivities[index].exerciseId) || undefined
                   }}
-                  onChangeSelect={v => {
-                    console.log('Load inputs onChangeSelect called', v)
-                    return onChange(v)
-                  }}
+                  onChangeSelect={v => onChange(v)}
                   stringify={v => v && stringifyLoad(v)}
                 />
               )}

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import produce from 'immer'
 import create from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Activity, Exercise, Program, Session, WorkoutSet } from '../types'
+import { Activity, Equipment, Exercise, Program, Session, WorkoutSet } from '../types'
 
 // AsyncStorage.removeItem('workout-storage')
 
@@ -314,6 +314,7 @@ const mockExercises: Exercise[] = [
 export interface WorkoutStore {
   programs: Program[]
   exercises: Exercise[]
+  equipment: Equipment
   addProgram: (program: Program) => void
   updateProgram: (program: Program) => void
   deleteProgram: (programId: string) => void
@@ -334,11 +335,32 @@ export interface WorkoutStore {
   ) => void
 }
 
+AsyncStorage.removeItem('workout-storage')
+
 const useWorkoutStore = create<WorkoutStore>()(
   persist(
     set => ({
       programs: [], // mockPrograms,
       exercises: [], // mockExercises,
+      equipment: {
+        barbellWeight: { value: 45, unit: 'lbs' },
+        platePairs: [
+          // { value: 45, unit: 'lbs' },
+          // { value: 45, unit: 'lbs' },
+          // { value: 25, unit: 'lbs' },
+          // { value: 10, unit: 'lbs' },
+          // { value: 10, unit: 'lbs' },
+          // { value: 5, unit: 'lbs' },
+          // { value: 2.5, unit: 'lbs' }
+          { value: 2.5, unit: 'lbs' },
+          { value: 5, unit: 'lbs' },
+          { value: 10, unit: 'lbs' },
+          { value: 10, unit: 'lbs' },
+          { value: 25, unit: 'lbs' },
+          { value: 45, unit: 'lbs' },
+          { value: 45, unit: 'lbs' }
+        ]
+      },
       addProgram: (program: Program) => {
         set(
           produce((state: WorkoutStore) => {

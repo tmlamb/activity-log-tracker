@@ -26,7 +26,6 @@ type Props = {
 }
 
 const dateToElapsedTime = (start: Date, end: Date) => {
-  console.log('start, end', start, end)
   const elapsedTimeSeconds = Math.ceil((end.getTime() - start.getTime()) / 1000)
 
   return String(Math.floor(elapsedTimeSeconds / 60))
@@ -35,9 +34,7 @@ const dateToElapsedTime = (start: Date, end: Date) => {
 // Converts the percent string to it's numeric value. The old value is needed to detect the case where
 // the value to the left of the decimal is getting deleted.
 const elapsedTimeToEndDate = (start: Date, elapsedTime: string) => {
-  console.log('start, elapsed', start, elapsedTime)
   const endDate = add(start, { minutes: Number(elapsedTime) })
-  console.log(endDate)
   return endDate
 }
 

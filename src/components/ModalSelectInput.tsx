@@ -107,7 +107,6 @@ export default function ModalSelectInput<T>({
   const [onChangeSelectKey] = React.useState(uuidv4())
 
   React.useEffect(() => {
-    console.log('set store on mount')
     // onChangeSelect(selected)
     setOnChangeSelect(onChangeSelectKey, onChangeSelect)
     // return () => {

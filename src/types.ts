@@ -129,5 +129,5 @@ export type Program = {
 
 export type Equipment = {
   barbellWeight: Weight
-  plates: Weight[]
+  platePairs: Weight[]
 }
