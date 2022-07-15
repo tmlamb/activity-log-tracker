@@ -4,10 +4,10 @@ import { Controller, useForm } from 'react-hook-form'
 import { FlatList, View } from 'react-native'
 import { tw } from '../tailwind'
 import { Exercise, Load } from '../types'
-import Picker from './ActivitiesInput/Picker'
 import ButtonContainer from './ButtonContainer'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
+import Picker from './Picker'
 import TextInput from './TextInput'
 import { alertTextColor, primaryTextColor, SecondaryText, SpecialText } from './Typography'
 
@@ -117,12 +117,14 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
                 {
                   label: 'RPE',
                   value: 'RPE',
-                  color: tw.style(primaryTextColor).color as string
+                  color: tw.style(primaryTextColor).color as string,
+                  key: 'RPE'
                 },
                 {
                   label: 'Percent',
                   value: 'PERCENT',
-                  color: tw.style(primaryTextColor).color as string
+                  color: tw.style(primaryTextColor).color as string,
+                  key: 'PERCENT'
                 }
               ]}
               onValueChange={v => {

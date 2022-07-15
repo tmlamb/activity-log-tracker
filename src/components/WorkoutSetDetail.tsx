@@ -1,4 +1,5 @@
 import { useNavigation } from '@react-navigation/native'
+import { add, subMinutes } from 'date-fns'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { ScrollView, View } from 'react-native'
@@ -9,6 +10,7 @@ import { round5, stringifyLoad } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import Card from './Card'
 import CardInfo from './CardInfo'
+import PlateChart from './PlateChart'
 import TextInput from './TextInput'
 import { PrimaryText, SecondaryText } from './Typography'
 
@@ -133,7 +135,12 @@ export default function WorkoutSetDetail({
         actualWeight: data.actualWeight,
         actualReps: data.actualReps,
         start: data.start,
-        end: data.end,
+        end:
+          data.end &&
+          data.start &&
+          ((subMinutes(data.end, 20).getTime() > data.start.getTime() &&
+            add(data.start, { minutes: 20 })) ||
+            data.end),
         status: data.status,
         feedback: data.feedback
       })
@@ -147,7 +154,7 @@ export default function WorkoutSetDetail({
   }, [handleSubmit, onSubmit, watch])
 
   return (
-    <ScrollView style={tw`flex-grow px-3 pt-9 pb-36`}>
+    <ScrollView style={tw`flex-grow px-3 pt-9`} contentContainerStyle={tw`pb-48`}>
       {(isStartable && (
         <ButtonContainer
           style={tw`mb-9`}
@@ -387,6 +394,13 @@ export default function WorkoutSetDetail({
           Complete the previous Workout Sets for this Exercise before continuing.
         </SecondaryText>
       )}
+      <PlateChart
+        style={tw`mt-9`}
+        totalWeight={{
+          value: 145,
+          unit: 'lbs'
+        }}
+      />
     </ScrollView>
   )
 }

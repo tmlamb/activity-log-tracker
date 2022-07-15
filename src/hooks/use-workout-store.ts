@@ -4,7 +4,7 @@ import create from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Activity, Exercise, Program, Session, WorkoutSet } from '../types'
 
-AsyncStorage.removeItem('workout-storage')
+// AsyncStorage.removeItem('workout-storage')
 
 const mockPrograms: Program[] = [
   {
@@ -337,8 +337,8 @@ export interface WorkoutStore {
 const useWorkoutStore = create<WorkoutStore>()(
   persist(
     set => ({
-      programs: mockPrograms,
-      exercises: mockExercises,
+      programs: [], // mockPrograms,
+      exercises: [], // mockExercises,
       addProgram: (program: Program) => {
         set(
           produce((state: WorkoutStore) => {

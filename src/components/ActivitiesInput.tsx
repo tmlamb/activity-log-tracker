@@ -10,15 +10,15 @@ import {
 } from 'react-hook-form'
 import { View } from 'react-native'
 import { v4 as uuidv4 } from 'uuid'
-import { tw } from '../../tailwind'
-import { Exercise, MainSet, Session, WarmupSet } from '../../types'
-import { stringifyLoad } from '../../utils'
-import ButtonContainer from '../ButtonContainer'
-import Card from '../Card'
-import CardInfo from '../CardInfo'
-import TextInput from '../TextInput'
-import { AlertText, SpecialText } from '../Typography'
+import { tw } from '../tailwind'
+import { Exercise, MainSet, Session, WarmupSet } from '../types'
+import { stringifyLoad } from '../utils'
+import ButtonContainer from './ButtonContainer'
+import Card from './Card'
+import CardInfo from './CardInfo'
 import ModalSelectInput from './ModalSelectInput'
+import TextInput from './TextInput'
+import { AlertText, SpecialText } from './Typography'
 
 type Props = {
   control: Control<Partial<Session>, object>
@@ -74,7 +74,7 @@ export default function ActivitiesInput({
                       setValue(`activities.${index}.load`, { type: 'RPE', value: 5 })
                     }
 
-                    onChange(selectedExercise.exerciseId)
+                    onChange(selectedExercise && selectedExercise.exerciseId)
                   }}
                   textStyle={tw``}
                   placeholder="Select Exercise"
@@ -220,7 +220,10 @@ export default function ActivitiesInput({
                   modalParams={{
                     exerciseId: (watchActivities && watchActivities[index].exerciseId) || undefined
                   }}
-                  onChangeSelect={onChange}
+                  onChangeSelect={v => {
+                    console.log('Load inputs onChangeSelect called', v)
+                    return onChange(v)
+                  }}
                   stringify={v => v && stringifyLoad(v)}
                 />
               )}
@@ -280,9 +283,9 @@ export default function ActivitiesInput({
               })
             }
           >
-            <SpecialText style={tw`py-3.5`}>
+            <SpecialText style={tw``}>
               <AntDesign style={tw``} name="pluscircle" size={16} />
-              &nbsp;&nbsp;Add Activity
+              &nbsp;&nbsp;Add Exercise
             </SpecialText>
           </ButtonContainer>
         }

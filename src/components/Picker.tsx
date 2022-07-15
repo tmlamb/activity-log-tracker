@@ -3,9 +3,9 @@ import React from 'react'
 import { Platform, View } from 'react-native'
 import RNPickerSelect, { Item as RNPickerSelectItem } from 'react-native-picker-select'
 import { ClassInput } from 'twrnc/dist/esm/types'
-import { tw } from '../../tailwind'
-import Card from '../Card'
-import { PrimaryText, SecondaryText, secondaryTextColor } from '../Typography'
+import { tw } from '../tailwind'
+import Card from './Card'
+import { PrimaryText, SecondaryText, secondaryTextColor } from './Typography'
 
 type Props = {
   label: string
@@ -35,7 +35,7 @@ export default function Picker({ label, items, style, onValueChange, value }: Pr
       </PrimaryText>
       <View>
         <RNPickerSelect
-          placeholder={{ inputLabel: 'Select' }}
+          placeholder={{ inputLabel: 'Select', key: -1 }}
           pickerProps={{}}
           style={{
             inputAndroid: {

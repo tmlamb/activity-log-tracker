@@ -35,7 +35,7 @@ export type ExerciseSelectNavParams = ModalSelectParams<Exercise>
 export type ModalSelectParams<T> = {
   [x: string]: any
   value?: T
-  onChangeSelect: (value: T) => void
+  onChangeSelectKey: string
 }
 
 export type ExerciseFormNavParams = {
@@ -125,4 +125,9 @@ export type Program = {
   name: string
   programId: string
   sessions: Session[]
+}
+
+export type Equipment = {
+  barbellWeight: Weight
+  plates: Weight[]
 }

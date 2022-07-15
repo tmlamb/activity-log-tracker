@@ -209,7 +209,7 @@ export default function SessionDetail({
               </>
             )}
             <PrimaryText style={tw`font-semibold text-xl mb-2.5 ml-1.5 mt-9`}>
-              Workout Sets
+              Planned Activities
             </PrimaryText>
           </>
         }
