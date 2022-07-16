@@ -71,39 +71,13 @@ export default function PlateChart({ style, totalWeight }: Props) {
 
   return (
     <View style={tw.style(style)}>
-      <SecondaryText style={tw`text-sm`}>Barbell Configuration:</SecondaryText>
+      {platesPerSide.length > 0 && (
+        <SecondaryText style={tw`text-sm`}>Barbell Configuration:</SecondaryText>
+      )}
       {platesPerSide.map((plate, index) => (
         // eslint-disable-next-line react/no-array-index-key
         <Plate key={`${plate.value}.${index}`} weight={plate} />
       ))}
-      {/* <View
-        style={tw.style(
-          'rounded-sm dark:bg-slate-400 dark:border-slate-700 border-slate-300 bg-slate-400 py-1 mt-9 relative'
-        )}
-      >
-        <View>
-          {plateConfiguration.map(
-            plate =>
-              (plate.value === 55 && (
-                <View key={55} style={tw`absolute w-[15px] py-16 rounded-sm bg-slate-700`} />
-              )) ||
-              (plate.value === 45 && (
-                <View key={45} style={tw`absolute left-0 w-[15px] rounded-sm py-14 bg-slate-700`} />
-              )) ||
-              (plate.value === 35 && (
-                <View key={35} style={tw`absolute left-0 w-[12px] rounded-sm py-14 bg-slate-700`} />
-              )) ||
-              (plate.value === 25 && <View key={25} />) ||
-              (plate.value === 10 && <View key={10} />) ||
-              (plate.value === 5 && <View key={5} />) ||
-              (plate.value === 2.5 && <View key={2.5} />) ||
-              (plate.value === 1.25 && <View key={1.25} />)
-          )}
-        </View>
-        <View>
-          <View />
-        </View>
-      </View> */}
     </View>
   )
 }
