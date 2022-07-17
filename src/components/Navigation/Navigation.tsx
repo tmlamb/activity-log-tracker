@@ -78,14 +78,14 @@ export default function Navigation() {
           <AppStack.Screen
             name="LoadFormModal"
             component={LoadFormModal}
-            options={({ route }) => ({
+            options={() => ({
               title: 'Select Load'
             })}
           />
           <AppStack.Screen
             name="ExerciseSelectModal"
             component={ExerciseSelectModal}
-            options={({ route }) => ({
+            options={() => ({
               title: 'Select Exercise'
             })}
           />
