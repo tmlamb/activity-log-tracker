@@ -4,7 +4,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { View } from 'react-native'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
-import { tw } from '../tailwind'
+import tw from '../tailwind'
 import { Program } from '../types'
 import { spaceReplace } from '../utils'
 import ButtonContainer from './ButtonContainer'
@@ -88,7 +88,7 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
         />
         {program && deleteHandler && (
           <NavigationLink
-            navigationParams={{ programId: program.programId }}
+            // navigationParams={{ programId: program.programId }}
             screen="DashboardScreen"
             callback={() => deleteHandler(program.programId)}
           >

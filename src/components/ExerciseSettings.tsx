@@ -1,7 +1,7 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
 import { FlatList } from 'react-native'
-import { tw } from '../tailwind'
+import tw from '../tailwind'
 import { Exercise } from '../types'
 import { sortByName } from '../utils'
 import CardInfo from './CardInfo'

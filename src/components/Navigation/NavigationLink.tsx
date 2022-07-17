@@ -2,7 +2,7 @@ import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Pressable } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
-import { tw } from '../../tailwind'
+import tw from '../../tailwind'
 import {
   ActivityFormNavParams,
   ActivityNavParams,

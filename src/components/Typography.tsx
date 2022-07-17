@@ -1,7 +1,7 @@
 import React from 'react'
 import { Text } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
-import { tw } from '../tailwind'
+import tw from '../tailwind'
 
 export const primaryTextColor = 'text-slate-900 dark:text-white'
 export const secondaryTextColor = 'text-slate-500 dark:text-slate-400'

@@ -9,7 +9,7 @@ import ScreenLayout from './ScreenLayout'
 type Props = NativeStackScreenProps<StackParamList, 'WorkoutSetDetailScreen'>
 export type WorkoutSetNavigationProp = Props['navigation']
 
-function WorkoutSetDetailScreen({ route }: Props) {
+function WorkoutSetDetailScreen({ route, navigation }: Props) {
   const programs = useWorkoutStore(store => store.programs)
   const exercises = useWorkoutStore(store => store.exercises)
   const updateWorkoutSet = useWorkoutStore(store => store.updateWorkoutSet)

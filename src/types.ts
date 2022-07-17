@@ -28,15 +28,19 @@ export type ActivityFormNavParams = {
   programId: string
 }
 
-export type LoadFormNavParams = ModalSelectParams<Load> & { exerciseId: string }
+export type LoadFormNavParams = ModalSelectParams<Load> & {
+  exerciseId?: string
+}
 
 export type ExerciseSelectNavParams = ModalSelectParams<Exercise>
 
 export type ModalSelectParams<T> = {
-  [x: string]: any
+  // [x: string]: any
   value?: T
   onChangeSelectKey: string
 }
+
+// export type ModalSelectEntity = Exercise | Load
 
 export type ExerciseFormNavParams = {
   exerciseId?: string

@@ -2,7 +2,7 @@ import { AntDesign } from '@expo/vector-icons'
 import { format } from 'date-fns'
 import React from 'react'
 import { SectionList } from 'react-native'
-import { tw } from '../tailwind'
+import tw from '../tailwind'
 import { Activity, Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
@@ -15,12 +15,6 @@ type Props = {
   session: Session
   exercises: Exercise[]
   changeHandler: (programId: string, session: Session) => void
-  updateWorkoutSet: (
-    programId: string,
-    sessionId: string,
-    activityId: string,
-    workoutSet: WorkoutSet
-  ) => void
 }
 
 type WorkoutSetCardProps = {
@@ -85,13 +79,7 @@ const calculateElapsedTimeSeconds = (start?: Date, end?: Date) =>
       : Math.ceil((new Date().getTime() - start.getTime()) / 1000)
     : 0
 
-export default function SessionDetail({
-  program,
-  session,
-  exercises,
-  changeHandler,
-  updateWorkoutSet
-}: Props) {
+export default function SessionDetail({ program, session, exercises, changeHandler }: Props) {
   const [elapsedTimeSeconds, setElapsedTimeSeconds] = React.useState(
     calculateElapsedTimeSeconds(session.start, session.end)
   )

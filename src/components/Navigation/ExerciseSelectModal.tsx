@@ -2,7 +2,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React from 'react'
 import useExerciseStore from '../../hooks/use-exercise-store'
 import useWorkoutStore from '../../hooks/use-workout-store'
-import { StackParamList } from '../../types'
+import { Exercise, StackParamList } from '../../types'
 import ExerciseSelect from '../ExerciseSelect'
 import { useModalSelectStore } from '../ModalSelectInput'
 import ModalLayout from './ModalLayout'
@@ -25,7 +25,7 @@ export default function ExerciseSelectModal({ route }: Props) {
   return (
     <ModalLayout>
       <ExerciseSelect
-        exercise={value}
+        exercise={value as Exercise}
         onSelect={onChangeSelect}
         availableExercises={availableExercises}
         usedExercises={usedExercises}

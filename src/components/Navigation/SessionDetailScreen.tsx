@@ -9,7 +9,7 @@ import ScreenLayout from './ScreenLayout'
 type Props = NativeStackScreenProps<StackParamList, 'SessionDetailScreen'>
 export type SessionNavigationProp = Props['navigation']
 
-function SessionDetailScreen({ route }: Props) {
+export default function SessionDetailScreen({ route }: Props) {
   const programs = useWorkoutStore(state => state.programs)
   const exercises = useWorkoutStore(state => state.exercises)
   const program = programs.find(p => p.programId === route.params.programId)
@@ -26,12 +26,9 @@ function SessionDetailScreen({ route }: Props) {
             program={program!}
             exercises={exercises}
             changeHandler={updateSession}
-            updateWorkoutSet={updateWorkoutSet}
           />
         )}
       </View>
     </ScreenLayout>
   )
 }
-
-export default SessionDetailScreen

@@ -1,7 +1,7 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
 import { SectionList } from 'react-native'
-import { tw } from '../tailwind'
+import tw from '../tailwind'
 import { Program } from '../types'
 import CardInfo from './CardInfo'
 import HeaderLeftContainer from './HeaderLeftContainer'

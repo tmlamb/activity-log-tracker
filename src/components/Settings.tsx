@@ -1,7 +1,7 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
 import { ScrollView } from 'react-native'
-import { tw } from '../tailwind'
+import tw from '../tailwind'
 import CardInfo from './CardInfo'
 import NavigationLink from './Navigation/NavigationLink'
 import { SecondaryText } from './Typography'

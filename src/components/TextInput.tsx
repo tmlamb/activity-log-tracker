@@ -9,7 +9,7 @@ import {
   ViewStyle
 } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
-import { tw } from '../tailwind'
+import tw from '../tailwind'
 import Card from './Card'
 import { primaryTextColor, SecondaryText, secondaryTextColor } from './Typography'
 

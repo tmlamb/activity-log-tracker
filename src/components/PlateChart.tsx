@@ -2,7 +2,7 @@ import React from 'react'
 import { View } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import useWorkoutStore from '../hooks/use-workout-store'
-import { tw } from '../tailwind'
+import tw from '../tailwind'
 import { Weight } from '../types'
 import { SecondaryText } from './Typography'
 

@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { View } from 'react-native'
-import { tw } from '../../tailwind'
+import tw from '../../tailwind'
 import { primaryTextColor } from '../Typography'
 
 export default function ModalLayout({ children }: { children: React.ReactNode }) {

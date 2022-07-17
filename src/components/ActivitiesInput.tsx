@@ -10,7 +10,7 @@ import {
 } from 'react-hook-form'
 import { View } from 'react-native'
 import { v4 as uuidv4 } from 'uuid'
-import { tw } from '../tailwind'
+import tw from '../tailwind'
 import { Exercise, MainSet, Session, WarmupSet } from '../types'
 import { stringifyLoad } from '../utils'
 import ButtonContainer from './ButtonContainer'
@@ -57,7 +57,9 @@ export default function ActivitiesInput({
               render={({ field: { onChange, onBlur, value } }) => (
                 <ModalSelectInput
                   modalScreen="ExerciseSelectModal"
-                  value={exercises?.find(exercise => exercise.exerciseId === value)}
+                  modalParams={{
+                    value: exercises?.find(exercise => exercise.exerciseId === value)
+                  }}
                   onChangeSelect={(selectedExercise: Exercise) => {
                     if (
                       selectedExercise?.oneRepMax &&
@@ -79,7 +81,8 @@ export default function ActivitiesInput({
                   textStyle={tw``}
                   placeholder="Select Exercise"
                   style={tw``}
-                  stringify={exercise => exercise.name}
+                  value={exercises?.find(exercise => exercise.exerciseId === value)?.name}
+                  // stringify={exercise => (exercise as Exercise).name}
                 />
               )}
               name={`activities.${index}.exerciseId`}
@@ -213,15 +216,17 @@ export default function ActivitiesInput({
               render={({ field: { onChange, onBlur, value } }) => (
                 <ModalSelectInput
                   label="Load"
-                  value={value}
+                  // value={value}
                   style={tw`py-2 pl-2 pr-2.5 border-b-2 border-l-2`}
+                  value={stringifyLoad(value)}
                   textStyle={tw`web:text-base`}
                   modalScreen="LoadFormModal"
                   modalParams={{
+                    value,
                     exerciseId: (watchActivities && watchActivities[index].exerciseId) || undefined
                   }}
                   onChangeSelect={v => onChange(v)}
-                  stringify={v => v && stringifyLoad(v)}
+                  // stringify={v => v && stringifyLoad(v)}
                 />
               )}
               name={`activities.${index}.load`}

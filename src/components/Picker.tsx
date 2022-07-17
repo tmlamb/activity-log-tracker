@@ -3,7 +3,7 @@ import React from 'react'
 import { Platform, View } from 'react-native'
 import RNPickerSelect, { Item as RNPickerSelectItem } from 'react-native-picker-select'
 import { ClassInput } from 'twrnc/dist/esm/types'
-import { tw } from '../tailwind'
+import tw from '../tailwind'
 import Card from './Card'
 import { PrimaryText, SecondaryText, secondaryTextColor } from './Typography'
 
