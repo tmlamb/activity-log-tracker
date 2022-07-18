@@ -39,7 +39,7 @@ export default function ActivitiesInput({ control, watch, setValue, exercises, s
               rules={{
                 required: true
               }}
-              render={({ field: { onChange, onBlur, value } }) => (
+              render={({ field: { onChange, value } }) => (
                 <ModalSelectInput
                   modalScreen="ExerciseSelectModal"
                   modalParams={{

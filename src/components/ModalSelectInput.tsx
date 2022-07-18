@@ -22,7 +22,7 @@ type ModalSelectNavParams =
   | Omit<LoadFormNavParams, 'onChangeSelectKey'>
 type ModalSelectScreen = 'ExerciseSelectModal' | 'LoadFormModal'
 
-type Props<T extends ModalSelectEntity> = {
+type Props<T> = {
   label?: string
   value?: string
   style?: ClassInput
