@@ -6,7 +6,7 @@ import { Program } from '../types'
 import CardInfo from './CardInfo'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
-import LinkButton from './Navigation/LinkButton'
+import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText } from './Typography'
 
 type Props = {

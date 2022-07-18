@@ -158,7 +158,6 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
                   textInputStyle={tw`px-3 py-2.5 text-right`}
                   keyboardType="number-pad"
                   selectTextOnFocus
-                  // clearTextOnFocus
                   numeric
                 />
               )}
@@ -184,7 +183,6 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
               }
               renderItem={({ item }) => (
                 <View key={item.key} style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
-                  {/* <SecondaryText style={tw`text-lg ml-0`}>{'\u2022'}</SecondaryText> */}
                   <SecondaryText style={tw`text-xs mb-1`}>{`${item.key}`}</SecondaryText>
                 </View>
               )}

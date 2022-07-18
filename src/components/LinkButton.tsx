@@ -3,8 +3,8 @@ import { To } from '@react-navigation/native/lib/typescript/src/useLinkTo'
 import React from 'react'
 import { TouchableOpacity } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
-import tw from '../../tailwind'
-import { RootStackParamList } from './types'
+import tw from '../tailwind'
+import { RootStackParamList } from './Navigation'
 
 type Props = {
   to: To<RootStackParamList>

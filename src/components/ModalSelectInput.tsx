@@ -6,8 +6,8 @@ import create from 'zustand'
 import tw from '../tailwind'
 import { Exercise, Load } from '../types'
 import CardInfo from './CardInfo'
-import LinkButton from './Navigation/LinkButton'
-import { ExerciseSelectNavParams, LoadFormNavParams } from './Navigation/types'
+import LinkButton from './LinkButton'
+import { ExerciseSelectNavParams, LoadFormNavParams } from './Navigation'
 import { SecondaryText } from './Typography'
 
 // Renders a form input field that, when clicked, opens a modal that

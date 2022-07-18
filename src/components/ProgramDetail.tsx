@@ -7,7 +7,7 @@ import { Program, Session } from '../types'
 import { mapSessionsByDate } from '../utils'
 import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
-import LinkButton from './Navigation/LinkButton'
+import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText } from './Typography'
 
 type Props = {

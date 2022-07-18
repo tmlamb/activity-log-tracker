@@ -3,7 +3,7 @@ import React from 'react'
 import { ScrollView } from 'react-native'
 import tw from '../tailwind'
 import CardInfo from './CardInfo'
-import LinkButton from './Navigation/LinkButton'
+import LinkButton from './LinkButton'
 import { SecondaryText } from './Typography'
 
 export default function Settings() {

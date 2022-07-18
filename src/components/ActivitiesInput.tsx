@@ -1,13 +1,6 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
-import {
-  Control,
-  Controller,
-  useFieldArray,
-  UseFormGetValues,
-  UseFormSetValue,
-  UseFormWatch
-} from 'react-hook-form'
+import { Control, Controller, useFieldArray, UseFormSetValue, UseFormWatch } from 'react-hook-form'
 import { View } from 'react-native'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
@@ -24,20 +17,12 @@ type Props = {
   control: Control<Partial<Session>, object>
   watch: UseFormWatch<Partial<Session>>
   setValue: UseFormSetValue<Partial<Session>>
-  getValues: UseFormGetValues<Partial<Session>>
   exercises?: Exercise[]
   session?: Session
 }
 
-export default function ActivitiesInput({
-  control,
-  watch,
-  setValue,
-  getValues,
-  exercises,
-  session
-}: Props) {
-  const { fields, append, remove, prepend } = useFieldArray({
+export default function ActivitiesInput({ control, watch, setValue, exercises, session }: Props) {
+  const { fields, append, remove } = useFieldArray({
     control,
     name: 'activities'
   })
@@ -82,13 +67,11 @@ export default function ActivitiesInput({
                   placeholder="Select Exercise"
                   style={tw``}
                   value={exercises?.find(exercise => exercise.exerciseId === value)?.name}
-                  // stringify={exercise => (exercise as Exercise).name}
                 />
               )}
               name={`activities.${index}.exerciseId`}
             />
             <ButtonContainer
-              // style={tw`p-1 mr-2.5 mt-1.5 top-0 right-0 absolute`}
               style={tw`py-2 pr-2 pl-1 ml-2 mt-0 top-0 left-0 absolute`}
               onPress={() => remove(index)}
             >
@@ -213,10 +196,9 @@ export default function ActivitiesInput({
               rules={{
                 required: true
               }}
-              render={({ field: { onChange, onBlur, value } }) => (
+              render={({ field: { onChange, value } }) => (
                 <ModalSelectInput
                   label="Load"
-                  // value={value}
                   style={tw`py-2 pl-2 pr-2.5 border-b-2 border-l-2`}
                   value={value && stringifyLoad(value)}
                   textStyle={tw`web:text-base`}
@@ -226,7 +208,6 @@ export default function ActivitiesInput({
                     exerciseId: (watchActivities && watchActivities[index].exerciseId) || undefined
                   }}
                   onChangeSelect={v => onChange(v)}
-                  // stringify={v => v && stringifyLoad(v)}
                 />
               )}
               name={`activities.${index}.load`}
@@ -291,7 +272,6 @@ export default function ActivitiesInput({
             </SpecialText>
           </ButtonContainer>
         }
-        // primaryText="Add Activity"
         textStyle={tw``}
         style={tw`py-5`}
       />
