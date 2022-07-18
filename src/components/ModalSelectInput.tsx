@@ -1,13 +1,17 @@
 import { AntDesign } from '@expo/vector-icons'
+import { RouteProp, useRoute } from '@react-navigation/native'
 import React from 'react'
 import { ClassInput } from 'twrnc/dist/esm/types'
-import { v4 as uuidv4 } from 'uuid'
-import create from 'zustand'
 import tw from '../tailwind'
 import { Exercise, Load } from '../types'
 import CardInfo from './CardInfo'
 import LinkButton from './LinkButton'
-import { ExerciseSelectNavParams, LoadFormNavParams } from './Navigation'
+import {
+  ExerciseSelectNavParams,
+  LoadFormNavParams,
+  ModalSelectResponseParams,
+  RootStackParamList
+} from './Navigation'
 import { SecondaryText } from './Typography'
 
 // Renders a form input field that, when clicked, opens a modal that
@@ -18,11 +22,11 @@ import { SecondaryText } from './Typography'
 // TODO: can any of this be better abstracted to reduce the number of things needed here?
 type ModalSelectEntity = Exercise | Load
 type ModalSelectNavParams =
-  | Omit<ExerciseSelectNavParams, 'onChangeSelectKey'>
-  | Omit<LoadFormNavParams, 'onChangeSelectKey'>
+  | Omit<Omit<ExerciseSelectNavParams, 'parentScreen'>, 'parentParams'>
+  | Omit<Omit<LoadFormNavParams, 'parentScreen'>, 'parentParams'>
 type ModalSelectScreen = 'ExerciseSelectModal' | 'LoadFormModal'
 
-type Props<T> = {
+type Props<T, K> = {
   label?: string
   value?: string
   style?: ClassInput
@@ -33,23 +37,10 @@ type Props<T> = {
   modalScreen: ModalSelectScreen
 }
 
-// Ideally the onChangeSelect callback could have been passed directly to the modal,
-// through it's navigation route props. However, React navigation does not recommend
-// non-serializable values in params. zustand is used here to lift the state to work
-// around this.
-interface ModalSelectState<T> {
-  onChangeSelectMap: Map<string, (value: T) => void>
-  setOnChangeSelect: (key: string, onChangeSelect: (value: T) => void) => void
-}
-export const useModalSelectStore = create<ModalSelectState<any>>(set => ({
-  onChangeSelectMap: new Map<string, (value: any) => void>(),
-  setOnChangeSelect: (key: string, onChangeSelect: (value: any) => void) =>
-    set(state => ({
-      onChangeSelectMap: state.onChangeSelectMap.set(key, onChangeSelect)
-    }))
-}))
-
-export default function ModalSelectInput<T extends ModalSelectEntity>({
+export default function ModalSelectInput<
+  T extends ModalSelectEntity,
+  K extends keyof RootStackParamList
+>({
   label,
   style,
   onChangeSelect,
@@ -58,21 +49,35 @@ export default function ModalSelectInput<T extends ModalSelectEntity>({
   textStyle,
   modalParams,
   modalScreen
-}: Props<T>) {
-  const setOnChangeSelect = useModalSelectStore(state => state.setOnChangeSelect)
+}: Props<T, K>) {
+  const route = useRoute<RouteProp<RootStackParamList, K>>()
 
-  const [onChangeSelectKey] = React.useState(uuidv4())
+  const { modalSelectValue, modalSelectId } = route.params as Readonly<ModalSelectResponseParams<T>>
 
   React.useEffect(() => {
-    setOnChangeSelect(onChangeSelectKey, onChangeSelect)
-    // return () => {
-    // console.log('destroy store')
-    // useModalSelectStore.destroy()
-    // }
-  }, [onChangeSelectKey, onChangeSelect, setOnChangeSelect])
+    if (
+      modalSelectValue &&
+      modalSelectId &&
+      modalSelectId === modalParams.modalSelectId &&
+      JSON.stringify(modalSelectValue) !== JSON.stringify(modalParams.value)
+    ) {
+      onChangeSelect(modalSelectValue)
+    }
+  }, [
+    modalParams.modalSelectId,
+    modalParams.value,
+    modalSelectId,
+    modalSelectValue,
+    onChangeSelect
+  ])
 
   return (
-    <LinkButton to={{ screen: modalScreen, params: { onChangeSelectKey, ...modalParams } }}>
+    <LinkButton
+      to={{
+        screen: modalScreen,
+        params: { parentScreen: route.name, parentParams: route.params, ...modalParams }
+      }}
+    >
       <CardInfo
         style={tw.style(style)}
         textStyle={tw.style(textStyle)}

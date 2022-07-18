@@ -2,7 +2,7 @@ import React from 'react'
 import useWorkoutStore from '../../hooks/use-workout-store'
 import SessionForm from '../SessionForm'
 import ModalLayout from './ModalLayout'
-import { RootStackScreenProps } from './types'
+import { RootStackScreenProps, SessionFormNavParams } from './types'
 
 export default function SessionFormModal({ route }: RootStackScreenProps<'SessionFormModal'>) {
   const programs = useWorkoutStore(store => store.programs)
@@ -11,10 +11,11 @@ export default function SessionFormModal({ route }: RootStackScreenProps<'Sessio
   const updateSession = useWorkoutStore(store => store.updateSession)
   const deleteSession = useWorkoutStore(store => store.deleteSession)
 
-  const session = route.params
+  const params = route.params as Readonly<SessionFormNavParams>
+  const session = params
     ? programs
-        .find(p => p.programId === route.params?.programId)
-        ?.sessions.find(s => s.sessionId === route.params?.sessionId)
+        .find(p => p.programId === params?.programId)
+        ?.sessions.find(s => s.sessionId === params?.sessionId)
     : undefined
 
   return (
@@ -22,14 +23,14 @@ export default function SessionFormModal({ route }: RootStackScreenProps<'Sessio
       {session ? (
         <SessionForm
           changeHandler={updateSession}
-          programId={route.params?.programId}
+          programId={params?.programId}
           session={session}
           exercises={exercises}
           deleteHandler={deleteSession}
         />
       ) : (
         <SessionForm
-          programId={route.params?.programId}
+          programId={params?.programId}
           exercises={exercises}
           changeHandler={addSession}
         />

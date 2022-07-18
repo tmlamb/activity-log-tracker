@@ -39,7 +39,9 @@ export type ExerciseSelectNavParams = ModalSelectParams<Exercise>
 
 export type ModalSelectParams<T> = {
   value?: T
-  onChangeSelectKey: string
+  parentScreen: keyof RootStackParamList
+  parentParams: object
+  modalSelectId: string
 }
 
 export type ExerciseFormNavParams = {
@@ -55,6 +57,11 @@ export type WorkoutSetNavParams = {
   programId: string
 }
 
+export type ModalSelectResponseParams<T> = {
+  modalSelectId: string
+  modalSelectValue?: T
+}
+
 export type RootStackParamList = {
   DashboardScreen: undefined
   SettingsScreen: undefined
@@ -62,7 +69,7 @@ export type RootStackParamList = {
   ProgramDetailScreen: ProgramNavParams
   ProgramFormModal: ProgramFormNavParams
   SessionDetailScreen: SessionNavParams
-  SessionFormModal: SessionFormNavParams
+  SessionFormModal: SessionFormNavParams | ModalSelectResponseParams<Exercise | Load>
   ActivityDetailScreen: ActivityNavParams
   ActivityFormModal: ActivityFormNavParams
   LoadFormModal: LoadFormNavParams

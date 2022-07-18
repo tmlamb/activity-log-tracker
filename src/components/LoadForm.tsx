@@ -7,6 +7,8 @@ import { Exercise, Load } from '../types'
 import ButtonContainer from './ButtonContainer'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
+import LinkButton from './LinkButton'
+import { RootStackParamList } from './Navigation'
 import Picker from './Picker'
 import TextInput from './TextInput'
 import { alertTextColor, primaryTextColor, SecondaryText, SpecialText } from './Typography'
@@ -15,12 +17,21 @@ type Props = {
   load?: Load
   exercise?: Exercise
   updateExercise: (exercise: Exercise) => void
-  onSelect: (value: Load) => void
+  parentScreen: keyof RootStackParamList
+  parentParams: object
+  modalSelectId: string
 }
 
 type FormData = Partial<Load> & { oneRepMaxVal: number }
 
-export default function LoadForm({ load, exercise, updateExercise, onSelect }: Props) {
+export default function LoadForm({
+  load,
+  exercise,
+  updateExercise,
+  parentScreen,
+  parentParams,
+  modalSelectId
+}: Props) {
   const navigation = useNavigation()
   const {
     control,
@@ -33,23 +44,27 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
       type: load && load.type,
       value: load && load.value,
       oneRepMaxVal: exercise?.oneRepMax?.value
-    }
+    },
+    reValidateMode: 'onChange',
+    mode: 'onChange'
   })
-  const type = watch('type')
-  const onSubmit = (data: FormData) => {
-    if (data.type === 'PERCENT' && exercise && !exercise.oneRepMax && !data.oneRepMaxVal) {
-      return
-    }
+  const selectedType = watch('type')
+  const selectedValue = watch('value')
+  const selectedOneRepMaxVal = watch('oneRepMaxVal')
+  const [selected, setSelected] = React.useState<Load>()
 
-    if (data.type === 'PERCENT' && exercise && data.oneRepMaxVal) {
-      updateExercise({ ...exercise, oneRepMax: { value: data.oneRepMaxVal, unit: 'lbs' } })
+  React.useEffect(() => {
+    const selection =
+      selectedType && selectedValue && ({ type: selectedType, value: selectedValue } as Load)
+    if (selection && JSON.stringify(selection) !== JSON.stringify(selected)) {
+      setSelected(selection)
     }
+  }, [selected, selectedType, selectedValue])
 
-    onSelect({
-      type: data.type!,
-      value: data.value || 0
-    })
-    navigation.goBack()
+  const onSubmit = () => {
+    if (selectedType === 'PERCENT' && exercise && selectedOneRepMaxVal) {
+      updateExercise({ ...exercise, oneRepMax: { value: selectedOneRepMaxVal, unit: 'lbs' } })
+    }
   }
 
   const percentNumToString = (value?: number) => {
@@ -90,9 +105,24 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`py-4 -my-4 px-4 -mr-4`}>
-          <SpecialText style={tw`font-bold`}>Save</SpecialText>
-        </ButtonContainer>
+        <LinkButton
+          to={{
+            screen: parentScreen,
+            params:
+              selected && modalSelectId
+                ? {
+                    ...parentParams,
+                    modalSelectValue: selected,
+                    modalSelectId
+                  }
+                : undefined
+          }}
+          beforeNavigation={handleSubmit(onSubmit)}
+          style={tw`px-4 py-4 -my-4 -mr-4`}
+          disabled={!isValid}
+        >
+          <SpecialText style={tw`font-bold`}>Done</SpecialText>
+        </LinkButton>
       </HeaderRightContainer>
       <HeaderLeftContainer>
         <ButtonContainer
@@ -128,7 +158,7 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
                 }
               ]}
               onValueChange={v => {
-                setValue('value', 0)
+                setValue('value', 0, { shouldValidate: true })
                 onChange(v)
               }}
               value={value}
@@ -137,7 +167,7 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
           )}
           name="type"
         />
-        {type === 'RPE' && (
+        {selectedType === 'RPE' && (
           <>
             <Controller
               control={control}
@@ -189,7 +219,7 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
             />
           </>
         )}
-        {type === 'PERCENT' && (
+        {selectedType === 'PERCENT' && (
           <>
             <Controller
               control={control}
@@ -225,7 +255,7 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
                 <Controller
                   control={control}
                   rules={{
-                    required: false
+                    required: true
                   }}
                   render={({ field: { onChange, onBlur, value } }) => (
                     <TextInput

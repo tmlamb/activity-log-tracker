@@ -12,17 +12,28 @@ type Props = {
   children: JSX.Element
   style?: ClassInput
   beforeNavigation?: () => void
+  disabled?: boolean
 }
 
-export default function LinkButton({ to, action, children, style, beforeNavigation }: Props) {
+export default function LinkButton({
+  to,
+  action,
+  children,
+  style,
+  beforeNavigation,
+  disabled
+}: Props) {
   const { onPress, accessibilityRole } = useLinkProps<RootStackParamList>({ to, action })
 
   return (
     <TouchableOpacity
       style={tw.style(style)}
       onPress={e => {
+        if (disabled) {
+          return
+        }
         beforeNavigation?.()
-        return onPress(e)
+        onPress(e)
       }}
       accessibilityRole={accessibilityRole}
     >
@@ -34,5 +45,6 @@ export default function LinkButton({ to, action, children, style, beforeNavigati
 LinkButton.defaultProps = {
   action: undefined,
   style: undefined,
-  beforeNavigation: () => null
+  beforeNavigation: () => null,
+  disabled: false
 }

@@ -28,7 +28,6 @@ export default function ActivitiesInput({ control, watch, setValue, exercises, s
   })
 
   const watchActivities = watch('activities')
-
   return (
     <View style={tw`mb-9`}>
       {fields.map((item, index) => (
@@ -43,7 +42,8 @@ export default function ActivitiesInput({ control, watch, setValue, exercises, s
                 <ModalSelectInput
                   modalScreen="ExerciseSelectModal"
                   modalParams={{
-                    value: exercises?.find(exercise => exercise.exerciseId === value)
+                    value: exercises?.find(exercise => exercise.exerciseId === value),
+                    modalSelectId: `${item.activityId}.exerciseId`
                   }}
                   onChangeSelect={(selectedExercise: Exercise) => {
                     if (
@@ -61,7 +61,13 @@ export default function ActivitiesInput({ control, watch, setValue, exercises, s
                       setValue(`activities.${index}.load`, { type: 'RPE', value: 5 })
                     }
 
-                    onChange(selectedExercise && selectedExercise.exerciseId)
+                    if (
+                      selectedExercise &&
+                      selectedExercise.exerciseId &&
+                      selectedExercise.exerciseId !== value
+                    ) {
+                      onChange(selectedExercise.exerciseId)
+                    }
                   }}
                   textStyle={tw``}
                   placeholder="Select Exercise"
@@ -205,7 +211,8 @@ export default function ActivitiesInput({ control, watch, setValue, exercises, s
                   modalScreen="LoadFormModal"
                   modalParams={{
                     value,
-                    exerciseId: (watchActivities && watchActivities[index].exerciseId) || undefined
+                    exerciseId: (watchActivities && watchActivities[index].exerciseId) || undefined,
+                    modalSelectId: `${item.activityId}.load`
                   }}
                   onChangeSelect={v => onChange(v)}
                 />
@@ -241,6 +248,7 @@ export default function ActivitiesInput({ control, watch, setValue, exercises, s
       <CardInfo
         leftIcon={
           <ButtonContainer
+            style={tw`py-5 pr-14`}
             onPress={() =>
               append({
                 warmupSets: Array.from(Array(3)).map(() => ({

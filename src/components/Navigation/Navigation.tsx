@@ -11,7 +11,7 @@ import ProgramFormModal from './ProgramFormModal'
 import SessionDetailScreen from './SessionDetailScreen'
 import SessionFormModal from './SessionFormModal'
 import SettingsScreen from './SettingsScreen'
-import { RootStackParamList } from './types'
+import { RootStackParamList, SessionFormNavParams } from './types'
 import WorkoutSetDetailScreen from './WorkoutSetDetailScreen'
 
 const AppStack = createNativeStackNavigator<RootStackParamList>()
@@ -72,7 +72,10 @@ export default function Navigation() {
             name="SessionFormModal"
             component={SessionFormModal}
             options={({ route }) => ({
-              title: route.params && route.params.sessionId ? 'Edit Session' : 'Add Session'
+              title:
+                route.params && (route.params as Readonly<SessionFormNavParams>).sessionId
+                  ? 'Edit Session'
+                  : 'Add Session'
             })}
           />
           <AppStack.Screen
