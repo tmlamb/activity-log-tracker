@@ -22,8 +22,8 @@ type Props = {
   exercises?: Exercise[]
 }
 
-function compareStrings(a: string | undefined, b: string) {
-  return a?.split(/\s/).join('') === b.split(/\s/).join('')
+function compareStrings(a: string, b: string) {
+  return a.split(/\s/).join('') === b.split(/\s/).join('')
 }
 const spaceReplace = (str: string) => str.replace(/\u00a0/, '\u0020')
 
@@ -37,11 +37,7 @@ export default function ExerciseForm({
 }: Props) {
   const navigation = useNavigation()
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors }
-  } = useForm<Exercise>({
+  const { control, handleSubmit } = useForm<Exercise>({
     defaultValues: {
       name: (exercise && exercise.name) || name || '',
       oneRepMax: (exercise && exercise.oneRepMax) || undefined,

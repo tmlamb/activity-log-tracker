@@ -10,7 +10,7 @@ type Props = {
   keyExtractor: (value: Partial<unknown>, index: number) => string
   scrollEnabled?: boolean
   ListHeaderComponent?: JSX.Element
-  renderItem: ListRenderItem<Partial<unknown>> | null | undefined
+  renderItem?: ListRenderItem<Partial<unknown>> | null
   onSelect: (value: Partial<unknown>) => void
 }
 
@@ -43,5 +43,6 @@ export default function SelectList({
 SelectList.defaultProps = {
   style: undefined,
   scrollEnabled: true,
-  ListHeaderComponent: undefined
+  ListHeaderComponent: undefined,
+  renderItem: undefined
 }

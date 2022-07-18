@@ -6,7 +6,7 @@ import { Exercise } from '../types'
 import { sortByName } from '../utils'
 import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
-import NavigationLink from './Navigation/NavigationLink'
+import LinkButton from './Navigation/LinkButton'
 import { SecondaryText, SpecialText } from './Typography'
 
 type Props = {
@@ -28,11 +28,11 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
   return (
     <>
       <HeaderRightContainer>
-        <NavigationLink screen="ExerciseFormModal" style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}>
+        <LinkButton to={{ screen: 'ExerciseFormModal' }} style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}>
           <SpecialText>
             <AntDesign name="plus" size={28} />
           </SpecialText>
-        </NavigationLink>
+        </LinkButton>
       </HeaderRightContainer>
       <FlatList
         style={tw`flex-grow px-3`}
@@ -41,9 +41,11 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
         data={exercisesSortedAndDeduped}
         renderItem={({ item, index }) => (
           <>
-            <NavigationLink
-              screen="ExerciseFormModal"
-              navigationParams={{ exerciseId: item.exerciseId, name: item.name }}
+            <LinkButton
+              to={{
+                screen: 'ExerciseFormModal',
+                params: { exerciseId: item.exerciseId, name: item.name }
+              }}
               style={tw``}
             >
               <CardInfo
@@ -64,7 +66,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
                     : undefined
                 )}
               />
-            </NavigationLink>
+            </LinkButton>
             {usedExercises && usedExercises.length > 0 && index === usedExercises.length - 1 && (
               <SecondaryText style={tw`pl-3 pb-1 mt-0 text-sm`}>Available Exercises</SecondaryText>
             )}

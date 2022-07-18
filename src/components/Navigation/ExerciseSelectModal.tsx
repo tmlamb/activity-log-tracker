@@ -1,16 +1,15 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React from 'react'
 import useExerciseStore from '../../hooks/use-exercise-store'
 import useWorkoutStore from '../../hooks/use-workout-store'
-import { Exercise, StackParamList } from '../../types'
+import { Exercise } from '../../types'
 import ExerciseSelect from '../ExerciseSelect'
 import { useModalSelectStore } from '../ModalSelectInput'
 import ModalLayout from './ModalLayout'
+import { RootStackScreenProps } from './types'
 
-type Props = NativeStackScreenProps<StackParamList, 'ExerciseSelectModal'>
-export type ExerciseSelectNavigationProp = Props['navigation']
-
-export default function ExerciseSelectModal({ route }: Props) {
+export default function ExerciseSelectModal({
+  route
+}: RootStackScreenProps<'ExerciseSelectModal'>) {
   const availableExercises = useExerciseStore(state => state.exercises)
   const usedExercises = useWorkoutStore(state => state.exercises)
   const addExercise = useWorkoutStore(state => state.addExercise)

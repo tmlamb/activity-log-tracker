@@ -15,7 +15,7 @@ import { primaryTextColor, SecondaryText, secondaryTextColor } from './Typograph
 
 type Props = {
   onChangeText?: (text: string) => void
-  onChange?: ((e: NativeSyntheticEvent<TextInputChangeEventData>) => void) | undefined
+  onChange?: (e: NativeSyntheticEvent<TextInputChangeEventData>) => void
   onBlur?: (e: unknown) => void
   value?: string
   style?: ViewStyle
@@ -30,9 +30,9 @@ type Props = {
   keyboardType?: KeyboardTypeOptions
   numeric?: boolean
   editable?: boolean
-  selection?: { start: number; end?: number } | undefined
-  onKeyPress?: ((e: NativeSyntheticEvent<TextInputKeyPressEventData>) => void) | undefined
-  innerRef?: React.LegacyRef<NativeTextInput> | undefined
+  selection?: { start: number; end?: number }
+  onKeyPress?: (e: NativeSyntheticEvent<TextInputKeyPressEventData>) => void
+  innerRef?: React.LegacyRef<NativeTextInput>
 }
 
 // Why is this necessary? Because when we right justify the text in

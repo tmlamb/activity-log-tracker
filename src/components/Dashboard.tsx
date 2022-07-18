@@ -6,7 +6,7 @@ import { Program } from '../types'
 import CardInfo from './CardInfo'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
-import NavigationLink from './Navigation/NavigationLink'
+import LinkButton from './Navigation/LinkButton'
 import { PrimaryText, SecondaryText, SpecialText } from './Typography'
 
 type Props = {
@@ -17,18 +17,18 @@ export default function Dashboard({ programs }: Props) {
   return (
     <>
       <HeaderRightContainer>
-        <NavigationLink screen="ProgramFormModal" style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}>
+        <LinkButton to={{ screen: 'ProgramFormModal' }} style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}>
           <SpecialText>
             <AntDesign name="plus" size={28} />
           </SpecialText>
-        </NavigationLink>
+        </LinkButton>
       </HeaderRightContainer>
       <HeaderLeftContainer>
-        <NavigationLink screen="SettingsScreen" style={tw`py-6 pl-3 pr-8 -my-6 -ml-4`}>
+        <LinkButton to={{ screen: 'SettingsScreen' }} style={tw`py-6 pl-3 pr-8 -my-6 -ml-4`}>
           <SpecialText>
             <AntDesign name="setting" size={24} />
           </SpecialText>
-        </NavigationLink>
+        </LinkButton>
       </HeaderLeftContainer>
       <SectionList
         keyExtractor={program => (program as Program).programId}
@@ -61,9 +61,11 @@ export default function Dashboard({ programs }: Props) {
           </SecondaryText>
         )}
         renderItem={({ index, item, section }) => (
-          <NavigationLink
-            screen="ProgramDetailScreen"
-            navigationParams={{ programId: (item as Program).programId }}
+          <LinkButton
+            to={{
+              screen: 'ProgramDetailScreen',
+              params: { programId: item.programId }
+            }}
           >
             <CardInfo
               style={tw.style(
@@ -71,14 +73,14 @@ export default function Dashboard({ programs }: Props) {
                 index === 0 ? 'rounded-t-xl' : undefined,
                 index === section.data.length - 1 ? 'rounded-b-xl border-b-0' : undefined
               )}
-              primaryText={(item as Program).name}
+              primaryText={item.name}
               rightIcon={
                 <SecondaryText>
                   <AntDesign name="right" size={16} />
                 </SecondaryText>
               }
             />
-          </NavigationLink>
+          </LinkButton>
         )}
       />
     </>

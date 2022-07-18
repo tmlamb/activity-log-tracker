@@ -1,21 +1,18 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React from 'react'
 import { View } from 'react-native'
 import useWorkoutStore from '../../hooks/use-workout-store'
-import { StackParamList } from '../../types'
 import SessionDetail from '../SessionDetail'
 import ScreenLayout from './ScreenLayout'
+import { RootStackScreenProps } from './types'
 
-type Props = NativeStackScreenProps<StackParamList, 'SessionDetailScreen'>
-export type SessionNavigationProp = Props['navigation']
-
-export default function SessionDetailScreen({ route }: Props) {
+export default function SessionDetailScreen({
+  route
+}: RootStackScreenProps<'SessionDetailScreen'>) {
   const programs = useWorkoutStore(state => state.programs)
   const exercises = useWorkoutStore(state => state.exercises)
   const program = programs.find(p => p.programId === route.params.programId)
   const session = program?.sessions.find(s => s.sessionId === route.params.sessionId)
   const updateSession = useWorkoutStore(store => store.updateSession)
-  const updateWorkoutSet = useWorkoutStore(store => store.updateWorkoutSet)
 
   return (
     <ScreenLayout>

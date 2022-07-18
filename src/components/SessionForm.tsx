@@ -13,7 +13,7 @@ import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
-import NavigationLink from './Navigation/NavigationLink'
+import LinkButton from './Navigation/LinkButton'
 import TextInput from './TextInput'
 import { SpecialText } from './Typography'
 
@@ -47,14 +47,7 @@ export default function SessionForm({
 }: Props) {
   const navigation = useNavigation()
 
-  const {
-    control,
-    watch,
-    handleSubmit,
-    setValue,
-    getValues,
-    formState: { errors }
-  } = useForm<Partial<Session>>({
+  const { control, watch, handleSubmit, setValue, getValues } = useForm<Partial<Session>>({
     defaultValues: {
       name: (session && session.name) || '',
       end: (session && session.end) || undefined,
@@ -160,13 +153,15 @@ export default function SessionForm({
           )}
 
           {session && deleteHandler && (
-            <NavigationLink
-              navigationParams={{ programId, sessionId: session.sessionId }}
-              screen="ProgramDetailScreen"
-              callback={() => deleteHandler(programId, session.sessionId)}
+            <LinkButton
+              to={{
+                screen: 'ProgramDetailScreen',
+                params: { programId, sessionId: session.sessionId }
+              }}
+              beforeNavigation={() => deleteHandler(programId, session.sessionId)}
             >
               <CardInfo style={tw``} alertText="Delete This Session" />
-            </NavigationLink>
+            </LinkButton>
           )}
         </ScrollView>
       </KeyboardAvoidingView>

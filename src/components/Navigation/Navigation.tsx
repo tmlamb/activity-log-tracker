@@ -1,7 +1,6 @@
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React from 'react'
-import { StackParamList } from '../../types'
 import DashboardScreen from './DashboardScreen'
 import ExerciseFormModal from './ExerciseFormModal'
 import ExerciseSelectModal from './ExerciseSelectModal'
@@ -12,9 +11,10 @@ import ProgramFormModal from './ProgramFormModal'
 import SessionDetailScreen from './SessionDetailScreen'
 import SessionFormModal from './SessionFormModal'
 import SettingsScreen from './SettingsScreen'
+import { RootStackParamList } from './types'
 import WorkoutSetDetailScreen from './WorkoutSetDetailScreen'
 
-const AppStack = createNativeStackNavigator<StackParamList>()
+const AppStack = createNativeStackNavigator<RootStackParamList>()
 
 export default function Navigation() {
   return (

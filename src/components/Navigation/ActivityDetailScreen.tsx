@@ -1,12 +1,8 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React from 'react'
 import { Text, View } from 'react-native'
-import { StackParamList } from '../../types'
+import { RootStackScreenProps } from './types'
 
-type Props = NativeStackScreenProps<StackParamList, 'ActivityDetailScreen'>
-export type ActivityNavigationProp = Props['navigation']
-
-function ActivityDetailScreen({ route }: Props) {
+function ActivityDetailScreen({ route }: RootStackScreenProps<'ActivityDetailScreen'>) {
   return (
     <View>
       <Text>{route.params.activityId}</Text>

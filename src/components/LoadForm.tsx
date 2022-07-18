@@ -52,7 +52,7 @@ export default function LoadForm({ load, exercise, updateExercise, onSelect }: P
     navigation.goBack()
   }
 
-  const percentNumToString = (value: number | undefined) => {
+  const percentNumToString = (value?: number) => {
     // decimalString in 0.XXXX format
     const decimalString = String(value)
 

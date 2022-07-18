@@ -7,7 +7,7 @@ import { Activity, Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } 
 import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
-import NavigationLink from './Navigation/NavigationLink'
+import LinkButton from './Navigation/LinkButton'
 import { PrimaryText, SecondaryText, SpecialText } from './Typography'
 
 type Props = {
@@ -35,14 +35,16 @@ function WorkoutSetCard({
   index
 }: WorkoutSetCardProps) {
   return (
-    <NavigationLink
-      screen="WorkoutSetDetailScreen"
-      navigationParams={{
-        title,
-        programId: program.programId,
-        sessionId: session.sessionId,
-        activityId: activity.activityId,
-        workoutSetId: workoutSet.workoutSetId
+    <LinkButton
+      to={{
+        screen: 'WorkoutSetDetailScreen',
+        params: {
+          title,
+          programId: program.programId,
+          sessionId: session.sessionId,
+          activityId: activity.activityId,
+          workoutSetId: workoutSet.workoutSetId
+        }
       }}
     >
       <CardInfo
@@ -67,7 +69,7 @@ function WorkoutSetCard({
             : undefined
         )}
       />
-    </NavigationLink>
+    </LinkButton>
   )
 }
 
@@ -141,13 +143,15 @@ export default function SessionDetail({ program, session, exercises, changeHandl
   return (
     <>
       <HeaderRightContainer>
-        <NavigationLink
+        <LinkButton
           style={tw`py-2`}
-          screen="SessionFormModal"
-          navigationParams={{ programId: program.programId, sessionId: session.sessionId }}
+          to={{
+            screen: 'SessionFormModal',
+            params: { programId: program.programId, sessionId: session.sessionId }
+          }}
         >
           <SpecialText>Edit</SpecialText>
-        </NavigationLink>
+        </LinkButton>
       </HeaderRightContainer>
       <SectionList
         style={tw`flex-grow px-3 pt-9`}

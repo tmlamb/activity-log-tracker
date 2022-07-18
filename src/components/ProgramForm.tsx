@@ -11,7 +11,7 @@ import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
-import NavigationLink from './Navigation/NavigationLink'
+import LinkButton from './Navigation/LinkButton'
 import TextInput from './TextInput'
 import { SpecialText } from './Typography'
 
@@ -28,11 +28,7 @@ type FormData = {
 export default function ProgramForm({ changeHandler, program, deleteHandler }: Props) {
   const navigation = useNavigation()
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors }
-  } = useForm<FormData>({
+  const { control, handleSubmit } = useForm<FormData>({
     defaultValues: {
       name: (program && program.name) || ''
     }
@@ -87,13 +83,12 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
           name="name"
         />
         {program && deleteHandler && (
-          <NavigationLink
-            // navigationParams={{ programId: program.programId }}
-            screen="DashboardScreen"
-            callback={() => deleteHandler(program.programId)}
+          <LinkButton
+            to={{ screen: 'DashboardScreen' }}
+            beforeNavigation={() => deleteHandler(program.programId)}
           >
             <CardInfo style={tw``} alertText="Delete This Program" />
-          </NavigationLink>
+          </LinkButton>
         )}
       </View>
     </>

@@ -218,7 +218,7 @@ export default function ActivitiesInput({
                   label="Load"
                   // value={value}
                   style={tw`py-2 pl-2 pr-2.5 border-b-2 border-l-2`}
-                  value={stringifyLoad(value)}
+                  value={value && stringifyLoad(value)}
                   textStyle={tw`web:text-base`}
                   modalScreen="LoadFormModal"
                   modalParams={{

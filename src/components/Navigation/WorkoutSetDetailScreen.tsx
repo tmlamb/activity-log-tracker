@@ -1,15 +1,11 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React from 'react'
 import { View } from 'react-native'
 import useWorkoutStore from '../../hooks/use-workout-store'
-import { StackParamList } from '../../types'
 import WorkoutSetDetail from '../WorkoutSetDetail'
 import ScreenLayout from './ScreenLayout'
+import { RootStackScreenProps } from './types'
 
-type Props = NativeStackScreenProps<StackParamList, 'WorkoutSetDetailScreen'>
-export type WorkoutSetNavigationProp = Props['navigation']
-
-function WorkoutSetDetailScreen({ route, navigation }: Props) {
+function WorkoutSetDetailScreen({ route }: RootStackScreenProps<'WorkoutSetDetailScreen'>) {
   const programs = useWorkoutStore(store => store.programs)
   const exercises = useWorkoutStore(store => store.exercises)
   const updateWorkoutSet = useWorkoutStore(store => store.updateWorkoutSet)

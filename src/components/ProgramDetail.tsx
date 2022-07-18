@@ -7,7 +7,7 @@ import { Program, Session } from '../types'
 import { mapSessionsByDate } from '../utils'
 import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
-import NavigationLink from './Navigation/NavigationLink'
+import LinkButton from './Navigation/LinkButton'
 import { PrimaryText, SecondaryText, SpecialText } from './Typography'
 
 type Props = {
@@ -19,17 +19,25 @@ const oneDayMilliseconds = 1000 * 60 * 60 * 24
 
 export function SessionFormLink({
   programId,
-  sessionId,
-  children
+  sessionId
 }: {
   programId: string
   sessionId?: string
-  children: React.ReactNode
 }) {
   return (
-    <NavigationLink screen="SessionFormModal" navigationParams={{ programId, sessionId }}>
-      {children}
-    </NavigationLink>
+    <LinkButton to={{ screen: 'SessionFormModal', params: { programId, sessionId } }}>
+      <CardInfo
+        style={tw.style('rounded-b-xl mb-6')}
+        leftIcon={
+          <SpecialText style={tw``}>
+            <AntDesign style={tw``} name="pluscircle" size={16} />
+            &nbsp;&nbsp;Plan Workout Session
+          </SpecialText>
+        }
+        specialText=" "
+        textStyle={tw``}
+      />
+    </LinkButton>
   )
 }
 SessionFormLink.defaultProps = {
@@ -77,15 +85,13 @@ export default function ProgramDetail({ program }: Props) {
   return (
     <>
       <HeaderRightContainer>
-        <NavigationLink
-          screen="ProgramFormModal"
-          navigationParams={{ programId: program.programId }}
+        <LinkButton
+          to={{ screen: 'ProgramFormModal', params: { programId: program.programId } }}
           style={tw`py-4 -my-4 px-4 -mr-4`}
         >
           <SpecialText>Edit</SpecialText>
-        </NavigationLink>
+        </LinkButton>
       </HeaderRightContainer>
-
       <View style={tw``}>
         {sections && sections.length > 0 && (
           <SectionList
@@ -115,19 +121,7 @@ export default function ProgramDetail({ program }: Props) {
               <>
                 {!item && (
                   <>
-                    <SessionFormLink programId={program.programId}>
-                      <CardInfo
-                        style={tw.style('rounded-xl mb-6')}
-                        leftIcon={
-                          <SpecialText style={tw``}>
-                            <AntDesign style={tw``} name="pluscircle" size={16} />
-                            &nbsp;&nbsp;Plan Workout Session
-                          </SpecialText>
-                        }
-                        specialText=" "
-                        textStyle={tw``}
-                      />
-                    </SessionFormLink>
+                    <SessionFormLink programId={program.programId} />
                     {program.sessions.length < 1 && (
                       <SecondaryText style={tw`pl-3 -mt-4 text-xs`}>
                         Start tracking workouts by planning a session.
@@ -136,12 +130,14 @@ export default function ProgramDetail({ program }: Props) {
                   </>
                 )}
                 {item && (
-                  <NavigationLink
-                    navigationParams={{
-                      programId: program.programId,
-                      sessionId: item.sessionId
+                  <LinkButton
+                    to={{
+                      screen: 'SessionDetailScreen',
+                      params: {
+                        programId: program.programId,
+                        sessionId: item.sessionId
+                      }
                     }}
-                    screen="SessionDetailScreen"
                   >
                     <CardInfo
                       style={tw.style(
@@ -170,29 +166,10 @@ export default function ProgramDetail({ program }: Props) {
                         </SecondaryText>
                       }
                     />
-                  </NavigationLink>
+                  </LinkButton>
                 )}
                 {section.title.includes('Today') && index === section.data.length - 1 && item && (
-                  <SessionFormLink programId={program.programId}>
-                    <CardInfo
-                      style={tw.style('rounded-b-xl mb-6')}
-                      leftIcon={
-                        <SpecialText style={tw``}>
-                          <AntDesign style={tw``} name="pluscircle" size={16} />
-                          &nbsp;&nbsp;Plan Workout Session
-                        </SpecialText>
-                      }
-                      specialText=" "
-                      textStyle={tw``}
-                    />
-                  </SessionFormLink>
-                  // <SessionFormLink programId={program.programId}>
-                  //   <CardInfo
-                  //     style={tw.style('rounded-b-xl mb-6')}
-                  //     specialText="Plan Workout Session"
-                  //     reverse
-                  //   />
-                  // </SessionFormLink>
+                  <SessionFormLink programId={program.programId} />
                 )}
               </>
             )}

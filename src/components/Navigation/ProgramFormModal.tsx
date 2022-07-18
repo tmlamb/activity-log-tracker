@@ -1,14 +1,10 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React from 'react'
 import useWorkoutStore from '../../hooks/use-workout-store'
-import { StackParamList } from '../../types'
 import ProgramForm from '../ProgramForm'
 import ModalLayout from './ModalLayout'
+import { RootStackScreenProps } from './types'
 
-type Props = NativeStackScreenProps<StackParamList, 'ProgramFormModal'>
-export type ProgramFormNavigationProp = Props['navigation']
-
-export default function ProgramFormModal({ route }: Props) {
+export default function ProgramFormModal({ route }: RootStackScreenProps<'ProgramFormModal'>) {
   const programs = useWorkoutStore(state => state.programs)
   const addProgram = useWorkoutStore(state => state.addProgram)
   const updateProgram = useWorkoutStore(state => state.updateProgram)

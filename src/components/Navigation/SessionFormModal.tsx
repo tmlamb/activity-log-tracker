@@ -1,14 +1,10 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React from 'react'
 import useWorkoutStore from '../../hooks/use-workout-store'
-import { StackParamList } from '../../types'
 import SessionForm from '../SessionForm'
 import ModalLayout from './ModalLayout'
+import { RootStackScreenProps } from './types'
 
-type Props = NativeStackScreenProps<StackParamList, 'SessionFormModal'>
-export type SessionFormNavigationProp = Props['navigation']
-
-export default function SessionFormModal({ route }: Props) {
+export default function SessionFormModal({ route }: RootStackScreenProps<'SessionFormModal'>) {
   const programs = useWorkoutStore(store => store.programs)
   const exercises = useWorkoutStore(store => store.exercises)
   const addSession = useWorkoutStore(store => store.addSession)
