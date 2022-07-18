@@ -38,12 +38,9 @@ export type LoadFormNavParams = ModalSelectParams<Load> & {
 export type ExerciseSelectNavParams = ModalSelectParams<Exercise>
 
 export type ModalSelectParams<T> = {
-  // [x: string]: any
   value?: T
   onChangeSelectKey: string
 }
-
-// export type ModalSelectEntity = Exercise | Load
 
 export type ExerciseFormNavParams = {
   exerciseId?: string
@@ -78,49 +75,3 @@ export type RootStackScreenProps<T extends keyof RootStackParamList> = NativeSta
   RootStackParamList,
   T
 >
-
-// export type NavigationScreen =
-//   | 'DashboardScreen'
-//   | 'SettingsScreen'
-//   | 'ExerciseSettingsScreen'
-//   | 'ProgramDetailScreen'
-//   | 'ProgramFormModal'
-//   | 'SessionDetailScreen'
-//   | 'SessionFormModal'
-//   | 'ActivityDetailScreen'
-//   | 'ActivityFormModal'
-//   | 'LoadFormModal'
-//   | 'ExerciseSelectModal'
-//   | 'ExerciseFormModal'
-//   | 'WorkoutSetDetailScreen'
-
-// export type NavigationScreenParams =
-//   | ProgramNavParams
-//   | SessionNavParams
-//   | ActivityNavParams
-//   | LoadFormNavParams
-//   | ActivityFormNavParams
-//   | ProgramFormNavParams
-//   | SessionFormNavParams
-//   | ExerciseSelectNavParams
-//   | ExerciseFormNavParams
-//   | WorkoutSetNavParams
-//   | undefined
-
-// export type ScreenNavigationProp =
-//   | ProgramNavigationProp
-//   | SessionNavigationProp
-//   | ActivityNavigationProp
-//   | ProgramFormNavigationProp
-//   | SessionFormNavigationProp
-//   | LoadFormNavigationProp
-//   | ExerciseSelectNavigationProp
-//   | ExerciseFormNavigationProp
-//   | WorkoutSetNavigationProp
-
-// export type StackScreenProps<Screen extends keyof StackParamList> = NativeStackScreenProps<
-//   StackParamList,
-//   Screen
-// >
-
-// type Test = StackScreenProps<'WorkoutDetailScreen'>

@@ -11,7 +11,7 @@ import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
-import LinkButton from './Navigation/LinkButton'
+import LinkButton from './LinkButton'
 import TextInput from './TextInput'
 import { SpecialText } from './Typography'
 

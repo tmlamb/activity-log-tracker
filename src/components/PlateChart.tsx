@@ -13,16 +13,11 @@ type Props = {
 
 function Plate({ weight }: { weight: Weight }) {
   return (
-    <>
-      {/* test */}
-      <View
-      // style={tw`absolute w-[${weight.value / 12}px] py-[${weight.value}] rounded-sm bg-slate-700`}
-      >
-        <SecondaryText
-          style={tw`px-3 text-xs`}
-        >{`1x ${weight.value} ${weight.unit} plate`}</SecondaryText>
-      </View>
-    </>
+    <View>
+      <SecondaryText
+        style={tw`px-3 text-xs`}
+      >{`1x ${weight.value} ${weight.unit} plate`}</SecondaryText>
+    </View>
   )
 }
 
@@ -53,21 +48,9 @@ const calcPlateConfig = (
 
 export default function PlateChart({ style, totalWeight }: Props) {
   const equipment = useWorkoutStore(store => store.equipment)
-  //   const totalPlatesWeight = equipment && sumPlateWeights(equipment.platePairs)
   const platesPerSide = calcPlateConfig(totalWeight.value - equipment.barbellWeight.value, [
     ...equipment.platePairs
   ])
-
-  //   const platesPerSide2 =
-  //     totalPlatesWeight &&
-  //     totalPlatesWeight > totalWeight.value &&
-  //     equipment?.plates.reduce((total, p) => {
-  //       if (true) {
-  //         total.push(p)
-  //       }
-
-  //       return total
-  //     }, [])
 
   return (
     <View style={tw.style(style)}>

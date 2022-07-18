@@ -7,7 +7,7 @@ import { Activity, Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } 
 import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
-import LinkButton from './Navigation/LinkButton'
+import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText } from './Typography'
 
 type Props = {
@@ -205,7 +205,6 @@ export default function SessionDetail({ program, session, exercises, changeHandl
             </PrimaryText>
           </>
         }
-        // ${String(Math.floor(elapsedTimeSeconds / 60 / 60)).padStart(2, '0')}:
         renderSectionHeader={({ section: { title } }) => (
           <SecondaryText style={tw`pl-3 pb-1.5 uppercase font-bold text-sm`}>{title}</SecondaryText>
         )}
