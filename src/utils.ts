@@ -1,21 +1,57 @@
-import { Load, Session, Weight } from './types'
+import { isToday } from 'date-fns'
+import { Load, Program, Session, Weight } from './types'
 
 // One day in milliseconds
 export const oneDayMilliseconds = 1000 * 60 * 60 * 24
 
 export const mapSessionsByDate = (
   sessions: Session[],
-  dateFormatCallback: (date: Date) => string
+  program: Program,
+  dateFormatCallback: (date: Date, program: Program) => string
 ) => {
   const map = new Map<string, Session[]>()
   sessions.forEach(session => {
-    const dateKey = dateFormatCallback(session.start || new Date())
+    const dateKey = dateFormatCallback(session.start || new Date(), program)
     if (!map.has(dateKey)) {
       map.set(dateKey, [])
     }
     map.get(dateKey)?.push(session)
   })
   return map
+}
+
+export const formatDateByProgramWeek = (date: Date, program: Program) => {
+  const daysDiff =
+    program &&
+    program.sessions &&
+    program.sessions.length > 0 &&
+    program.sessions[0].start &&
+    program.sessions[0].start.getTime() < date.getTime()
+      ? Math.floor(
+          (date.getTime() - (program.sessions[0].start?.getTime() || new Date().getTime())) /
+            oneDayMilliseconds
+        )
+      : 0
+  const week = Math.floor(daysDiff / 7)
+  const day = daysDiff % 7
+  return `${week > 0 ? `Week ${week + 1}, ` : ''}Day ${day + 1}${isToday(date) ? ' (Today)' : ''}`
+}
+
+export const formatShortDateByProgramWeek = (date: Date, program: Program) => {
+  const daysDiff =
+    program &&
+    program.sessions &&
+    program.sessions.length > 0 &&
+    program.sessions[0].start &&
+    program.sessions[0].start.getTime() < date.getTime()
+      ? Math.floor(
+          (date.getTime() - (program.sessions[0].start?.getTime() || new Date().getTime())) /
+            oneDayMilliseconds
+        )
+      : 0
+  const week = Math.floor(daysDiff / 7)
+  const day = daysDiff % 7
+  return `${week > 0 ? `Week ${week + 1}, ` : ''}Day ${day + 1}`
 }
 
 export const stringifyLoad = ({ type, value }: Load) =>

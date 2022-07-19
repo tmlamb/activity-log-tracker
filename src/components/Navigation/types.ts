@@ -1,5 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
-import { Exercise, Load } from '../../types'
+import { Exercise, Load, Session } from '../../types'
 
 export type ProgramNavParams = {
   programId: string
@@ -37,6 +37,10 @@ export type LoadFormNavParams = ModalSelectParams<Load> & {
 
 export type ExerciseSelectNavParams = ModalSelectParams<Exercise>
 
+export type SessionSelectNavParams = ModalSelectParams<Session> & {
+  programId: string
+}
+
 export type ModalSelectParams<T> = {
   value?: T
   parentScreen: keyof RootStackParamList
@@ -70,13 +74,14 @@ export type RootStackParamList = {
   ProgramDetailScreen: ProgramNavParams
   ProgramFormModal: ProgramFormNavParams
   SessionDetailScreen: SessionNavParams
-  SessionFormModal: SessionFormNavParams | ModalSelectResponseParams<Exercise | Load>
+  SessionFormModal: SessionFormNavParams | ModalSelectResponseParams<Exercise | Load | Session>
   ActivityDetailScreen: ActivityNavParams
   ActivityFormModal: ActivityFormNavParams
   LoadFormModal: LoadFormNavParams
   ExerciseSelectModal: ExerciseSelectNavParams
   ExerciseFormModal: ExerciseFormNavParams
   WorkoutSetDetailScreen: WorkoutSetNavParams
+  SessionSelectModal: SessionSelectNavParams
 }
 
 export type RootStackScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<

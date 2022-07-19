@@ -39,7 +39,6 @@ export default function CardInfo({
       )}
     >
       <View style={tw.style('flex-row items-center mr-5', leftIcon ? 'pl-6 relative' : undefined)}>
-        {/* flex-shrink? */}
         {leftIcon && <View style={tw.style('absolute left-0')}>{leftIcon}</View>}
         {alertText && (
           <AlertText style={tw.style('text-lg leading-tight', textStyle)}>{alertText}</AlertText>
@@ -51,7 +50,7 @@ export default function CardInfo({
         )}
       </View>
       {centeredText && (
-        <View style={tw`flex-row items-center justify-between flex-shrink`}>
+        <View style={tw`flex-row items-start justify-between flex-shrink`}>
           <SecondaryText
             style={tw.style(
               'leading-tight text-lg flex-shrink',

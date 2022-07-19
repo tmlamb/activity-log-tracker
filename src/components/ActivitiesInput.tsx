@@ -1,6 +1,12 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
-import { Control, Controller, useFieldArray, UseFormSetValue, UseFormWatch } from 'react-hook-form'
+import {
+  Control,
+  Controller,
+  UseFieldArrayReturn,
+  UseFormSetValue,
+  UseFormWatch
+} from 'react-hook-form'
 import { View } from 'react-native'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
@@ -14,6 +20,7 @@ import TextInput from './TextInput'
 import { AlertText, SpecialText } from './Typography'
 
 type Props = {
+  fieldArray: UseFieldArrayReturn<Partial<Session>, 'activities', 'id'>
   control: Control<Partial<Session>, object>
   watch: UseFormWatch<Partial<Session>>
   setValue: UseFormSetValue<Partial<Session>>
@@ -21,11 +28,15 @@ type Props = {
   session?: Session
 }
 
-export default function ActivitiesInput({ control, watch, setValue, exercises, session }: Props) {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'activities'
-  })
+export default function ActivitiesInput({
+  fieldArray,
+  control,
+  watch,
+  setValue,
+  exercises,
+  session
+}: Props) {
+  const { fields, append, remove } = fieldArray
 
   const watchActivities = watch('activities')
   return (

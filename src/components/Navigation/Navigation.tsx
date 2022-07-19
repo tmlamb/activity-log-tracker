@@ -11,6 +11,7 @@ import ProgramFormModal from './ProgramFormModal'
 import ProgramSettingsScreen from './ProgramSettingsScreen'
 import SessionDetailScreen from './SessionDetailScreen'
 import SessionFormModal from './SessionFormModal'
+import SessionSelectModal from './SessionSelectModal'
 import SettingsScreen from './SettingsScreen'
 import { RootStackParamList, SessionFormNavParams } from './types'
 import WorkoutSetDetailScreen from './WorkoutSetDetailScreen'
@@ -96,6 +97,13 @@ export default function Navigation() {
             component={ExerciseSelectModal}
             options={() => ({
               title: 'Select Exercise'
+            })}
+          />
+          <AppStack.Screen
+            name="SessionSelectModal"
+            component={SessionSelectModal}
+            options={() => ({
+              title: 'Select Template'
             })}
           />
           <AppStack.Screen

@@ -14,6 +14,7 @@ type Props = {
   onSelect: (value: Partial<unknown>) => void
 }
 
+// TODO: Make this generic
 export default function SelectList({
   items,
   style,

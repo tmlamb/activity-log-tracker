@@ -1,10 +1,9 @@
 import { AntDesign } from '@expo/vector-icons'
-import { isToday } from 'date-fns'
 import React from 'react'
 import { SectionList, View } from 'react-native'
 import tw from '../tailwind'
 import { Program, Session } from '../types'
-import { mapSessionsByDate, oneDayMilliseconds } from '../utils'
+import { formatDateByProgramWeek, mapSessionsByDate } from '../utils'
 import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
@@ -42,25 +41,12 @@ SessionFormLink.defaultProps = {
 }
 
 export default function ProgramDetail({ program }: Props) {
-  const formatDate = (date: Date) => {
-    const daysDiff =
-      program && program.sessions && program.sessions.length > 0
-        ? Math.floor(
-            (date.getTime() - (program.sessions[0].start?.getTime() || new Date().getTime())) /
-              oneDayMilliseconds
-          )
-        : 0
-    const week = Math.floor(daysDiff / 7)
-    const day = daysDiff % 7
-    return `${week ? `Week ${week + 1}, ` : ''}Day ${day + 1}${isToday(date) ? ' (Today)' : ''}`
-  }
-
   // We need to show the list of workout sessions grouped by date, so we first
   // convert the array of programs into a map where the key is the program date
   // and the value is the array of sessions for that date. The date key format
   // callback will use 'Today' if the date is today, otherwise it will use the
   // number of weeks and days since the first session, e.g. 'Week 2, Day 4'.
-  const sessions = mapSessionsByDate(program.sessions, formatDate)
+  const sessions = mapSessionsByDate(program.sessions, program, formatDateByProgramWeek)
   // The SectionList component expects an array of objects with a 'title' and
   // 'data' property. The 'title' property will be used as the section header
   // and the 'data' property will be used as the list of items in that section.
@@ -72,7 +58,7 @@ export default function ProgramDetail({ program }: Props) {
   // Add a section for 'Today' if there wasn't already a workout planned for today.
   if (!sections[0] || !sections[sections.length - 1].title.includes('Today')) {
     sections.push({
-      title: formatDate(new Date()),
+      title: formatDateByProgramWeek(new Date(), program),
       data: [undefined]
     })
   }
