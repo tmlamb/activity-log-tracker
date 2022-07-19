@@ -5,7 +5,6 @@ import tw from '../tailwind'
 import { Program } from '../types'
 import CardInfo from './CardInfo'
 import HeaderLeftContainer from './HeaderLeftContainer'
-import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText } from './Typography'
 
@@ -16,13 +15,6 @@ type Props = {
 export default function Dashboard({ programs }: Props) {
   return (
     <>
-      <HeaderRightContainer>
-        <LinkButton to={{ screen: 'ProgramFormModal' }} style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}>
-          <SpecialText>
-            <AntDesign name="plus" size={28} />
-          </SpecialText>
-        </LinkButton>
-      </HeaderRightContainer>
       <HeaderLeftContainer>
         <LinkButton to={{ screen: 'SettingsScreen' }} style={tw`py-6 pl-3 pr-8 -my-6 -ml-4`}>
           <SpecialText>
@@ -43,16 +35,25 @@ export default function Dashboard({ programs }: Props) {
         ListFooterComponent={
           <>
             {programs.length < 1 && (
-              <SecondaryText style={tw`pb-4 pl-3 text-xs`}>
-                Add a new workout program using the &apos;+&apos; button in the upper right.
-              </SecondaryText>
+              <>
+                <LinkButton to={{ screen: 'ProgramFormModal' }} style={tw``}>
+                  <CardInfo
+                    style={tw.style('rounded-xl')}
+                    specialText="Create Workout Program"
+                    reverse
+                  />
+                </LinkButton>
+                <SecondaryText style={tw`pt-1.5 pl-3 text-xs`}>
+                  Add a new program to start planning workouts.
+                </SecondaryText>
+              </>
             )}
-            {programs.reduce((total, program) => total + program.sessions.length, 0) < 4 && (
-              <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
-                Workout programs can be used to track daily sessions. You probably only need one of
-                these to start.
-              </SecondaryText>
-            )}
+            {programs.length > 0 &&
+              programs.reduce((total, program) => total + program.sessions.length, 0) < 4 && (
+                <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
+                  Select a program to start planning workout sessions.
+                </SecondaryText>
+              )}
           </>
         }
         renderSectionHeader={({ section: { title, data } }) => (

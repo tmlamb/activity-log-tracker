@@ -4,7 +4,7 @@ import React from 'react'
 import { SectionList, View } from 'react-native'
 import tw from '../tailwind'
 import { Program, Session } from '../types'
-import { mapSessionsByDate } from '../utils'
+import { mapSessionsByDate, oneDayMilliseconds } from '../utils'
 import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
@@ -13,9 +13,6 @@ import { PrimaryText, SecondaryText, SpecialText } from './Typography'
 type Props = {
   program: Program
 }
-
-// One day in milliseconds
-const oneDayMilliseconds = 1000 * 60 * 60 * 24
 
 export function SessionFormLink({
   programId,
@@ -121,10 +118,24 @@ export default function ProgramDetail({ program }: Props) {
               <>
                 {!item && (
                   <>
-                    <SessionFormLink programId={program.programId} />
+                    <LinkButton
+                      to={{ screen: 'SessionFormModal', params: { programId: program.programId } }}
+                    >
+                      <CardInfo
+                        style={tw.style('rounded-xl mb-6')}
+                        leftIcon={
+                          <SpecialText style={tw``}>
+                            <AntDesign style={tw``} name="pluscircle" size={16} />
+                            &nbsp;&nbsp;Plan Workout Session
+                          </SpecialText>
+                        }
+                        specialText=" "
+                        textStyle={tw``}
+                      />
+                    </LinkButton>
                     {program.sessions.length < 1 && (
                       <SecondaryText style={tw`pl-3 -mt-4 text-xs`}>
-                        Start tracking workouts by planning a session.
+                        Start tracking your exercises by planning a session.
                       </SecondaryText>
                     )}
                   </>
@@ -169,7 +180,24 @@ export default function ProgramDetail({ program }: Props) {
                   </LinkButton>
                 )}
                 {section.title.includes('Today') && index === section.data.length - 1 && item && (
-                  <SessionFormLink programId={program.programId} />
+                  <LinkButton
+                    to={{
+                      screen: 'SessionFormModal',
+                      params: { programId: program.programId }
+                    }}
+                  >
+                    <CardInfo
+                      style={tw.style('rounded-b-xl mb-6')}
+                      leftIcon={
+                        <SpecialText style={tw``}>
+                          <AntDesign style={tw``} name="pluscircle" size={16} />
+                          &nbsp;&nbsp;Plan Workout Session
+                        </SpecialText>
+                      }
+                      specialText=" "
+                      textStyle={tw``}
+                    />
+                  </LinkButton>
                 )}
               </>
             )}

@@ -1,5 +1,8 @@
 import { Load, Session, Weight } from './types'
 
+// One day in milliseconds
+export const oneDayMilliseconds = 1000 * 60 * 60 * 24
+
 export const mapSessionsByDate = (
   sessions: Session[],
   dateFormatCallback: (date: Date) => string
@@ -23,6 +26,7 @@ export const stringifyWeight = (weight: Weight) => `${weight.value} ${weight.uni
 export const spaceReplace = (str: string) => str.replace(/\u00a0/, '\u0020')
 
 export const round5 = (value: number) => Math.round(value / 5) * 5
+
 export const sortByName = (rows: { name?: string }[]) =>
   rows.sort((a, b) => {
     const nameA = a.name ? a.name.toUpperCase() : '' // ignore upper and lowercase
