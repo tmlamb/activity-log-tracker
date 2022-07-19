@@ -17,13 +17,10 @@ export default function Settings() {
             </SecondaryText>
           }
           primaryText="Manage Exercises"
-          style={tw.style('rounded-xl')}
+          style={tw.style('rounded-t-xl border-b-2')}
         />
       </LinkButton>
-      <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
-        Manage your list of exercises and their settings, like One Rep Max and muscle groups.
-      </SecondaryText>
-      <LinkButton to={{ screen: 'ProgramSettingsScreen' }} style={tw`mt-9`}>
+      <LinkButton to={{ screen: 'ProgramSettingsScreen' }} style={tw``}>
         <CardInfo
           rightIcon={
             <SecondaryText>
@@ -31,10 +28,9 @@ export default function Settings() {
             </SecondaryText>
           }
           primaryText="Manage Programs"
-          style={tw.style('rounded-xl')}
+          style={tw.style('rounded-b-xl')}
         />
       </LinkButton>
-      <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>Add or edit workout programs.</SecondaryText>
     </ScrollView>
   )
 }
