@@ -21,8 +21,20 @@ export default function Settings() {
         />
       </LinkButton>
       <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
-        Manage the list of exercises and their settings, like One Rep Max and muscle groups.
+        Manage your list of exercises and their settings, like One Rep Max and muscle groups.
       </SecondaryText>
+      <LinkButton to={{ screen: 'ProgramSettingsScreen' }} style={tw`mt-9`}>
+        <CardInfo
+          rightIcon={
+            <SecondaryText>
+              <AntDesign name="setting" size={24} />
+            </SecondaryText>
+          }
+          primaryText="Manage Programs"
+          style={tw.style('rounded-xl')}
+        />
+      </LinkButton>
+      <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>Add or edit workout programs.</SecondaryText>
     </ScrollView>
   )
 }

@@ -6,7 +6,6 @@ import tw from '../tailwind'
 import { Program, Session } from '../types'
 import { mapSessionsByDate, oneDayMilliseconds } from '../utils'
 import CardInfo from './CardInfo'
-import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText } from './Typography'
 
@@ -80,114 +79,40 @@ export default function ProgramDetail({ program }: Props) {
   sections.reverse() // Reverse to show most recent at the top.
 
   return (
-    <>
-      <HeaderRightContainer>
-        <LinkButton
-          to={{ screen: 'ProgramFormModal', params: { programId: program.programId } }}
-          style={tw`py-4 -my-4 px-4 -mr-4`}
-        >
-          <SpecialText>Edit</SpecialText>
-        </LinkButton>
-      </HeaderRightContainer>
-      <View style={tw``}>
-        {sections && sections.length > 0 && (
-          <SectionList
-            style={tw`flex-grow pt-9 px-3`}
-            contentContainerStyle={tw`pb-36`}
-            sections={sections}
-            keyExtractor={(session, index) =>
-              session ? (session as Session).sessionId : String(index)
-            }
-            ListHeaderComponent={
-              <>
-                <CardInfo
-                  style={tw`rounded-t-xl border-b-2`}
-                  primaryText="Program"
-                  secondaryText={program.name}
-                />
-                <CardInfo style={tw`rounded-b-xl`} specialText="Explore Data" reverse />
-                <PrimaryText style={tw`font-semibold text-xl mt-9 ml-1.5 mb-2.5`}>
-                  Workout Sessions
-                </PrimaryText>
-              </>
-            }
-            renderSectionHeader={({ section: { title } }) => (
-              <SecondaryText style={tw`pl-3 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
-            )}
-            renderItem={({ index, item, section }) => (
-              <>
-                {!item && (
-                  <>
-                    <LinkButton
-                      to={{ screen: 'SessionFormModal', params: { programId: program.programId } }}
-                    >
-                      <CardInfo
-                        style={tw.style('rounded-xl mb-6')}
-                        leftIcon={
-                          <SpecialText style={tw``}>
-                            <AntDesign style={tw``} name="pluscircle" size={16} />
-                            &nbsp;&nbsp;Plan Workout Session
-                          </SpecialText>
-                        }
-                        specialText=" "
-                        textStyle={tw``}
-                      />
-                    </LinkButton>
-                    {program.sessions.length < 1 && (
-                      <SecondaryText style={tw`pl-3 -mt-4 text-xs`}>
-                        Start tracking your exercises by planning a session.
-                      </SecondaryText>
-                    )}
-                  </>
-                )}
-                {item && (
+    <View style={tw``}>
+      {sections && sections.length > 0 && (
+        <SectionList
+          style={tw`flex-grow pt-9 px-3`}
+          contentContainerStyle={tw`pb-36`}
+          sections={sections}
+          keyExtractor={(session, index) =>
+            session ? (session as Session).sessionId : String(index)
+          }
+          ListHeaderComponent={
+            <>
+              <CardInfo
+                style={tw`rounded-t-xl border-b-2`}
+                primaryText="Program"
+                secondaryText={program.name}
+              />
+              <CardInfo style={tw`rounded-b-xl`} specialText="Explore Data" reverse />
+              <PrimaryText style={tw`font-semibold text-xl mt-9 ml-1.5 mb-2.5`}>
+                Workout Sessions
+              </PrimaryText>
+            </>
+          }
+          renderSectionHeader={({ section: { title } }) => (
+            <SecondaryText style={tw`pl-3 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
+          )}
+          renderItem={({ index, item, section }) => (
+            <>
+              {!item && (
+                <>
                   <LinkButton
-                    to={{
-                      screen: 'SessionDetailScreen',
-                      params: {
-                        programId: program.programId,
-                        sessionId: item.sessionId
-                      }
-                    }}
+                    to={{ screen: 'SessionFormModal', params: { programId: program.programId } }}
                   >
                     <CardInfo
-                      style={tw.style(
-                        'border-b-2',
-                        index === 0 ? 'rounded-t-xl' : undefined,
-                        index === section.data.length - 1 && !section.title.includes('Today')
-                          ? 'rounded-b-xl border-b-0 mb-6'
-                          : undefined
-                      )}
-                      primaryText={item.name}
-                      centeredText={
-                        item.start && item.end
-                          ? `${Math.ceil(
-                              (item.end.getTime() - item.start.getTime()) / 1000 / 60
-                            )} min`
-                          : undefined
-                      }
-                      secondaryText={
-                        // eslint-disable-next-line no-nested-ternary
-                        ['Planned', 'Done'].includes(item.status) ? item.status : undefined
-                      }
-                      specialText={item.status === 'Ready' ? item.status : undefined}
-                      rightIcon={
-                        <SecondaryText>
-                          <AntDesign name="right" size={16} />
-                        </SecondaryText>
-                      }
-                    />
-                  </LinkButton>
-                )}
-                {section.title.includes('Today') && index === section.data.length - 1 && item && (
-                  <LinkButton
-                    to={{
-                      screen: 'SessionFormModal',
-                      params: { programId: program.programId }
-                    }}
-                  >
-                    <CardInfo
-                      style={tw.style('rounded-b-xl mb-6')}
+                      style={tw.style('rounded-xl mb-6')}
                       leftIcon={
                         <SpecialText style={tw``}>
                           <AntDesign style={tw``} name="pluscircle" size={16} />
@@ -198,12 +123,76 @@ export default function ProgramDetail({ program }: Props) {
                       textStyle={tw``}
                     />
                   </LinkButton>
-                )}
-              </>
-            )}
-          />
-        )}
-      </View>
-    </>
+                  {program.sessions.length < 1 && (
+                    <SecondaryText style={tw`pl-3 -mt-4 text-xs`}>
+                      Start tracking your exercises by planning a session.
+                    </SecondaryText>
+                  )}
+                </>
+              )}
+              {item && (
+                <LinkButton
+                  to={{
+                    screen: 'SessionDetailScreen',
+                    params: {
+                      programId: program.programId,
+                      sessionId: item.sessionId
+                    }
+                  }}
+                >
+                  <CardInfo
+                    style={tw.style(
+                      'border-b-2',
+                      index === 0 ? 'rounded-t-xl' : undefined,
+                      index === section.data.length - 1 && !section.title.includes('Today')
+                        ? 'rounded-b-xl border-b-0 mb-6'
+                        : undefined
+                    )}
+                    primaryText={item.name}
+                    centeredText={
+                      item.start && item.end
+                        ? `${Math.ceil(
+                            (item.end.getTime() - item.start.getTime()) / 1000 / 60
+                          )} min`
+                        : undefined
+                    }
+                    secondaryText={
+                      // eslint-disable-next-line no-nested-ternary
+                      ['Planned', 'Done'].includes(item.status) ? item.status : undefined
+                    }
+                    specialText={item.status === 'Ready' ? item.status : undefined}
+                    rightIcon={
+                      <SecondaryText>
+                        <AntDesign name="right" size={16} />
+                      </SecondaryText>
+                    }
+                  />
+                </LinkButton>
+              )}
+              {section.title.includes('Today') && index === section.data.length - 1 && item && (
+                <LinkButton
+                  to={{
+                    screen: 'SessionFormModal',
+                    params: { programId: program.programId }
+                  }}
+                >
+                  <CardInfo
+                    style={tw.style('rounded-b-xl mb-6')}
+                    leftIcon={
+                      <SpecialText style={tw``}>
+                        <AntDesign style={tw``} name="pluscircle" size={16} />
+                        &nbsp;&nbsp;Plan Workout Session
+                      </SpecialText>
+                    }
+                    specialText=" "
+                    textStyle={tw``}
+                  />
+                </LinkButton>
+              )}
+            </>
+          )}
+        />
+      )}
+    </View>
   )
 }

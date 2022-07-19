@@ -5,6 +5,7 @@ import ModalLayout from './ModalLayout'
 import { RootStackScreenProps } from './types'
 
 export default function ExerciseFormModal({ route }: RootStackScreenProps<'ExerciseFormModal'>) {
+  // TODO: combine all these useWorkoutStores
   const exercises = useWorkoutStore(state => state.exercises)
   const updateExercise = useWorkoutStore(state => state.updateExercise)
   const addExercise = useWorkoutStore(state => state.addExercise)
