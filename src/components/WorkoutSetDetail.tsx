@@ -79,16 +79,13 @@ export default function WorkoutSetDetail({
     [exercise.oneRepMax, warmupPercent, workPercent]
   )
 
-  const {
-    control,
-    watch,
-    handleSubmit,
-    trigger,
-    setValue,
-    formState: { errors }
-  } = useForm<WorkoutSet>({
+  const { control, watch, handleSubmit, setValue } = useForm<WorkoutSet>({
     defaultValues: {
-      actualWeight: workoutSet.actualWeight || { value: targetWeight, unit: 'lbs' },
+      actualWeight:
+        (workoutSet.actualWeight && workoutSet.actualWeight.value > 0) ||
+        workoutSet.status === 'Done'
+          ? workoutSet.actualWeight
+          : { value: targetWeight, unit: 'lbs' },
       actualReps: workoutSet.actualReps || activity.reps,
       start: workoutSet.start,
       end: workoutSet.end,
@@ -199,7 +196,7 @@ export default function WorkoutSetDetail({
                   obj[index - 1] && obj[index - 1].workoutSetId === workoutSet.workoutSetId
               )
 
-              if (nextWorkoutSet) {
+              if (nextWorkoutSet && nextWorkoutSet.status === 'Planned') {
                 updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
                   ...nextWorkoutSet,
                   start: now,
