@@ -1,9 +1,9 @@
 import { NavigationAction, useLinkProps } from '@react-navigation/native'
 import { To } from '@react-navigation/native/lib/typescript/src/useLinkTo'
 import React from 'react'
-import { TouchableOpacity } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
+import ButtonContainer from './ButtonContainer'
 import { RootStackParamList } from './Navigation'
 
 type Props = {
@@ -23,22 +23,19 @@ export default function LinkButton({
   beforeNavigation,
   disabled
 }: Props) {
-  const { onPress, accessibilityRole } = useLinkProps<RootStackParamList>({ to, action })
+  const { onPress } = useLinkProps<RootStackParamList>({ to, action })
 
   return (
-    <TouchableOpacity
+    <ButtonContainer
       style={tw.style(style)}
       onPress={e => {
-        if (disabled) {
-          return
-        }
         beforeNavigation?.()
         onPress(e)
       }}
-      accessibilityRole={accessibilityRole}
+      disabled={disabled}
     >
       {children}
-    </TouchableOpacity>
+    </ButtonContainer>
   )
 }
 

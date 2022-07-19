@@ -15,7 +15,11 @@ export default function ButtonContainer({
   disabled?: boolean
 }) {
   return (
-    <Pressable style={tw.style(style)} disabled={disabled} onPress={onPress}>
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => tw.style(style, pressed ? 'opacity-60' : 'opacity-100')}
+    >
       {children}
     </Pressable>
   )

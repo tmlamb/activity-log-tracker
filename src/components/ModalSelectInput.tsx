@@ -40,6 +40,7 @@ type Props<T, K> = {
   disabled?: boolean
   labelPosition?: 'left' | 'center'
   rightIcon?: JSX.Element
+  beforeNavigation?: () => void
 }
 
 export default function ModalSelectInput<
@@ -56,7 +57,8 @@ export default function ModalSelectInput<
   modalScreen,
   disabled,
   labelPosition,
-  rightIcon
+  rightIcon,
+  beforeNavigation
 }: Props<T, K>) {
   const route = useRoute<RouteProp<RootStackParamList, K>>()
 
@@ -85,6 +87,7 @@ export default function ModalSelectInput<
         screen: modalScreen,
         params: { parentScreen: route.name, parentParams: route.params, ...modalParams }
       }}
+      beforeNavigation={beforeNavigation}
       disabled={disabled}
     >
       <CardInfo
@@ -115,5 +118,6 @@ ModalSelectInput.defaultProps = {
   placeholder: undefined,
   disabled: false,
   labelPosition: 'left',
-  rightIcon: undefined
+  rightIcon: undefined,
+  beforeNavigation: undefined
 }

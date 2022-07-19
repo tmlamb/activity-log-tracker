@@ -1,3 +1,4 @@
+import { AntDesign } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -9,11 +10,12 @@ import { Program } from '../types'
 import { spaceReplace } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
+import DoubleConfirm from './DoubleConfirm'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import TextInput from './TextInput'
-import { SpecialText } from './Typography'
+import { AlertText, SpecialText } from './Typography'
 
 type Props = {
   changeHandler: (program: Program) => void
@@ -83,12 +85,19 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
           name="name"
         />
         {program && deleteHandler && (
-          <LinkButton
-            to={{ screen: 'DashboardScreen' }}
-            beforeNavigation={() => deleteHandler(program.programId)}
-          >
-            <CardInfo style={tw``} alertText="Delete This Program" />
-          </LinkButton>
+          <DoubleConfirm
+            first={<CardInfo style={tw``} alertText="Delete This Program" />}
+            second={
+              <LinkButton
+                to={{ screen: 'DashboardScreen' }}
+                beforeNavigation={() => deleteHandler(program.programId)}
+              >
+                <AlertText style={tw`px-3 py-3 -my-3`}>
+                  <AntDesign name="minuscircle" size={15} />
+                </AlertText>
+              </LinkButton>
+            }
+          />
         )}
       </View>
     </>

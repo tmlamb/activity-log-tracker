@@ -1,6 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React from 'react'
+import tw from '../../tailwind'
 import DashboardScreen from './DashboardScreen'
 import ExerciseFormModal from './ExerciseFormModal'
 import ExerciseSelectModal from './ExerciseSelectModal'
@@ -39,7 +40,9 @@ export default function Navigation() {
           name="ProgramDetailScreen"
           component={ProgramDetailScreen}
           options={{
-            title: 'Workout Program'
+            title: 'Workout Program',
+            headerBackTitle: 'Back',
+            headerBackTitleStyle: tw.style('self-center')
           }}
         />
         <AppStack.Screen
@@ -55,7 +58,11 @@ export default function Navigation() {
         <AppStack.Screen
           name="SettingsScreen"
           component={SettingsScreen}
-          options={{ title: 'Settings' }}
+          options={{
+            title: 'Settings',
+            headerBackTitle: 'Back',
+            headerBackTitleStyle: tw.style('self-center')
+          }}
         />
         <AppStack.Screen
           name="ExerciseSettingsScreen"

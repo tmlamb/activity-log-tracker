@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native'
 import { add } from 'date-fns'
-import React from 'react'
+import React, { useRef } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native'
 import 'react-native-get-random-values'
@@ -51,7 +51,14 @@ export default function SessionForm({
 }: Props) {
   const navigation = useNavigation()
 
-  const { control, watch, handleSubmit, setValue, getValues } = useForm<Partial<Session>>({
+  const {
+    control,
+    watch,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { isDirty }
+  } = useForm<Partial<Session>>({
     defaultValues: {
       name: (session && session.name) || '',
       end: (session && session.end) || undefined,
@@ -91,10 +98,12 @@ export default function SessionForm({
 
   const watchedName = watch('name')
   const [sessionTemplate, setSessionTemplate] = React.useState<Session>()
+  const didTemplateUpdate = useRef(false)
 
   React.useEffect(() => {
-    if (sessionTemplate && !watchedName) {
-      setValue('name', sessionTemplate.name)
+    if (sessionTemplate && !watchedName && !didTemplateUpdate.current) {
+      didTemplateUpdate.current = true
+      setValue('name', sessionTemplate.name, { shouldDirty: true })
       sessionTemplate.activities.forEach(activity => {
         fieldArray.append({
           ...activity,
@@ -119,7 +128,6 @@ export default function SessionForm({
       })
     }
   }, [fieldArray, sessionTemplate, setValue, watchedName])
-
   return (
     <>
       <HeaderRightContainer>
@@ -143,29 +151,29 @@ export default function SessionForm({
             <Card style={tw`flex-row justify-evenly mb-9`}>
               <View
                 style={tw.style(
-                  'items-stretch w-1/2  dark:border-slate-700 border-slate-200 ',
+                  'items-stretch w-1/2  dark:border-slate-700 border-slate-400 -my-0',
                   fromType === 'Scratch'
-                    ? 'border-0 opacity-100'
-                    : 'border-2 border-r-0 -py-2 -px-2 bg-slate-300 dark:bg-slate-300 opacity-40'
+                    ? 'border-0 mt-0 opacity-100'
+                    : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-300 opacity-40',
+                  !fromType ? 'border-r-2' : undefined
                 )}
               >
                 <ButtonContainer
                   style={tw`items-center self-stretch py-1.5`}
                   onPress={() => {
-                    if (!fromType) {
-                      setFromType('Scratch')
-                    }
+                    setFromType('Scratch')
                   }}
+                  disabled={!!fromType && isDirty}
                 >
                   <PrimaryText>From Scratch</PrimaryText>
                 </ButtonContainer>
               </View>
               <View
                 style={tw.style(
-                  'items-center w-1/2 dark:border-slate-700 border-slate-200',
+                  'items-center w-1/2 dark:border-slate-700 border-slate-200 -my-0',
                   fromType === 'Template'
-                    ? 'border-0 opacity-100 '
-                    : 'border-2 border-l-0 -py-2 -px-2 bg-slate-300 dark:bg-slate-300 opacity-40'
+                    ? 'border-0 mt-0 opacity-100 '
+                    : 'border-0 border-l-0 bg-slate-300 dark:bg-slate-300 opacity-40'
                 )}
               >
                 <ModalSelectInput
@@ -180,13 +188,20 @@ export default function SessionForm({
                   }}
                   // eslint-disable-next-line react/jsx-no-useless-fragment
                   rightIcon={<></>}
+                  beforeNavigation={() => {
+                    didTemplateUpdate.current = false
+                  }}
                   onChangeSelect={(value: Session) => {
-                    if (value) {
+                    if (
+                      !sessionTemplate ||
+                      sessionTemplate.sessionId !== value.sessionId ||
+                      didTemplateUpdate.current === false
+                    ) {
                       setFromType('Template')
                       setSessionTemplate(value)
                     }
                   }}
-                  disabled={!!fromType}
+                  disabled={!!fromType && isDirty}
                 />
               </View>
             </Card>

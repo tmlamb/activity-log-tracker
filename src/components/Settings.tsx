@@ -8,6 +8,7 @@ import { SecondaryText } from './Typography'
 
 export default function Settings() {
   return (
+    // Make this a list view
     <ScrollView style={tw`flex-grow px-3 pt-9 pb-36`}>
       <LinkButton to={{ screen: 'ExerciseSettingsScreen' }} style={tw``}>
         <CardInfo

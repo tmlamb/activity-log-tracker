@@ -88,12 +88,9 @@ export default function ActivitiesInput({
               )}
               name={`activities.${index}.exerciseId`}
             />
-            <ButtonContainer
-              style={tw`py-2 pr-2 pl-1 ml-2 mt-0 top-0 left-0 absolute`}
-              onPress={() => remove(index)}
-            >
+            <ButtonContainer style={tw`top-1 left-2 p-1   absolute`} onPress={() => remove(index)}>
               <AlertText style={tw``}>
-                <AntDesign name="minuscircle" size={16} />
+                <AntDesign name="minuscircle" size={15} />
               </AlertText>
             </ButtonContainer>
           </View>
