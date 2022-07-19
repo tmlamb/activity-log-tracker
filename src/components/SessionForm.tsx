@@ -159,7 +159,7 @@ export default function SessionForm({
                 )}
               >
                 <ButtonContainer
-                  style={tw`items-center self-stretch py-1.5`}
+                  style={tw`items-start px-3 self-stretch py-1.5`}
                   onPress={() => {
                     setFromType('Scratch')
                   }}
@@ -170,17 +170,17 @@ export default function SessionForm({
               </View>
               <View
                 style={tw.style(
-                  'items-center w-1/2 dark:border-slate-700 border-slate-200 -my-0',
+                  'items-end w-1/2 dark:border-slate-700 border-slate-200 -my-0',
                   fromType === 'Template'
                     ? 'border-0 mt-0 opacity-100 '
                     : 'border-0 border-l-0 bg-slate-300 dark:bg-slate-300 opacity-40'
                 )}
               >
                 <ModalSelectInput
-                  style={tw`items-center bg-transparent`}
-                  label="From Template"
-                  labelPosition="center"
-                  textStyle={tw.style('web:text-base', primaryTextColor)}
+                  style={tw`bg-transparent`}
+                  value="From Template"
+                  // labelPosition="left"
+                  textStyle={tw.style('web:text-base -mr-5', primaryTextColor)}
                   modalScreen="SessionSelectModal"
                   modalParams={{
                     modalSelectId: `${programId}.addSession`,
