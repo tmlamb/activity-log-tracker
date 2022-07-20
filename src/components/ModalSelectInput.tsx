@@ -2,7 +2,7 @@ import { AntDesign } from '@expo/vector-icons'
 import { RouteProp, useRoute } from '@react-navigation/native'
 import React from 'react'
 import { View } from 'react-native'
-import Animated, { FadeInUp } from 'react-native-reanimated'
+import Animated, { FadeInUp, FadeOut } from 'react-native-reanimated'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
 import { Exercise, Load, Session } from '../types'
@@ -119,9 +119,8 @@ export default function ModalSelectInput<
       {error && (
         <Animated.View
           entering={FadeInUp.springify().stiffness(50).damping(6).mass(0.3)}
-          // exiting={FadeOut.springify().stiffness(50).damping(6).mass(0.3)}
+          exiting={FadeOut.springify().stiffness(50).damping(6).mass(0.3)}
           style={[tw.style('left-3 top-8 absolute', errorStyle)]}
-          // style={[tw.style('absolute items-center justify-center h-full -right-7'), animatedStyles]}
         >
           <AlertText style={tw.style('text-xs', errorStyle)}>{error}</AlertText>
         </Animated.View>

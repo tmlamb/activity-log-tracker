@@ -42,7 +42,7 @@ export default function ActivitiesInput({
   errors
 }: Props) {
   const { fields, append, remove } = fieldArray
-
+  console.log(errors)
   const watchActivities = watch('activities')
   return (
     <View style={tw`mb-9`}>
@@ -124,7 +124,7 @@ export default function ActivitiesInput({
                 rules={{
                   validate: value => !value || (value.length >= 0 && value.length <= 5)
                 }}
-                render={({ field: { onChange, ref, onBlur, value } }) => (
+                render={({ field: { onChange, onBlur, value } }) => (
                   <TextInput
                     label="Warmup Sets"
                     onChangeText={v => {
@@ -148,7 +148,6 @@ export default function ActivitiesInput({
                     }}
                     onBlur={onBlur}
                     value={String(value.length)}
-                    innerRef={ref}
                     placeholder="0"
                     maxLength={2}
                     style={tw`py-0 border-b-2 border-l-2`}
@@ -157,26 +156,18 @@ export default function ActivitiesInput({
                     keyboardType="number-pad"
                     selectTextOnFocus
                     numeric
-                    error={
-                      errors &&
-                      errors.activities &&
-                      errors.activities[index] &&
-                      errors?.activities[index]?.warmupSets
-                        ? `Required`
-                        : undefined
-                    }
-                    // errorStyle={tw``}
                   />
                 )}
               />
               <Controller
+                name={`activities.${index}.mainSets`}
                 control={control}
                 rules={{
                   required: true,
                   minLength: 1,
                   maxLength: 5
                 }}
-                render={({ field: { onChange, onBlur, value } }) => (
+                render={({ field: { onChange, ref, onBlur, value } }) => (
                   <TextInput
                     label="Main Sets"
                     onChangeText={v => {
@@ -202,7 +193,8 @@ export default function ActivitiesInput({
                       onChange(newValue)
                     }}
                     onBlur={onBlur}
-                    value={String(value.length)}
+                    value={value ? String(value.length) : undefined}
+                    innerRef={ref}
                     placeholder="0"
                     maxLength={2}
                     style={tw`py-0 border-b-2 border-l-2`}
@@ -211,21 +203,33 @@ export default function ActivitiesInput({
                     keyboardType="number-pad"
                     selectTextOnFocus
                     numeric
+                    error={
+                      errors &&
+                      errors.activities &&
+                      errors.activities[index] &&
+                      errors?.activities[index]?.mainSets
+                        ? '*'
+                        : undefined
+                    }
+                    errorStyle={tw`bottom-0 right-2.5 top-1`}
                   />
                 )}
-                name={`activities.${index}.mainSets`}
               />
               <Controller
+                name={`activities.${index}.reps`}
                 control={control}
                 rules={{
-                  required: true
+                  required: true,
+                  min: 1,
+                  max: 99
                 }}
-                render={({ field: { onChange, onBlur, value } }) => (
+                render={({ field: { onChange, ref, onBlur, value } }) => (
                   <TextInput
                     label="Repetitions"
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    value={String(value)}
+                    value={value ? String(value) : undefined}
+                    innerRef={ref}
                     placeholder="0"
                     maxLength={2}
                     style={tw`py-0 border-b-2 border-l-2`}
@@ -234,14 +238,23 @@ export default function ActivitiesInput({
                     keyboardType="number-pad"
                     selectTextOnFocus
                     numeric
+                    error={
+                      errors &&
+                      errors.activities &&
+                      errors.activities[index] &&
+                      errors?.activities[index]?.reps
+                        ? '*'
+                        : undefined
+                    }
+                    errorStyle={tw`bottom-0 right-2.5 top-1`}
                   />
                 )}
-                name={`activities.${index}.reps`}
               />
               <Controller
+                name={`activities.${index}.rest`}
                 control={control}
                 rules={{
-                  required: true
+                  required: false
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
                   <TextInput
@@ -259,7 +272,6 @@ export default function ActivitiesInput({
                     numeric
                   />
                 )}
-                name={`activities.${index}.rest`}
               />
               <Controller
                 control={control}

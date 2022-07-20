@@ -1,5 +1,6 @@
 import React from 'react'
 import { View } from 'react-native'
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import useWorkoutStore from '../hooks/use-workout-store'
 import tw from '../tailwind'
@@ -13,15 +14,13 @@ type Props = {
 
 function Plate({ weight }: { weight: Weight }) {
   return (
-    <View>
+    <Animated.View entering={FadeIn.duration(500)} exiting={FadeOut.duration(500)}>
       <SecondaryText
         style={tw`px-3 text-xs`}
       >{`1x ${weight.value} ${weight.unit} plate`}</SecondaryText>
-    </View>
+    </Animated.View>
   )
 }
-
-const sumPlateWeights = (plates: Weight[]) => plates.reduce((total, p) => total + p.value, 0)
 
 const calcPlateConfig = (
   remainingWeight: number,
@@ -55,7 +54,9 @@ export default function PlateChart({ style, totalWeight }: Props) {
   return (
     <View style={tw.style(style)}>
       {platesPerSide.length > 0 && (
-        <SecondaryText style={tw`text-sm`}>Barbell Configuration:</SecondaryText>
+        <Animated.View entering={FadeIn.duration(500)} exiting={FadeOut.duration(500)}>
+          <SecondaryText style={tw`text-sm`}>Barbell Configuration:</SecondaryText>
+        </Animated.View>
       )}
       {platesPerSide.map((plate, index) => (
         // eslint-disable-next-line react/no-array-index-key

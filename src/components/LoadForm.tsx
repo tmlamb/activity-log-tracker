@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { FlatList, ScrollView, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Exercise, Load } from '../types'
@@ -38,7 +38,6 @@ export default function LoadForm({
     control,
     handleSubmit,
     watch,
-    trigger,
     formState: { isValid, errors },
     setValue
   } = useForm<FormData>({
@@ -203,30 +202,33 @@ export default function LoadForm({
                 />
               )}
             />
-            <FlatList
-              data={[
-                { key: '10 - another rep would have been impossible' },
-                { key: '9 - you left one in the tank' },
-                { key: '8 - you could have done a couple more' },
-                { key: 'etc...' }
-              ]}
-              ListHeaderComponent={
-                <View style={tw`px-3 mb-1 mt-9`}>
-                  <SecondaryText style={tw`text-sm mb-1.5`}>
-                    Rate of Perceived Exertion scale (RPE)
-                  </SecondaryText>
-                  <SecondaryText style={tw`text-xs`}>
-                    Measures intensity of a given weight and number of reps. Values are on a 1-10
-                    scale:
-                  </SecondaryText>
-                </View>
-              }
-              renderItem={({ item }) => (
-                <View key={item.key} style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
-                  <SecondaryText style={tw`text-xs mb-1`}>{`${item.key}`}</SecondaryText>
-                </View>
-              )}
-            />
+            <View>
+              <View style={tw`px-3 mb-1 mt-9`}>
+                <SecondaryText style={tw`text-sm mb-1.5`}>
+                  Rate of Perceived Exertion scale (RPE)
+                </SecondaryText>
+                <SecondaryText style={tw`text-xs`}>
+                  Measures intensity of a given weight and number of reps. Values are on a 1-10
+                  scale:
+                </SecondaryText>
+              </View>
+              <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
+                <SecondaryText style={tw`text-xs mb-1`}>
+                  10 - another rep would have been impossible
+                </SecondaryText>
+              </View>
+              <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
+                <SecondaryText style={tw`text-xs mb-1`}>9 - you left one in the tank</SecondaryText>
+              </View>
+              <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
+                <SecondaryText style={tw`text-xs mb-1`}>
+                  8 - you could have done a couple more
+                </SecondaryText>
+              </View>
+              <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
+                <SecondaryText style={tw`text-xs mb-1`}>etc...</SecondaryText>
+              </View>
+            </View>
           </Animated.View>
         )}
         {selectedType === 'PERCENT' && (

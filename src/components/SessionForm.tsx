@@ -213,8 +213,6 @@ export default function SessionForm({
             <Animated.View
               entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
               exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-              // style={[tw.style('')]}
-              // style={[tw.style('absolute items-center justify-center h-full -right-7'), animatedStyles]}
             >
               <Controller
                 name="name"

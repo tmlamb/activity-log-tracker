@@ -35,6 +35,7 @@ type Props = {
   onKeyPress?: (e: NativeSyntheticEvent<TextInputKeyPressEventData>) => void
   innerRef?: React.LegacyRef<NativeTextInput>
   error?: string
+  errorStyle?: ClassInput
 }
 
 // Why is this necessary? Because when we right justify the text in
@@ -72,7 +73,8 @@ export default function TextInput({
   selection,
   onKeyPress,
   innerRef,
-  error
+  error,
+  errorStyle
 }: PropsFilled) {
   const handleChange = (text: string) => {
     const normalizedText = nbspReplace(numeric ? numericReplace(text) : text)
@@ -111,13 +113,16 @@ export default function TextInput({
         numberOfLines={1}
         scrollEnabled={false}
         ref={innerRef}
+        returnKeyType="go"
+        blurOnSubmit
       />
       {error && (
         <Animated.View
-          entering={SlideInRight.springify().stiffness(50).damping(6).mass(0.3)}
-          exiting={SlideOutRight.springify().stiffness(50).damping(6).mass(0.3)}
-          style={[tw.style('absolute items-center justify-center h-full -bottom-8 right-3')]}
-          // style={[tw.style('absolute items-center justify-center h-full -right-7'), animatedStyles]}
+          entering={SlideInRight.springify().stiffness(40).damping(6).mass(0.3)}
+          exiting={SlideOutRight.springify().stiffness(40).damping(6).mass(0.3)}
+          style={[
+            tw.style('absolute items-center justify-center h-full -bottom-8 right-3', errorStyle)
+          ]}
         >
           <AlertText style={tw`text-sm`}>{error}</AlertText>
         </Animated.View>
@@ -146,5 +151,6 @@ TextInput.defaultProps = {
   selection: undefined,
   onKeyPress: undefined,
   innerRef: undefined,
-  error: undefined
+  error: undefined,
+  errorStyle: undefined
 }

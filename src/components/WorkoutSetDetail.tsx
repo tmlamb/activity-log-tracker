@@ -3,6 +3,7 @@ import { add, subMinutes } from 'date-fns'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { ScrollView, View } from 'react-native'
+import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import useWorkoutStore from '../hooks/use-workout-store'
 import tw from '../tailwind'
 import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
@@ -248,14 +249,17 @@ export default function WorkoutSetDetail({
           />
           <CardInfo
             primaryText="Target Rest"
-            secondaryText={`${String(activity.rest)} minutes`}
+            secondaryText={activity.rest > 0 ? `${String(activity.rest)} minutes` : 'No rest'}
             style={tw`rounded-b-xl`}
           />
         </>
       )}
 
       {workoutSet.status !== 'Planned' && (
-        <>
+        <Animated.View
+          entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+          exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+        >
           <Controller
             control={control}
             rules={{
@@ -386,7 +390,7 @@ export default function WorkoutSetDetail({
               name="feedback"
             />
           )}
-        </>
+        </Animated.View>
       )}
       {workoutSet.status === 'Planned' && !isNextWorkoutSet(workoutSet, activity) && (
         <SecondaryText style={tw`pl-3 text-xs mt-9`}>

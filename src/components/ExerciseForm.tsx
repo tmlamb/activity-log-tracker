@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { View } from 'react-native'
+import { ScrollView } from 'react-native'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
@@ -40,7 +40,6 @@ export default function ExerciseForm({
   const {
     control,
     handleSubmit,
-    register,
     formState: { errors }
   } = useForm<Exercise>({
     defaultValues: {
@@ -93,10 +92,11 @@ export default function ExerciseForm({
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
-      <View style={tw`flex-grow py-9`}>
+      <ScrollView style={tw`flex-grow py-9`}>
         {exercise && (
           <SecondaryText style={tw`px-3 pb-1.5 text-xs`}>
             Warning: Modified exercise data reflects in existing workouts where it&apos;s been used.
+            Exercises used in a workout cannot be deleted.
           </SecondaryText>
         )}
         <Controller
@@ -158,32 +158,28 @@ export default function ExerciseForm({
           )}
           name="primaryMuscle"
         />
-        {exercise && deleteHandler && (
-          <ButtonContainer
-            onPress={() => {
-              if (
-                !(
-                  programs &&
-                  programs?.find(program =>
-                    program.sessions.find(session =>
-                      session.activities.find(
-                        activity => activity.exerciseId === exercise.exerciseId
-                      )
-                    )
-                  )
-                )
-              ) {
+        {exercise &&
+          deleteHandler &&
+          !(
+            programs &&
+            programs?.find(program =>
+              program.sessions.find(session =>
+                session.activities.find(activity => activity.exerciseId === exercise.exerciseId)
+              )
+            )
+          ) && (
+            <ButtonContainer
+              onPress={() => {
                 deleteHandler(exercise.exerciseId)
 
                 navigation.goBack()
-              }
-            }}
-            style={tw`mt-9`}
-          >
-            <CardInfo style={tw``} alertText="Delete This Exercise" />
-          </ButtonContainer>
-        )}
-      </View>
+              }}
+              style={tw`mt-9`}
+            >
+              <CardInfo style={tw``} alertText="Delete This Exercise" />
+            </ButtonContainer>
+          )}
+      </ScrollView>
     </>
   )
 }

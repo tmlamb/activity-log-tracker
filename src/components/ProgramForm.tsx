@@ -2,7 +2,7 @@ import { AntDesign } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { View } from 'react-native'
+import { ScrollView } from 'react-native'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
@@ -69,7 +69,7 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
-      <View style={tw`flex-grow py-9`}>
+      <ScrollView style={tw`flex-grow py-9`}>
         <Controller
           name="name"
           control={control}
@@ -105,7 +105,7 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
             }
           />
         )}
-      </View>
+      </ScrollView>
     </>
   )
 }

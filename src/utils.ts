@@ -1,5 +1,4 @@
 import { isToday } from 'date-fns'
-import React from 'react'
 import { Load, Program, Session, Weight } from './types'
 
 // One day in milliseconds
@@ -77,22 +76,4 @@ export const sortByName = (rows: { name?: string }[]) =>
     return 0 // names must be equal
   })
 
-export const useScrollToError = (errors: any, errorEleClass: string) => {
-  React.useEffect(() => {
-    if (Object.keys(errors)?.length > 0) {
-      const container = document.querySelector(`.${errorEleClass}`)
-      container?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
-  }, [errorEleClass, errors])
-}
-
-const useAutoScroll = () => {
-  const yCoordinates = React.useRef({})
-  let scrollRef = null
-  const setScrollRef = (ref: any) => {
-    if (ref) scrollRef = ref
-  }
-  return {
-    setScrollRef
-  }
-}
+export const sumPlateWeights = (plates: Weight[]) => plates.reduce((total, p) => total + p.value, 0)
