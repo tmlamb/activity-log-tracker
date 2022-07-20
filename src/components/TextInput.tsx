@@ -8,6 +8,7 @@ import {
   TextInputKeyPressEventData,
   ViewStyle
 } from 'react-native'
+import Animated, { SlideInRight, SlideOutRight } from 'react-native-reanimated'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
 import Card from './Card'
@@ -111,7 +112,16 @@ export default function TextInput({
         scrollEnabled={false}
         ref={innerRef}
       />
-      {error && <AlertText style={tw`absolute text-sm right-3 -bottom-5`}>{error}</AlertText>}
+      {error && (
+        <Animated.View
+          entering={SlideInRight.springify().stiffness(50).damping(6).mass(0.3)}
+          exiting={SlideOutRight.springify().stiffness(50).damping(6).mass(0.3)}
+          style={[tw.style('absolute items-center justify-center h-full -bottom-8 right-3')]}
+          // style={[tw.style('absolute items-center justify-center h-full -right-7'), animatedStyles]}
+        >
+          <AlertText style={tw`text-sm`}>{error}</AlertText>
+        </Animated.View>
+      )}
     </Card>
   )
 }
