@@ -16,6 +16,7 @@ type Props = {
   style?: ClassInput
   textStyle?: ClassInput
   reverse?: boolean
+  innerRef?: React.LegacyRef<View>
 }
 
 export default function CardInfo({
@@ -28,7 +29,8 @@ export default function CardInfo({
   leftIcon,
   style,
   textStyle,
-  reverse
+  reverse,
+  innerRef
 }: Props) {
   return (
     <Card
@@ -37,6 +39,7 @@ export default function CardInfo({
         reverse ? 'flex-row-reverse' : undefined,
         style
       )}
+      innerRef={innerRef}
     >
       <View style={tw.style('flex-row items-center mr-5', leftIcon ? 'pl-6 relative' : undefined)}>
         {leftIcon && <View style={tw.style('absolute left-0')}>{leftIcon}</View>}
@@ -104,5 +107,6 @@ CardInfo.defaultProps = {
   leftIcon: undefined,
   style: undefined,
   textStyle: undefined,
-  reverse: false
+  reverse: false,
+  innerRef: undefined
 }

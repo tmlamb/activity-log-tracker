@@ -1,3 +1,4 @@
+import { AntDesign } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import { add } from 'date-fns'
 import React, { useRef } from 'react'
@@ -12,12 +13,13 @@ import ActivitiesInput from './ActivitiesInput'
 import ButtonContainer from './ButtonContainer'
 import Card from './Card'
 import CardInfo from './CardInfo'
+import DoubleConfirm from './DoubleConfirm'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import ModalSelectInput from './ModalSelectInput'
 import TextInput from './TextInput'
-import { PrimaryText, primaryTextColor, SpecialText } from './Typography'
+import { AlertText, PrimaryText, primaryTextColor, SpecialText } from './Typography'
 
 type Props = {
   changeHandler: (programId: string, session: Session) => void
@@ -57,7 +59,7 @@ export default function SessionForm({
     handleSubmit,
     setValue,
     getValues,
-    formState: { isDirty }
+    formState: { isDirty, errors }
   } = useForm<Partial<Session>>({
     defaultValues: {
       name: (session && session.name) || '',
@@ -209,22 +211,24 @@ export default function SessionForm({
           {(fromType || session || !sessions || sessions.length === 0) && (
             <>
               <Controller
+                name="name"
                 control={control}
                 rules={{
                   required: true
                 }}
-                render={({ field: { onChange, onBlur, value } }) => (
+                render={({ field: { onChange, ref, onBlur, value } }) => (
                   <TextInput
                     onChangeText={onChange}
                     onBlur={onBlur}
                     value={value}
                     label="Session Name"
+                    innerRef={ref}
                     maxLength={25}
                     style={tw`mb-9`}
                     textInputStyle={tw``}
+                    error={errors.name ? 'Session Name is required' : undefined}
                   />
                 )}
-                name="name"
               />
 
               <ActivitiesInput
@@ -235,7 +239,8 @@ export default function SessionForm({
                   getValues,
                   setValue,
                   exercises,
-                  session
+                  session,
+                  errors
                 }}
               />
             </>
@@ -274,15 +279,22 @@ export default function SessionForm({
           )}
 
           {session && deleteHandler && (
-            <LinkButton
-              to={{
-                screen: 'ProgramDetailScreen',
-                params: { programId, sessionId: session.sessionId }
-              }}
-              beforeNavigation={() => deleteHandler(programId, session.sessionId)}
-            >
-              <CardInfo style={tw``} alertText="Delete This Session" />
-            </LinkButton>
+            <DoubleConfirm
+              first={<CardInfo style={tw``} alertText="Delete This Session" />}
+              second={
+                <LinkButton
+                  to={{
+                    screen: 'ProgramDetailScreen',
+                    params: { programId, sessionId: session.sessionId }
+                  }}
+                  beforeNavigation={() => deleteHandler(programId, session.sessionId)}
+                >
+                  <AlertText style={tw`px-3 py-3 -my-3`}>
+                    <AntDesign name="minuscircle" size={15} />
+                  </AlertText>
+                </LinkButton>
+              }
+            />
           )}
         </ScrollView>
       </KeyboardAvoidingView>

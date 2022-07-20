@@ -1,6 +1,7 @@
 import { AntDesign } from '@expo/vector-icons'
 import { RouteProp, useRoute } from '@react-navigation/native'
 import React from 'react'
+import { View } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
 import { Exercise, Load, Session } from '../types'
@@ -13,7 +14,7 @@ import {
   RootStackParamList,
   SessionSelectNavParams
 } from './Navigation'
-import { SecondaryText } from './Typography'
+import { AlertText, SecondaryText } from './Typography'
 
 // Renders a form input field that, when clicked, opens a modal that
 // can be used to capture additional user input, the result of which
@@ -41,6 +42,9 @@ type Props<T, K> = {
   labelPosition?: 'left' | 'center'
   rightIcon?: JSX.Element
   beforeNavigation?: () => void
+  innerRef?: React.LegacyRef<View>
+  error?: string
+  errorStyle?: ClassInput
 }
 
 export default function ModalSelectInput<
@@ -58,7 +62,10 @@ export default function ModalSelectInput<
   disabled,
   labelPosition,
   rightIcon,
-  beforeNavigation
+  beforeNavigation,
+  innerRef,
+  error,
+  errorStyle
 }: Props<T, K>) {
   const route = useRoute<RouteProp<RootStackParamList, K>>()
 
@@ -82,31 +89,34 @@ export default function ModalSelectInput<
   ])
 
   return (
-    <LinkButton
-      to={{
-        screen: modalScreen,
-        params: { parentScreen: route.name, parentParams: route.params, ...modalParams }
-      }}
-      beforeNavigation={beforeNavigation}
-      disabled={disabled}
-    >
-      <CardInfo
-        style={tw.style(style)}
-        textStyle={tw.style(textStyle)}
-        primaryText={!labelPosition || labelPosition === 'left' ? label : undefined}
-        centeredText={labelPosition === 'center' ? label : undefined}
-        secondaryText={value && placeholder ? undefined : value}
-        specialText={value && placeholder ? value : placeholder || undefined}
-        rightIcon={
-          rightIcon || (
-            <SecondaryText style={tw`mt-0.5`}>
-              <AntDesign name="right" size={16} />
-            </SecondaryText>
-          )
-        }
-        reverse={placeholder ? true : undefined}
-      />
-    </LinkButton>
+    <View ref={innerRef} style={tw`relative`}>
+      <LinkButton
+        to={{
+          screen: modalScreen,
+          params: { parentScreen: route.name, parentParams: route.params, ...modalParams }
+        }}
+        beforeNavigation={beforeNavigation}
+        disabled={disabled}
+      >
+        <CardInfo
+          style={tw.style(style)}
+          textStyle={tw.style(textStyle)}
+          primaryText={!labelPosition || labelPosition === 'left' ? label : undefined}
+          centeredText={labelPosition === 'center' ? label : undefined}
+          secondaryText={value && placeholder ? undefined : value}
+          specialText={value && placeholder ? value : placeholder || undefined}
+          rightIcon={
+            rightIcon || (
+              <SecondaryText style={tw`mt-0.5`}>
+                <AntDesign name="right" size={16} />
+              </SecondaryText>
+            )
+          }
+          reverse={placeholder ? true : undefined}
+        />
+      </LinkButton>
+      {error && <AlertText style={tw.style('', errorStyle)}>{error}</AlertText>}
+    </View>
   )
 }
 
@@ -119,5 +129,8 @@ ModalSelectInput.defaultProps = {
   disabled: false,
   labelPosition: 'left',
   rightIcon: undefined,
-  beforeNavigation: undefined
+  beforeNavigation: undefined,
+  innerRef: undefined,
+  error: undefined,
+  errorStyle: undefined
 }

@@ -11,7 +11,7 @@ import CardInfo from './CardInfo'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import TextInput from './TextInput'
-import { SpecialText } from './Typography'
+import { SecondaryText, SpecialText } from './Typography'
 
 type Props = {
   changeHandler: (exercise: Exercise) => void
@@ -37,7 +37,12 @@ export default function ExerciseForm({
 }: Props) {
   const navigation = useNavigation()
 
-  const { control, handleSubmit } = useForm<Exercise>({
+  const {
+    control,
+    handleSubmit,
+    register,
+    formState: { errors }
+  } = useForm<Exercise>({
     defaultValues: {
       name: (exercise && exercise.name) || name || '',
       oneRepMax: (exercise && exercise.oneRepMax) || undefined,
@@ -89,23 +94,30 @@ export default function ExerciseForm({
         </ButtonContainer>
       </HeaderLeftContainer>
       <View style={tw`flex-grow py-9`}>
+        {exercise && (
+          <SecondaryText style={tw`px-3 pb-1.5 text-xs`}>
+            Warning: Modified exercise data reflects in existing workouts where it&apos;s been used.
+          </SecondaryText>
+        )}
         <Controller
+          name="name"
           control={control}
           rules={{
             required: true
           }}
-          render={({ field: { onChange, onBlur, value } }) => (
+          render={({ field: { ref, onChange, onBlur, value } }) => (
             <TextInput
               label="Exercise Name"
+              innerRef={ref}
               onChangeText={onChange}
               onBlur={onBlur}
               value={value}
               maxLength={25}
               style={tw`mb-9`}
               textInputStyle={tw`pl-32`}
+              error={errors.name ? 'Exercise Name is required' : undefined}
             />
           )}
-          name="name"
         />
         <Controller
           control={control}
@@ -120,7 +132,7 @@ export default function ExerciseForm({
               onBlur={onBlur}
               value={String((value && value.value) || '')}
               maxLength={4}
-              style={tw`mb-9`}
+              style={tw``}
               textInputStyle={tw``}
               keyboardType="number-pad"
               numeric
@@ -140,7 +152,7 @@ export default function ExerciseForm({
               onBlur={onBlur}
               value={value}
               maxLength={25}
-              style={tw`mb-9`}
+              style={tw`mt-9`}
               textInputStyle={tw`pl-32`}
             />
           )}
@@ -166,6 +178,7 @@ export default function ExerciseForm({
                 navigation.goBack()
               }
             }}
+            style={tw`mt-9`}
           >
             <CardInfo style={tw``} alertText="Delete This Exercise" />
           </ButtonContainer>

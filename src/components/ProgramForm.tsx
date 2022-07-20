@@ -30,7 +30,11 @@ type FormData = {
 export default function ProgramForm({ changeHandler, program, deleteHandler }: Props) {
   const navigation = useNavigation()
 
-  const { control, handleSubmit } = useForm<FormData>({
+  const {
+    control,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<FormData>({
     defaultValues: {
       name: (program && program.name) || ''
     }
@@ -67,22 +71,24 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
       </HeaderLeftContainer>
       <View style={tw`flex-grow py-9`}>
         <Controller
+          name="name"
           control={control}
           rules={{
             required: true
           }}
-          render={({ field: { onChange, onBlur, value } }) => (
+          render={({ field: { onChange, ref, onBlur, value } }) => (
             <TextInput
               onChangeText={onChange}
               onBlur={onBlur}
+              innerRef={ref}
               value={value}
               label="Program Name"
               maxLength={25}
               style={tw`mb-9`}
               textInputStyle={tw`w-full`}
+              error={errors.name ? 'Program Name is required' : undefined}
             />
           )}
-          name="name"
         />
         {program && deleteHandler && (
           <DoubleConfirm

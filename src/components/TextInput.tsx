@@ -11,7 +11,7 @@ import {
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
 import Card from './Card'
-import { primaryTextColor, SecondaryText, secondaryTextColor } from './Typography'
+import { AlertText, primaryTextColor, SecondaryText, secondaryTextColor } from './Typography'
 
 type Props = {
   onChangeText?: (text: string) => void
@@ -33,6 +33,7 @@ type Props = {
   selection?: { start: number; end?: number }
   onKeyPress?: (e: NativeSyntheticEvent<TextInputKeyPressEventData>) => void
   innerRef?: React.LegacyRef<NativeTextInput>
+  error?: string
 }
 
 // Why is this necessary? Because when we right justify the text in
@@ -69,7 +70,8 @@ export default function TextInput({
   editable,
   selection,
   onKeyPress,
-  innerRef
+  innerRef,
+  error
 }: PropsFilled) {
   const handleChange = (text: string) => {
     const normalizedText = nbspReplace(numeric ? numericReplace(text) : text)
@@ -109,6 +111,7 @@ export default function TextInput({
         scrollEnabled={false}
         ref={innerRef}
       />
+      {error && <AlertText style={tw`absolute text-sm right-3 -bottom-5`}>{error}</AlertText>}
     </Card>
   )
 }
@@ -132,5 +135,6 @@ TextInput.defaultProps = {
   editable: true,
   selection: undefined,
   onKeyPress: undefined,
-  innerRef: undefined
+  innerRef: undefined,
+  error: undefined
 }

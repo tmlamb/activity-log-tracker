@@ -3,6 +3,8 @@ import React from 'react'
 import {
   Control,
   Controller,
+  DeepRequired,
+  FieldErrorsImpl,
   UseFieldArrayReturn,
   UseFormSetValue,
   UseFormWatch
@@ -26,6 +28,7 @@ type Props = {
   setValue: UseFormSetValue<Partial<Session>>
   exercises?: Exercise[]
   session?: Session
+  errors?: FieldErrorsImpl<DeepRequired<Partial<Session>>>
 }
 
 export default function ActivitiesInput({
@@ -34,7 +37,8 @@ export default function ActivitiesInput({
   watch,
   setValue,
   exercises,
-  session
+  session,
+  errors
 }: Props) {
   const { fields, append, remove } = fieldArray
 
@@ -45,11 +49,12 @@ export default function ActivitiesInput({
         <Card key={item.activityId} style={tw`flex-row justify-between border-b-2`}>
           <View style={tw`flex-initial relative justify-evenly w-1/2`}>
             <Controller
+              name={`activities.${index}.exerciseId`}
               control={control}
               rules={{
                 required: true
               }}
-              render={({ field: { onChange, value } }) => (
+              render={({ field: { ref, onChange, value } }) => (
                 <ModalSelectInput
                   modalScreen="ExerciseSelectModal"
                   modalParams={{
@@ -84,9 +89,18 @@ export default function ActivitiesInput({
                   placeholder="Select Exercise"
                   style={tw``}
                   value={exercises?.find(exercise => exercise.exerciseId === value)?.name}
+                  innerRef={ref}
+                  error={
+                    errors &&
+                    errors.activities &&
+                    errors.activities[index] &&
+                    errors?.activities[index]?.exerciseId
+                      ? 'Required'
+                      : undefined
+                  }
+                  errorStyle={tw`absolute left-3 top-8 text-xs`}
                 />
               )}
-              name={`activities.${index}.exerciseId`}
             />
             <ButtonContainer style={tw`top-1 left-2 p-1   absolute`} onPress={() => remove(index)}>
               <AlertText style={tw``}>
@@ -297,5 +311,6 @@ export default function ActivitiesInput({
 
 ActivitiesInput.defaultProps = {
   exercises: undefined,
-  session: undefined
+  session: undefined,
+  errors: undefined
 }
