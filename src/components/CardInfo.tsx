@@ -68,7 +68,7 @@ export default function CardInfo({
       <View style={tw`flex-row items-center justify-between flex-shrink`}>
         {secondaryText && (
           <SecondaryText
-            numberOfLines={1}
+            // numberOfLines={6}
             style={tw.style(
               'leading-tight text-lg flex-shrink',
               rightIcon ? 'pr-5' : undefined,

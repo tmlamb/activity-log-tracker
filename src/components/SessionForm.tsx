@@ -5,6 +5,7 @@ import React, { useRef } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native'
 import 'react-native-get-random-values'
+import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Exercise, Session } from '../types'
@@ -209,7 +210,12 @@ export default function SessionForm({
             </Card>
           )}
           {(fromType || session || !sessions || sessions.length === 0) && (
-            <>
+            <Animated.View
+              entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+              exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+              // style={[tw.style('')]}
+              // style={[tw.style('absolute items-center justify-center h-full -right-7'), animatedStyles]}
+            >
               <Controller
                 name="name"
                 control={control}
@@ -243,7 +249,7 @@ export default function SessionForm({
                   errors
                 }}
               />
-            </>
+            </Animated.View>
           )}
           {session && session.status === 'Done' && session.start && (
             <Controller

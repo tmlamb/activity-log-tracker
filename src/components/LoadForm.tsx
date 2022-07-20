@@ -2,6 +2,7 @@ import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { FlatList, View } from 'react-native'
+import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Exercise, Load } from '../types'
 import ButtonContainer from './ButtonContainer'
@@ -168,7 +169,12 @@ export default function LoadForm({
           name="type"
         />
         {selectedType === 'RPE' && (
-          <>
+          <Animated.View
+            entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+            exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+            // style={[tw.style('')]}
+            // style={[tw.style('absolute items-center justify-center h-full -right-7'), animatedStyles]}
+          >
             <Controller
               control={control}
               rules={{
@@ -217,10 +223,15 @@ export default function LoadForm({
                 </View>
               )}
             />
-          </>
+          </Animated.View>
         )}
         {selectedType === 'PERCENT' && (
-          <>
+          <Animated.View
+            entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+            exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+            // style={[tw.style('')]}
+            // style={[tw.style('absolute items-center justify-center h-full -right-7'), animatedStyles]}
+          >
             <Controller
               control={control}
               rules={{
@@ -248,7 +259,22 @@ export default function LoadForm({
               name="value"
             />
             {exercise && !exercise?.oneRepMax && (
-              <>
+              <Animated.View
+                entering={FadeInUp.delay(250)
+                  .duration(1000)
+                  .springify()
+                  .stiffness(50)
+                  .damping(6)
+                  .mass(0.3)}
+                exiting={FadeOutDown.delay(100)
+                  .duration(1000)
+                  .springify()
+                  .stiffness(50)
+                  .damping(6)
+                  .mass(0.3)}
+                // style={[tw.style('')]}
+                // style={[tw.style('absolute items-center justify-center h-full -right-7'), animatedStyles]}
+              >
                 <SecondaryText style={tw`uppercase px-3 text-sm mt-9 mb-1.5`}>
                   {exercise.name}
                 </SecondaryText>
@@ -277,7 +303,7 @@ export default function LoadForm({
                 <SecondaryText style={tw`px-3 py-1.5 text-xs`}>
                   Enter a One Rep Max for this exercise in order to use the Percent load type.
                 </SecondaryText>
-              </>
+              </Animated.View>
             )}
             <View style={tw`px-3 mb-1 mt-9`}>
               <SecondaryText style={tw`text-sm mb-1.5`}>One Rep Max (1RM)</SecondaryText>
@@ -289,7 +315,7 @@ export default function LoadForm({
                 A way to quantify the amount to be lifted in a set, proportional to the 1RM.
               </SecondaryText>
             </View>
-          </>
+          </Animated.View>
         )}
       </View>
     </>

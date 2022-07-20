@@ -103,8 +103,8 @@ export default function ModalSelectInput<
           textStyle={tw.style(textStyle)}
           primaryText={!labelPosition || labelPosition === 'left' ? label : undefined}
           centeredText={labelPosition === 'center' ? label : undefined}
-          secondaryText={value && placeholder ? undefined : value}
-          specialText={value && placeholder ? value : placeholder || undefined}
+          secondaryText={value || undefined}
+          specialText={!value && placeholder ? placeholder : undefined}
           rightIcon={
             rightIcon || (
               <SecondaryText style={tw`mt-0.5`}>
