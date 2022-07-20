@@ -2,24 +2,37 @@ import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
 import { Platform, View } from 'react-native'
 import RNPickerSelect, { Item as RNPickerSelectItem } from 'react-native-picker-select'
+import Animated, { SlideInRight, SlideOutRight } from 'react-native-reanimated'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
 import Card from './Card'
-import { PrimaryText, SecondaryText, secondaryTextColor } from './Typography'
+import { AlertText, PrimaryText, SecondaryText, secondaryTextColor } from './Typography'
 
 type Props = {
   label: string
-  items: RNPickerSelectItem[] // { label: string; value: string; color: string }[]
+  items: RNPickerSelectItem[]
   style?: ClassInput
   onValueChange?: (value: string) => void
   value?: string
+  innerRef?: React.LegacyRef<RNPickerSelect>
+  error?: string
+  errorStyle?: ClassInput
 }
 
 interface PropsFilled extends Props {
   onValueChange: (value: string) => void
 }
 
-export default function Picker({ label, items, style, onValueChange, value }: PropsFilled) {
+export default function Picker({
+  label,
+  items,
+  style,
+  onValueChange,
+  value,
+  innerRef,
+  error,
+  errorStyle
+}: PropsFilled) {
   return (
     <Card
       style={tw.style(
@@ -37,6 +50,7 @@ export default function Picker({ label, items, style, onValueChange, value }: Pr
         <RNPickerSelect
           placeholder={{ inputLabel: 'Select', key: -1 }}
           pickerProps={{}}
+          ref={innerRef}
           style={{
             inputAndroid: {
               backgroundColor: 'transparent',
@@ -100,6 +114,13 @@ export default function Picker({ label, items, style, onValueChange, value }: Pr
           }
         />
       </View>
+      <Animated.View
+        entering={SlideInRight.springify().stiffness(50).damping(6).mass(0.3)}
+        exiting={SlideOutRight.springify().stiffness(50).damping(6).mass(0.3)}
+        style={[tw.style('absolute items-center justify-center h-full -bottom-8 right-3')]}
+      >
+        <AlertText style={tw.style('text-sm', errorStyle)}>{error}</AlertText>
+      </Animated.View>
     </Card>
   )
 }
@@ -107,5 +128,8 @@ export default function Picker({ label, items, style, onValueChange, value }: Pr
 Picker.defaultProps = {
   style: undefined,
   onValueChange: (value: string) => value,
-  value: undefined
+  value: undefined,
+  innerRef: undefined,
+  error: undefined,
+  errorStyle: undefined
 }

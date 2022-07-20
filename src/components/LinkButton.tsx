@@ -30,9 +30,11 @@ export default function LinkButton({
       style={tw.style(style)}
       onPress={e => {
         beforeNavigation?.()
+        if (disabled) {
+          return
+        }
         onPress(e)
       }}
-      disabled={disabled}
     >
       {children}
     </ButtonContainer>

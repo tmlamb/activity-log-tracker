@@ -51,8 +51,6 @@ export default function ActivitiesInput({
           key={item.activityId}
           entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
           exiting={FadeOutUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-          style={[tw.style('')]}
-          // style={[tw.style('absolute items-center justify-center h-full -right-7'), animatedStyles]}
         >
           <Card style={tw`flex-row justify-between border-b-2`}>
             <View style={tw`flex-initial relative justify-evenly w-1/2`}>
@@ -106,7 +104,7 @@ export default function ActivitiesInput({
                         ? 'Required'
                         : undefined
                     }
-                    errorStyle={tw`absolute left-3 top-8 text-xs`}
+                    errorStyle={tw``}
                   />
                 )}
               />
@@ -121,11 +119,12 @@ export default function ActivitiesInput({
             </View>
             <View style={tw`justify-between flex-initial w-1/2`}>
               <Controller
+                name={`activities.${index}.warmupSets`}
                 control={control}
                 rules={{
                   validate: value => !value || (value.length >= 0 && value.length <= 5)
                 }}
-                render={({ field: { onChange, onBlur, value } }) => (
+                render={({ field: { onChange, ref, onBlur, value } }) => (
                   <TextInput
                     label="Warmup Sets"
                     onChangeText={v => {
@@ -149,6 +148,7 @@ export default function ActivitiesInput({
                     }}
                     onBlur={onBlur}
                     value={String(value.length)}
+                    innerRef={ref}
                     placeholder="0"
                     maxLength={2}
                     style={tw`py-0 border-b-2 border-l-2`}
@@ -157,9 +157,17 @@ export default function ActivitiesInput({
                     keyboardType="number-pad"
                     selectTextOnFocus
                     numeric
+                    error={
+                      errors &&
+                      errors.activities &&
+                      errors.activities[index] &&
+                      errors?.activities[index]?.warmupSets
+                        ? `Required`
+                        : undefined
+                    }
+                    // errorStyle={tw``}
                   />
                 )}
-                name={`activities.${index}.warmupSets`}
               />
               <Controller
                 control={control}

@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { FlatList, View } from 'react-native'
+import { FlatList, ScrollView, View } from 'react-native'
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Exercise, Load } from '../types'
@@ -38,7 +38,8 @@ export default function LoadForm({
     control,
     handleSubmit,
     watch,
-    formState: { isValid },
+    trigger,
+    formState: { isValid, errors },
     setValue
   } = useForm<FormData>({
     defaultValues: {
@@ -135,13 +136,14 @@ export default function LoadForm({
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
-      <View style={tw`flex-grow py-9`}>
+      <ScrollView style={tw`flex-grow py-9`}>
         <Controller
+          name="type"
           control={control}
           rules={{
             required: true
           }}
-          render={({ field: { onChange, value } }) => (
+          render={({ field: { ref, onChange, value } }) => (
             <Picker
               label="Load Type"
               items={[
@@ -159,34 +161,36 @@ export default function LoadForm({
                 }
               ]}
               onValueChange={v => {
-                setValue('value', 0, { shouldValidate: true })
+                setValue('value', 0, { shouldValidate: false })
                 onChange(v)
               }}
               value={value}
               style={tw`px-3`}
+              innerRef={ref}
+              error={errors && errors.type ? 'Select a type' : undefined}
+              errorStyle={tw`absolute left-3 top-8 text-xs`}
             />
           )}
-          name="type"
         />
         {selectedType === 'RPE' && (
           <Animated.View
             entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
             exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-            // style={[tw.style('')]}
-            // style={[tw.style('absolute items-center justify-center h-full -right-7'), animatedStyles]}
           >
             <Controller
+              name="value"
               control={control}
               rules={{
                 required: true,
                 min: 1,
                 max: 10
               }}
-              render={({ field: { onChange, onBlur, value } }) => (
+              render={({ field: { ref, onChange, onBlur, value } }) => (
                 <TextInput
                   label="RPE Value"
                   onChangeText={onChange}
                   onBlur={onBlur}
+                  innerRef={ref}
                   value={(value && String(value)) || undefined}
                   placeholder="0"
                   maxLength={2}
@@ -195,9 +199,9 @@ export default function LoadForm({
                   keyboardType="number-pad"
                   selectTextOnFocus
                   numeric
+                  error={errors.value ? 'RPE Value is required' : undefined}
                 />
               )}
-              name="value"
             />
             <FlatList
               data={[
@@ -229,24 +233,24 @@ export default function LoadForm({
           <Animated.View
             entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
             exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-            // style={[tw.style('')]}
-            // style={[tw.style('absolute items-center justify-center h-full -right-7'), animatedStyles]}
           >
             <Controller
+              name="value"
               control={control}
               rules={{
                 required: true,
                 min: 0.001,
                 max: 0.999
               }}
-              render={({ field: { onChange, onBlur, value } }) => (
+              render={({ field: { ref, onChange, onBlur, value } }) => (
                 <TextInput
                   label="% of One Rep Max"
                   onChangeText={newValue => {
                     onChange(percentStringToNum(newValue, String(value)))
                   }}
                   onBlur={onBlur}
-                  value={percentNumToString(value)}
+                  innerRef={ref}
+                  value={value ? percentNumToString(value) : undefined}
                   placeholder="00.00"
                   maxLength={5}
                   style={tw`mt-9`}
@@ -254,9 +258,9 @@ export default function LoadForm({
                   keyboardType="number-pad"
                   selectTextOnFocus
                   numeric
+                  error={errors.value ? '%1RM value is required' : undefined}
                 />
               )}
-              name="value"
             />
             {exercise && !exercise?.oneRepMax && (
               <Animated.View
@@ -272,8 +276,6 @@ export default function LoadForm({
                   .stiffness(50)
                   .damping(6)
                   .mass(0.3)}
-                // style={[tw.style('')]}
-                // style={[tw.style('absolute items-center justify-center h-full -right-7'), animatedStyles]}
               >
                 <SecondaryText style={tw`uppercase px-3 text-sm mt-9 mb-1.5`}>
                   {exercise.name}
@@ -317,7 +319,7 @@ export default function LoadForm({
             </View>
           </Animated.View>
         )}
-      </View>
+      </ScrollView>
     </>
   )
 }
