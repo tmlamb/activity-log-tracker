@@ -7,7 +7,7 @@ import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import useWorkoutStore from '../hooks/use-workout-store'
 import tw from '../tailwind'
 import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
-import { round5, stringifyLoad } from '../utils'
+import { recentActivityByExercise, round5, stringifyLoad } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import Card from './Card'
 import CardInfo from './CardInfo'
@@ -74,10 +74,27 @@ export default function WorkoutSetDetail({
     [activity.load.type, activity.load.value, workoutSet.type]
   )
 
+  const workoutSetIndex =
+    workoutSet.type === 'Warmup'
+      ? activity.warmupSets.findIndex(
+          warmupSet => warmupSet.workoutSetId === workoutSet.workoutSetId
+        )
+      : activity.mainSets.findIndex(mainSet => mainSet.workoutSetId === workoutSet.workoutSetId)
+
+  const recentActivity = recentActivityByExercise(program, exercise.exerciseId, session, activity)
+
+  const setArray = recentActivity?.[`${workoutSet.type === 'Warmup' ? 'warmupSets' : 'mainSets'}`]
+
+  const similarSet = setArray?.[workoutSetIndex]
+
+  const weight = similarSet?.actualWeight?.value || 0
+
   const targetWeight = React.useMemo(
     () =>
-      exercise.oneRepMax ? round5(exercise.oneRepMax.value * (warmupPercent || workPercent)) : 0,
-    [exercise.oneRepMax, warmupPercent, workPercent]
+      exercise.oneRepMax
+        ? round5(exercise.oneRepMax.value * (warmupPercent || workPercent))
+        : weight,
+    [exercise.oneRepMax, warmupPercent, weight, workPercent]
   )
 
   const { control, watch, handleSubmit, setValue } = useForm<WorkoutSet>({

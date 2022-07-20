@@ -80,17 +80,23 @@ export const sumPlateWeights = (plates: Weight[]) => plates.reduce((total, p) =>
 
 export const recentActivityByExercise = (
   program: Program,
-  exerciseId: string
+  exerciseId: string,
+  session?: Session,
+  activity?: Activity
 ): Activity | undefined => {
-  let result: Activity | undefined
-
   for (let i = program.sessions.length - 1; i >= 0; i -= 1) {
     for (let j = program.sessions[i].activities.length - 1; j >= 0; j -= 1) {
-      if (program.sessions[i].activities[j].exerciseId === exerciseId) {
-        result = program.sessions[i].activities[j]
+      if (
+        program.sessions[i].activities[j].exerciseId === exerciseId &&
+        program.sessions[i].sessionId !== session?.sessionId &&
+        (!activity ||
+          (activity.mainSets.length === program.sessions[i].activities[j].mainSets.length &&
+            activity.warmupSets.length === program.sessions[i].activities[j].warmupSets.length))
+      ) {
+        return program.sessions[i].activities[j]
       }
     }
   }
 
-  return result
+  return undefined
 }
