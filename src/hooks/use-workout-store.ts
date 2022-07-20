@@ -335,7 +335,7 @@ export interface WorkoutStore {
   ) => void
 }
 
-AsyncStorage.removeItem('workout-storage')
+// AsyncStorage.removeItem('workout-storage')
 
 const useWorkoutStore = create<WorkoutStore>()(
   persist(
@@ -345,18 +345,15 @@ const useWorkoutStore = create<WorkoutStore>()(
       equipment: {
         barbellWeight: { value: 45, unit: 'lbs' },
         platePairs: [
-          // { value: 45, unit: 'lbs' },
-          // { value: 45, unit: 'lbs' },
-          // { value: 25, unit: 'lbs' },
-          // { value: 10, unit: 'lbs' },
-          // { value: 10, unit: 'lbs' },
-          // { value: 5, unit: 'lbs' },
-          // { value: 2.5, unit: 'lbs' }
           { value: 2.5, unit: 'lbs' },
           { value: 5, unit: 'lbs' },
           { value: 10, unit: 'lbs' },
           { value: 10, unit: 'lbs' },
           { value: 25, unit: 'lbs' },
+          { value: 45, unit: 'lbs' },
+          { value: 45, unit: 'lbs' },
+          { value: 45, unit: 'lbs' },
+          { value: 45, unit: 'lbs' },
           { value: 45, unit: 'lbs' },
           { value: 45, unit: 'lbs' }
         ]

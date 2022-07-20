@@ -50,7 +50,8 @@ const numberToWorkoutSetArray = <T extends WorkoutSet>(
           ({
             workoutSetId: uuidv4(),
             type,
-            status: 'Planned'
+            status: 'Planned',
+            feedback: 'Neutral'
           } as T)
       )
     )

@@ -198,7 +198,7 @@ export default function LoadForm({
                   keyboardType="number-pad"
                   selectTextOnFocus
                   numeric
-                  error={errors.value ? 'RPE Value is required' : undefined}
+                  error={errors.value ? 'RPE value must be between 1 and 10' : undefined}
                 />
               )}
             />
