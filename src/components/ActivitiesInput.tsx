@@ -5,6 +5,7 @@ import {
   Controller,
   DeepRequired,
   FieldErrorsImpl,
+  FieldNamesMarkedBoolean,
   UseFieldArrayReturn,
   UseFormSetValue,
   UseFormWatch
@@ -13,8 +14,8 @@ import { View } from 'react-native'
 import Animated, { FadeInUp, FadeOutUp, Layout } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
-import { Exercise, MainSet, Session, WarmupSet } from '../types'
-import { stringifyLoad } from '../utils'
+import { Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } from '../types'
+import { recentActivityByExercise, stringifyLoad } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import Card from './Card'
 import CardInfo from './CardInfo'
@@ -29,7 +30,32 @@ type Props = {
   setValue: UseFormSetValue<Partial<Session>>
   exercises?: Exercise[]
   session?: Session
+  program: Program
   errors?: FieldErrorsImpl<DeepRequired<Partial<Session>>>
+  dirtyFields: FieldNamesMarkedBoolean<Partial<Session>>
+}
+
+const numberToWorkoutSetArray = <T extends WorkoutSet>(
+  length: number,
+  current: T[],
+  type: 'Warmup' | 'Main'
+): T[] => {
+  const newArray = [...current]
+  if (length < current.length) {
+    newArray.splice(length, newArray.length - length)
+  } else if (length > newArray.length) {
+    newArray.push(
+      ...Array.from(Array(length - newArray.length)).map(
+        () =>
+          ({
+            workoutSetId: uuidv4(),
+            type,
+            status: 'Planned'
+          } as T)
+      )
+    )
+  }
+  return newArray
 }
 
 export default function ActivitiesInput({
@@ -39,10 +65,11 @@ export default function ActivitiesInput({
   setValue,
   exercises,
   session,
-  errors
+  program,
+  errors,
+  dirtyFields
 }: Props) {
   const { fields, append, remove } = fieldArray
-  console.log(errors)
   const watchActivities = watch('activities')
   return (
     <View style={tw`mb-9`}>
@@ -68,7 +95,19 @@ export default function ActivitiesInput({
                       modalSelectId: `${item.activityId}.exerciseId`
                     }}
                     onChangeSelect={(selectedExercise: Exercise) => {
+                      const recentActivity = recentActivityByExercise(
+                        program,
+                        selectedExercise.exerciseId
+                      )
                       if (
+                        recentActivity?.load &&
+                        (!dirtyFields ||
+                          !dirtyFields.activities ||
+                          !dirtyFields.activities[index] ||
+                          !dirtyFields?.activities[index].load)
+                      ) {
+                        setValue(`activities.${index}.load`, recentActivity.load)
+                      } else if (
                         selectedExercise?.oneRepMax &&
                         watchActivities &&
                         !watchActivities[index].load
@@ -81,6 +120,64 @@ export default function ActivitiesInput({
                           !watchActivities[index].load)
                       ) {
                         setValue(`activities.${index}.load`, { type: 'RPE', value: 5 })
+                      }
+
+                      if (
+                        recentActivity?.warmupSets &&
+                        (!dirtyFields ||
+                          !dirtyFields.activities ||
+                          !dirtyFields.activities[index] ||
+                          !dirtyFields?.activities[index].warmupSets)
+                      ) {
+                        setValue(
+                          `activities.${index}.warmupSets`,
+                          numberToWorkoutSetArray<WarmupSet>(
+                            recentActivity.warmupSets.length,
+                            watchActivities && watchActivities[index]
+                              ? watchActivities[index].warmupSets
+                              : [],
+                            'Warmup'
+                          )
+                        )
+                      }
+
+                      if (
+                        recentActivity?.mainSets &&
+                        (!dirtyFields ||
+                          !dirtyFields.activities ||
+                          !dirtyFields.activities[index] ||
+                          !dirtyFields?.activities[index].mainSets)
+                      ) {
+                        setValue(
+                          `activities.${index}.mainSets`,
+                          numberToWorkoutSetArray<MainSet>(
+                            recentActivity.mainSets.length,
+                            watchActivities && watchActivities[index]
+                              ? watchActivities[index].mainSets
+                              : [],
+                            'Main'
+                          )
+                        )
+                      }
+
+                      if (
+                        recentActivity?.reps &&
+                        (!dirtyFields ||
+                          !dirtyFields.activities ||
+                          !dirtyFields.activities[index] ||
+                          !dirtyFields?.activities[index].reps)
+                      ) {
+                        setValue(`activities.${index}.reps`, recentActivity.reps)
+                      }
+
+                      if (
+                        recentActivity?.rest &&
+                        (!dirtyFields ||
+                          !dirtyFields.activities ||
+                          !dirtyFields.activities[index] ||
+                          !dirtyFields?.activities[index].rest)
+                      ) {
+                        setValue(`activities.${index}.rest`, recentActivity.rest)
                       }
 
                       if (
@@ -121,6 +218,16 @@ export default function ActivitiesInput({
               <Controller
                 name={`activities.${index}.warmupSets`}
                 control={control}
+                defaultValue={
+                  Array.from(Array(3)).map(() => ({
+                    workoutSetId: uuidv4(),
+                    type: 'Warmup',
+                    status: session?.status === 'Done' ? 'Done' : 'Planned',
+                    start: session?.status === 'Done' ? session.end : undefined,
+                    end: session?.status === 'Done' ? session.end : undefined,
+                    feedback: 'Neutral'
+                  })) as WarmupSet[]
+                }
                 rules={{
                   validate: value => !value || (value.length >= 0 && value.length <= 5)
                 }}
@@ -129,22 +236,15 @@ export default function ActivitiesInput({
                     label="Warmup Sets"
                     onChangeText={v => {
                       const newLength = Number(v)
-                      const newValue = [...value]
-                      if (newLength < value.length) {
-                        newValue.splice(newLength, newValue.length - newLength)
-                      } else if (newLength > newValue.length) {
-                        newValue.push(
-                          ...Array.from(Array(newLength - newValue.length)).map(
-                            () =>
-                              ({
-                                workoutSetId: uuidv4(),
-                                type: 'Warmup',
-                                status: 'Planned'
-                              } as WarmupSet)
-                          )
+                      onChange(
+                        numberToWorkoutSetArray<WarmupSet>(
+                          newLength,
+                          watchActivities && watchActivities[index]
+                            ? watchActivities[index].warmupSets
+                            : [],
+                          'Warmup'
                         )
-                      }
-                      onChange(newValue)
+                      )
                     }}
                     onBlur={onBlur}
                     value={String(value.length)}
@@ -162,35 +262,35 @@ export default function ActivitiesInput({
               <Controller
                 name={`activities.${index}.mainSets`}
                 control={control}
+                defaultValue={
+                  Array.from(Array(3)).map(() => ({
+                    workoutSetId: uuidv4(),
+                    type: 'Main',
+                    status: session?.status === 'Done' ? 'Done' : 'Planned',
+                    start: session?.status === 'Done' ? session.end : undefined,
+                    end: session?.status === 'Done' ? session.end : undefined,
+                    feedback: 'Neutral'
+                  })) as MainSet[]
+                }
                 rules={{
-                  required: true,
-                  minLength: 1,
-                  maxLength: 5
+                  required: true
+                  // minLength: 1,
+                  // maxLength: 9
                 }}
                 render={({ field: { onChange, ref, onBlur, value } }) => (
                   <TextInput
                     label="Main Sets"
                     onChangeText={v => {
                       const newLength = Number(v)
-                      const newValue = [...value]
-                      if (newLength < value.length) {
-                        newValue.splice(newLength, newValue.length - newLength)
-                      } else if (newLength > newValue.length) {
-                        newValue.push(
-                          ...Array.from(Array(newLength - newValue.length)).map(
-                            () =>
-                              ({
-                                workoutSetId: uuidv4(),
-                                type: 'Main',
-                                status: session?.status === 'Done' ? 'Done' : 'Planned',
-                                start: session?.status === 'Done' ? session.end : undefined,
-                                end: session?.status === 'Done' ? session.end : undefined,
-                                feedback: 'Neutral'
-                              } as MainSet)
-                          )
+                      onChange(
+                        numberToWorkoutSetArray<MainSet>(
+                          newLength,
+                          watchActivities && watchActivities[index]
+                            ? watchActivities[index].mainSets
+                            : [],
+                          'Main'
                         )
-                      }
-                      onChange(newValue)
+                      )
                     }}
                     onBlur={onBlur}
                     value={value ? String(value.length) : undefined}
@@ -218,6 +318,7 @@ export default function ActivitiesInput({
               <Controller
                 name={`activities.${index}.reps`}
                 control={control}
+                defaultValue={3}
                 rules={{
                   required: true,
                   min: 1,
@@ -253,6 +354,7 @@ export default function ActivitiesInput({
               <Controller
                 name={`activities.${index}.rest`}
                 control={control}
+                defaultValue={3}
                 rules={{
                   required: false
                 }}
@@ -307,25 +409,6 @@ export default function ActivitiesInput({
               style={tw`py-5 pr-14`}
               onPress={() =>
                 append({
-                  warmupSets: Array.from(Array(3)).map(() => ({
-                    workoutSetId: uuidv4(),
-                    type: 'Warmup',
-                    status: session?.status === 'Done' ? 'Done' : 'Planned',
-                    start: session?.status === 'Done' ? session.end : undefined,
-                    end: session?.status === 'Done' ? session.end : undefined,
-                    feedback: 'Neutral'
-                  })),
-                  mainSets: Array.from(Array(3)).map(() => ({
-                    workoutSetId: uuidv4(),
-                    type: 'Main',
-                    status: session?.status === 'Done' ? 'Done' : 'Planned',
-                    start: session?.status === 'Done' ? session.end : undefined,
-                    end: session?.status === 'Done' ? session.end : undefined,
-                    feedback: 'Neutral'
-                  })),
-                  reps: 3,
-                  load: undefined,
-                  rest: 3,
                   activityId: uuidv4()
                 })
               }

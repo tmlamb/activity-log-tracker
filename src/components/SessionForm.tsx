@@ -8,7 +8,7 @@ import 'react-native-get-random-values'
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
-import { Exercise, Session } from '../types'
+import { Exercise, Program, Session } from '../types'
 import { spaceReplace } from '../utils'
 import ActivitiesInput from './ActivitiesInput'
 import ButtonContainer from './ButtonContainer'
@@ -24,7 +24,7 @@ import { AlertText, PrimaryText, primaryTextColor, SpecialText } from './Typogra
 
 type Props = {
   changeHandler: (programId: string, session: Session) => void
-  programId: string
+  program: Program
   session?: Session
   sessions?: Session[]
   exercises?: Exercise[]
@@ -46,7 +46,7 @@ const elapsedTimeToEndDate = (start: Date, elapsedTime: string) => {
 
 export default function SessionForm({
   changeHandler,
-  programId,
+  program,
   session,
   sessions,
   exercises,
@@ -60,7 +60,7 @@ export default function SessionForm({
     handleSubmit,
     setValue,
     getValues,
-    formState: { isDirty, errors }
+    formState: { isDirty, errors, dirtyFields }
   } = useForm<Partial<Session>>({
     defaultValues: {
       name: (session && session.name) || '',
@@ -77,7 +77,7 @@ export default function SessionForm({
 
   const onSubmit = (data: Partial<Session>) => {
     changeHandler(
-      programId,
+      program.programId,
       session
         ? {
             name: spaceReplace(data.name!),
@@ -182,12 +182,11 @@ export default function SessionForm({
                 <ModalSelectInput
                   style={tw`bg-transparent`}
                   value="From Template"
-                  // labelPosition="left"
                   textStyle={tw.style('web:text-base -mr-5', primaryTextColor)}
                   modalScreen="SessionSelectModal"
                   modalParams={{
-                    modalSelectId: `${programId}.addSession`,
-                    programId
+                    modalSelectId: `${program.programId}.addSession`,
+                    programId: program.programId
                   }}
                   // eslint-disable-next-line react/jsx-no-useless-fragment
                   rightIcon={<></>}
@@ -244,7 +243,9 @@ export default function SessionForm({
                   setValue,
                   exercises,
                   session,
-                  errors
+                  program,
+                  errors,
+                  dirtyFields
                 }}
               />
             </Animated.View>
@@ -289,9 +290,9 @@ export default function SessionForm({
                 <LinkButton
                   to={{
                     screen: 'ProgramDetailScreen',
-                    params: { programId, sessionId: session.sessionId }
+                    params: { programId: program.programId, sessionId: session.sessionId }
                   }}
-                  beforeNavigation={() => deleteHandler(programId, session.sessionId)}
+                  beforeNavigation={() => deleteHandler(program.programId, session.sessionId)}
                 >
                   <AlertText style={tw`px-3 py-3 -my-3`}>
                     <AntDesign name="minuscircle" size={15} />

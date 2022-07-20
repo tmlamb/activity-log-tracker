@@ -1,5 +1,5 @@
 import { isToday } from 'date-fns'
-import { Load, Program, Session, Weight } from './types'
+import { Activity, Load, Program, Session, Weight } from './types'
 
 // One day in milliseconds
 export const oneDayMilliseconds = 1000 * 60 * 60 * 24
@@ -77,3 +77,20 @@ export const sortByName = (rows: { name?: string }[]) =>
   })
 
 export const sumPlateWeights = (plates: Weight[]) => plates.reduce((total, p) => total + p.value, 0)
+
+export const recentActivityByExercise = (
+  program: Program,
+  exerciseId: string
+): Activity | undefined => {
+  let result: Activity | undefined
+
+  for (let i = program.sessions.length - 1; i >= 0; i -= 1) {
+    for (let j = program.sessions[i].activities.length - 1; j >= 0; j -= 1) {
+      if (program.sessions[i].activities[j].exerciseId === exerciseId) {
+        result = program.sessions[i].activities[j]
+      }
+    }
+  }
+
+  return result
+}

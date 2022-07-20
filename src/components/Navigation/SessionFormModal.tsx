@@ -21,7 +21,7 @@ export default function SessionFormModal({ route }: RootStackScreenProps<'Sessio
       {session ? (
         <SessionForm
           changeHandler={updateSession}
-          programId={params?.programId}
+          program={program!}
           session={session}
           sessions={sessions}
           exercises={exercises}
@@ -29,7 +29,7 @@ export default function SessionFormModal({ route }: RootStackScreenProps<'Sessio
         />
       ) : (
         <SessionForm
-          programId={params?.programId}
+          program={program!}
           sessions={sessions}
           exercises={exercises}
           changeHandler={addSession}

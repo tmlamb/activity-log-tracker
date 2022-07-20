@@ -2,6 +2,7 @@ import { AntDesign } from '@expo/vector-icons'
 import { format } from 'date-fns'
 import React from 'react'
 import { SectionList } from 'react-native'
+import Animated, { Layout } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Activity, Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import ButtonContainer from './ButtonContainer'
@@ -176,56 +177,67 @@ export default function SessionDetail({ program, session, exercises, changeHandl
                   <CardInfo specialText="Complete Workout Session" style={tw`rounded-xl`} reverse />
                 </ButtonContainer>
               )}
-            <CardInfo
-              style={tw.style('rounded-t-xl', !session.start ? 'rounded-b-xl' : 'border-b-2')}
-              primaryText="Session"
-              secondaryText={session.name}
-            />
-            {session.start && (
-              <>
-                <CardInfo
-                  style={tw.style(!session.end && !session.start ? 'rounded-b-xl' : 'border-b-2')}
-                  primaryText="Start Time"
-                  secondaryText={format(session.start, 'MMM do,  hh:mm aa')}
-                />
-                <CardInfo
-                  primaryText="Elapsed Time"
-                  secondaryText={`${String(Math.floor(elapsedTimeSeconds / 60 / 60)).padStart(
-                    2,
-                    '0'
-                  )}:${String(Math.floor(elapsedTimeSeconds / 60) % 60).padStart(2, '0')}:${String(
-                    elapsedTimeSeconds % 60
-                  ).padStart(2, '0')}`}
-                  style={tw`rounded-b-xl`}
-                />
-              </>
-            )}
-            <PrimaryText style={tw`font-semibold text-xl mb-2.5 ml-1.5 mt-9`}>
-              Planned Activities
-            </PrimaryText>
+            <Animated.View layout={Layout.duration(500)}>
+              <CardInfo
+                style={tw.style('rounded-t-xl', !session.start ? 'rounded-b-xl' : 'border-b-2')}
+                primaryText="Session"
+                secondaryText={session.name}
+              />
+              {session.start && (
+                <>
+                  <CardInfo
+                    style={tw.style(!session.end && !session.start ? 'rounded-b-xl' : 'border-b-2')}
+                    primaryText="Start Time"
+                    secondaryText={format(session.start, 'MMM do,  hh:mm aa')}
+                  />
+                  <CardInfo
+                    primaryText="Elapsed Time"
+                    secondaryText={`${String(Math.floor(elapsedTimeSeconds / 60 / 60)).padStart(
+                      2,
+                      '0'
+                    )}:${String(Math.floor(elapsedTimeSeconds / 60) % 60).padStart(
+                      2,
+                      '0'
+                    )}:${String(elapsedTimeSeconds % 60).padStart(2, '0')}`}
+                    style={tw`rounded-b-xl`}
+                  />
+                </>
+              )}
+              <PrimaryText style={tw`font-semibold text-xl mb-2.5 ml-1.5 mt-9`}>
+                Planned Activities
+              </PrimaryText>
+            </Animated.View>
           </>
         }
         renderSectionHeader={({ section: { title } }) => (
-          <SecondaryText style={tw`pl-3 pb-1.5 uppercase font-bold text-sm`}>{title}</SecondaryText>
+          <Animated.View layout={Layout.duration(500)}>
+            <SecondaryText style={tw`pl-3 pb-1.5 uppercase font-bold text-sm`}>
+              {title}
+            </SecondaryText>
+          </Animated.View>
         )}
         renderItem={({ item, index: i }) => (
-          <WorkoutSetCard
-            workoutSet={item.workoutSet}
-            activity={item.activity}
-            session={item.session}
-            program={item.program}
-            title={item.title}
-            index={i}
-          />
+          <Animated.View layout={Layout.duration(500)}>
+            <WorkoutSetCard
+              workoutSet={item.workoutSet}
+              activity={item.activity}
+              session={item.session}
+              program={item.program}
+              title={item.title}
+              index={i}
+            />
+          </Animated.View>
         )}
         ListFooterComponent={
-          <SecondaryText style={tw`pl-3 mt-1 text-xs`}>
-            {session.activities.length < 1
-              ? "Before continuing with this workout session, use the 'Edit' button to add activities."
-              : session.activities?.length > 1 ||
-                session.status === 'Done' ||
-                "Use the 'Edit' button to add more activities to the workout session."}
-          </SecondaryText>
+          <Animated.View layout={Layout.duration(500)}>
+            <SecondaryText style={tw`pl-3 mt-1 text-xs`}>
+              {session.activities.length < 1
+                ? "Before continuing with this workout session, use the 'Edit' button to add activities."
+                : session.activities?.length > 1 ||
+                  session.status === 'Done' ||
+                  "Use the 'Edit' button to add more activities to the workout session."}
+            </SecondaryText>
+          </Animated.View>
         }
         nestedScrollEnabled
       />
