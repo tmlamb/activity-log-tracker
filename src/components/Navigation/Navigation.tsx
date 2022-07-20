@@ -8,6 +8,7 @@ import ExerciseSelectModal from './ExerciseSelectModal'
 import ExerciseSettingsScreen from './ExerciseSettingsScreen'
 import LoadFormModal from './LoadFormModal'
 import ProgramDetailScreen from './ProgramDetailScreen'
+import ProgramFiguresScreen from './ProgramFiguresScreen'
 import ProgramFormModal from './ProgramFormModal'
 import ProgramSettingsScreen from './ProgramSettingsScreen'
 import SessionDetailScreen from './SessionDetailScreen'
@@ -73,6 +74,13 @@ export default function Navigation() {
           name="ProgramSettingsScreen"
           component={ProgramSettingsScreen}
           options={{ title: 'Manage Programs' }}
+        />
+        <AppStack.Screen
+          name="ProgramFiguresScreen"
+          component={ProgramFiguresScreen}
+          options={{
+            title: 'Program Data'
+          }}
         />
         <AppStack.Group screenOptions={{ presentation: 'modal' }}>
           <AppStack.Screen

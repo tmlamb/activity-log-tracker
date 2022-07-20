@@ -72,6 +72,7 @@ export type RootStackParamList = {
   ExerciseSettingsScreen: undefined
   ProgramSettingsScreen: undefined
   ProgramDetailScreen: ProgramNavParams
+  ProgramFiguresScreen: ProgramNavParams
   ProgramFormModal: ProgramFormNavParams
   SessionDetailScreen: SessionNavParams
   SessionFormModal:

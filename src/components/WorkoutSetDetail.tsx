@@ -97,13 +97,7 @@ export default function WorkoutSetDetail({
     [exercise.oneRepMax, warmupPercent, weight, workPercent]
   )
 
-  const {
-    control,
-    watch,
-    handleSubmit,
-    setValue,
-    formState: { errors, isValid }
-  } = useForm<WorkoutSet>({
+  const { control, watch, handleSubmit, setValue } = useForm<WorkoutSet>({
     defaultValues: {
       actualWeight:
         (workoutSet.actualWeight && workoutSet.actualWeight.value > 0) ||
@@ -148,11 +142,8 @@ export default function WorkoutSetDetail({
       )?.workoutSetId === workoutSet.workoutSetId,
     [activity.mainSets, activity.warmupSets, workoutSet.status, workoutSet.workoutSetId]
   )
-  console.log('errors', errors)
-  console.log('isValid', isValid)
   const onSubmit = React.useCallback(
     (data: WorkoutSet) => {
-      console.log(data)
       updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
         ...workoutSet,
         actualWeight: data.actualWeight,
@@ -212,7 +203,6 @@ export default function WorkoutSetDetail({
           <ButtonContainer
             style={tw`mb-9`}
             onPress={() => {
-              console.log('trying???')
               const now = new Date()
               setValue('end', now)
               setValue('status', 'Done')
@@ -222,7 +212,6 @@ export default function WorkoutSetDetail({
                 (ws, index, obj) =>
                   obj[index - 1] && obj[index - 1].workoutSetId === workoutSet.workoutSetId
               )
-              console.log(nextWorkoutSet)
               if (nextWorkoutSet && nextWorkoutSet.status === 'Planned') {
                 updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
                   ...nextWorkoutSet,

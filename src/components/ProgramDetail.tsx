@@ -68,11 +68,14 @@ export default function ProgramDetail({ program }: Props) {
   return (
     <>
       <HeaderRightContainer>
-        {/* <LinkButton to={{ screen: 'ProgramFiguresScreen' }} style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}> */}
-        <SpecialText style={tw`py-6 pl-8 pr-3 -my-6 -mr-2`}>
-          <AntDesign name="linechart" size={22} />
-        </SpecialText>
-        {/* </LinkButton> */}
+        <LinkButton
+          to={{ screen: 'ProgramFiguresScreen', params: { programId: program.programId } }}
+          style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}
+        >
+          <SpecialText style={tw`py-6 pl-8 pr-3 -my-6 -mr-2`}>
+            <AntDesign name="linechart" size={22} />
+          </SpecialText>
+        </LinkButton>
       </HeaderRightContainer>
       <View style={tw``}>
         {sections && sections.length > 0 && (
