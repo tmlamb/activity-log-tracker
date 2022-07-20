@@ -156,7 +156,7 @@ export default function SessionForm({
                   'items-stretch w-1/2  dark:border-slate-700 border-slate-400 -my-0',
                   fromType === 'Scratch'
                     ? 'border-0 mt-0 opacity-100'
-                    : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-300 opacity-40',
+                    : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40',
                   !fromType ? 'border-r-2' : undefined
                 )}
               >
@@ -175,7 +175,7 @@ export default function SessionForm({
                   'items-end w-1/2 dark:border-slate-700 border-slate-200 -my-0',
                   fromType === 'Template'
                     ? 'border-0 mt-0 opacity-100 '
-                    : 'border-0 border-l-0 bg-slate-300 dark:bg-slate-300 opacity-40'
+                    : 'border-0 border-l-0 bg-slate-300 dark:bg-slate-600 opacity-40'
                 )}
               >
                 <ModalSelectInput

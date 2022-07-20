@@ -74,7 +74,9 @@ export type RootStackParamList = {
   ProgramDetailScreen: ProgramNavParams
   ProgramFormModal: ProgramFormNavParams
   SessionDetailScreen: SessionNavParams
-  SessionFormModal: SessionFormNavParams | ModalSelectResponseParams<Exercise | Load | Session>
+  SessionFormModal:
+    | SessionFormNavParams
+    | ModalSelectResponseParams<Exercise | Load | Partial<Session>>
   ActivityDetailScreen: ActivityNavParams
   ActivityFormModal: ActivityFormNavParams
   LoadFormModal: LoadFormNavParams

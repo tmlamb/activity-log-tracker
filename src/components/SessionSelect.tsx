@@ -32,8 +32,7 @@ export default function SessionSelect({
 }: Props) {
   const navigation = useNavigation()
   // TODO: remove 'React.' everywhere
-  const [selected, setSelected] = React.useState(initialValue)
-
+  const [selected, setSelected] = React.useState<Partial<Session> | undefined>(initialValue)
   return (
     <>
       <HeaderRightContainer>
@@ -71,7 +70,27 @@ export default function SessionSelect({
           keyExtractor={(item, index) => `${(item as Session).name}.${index}`}
           items={sessions}
           onSelect={item => {
-            setSelected(item as Session)
+            if (item as Session) {
+              setSelected({
+                // TODO: Learn lodash
+                ...(item as Session),
+                start: undefined,
+                end: undefined,
+                activities: (item as Session)?.activities?.map(actvy => ({
+                  ...actvy,
+                  warmupSets: actvy.warmupSets?.map(ws => ({
+                    ...ws,
+                    start: undefined,
+                    end: undefined
+                  })),
+                  mainSets: actvy.mainSets?.map(ms => ({
+                    ...ms,
+                    start: undefined,
+                    end: undefined
+                  }))
+                }))
+              })
+            }
           }}
           renderItem={({ item, index }) => (
             <CardInfo
