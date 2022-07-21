@@ -6,7 +6,7 @@ import { primaryTextColor } from '../Typography'
 
 export default function ScreenLayout({ children }: { children: React.ReactNode }) {
   const navigation = useNavigation()
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     navigation.setOptions({
       headerStyle: tw`bg-slate-50 dark:bg-black`,
       headerTitleStyle: tw.style(primaryTextColor),

@@ -7,6 +7,7 @@ import tw from '../tailwind'
 import { Activity, Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
+import ElapsedTime from './ElapsedTime'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText } from './Typography'
@@ -74,33 +75,7 @@ function WorkoutSetCard({
   )
 }
 
-const calculateElapsedTimeSeconds = (start?: Date, end?: Date) =>
-  // eslint-disable-next-line no-nested-ternary
-  start
-    ? end
-      ? Math.ceil((end.getTime() - start.getTime()) / 1000)
-      : Math.ceil((new Date().getTime() - start.getTime()) / 1000)
-    : 0
-
 export default function SessionDetail({ program, session, exercises, changeHandler }: Props) {
-  const [elapsedTimeSeconds, setElapsedTimeSeconds] = React.useState(
-    calculateElapsedTimeSeconds(session.start, session.end)
-  )
-
-  React.useEffect(() => {
-    setElapsedTimeSeconds(calculateElapsedTimeSeconds(session.start, session.end))
-  }, [session.end, session.start])
-
-  React.useEffect(() => {
-    const timer = () => setElapsedTimeSeconds(calculateElapsedTimeSeconds(session.start))
-
-    if (session.status === 'Ready' && session.start) {
-      const id = setInterval(timer, 1000)
-      return () => clearInterval(id)
-    }
-    return undefined
-  }, [elapsedTimeSeconds, session.start, session.status])
-
   const workoutSetsPending = React.useMemo<WorkoutSet[]>(
     () =>
       session.activities.reduce((total, activity) => {
@@ -113,7 +88,6 @@ export default function SessionDetail({ program, session, exercises, changeHandl
       }, [] as WorkoutSet[]),
     [session.activities]
   )
-
   // This process maps the workout set data by activity for the section list.
   const sections: { title: string; data: WorkoutSetCardProps[] }[] = React.useMemo(
     () =>
@@ -189,16 +163,11 @@ export default function SessionDetail({ program, session, exercises, changeHandl
                     primaryText="Start Time"
                     secondaryText={format(session.start, 'MMM do,  hh:mm aa')}
                   />
-                  <CardInfo
-                    primaryText="Elapsed Time"
-                    secondaryText={`${String(Math.floor(elapsedTimeSeconds / 60 / 60)).padStart(
-                      2,
-                      '0'
-                    )}:${String(Math.floor(elapsedTimeSeconds / 60) % 60).padStart(
-                      2,
-                      '0'
-                    )}:${String(elapsedTimeSeconds % 60).padStart(2, '0')}`}
-                    style={tw`rounded-b-xl`}
+                  <ElapsedTime
+                    start={session.start}
+                    end={session.end}
+                    status={session.status}
+                    showHours
                   />
                 </>
               )}

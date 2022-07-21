@@ -4,7 +4,7 @@ import create from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Activity, Equipment, Exercise, Program, Session, WorkoutSet } from '../types'
 
-// AsyncStorage.removeItem('workout-storage')
+AsyncStorage.removeItem('workout-storage')
 
 const mockPrograms: Program[] = [
   {

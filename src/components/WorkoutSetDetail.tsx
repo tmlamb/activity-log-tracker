@@ -11,6 +11,7 @@ import { recentActivityByExercise, round5, stringifyLoad } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import Card from './Card'
 import CardInfo from './CardInfo'
+import ElapsedTime from './ElapsedTime'
 import PlateChart from './PlateChart'
 import TextInput from './TextInput'
 import { PrimaryText, SecondaryText } from './Typography'
@@ -45,6 +46,58 @@ const isNextWorkoutSet = (workoutSet: WorkoutSet, activity: Activity) => {
   )
 
   return nextPlannedWorkoutSet && nextPlannedWorkoutSet.workoutSetId === workoutSet.workoutSetId
+}
+
+export function FeedbackSelectInput({
+  value,
+  onSelect
+}: {
+  value: 'Easy' | 'Neutral' | 'Hard'
+  onSelect: (value: 'Easy' | 'Neutral' | 'Hard') => void
+}) {
+  return (
+    <Card style={tw`flex-row rounded-xl justify-evenly mt-9`}>
+      <View
+        style={tw.style(
+          'items-center w-1/3 rounded-l-xl dark:border-slate-700 border-slate-300 bg-sky-300 dark:bg-sky-400',
+          value === 'Easy' ? 'border-0 opacity-100' : 'border-2 opacity-40'
+        )}
+      >
+        <ButtonContainer
+          style={tw`items-center self-stretch py-1.5`}
+          onPress={() => onSelect('Easy')}
+        >
+          <PrimaryText>Easy</PrimaryText>
+        </ButtonContainer>
+      </View>
+      <View
+        style={tw.style(
+          'items-center w-1/3 dark:border-slate-700 border-slate-300',
+          value === 'Neutral' ? 'border-0 opacity-100' : 'border-2 opacity-40'
+        )}
+      >
+        <ButtonContainer
+          style={tw`items-center self-stretch py-1.5`}
+          onPress={() => onSelect('Neutral')}
+        >
+          <PrimaryText>Neutral</PrimaryText>
+        </ButtonContainer>
+      </View>
+      <View
+        style={tw.style(
+          'items-center w-1/3 dark:border-slate-700 border-slate-300 bg-red-300 rounded-r-xl dark:bg-red-400',
+          value === 'Hard' ? 'border-0 opacity-100' : 'border-2 opacity-40'
+        )}
+      >
+        <ButtonContainer
+          style={tw`items-center self-stretch py-1.5`}
+          onPress={() => onSelect('Hard')}
+        >
+          <PrimaryText>Hard</PrimaryText>
+        </ButtonContainer>
+      </View>
+    </Card>
+  )
 }
 
 export default function WorkoutSetDetail({
@@ -111,28 +164,6 @@ export default function WorkoutSetDetail({
       feedback: workoutSet.feedback
     }
   })
-  const [elapsedTimeSeconds, setElapsedTimeSeconds] = React.useState(
-    // eslint-disable-next-line no-nested-ternary
-    workoutSet.start
-      ? workoutSet.end
-        ? Math.ceil((workoutSet.end.getTime() - workoutSet.start.getTime()) / 1000)
-        : Math.ceil((new Date().getTime() - workoutSet.start.getTime()) / 1000)
-      : 0
-  )
-
-  React.useEffect(() => {
-    const timer = () => {
-      setElapsedTimeSeconds(Math.ceil((new Date().getTime() - workoutSet.start!.getTime()) / 1000))
-    }
-
-    if (workoutSet.status === 'Ready' && workoutSet.start) {
-      const id = setInterval(timer, 1000)
-      return () => {
-        clearInterval(id)
-      }
-    }
-    return undefined
-  }, [elapsedTimeSeconds, workoutSet.start, workoutSet.status])
 
   const isStartable = React.useMemo<boolean>(
     () =>
@@ -168,14 +199,13 @@ export default function WorkoutSetDetail({
     const subscription = watch(() => handleSubmit(onSubmit)())
     return () => subscription.unsubscribe()
   }, [handleSubmit, onSubmit, watch])
-
   return (
     <ScrollView style={tw`flex-grow px-3 pt-9`} contentContainerStyle={tw`pb-48`}>
       {(isStartable && (
         <ButtonContainer
           style={tw`mb-9`}
           onPress={() => {
-            setElapsedTimeSeconds(1) // Without this, the UI pauses at 0 and skips straight to 2.
+            // setElapsedTimeSeconds(1) // Without this, the UI pauses at 0 and skips straight to 2.
 
             setValue('start', new Date())
             setValue('status', 'Ready')
@@ -335,74 +365,28 @@ export default function WorkoutSetDetail({
             )}
             name="actualReps"
           />
-          <CardInfo
-            primaryText="Elapsed Time"
-            secondaryText={`${String(Math.floor(elapsedTimeSeconds / 60)).padStart(
-              2,
-              '0'
-            )}:${String(elapsedTimeSeconds % 60).padStart(2, '0')}`}
-            style={tw`rounded-b-xl`}
+          <ElapsedTime
+            start={workoutSet.start || new Date()}
+            end={workoutSet.end}
+            status={workoutSet.status}
           />
 
           {workoutSet.type === 'Main' && (
             <Controller
+              name="feedback"
               control={control}
               rules={{
                 required: true
               }}
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Card style={tw`flex-row rounded-xl justify-evenly mt-9`}>
-                  <View
-                    style={tw.style(
-                      'items-center w-1/3 rounded-l-xl dark:border-slate-700 border-slate-300 bg-sky-300 dark:bg-sky-400',
-                      value === 'Easy' ? 'border-0 opacity-100' : 'border-2 opacity-40'
-                    )}
-                  >
-                    <ButtonContainer
-                      style={tw`items-center self-stretch py-1.5`}
-                      onPress={() => {
-                        setValue('feedback', 'Easy')
-                        handleSubmit(onSubmit)
-                      }}
-                    >
-                      <PrimaryText>Easy</PrimaryText>
-                    </ButtonContainer>
-                  </View>
-                  <View
-                    style={tw.style(
-                      'items-center w-1/3 dark:border-slate-700 border-slate-300',
-                      value === 'Neutral' ? 'border-0 opacity-100' : 'border-2 opacity-40'
-                    )}
-                  >
-                    <ButtonContainer
-                      style={tw`items-center self-stretch py-1.5`}
-                      onPress={() => {
-                        setValue('feedback', 'Neutral')
-                        handleSubmit(onSubmit)
-                      }}
-                    >
-                      <PrimaryText>Neutral</PrimaryText>
-                    </ButtonContainer>
-                  </View>
-                  <View
-                    style={tw.style(
-                      'items-center w-1/3 dark:border-slate-700 border-slate-300 bg-red-300 rounded-r-xl dark:bg-red-400',
-                      value === 'Hard' ? 'border-0 opacity-100' : 'border-2 opacity-40'
-                    )}
-                  >
-                    <ButtonContainer
-                      style={tw`items-center self-stretch py-1.5`}
-                      onPress={() => {
-                        setValue('feedback', 'Hard')
-                        handleSubmit(onSubmit)
-                      }}
-                    >
-                      <PrimaryText>Hard</PrimaryText>
-                    </ButtonContainer>
-                  </View>
-                </Card>
+              render={({ field: { value } }) => (
+                <FeedbackSelectInput
+                  value={value}
+                  onSelect={feedback => {
+                    setValue('feedback', feedback)
+                    handleSubmit(onSubmit)
+                  }}
+                />
               )}
-              name="feedback"
             />
           )}
         </Animated.View>
