@@ -24,18 +24,22 @@ export default function Dashboard({ programs }: Props) {
       </HeaderLeftContainer>
       <SectionList
         keyExtractor={program => (program as Program).programId}
-        style={tw`flex-grow px-3 pb-9`}
+        style={tw`flex-grow px-3 py-9`}
         contentContainerStyle={tw`pb-48`}
         sections={[{ title: 'Workout Programs', data: programs }]}
         ListHeaderComponent={
           <PrimaryText style={tw`text-4xl font-bold tracking-tight pb-9`}>
-            Activity Log Tracker
+            {`Workout\nActivity Log Tracker`}
           </PrimaryText>
         }
         ListFooterComponent={
           <>
             {programs.length < 1 && (
               <>
+                <SecondaryText style={tw`pb-9 px-3 text-xs`}>
+                  Welcome! To get started, first create a new workout program, which will be used to
+                  track your workout sessions.
+                </SecondaryText>
                 <LinkButton to={{ screen: 'ProgramFormModal' }} style={tw``}>
                   <CardInfo
                     style={tw.style('rounded-xl')}
@@ -43,9 +47,6 @@ export default function Dashboard({ programs }: Props) {
                     reverse
                   />
                 </LinkButton>
-                <SecondaryText style={tw`pt-1.5 pl-3 text-xs`}>
-                  Add a new program to start planning workouts.
-                </SecondaryText>
               </>
             )}
             {programs.length > 0 &&

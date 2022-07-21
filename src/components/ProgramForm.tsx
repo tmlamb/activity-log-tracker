@@ -1,5 +1,4 @@
 import { AntDesign } from '@expo/vector-icons'
-import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { ScrollView } from 'react-native'
@@ -8,37 +7,33 @@ import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Program } from '../types'
 import { spaceReplace } from '../utils'
-import ButtonContainer from './ButtonContainer'
+import CancelButton from './CancelButton'
 import CardInfo from './CardInfo'
 import DoubleConfirm from './DoubleConfirm'
-import HeaderLeftContainer from './HeaderLeftContainer'
-import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
+import SaveButton from './SaveButton'
 import TextInput from './TextInput'
-import { AlertText, SpecialText } from './Typography'
+import { AlertText, SecondaryText } from './Typography'
 
 type Props = {
-  changeHandler: (program: Program) => void
   program?: Program
+  changeHandler: (program: Program) => void
   deleteHandler?: (programId: string) => void
+  goBack: () => void
 }
 
-type FormData = {
-  name: string
-}
-
-export default function ProgramForm({ changeHandler, program, deleteHandler }: Props) {
-  const navigation = useNavigation()
-
+export default function ProgramForm({ program, changeHandler, deleteHandler, goBack }: Props) {
+  type FormData = Pick<Program, 'name'>
   const {
     control,
     handleSubmit,
     formState: { errors }
   } = useForm<FormData>({
     defaultValues: {
-      name: (program && program.name) || ''
+      name: program?.name
     }
   })
+
   const onSubmit = (data: FormData) => {
     changeHandler(
       program
@@ -49,26 +44,15 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
             sessions: []
           }
     )
-    navigation.goBack()
+    goBack()
   }
+
+  const isEdit = !!program
 
   return (
     <>
-      <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`py-4 -my-4 px-4 -mr-4`}>
-          <SpecialText style={tw`font-bold`}>Save</SpecialText>
-        </ButtonContainer>
-      </HeaderRightContainer>
-      <HeaderLeftContainer>
-        <ButtonContainer
-          onPress={() => {
-            navigation.goBack()
-          }}
-          style={tw`py-4 -my-4 px-4 -ml-4`}
-        >
-          <SpecialText>Cancel</SpecialText>
-        </ButtonContainer>
-      </HeaderLeftContainer>
+      <SaveButton onPress={handleSubmit(onSubmit)} />
+      <CancelButton onPress={goBack} />
       <ScrollView style={tw`flex-grow py-9`}>
         <Controller
           name="name"
@@ -83,15 +67,19 @@ export default function ProgramForm({ changeHandler, program, deleteHandler }: P
               innerRef={ref}
               value={value}
               label="Program Name"
-              maxLength={25}
-              style={tw`mb-9`}
-              textInputStyle={tw`w-full`}
+              maxLength={24}
               error={errors.name ? 'Program Name is required' : undefined}
             />
           )}
         />
-        {program && deleteHandler && (
+        {!isEdit && (
+          <SecondaryText style={tw`text-xs px-3 pt-1.5`}>
+            {`Give your workout program a name, like 'Strength Training', 'Weightlifting', or 'Beach Bod 🏖️'`}
+          </SecondaryText>
+        )}
+        {isEdit && deleteHandler && (
           <DoubleConfirm
+            style={tw`mt-9`}
             first={<CardInfo style={tw``} alertText="Delete This Program" />}
             second={
               <LinkButton

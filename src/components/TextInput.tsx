@@ -121,7 +121,7 @@ export default function TextInput({
           entering={SlideInRight.springify().stiffness(40).damping(6).mass(0.3)}
           exiting={SlideOutRight.springify().stiffness(40).damping(6).mass(0.3)}
           style={[
-            tw.style('absolute items-center justify-center h-full -bottom-8 right-3', errorStyle)
+            tw.style('absolute items-center justify-center h-full -top-8 right-3', errorStyle)
           ]}
         >
           <AlertText style={tw`text-sm`}>{error}</AlertText>

@@ -14,7 +14,7 @@ export default function HeaderLeftContainer({ children }: Props) {
   )
   const navigation = useNavigation()
 
-  React.useLayoutEffect(() => {
+  React.useEffect(() => {
     navigation.setOptions({
       headerLeft: () => memoizedComponent
     })

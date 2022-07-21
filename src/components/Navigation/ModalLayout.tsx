@@ -7,7 +7,7 @@ import { primaryTextColor } from '../Typography'
 export default function ModalLayout({ children }: { children: React.ReactNode }) {
   const navigation = useNavigation()
 
-  React.useLayoutEffect(() => {
+  React.useEffect(() => {
     navigation.setOptions({
       headerStyle: tw`bg-white dark:bg-slate-900`,
       headerTitleStyle: tw.style(primaryTextColor),

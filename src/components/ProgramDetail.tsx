@@ -13,33 +13,6 @@ type Props = {
   program: Program
 }
 
-export function SessionFormLink({
-  programId,
-  sessionId
-}: {
-  programId: string
-  sessionId?: string
-}) {
-  return (
-    <LinkButton to={{ screen: 'SessionFormModal', params: { programId, sessionId } }}>
-      <CardInfo
-        style={tw.style('rounded-b-xl mb-6')}
-        leftIcon={
-          <SpecialText style={tw``}>
-            <AntDesign style={tw``} name="pluscircle" size={16} />
-            &nbsp;&nbsp;Plan Workout Session
-          </SpecialText>
-        }
-        specialText=" "
-        textStyle={tw``}
-      />
-    </LinkButton>
-  )
-}
-SessionFormLink.defaultProps = {
-  sessionId: undefined
-}
-
 export default function ProgramDetail({ program }: Props) {
   // We need to show the list of workout sessions grouped by date, so we first
   // convert the array of programs into a map where the key is the program date
@@ -47,6 +20,8 @@ export default function ProgramDetail({ program }: Props) {
   // callback will use 'Today' if the date is today, otherwise it will use the
   // number of weeks and days since the first session, e.g. 'Week 2, Day 4'.
   const sessions = mapSessionsByDate(program.sessions, program, formatDateByProgramWeek)
+  // _.map(sessions, )
+
   // The SectionList component expects an array of objects with a 'title' and
   // 'data' property. The 'title' property will be used as the section header
   // and the 'data' property will be used as the list of items in that section.
