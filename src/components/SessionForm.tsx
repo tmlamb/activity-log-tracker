@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native'
 import { add } from 'date-fns'
 import React, { useRef } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
-import { KeyboardAvoidingView, ScrollView, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native'
 import 'react-native-get-random-values'
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
@@ -148,7 +148,11 @@ export default function SessionForm({
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
-      <KeyboardAvoidingView style={tw`flex-1`} keyboardVerticalOffset={114} behavior="padding">
+      <KeyboardAvoidingView
+        style={tw`flex-1`}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 114 : 0}
+        behavior="padding"
+      >
         <ScrollView style={tw`flex-1 pt-9`} contentContainerStyle={tw`pb-48`}>
           {!session && sessions && sessions.length > 0 && (
             <Card style={tw`flex-row justify-evenly mb-9`}>
