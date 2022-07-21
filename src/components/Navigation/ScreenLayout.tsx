@@ -18,7 +18,7 @@ export default function ScreenLayout({ children }: { children: React.ReactNode }
 
   return (
     <View style={tw`flex-row justify-center flex-1 bg-slate-50 dark:bg-black`}>
-      <View style={tw`flex-1 max-w-2xl`}>{children}</View>
+      <View style={tw`flex-1 max-w-2xl android:mt-20`}>{children}</View>
     </View>
   )
 }

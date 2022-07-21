@@ -140,7 +140,6 @@ export default function SessionDetail({ program, session, exercises, changeHandl
       })),
     [session, exercises, program]
   )
-
   return (
     <>
       <HeaderRightContainer>

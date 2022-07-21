@@ -24,7 +24,7 @@ export default function Dashboard({ programs }: Props) {
       </HeaderLeftContainer>
       <SectionList
         keyExtractor={program => (program as Program).programId}
-        style={tw`flex-grow px-3 py-9`}
+        style={tw`flex-grow px-3 pb-9`}
         contentContainerStyle={tw`pb-48`}
         sections={[{ title: 'Workout Programs', data: programs }]}
         ListHeaderComponent={

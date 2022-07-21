@@ -150,7 +150,7 @@ export default function SessionForm({
       </HeaderLeftContainer>
       <KeyboardAvoidingView
         style={tw`flex-1`}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 114 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 114 : -225}
         behavior="padding"
       >
         <ScrollView style={tw`flex-1 pt-9`} contentContainerStyle={tw`pb-48`}>

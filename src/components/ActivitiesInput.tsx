@@ -230,7 +230,7 @@ export default function ActivitiesInput({
                   })) as WarmupSet[]
                 }
                 rules={{
-                  validate: value => !value || (value.length >= 0 && value.length <= 5)
+                  required: false
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
                   <TextInput
@@ -248,9 +248,9 @@ export default function ActivitiesInput({
                       )
                     }}
                     onBlur={onBlur}
-                    value={String(value.length)}
+                    value={value.length ? String(value.length) : undefined}
                     placeholder="0"
-                    maxLength={2}
+                    maxLength={1}
                     style={tw`py-0 border-b-2 border-l-2`}
                     textInputStyle={tw`pl-0 pr-6 pb-2.5 pt-3 text-right web:text-base`}
                     labelStyle={tw`px-2 web:text-base`}
