@@ -407,7 +407,7 @@ export default function ActivitiesInput({
         <CardInfo
           leftIcon={
             <ButtonContainer
-              style={tw`py-5 pr-14`}
+              style={tw`py-5 pr-64`}
               onPress={() =>
                 append({
                   activityId: uuidv4()

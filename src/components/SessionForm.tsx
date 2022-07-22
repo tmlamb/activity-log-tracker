@@ -124,7 +124,7 @@ export default function SessionForm({
       <HeaderRightContainer>
         <ButtonContainer
           onPress={handleSubmit(onSubmit)}
-          disabled={!fromType && !session}
+          disabled={!session && sessions && sessions.length > 0 && !fromType}
           style={tw`py-4 -my-4 px-4 -mr-4`}
         >
           <SpecialText style={tw`font-bold`}>Save</SpecialText>

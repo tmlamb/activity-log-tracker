@@ -90,31 +90,31 @@ export default function SessionDetail({ program, session, exercises, changeHandl
     [] as WorkoutSet[]
   )
 
-  // This process maps the workout set data by activity for the section list.
-  const sections: { title: string; data: WorkoutSetCardProps[] }[] = Array.from(
-    session.activities,
-    activity => ({
-      title: `${exercises.find(exercise => exercise.exerciseId === activity.exerciseId)!.name}`,
-      data: [
-        ...activity.warmupSets.map((workoutSet, index) => ({
+  // Map the Warmup/Main workout set data by activity for the section list.
+  const sections = _(session.activities)
+    .map<{ title: string; data: WorkoutSetCardProps[] }>((activity, index) => ({
+      title:
+        _.find(exercises, { exerciseId: activity.exerciseId })?.name || `Activity ${index + 1}`,
+      data: _.concat<WorkoutSetCardProps>(
+        _.map(activity.warmupSets, (workoutSet, i) => ({
           workoutSet,
           activity,
           session,
           program,
-          title: `${workoutSet.type} Set ${index + 1}`,
-          index
+          title: `Warmup Set ${i + 1}`,
+          index: i
         })),
-        ...activity.mainSets.map((workoutSet, index) => ({
+        _.map(activity.mainSets, (workoutSet, i) => ({
           workoutSet,
           activity,
           session,
           program,
-          title: `${workoutSet.type} Set ${index + 1}`,
-          index
+          title: `Main Set ${i + 1}`,
+          index: i
         }))
-      ]
-    })
-  )
+      )
+    }))
+    .value()
 
   return (
     <>
@@ -129,29 +129,27 @@ export default function SessionDetail({ program, session, exercises, changeHandl
           <SpecialText>Edit</SpecialText>
         </LinkButton>
       </HeaderRightContainer>
-      <SectionList
-        style={tw`flex-grow px-3 pt-9`}
-        sections={sections}
-        contentContainerStyle={tw`flex-grow pb-48`}
-        keyExtractor={item => `${item.workoutSet.workoutSetId}`}
-        ListHeaderComponent={
-          <>
-            {!workoutSetsPending.length &&
-              session.status === 'Ready' &&
-              session.activities.length > 0 && (
-                <ButtonContainer
-                  style={tw`mb-9`}
-                  onPress={() => {
-                    changeHandler(program.programId, {
-                      ...session,
-                      status: 'Done',
-                      end: new Date()
-                    })
-                  }}
-                >
-                  <CardInfo specialText="Complete Workout Session" style={tw`rounded-xl`} reverse />
-                </ButtonContainer>
-              )}
+      {!workoutSetsPending.length && session.status === 'Ready' && session.activities.length > 0 && (
+        <ButtonContainer
+          style={tw`px-3 pt-9`}
+          onPress={() => {
+            changeHandler(program.programId, {
+              ...session,
+              status: 'Done',
+              end: new Date()
+            })
+          }}
+        >
+          <CardInfo specialText="Complete Workout Session" style={tw`rounded-xl`} reverse />
+        </ButtonContainer>
+      )}
+      <Animated.View layout={Layout.duration(500)}>
+        <SectionList
+          style={tw`flex-grow px-3 pt-9`}
+          sections={sections}
+          contentContainerStyle={tw`flex-grow pb-48`}
+          keyExtractor={item => `${item.workoutSet.workoutSetId}`}
+          ListHeaderComponent={
             <Animated.View layout={Layout.duration(500)}>
               <CardInfo
                 style={tw.style('rounded-t-xl', !session.start ? 'rounded-b-xl' : 'border-b-2')}
@@ -177,17 +175,13 @@ export default function SessionDetail({ program, session, exercises, changeHandl
                 Planned Activities
               </PrimaryText>
             </Animated.View>
-          </>
-        }
-        renderSectionHeader={({ section: { title } }) => (
-          <Animated.View layout={Layout.duration(500)}>
+          }
+          renderSectionHeader={({ section: { title } }) => (
             <SecondaryText style={tw`pl-3 pb-1.5 uppercase font-bold text-sm`}>
               {title}
             </SecondaryText>
-          </Animated.View>
-        )}
-        renderItem={({ item, index: i }) => (
-          <Animated.View layout={Layout.duration(500)}>
+          )}
+          renderItem={({ item, index: i }) => (
             <WorkoutSetCard
               workoutSet={item.workoutSet}
               activity={item.activity}
@@ -196,10 +190,8 @@ export default function SessionDetail({ program, session, exercises, changeHandl
               title={item.title}
               index={i}
             />
-          </Animated.View>
-        )}
-        ListFooterComponent={
-          <Animated.View layout={Layout.duration(500)}>
+          )}
+          ListFooterComponent={
             <SecondaryText style={tw`pl-3 mt-1 text-xs`}>
               {session.activities.length < 1
                 ? "Before continuing with this workout session, use the 'Edit' button to add activities."
@@ -207,10 +199,10 @@ export default function SessionDetail({ program, session, exercises, changeHandl
                   session.status === 'Done' ||
                   "Use the 'Edit' button to add more activities to the workout session."}
             </SecondaryText>
-          </Animated.View>
-        }
-        nestedScrollEnabled
-      />
+          }
+          nestedScrollEnabled
+        />
+      </Animated.View>
     </>
   )
 }
