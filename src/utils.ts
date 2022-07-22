@@ -91,7 +91,8 @@ export const recentActivityByExercise = (
         (!activity ||
           (Math.abs(activity.mainSets.length - program.sessions[i].activities[j].mainSets.length) <
             2 &&
-            Math.abs(activity.reps - program.sessions[i].activities[j].reps) < 3))
+            Math.abs(activity.reps - program.sessions[i].activities[j].reps) < 3 &&
+            Math.abs(activity.load.value - program.sessions[i].activities[j].load.value) < 1))
       ) {
         return program.sessions[i].activities[j]
       }

@@ -1,5 +1,6 @@
 import { useNavigation } from '@react-navigation/native'
 import { add, subMinutes } from 'date-fns'
+import _ from 'lodash'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { ScrollView, View } from 'react-native'
@@ -132,7 +133,7 @@ export default function WorkoutSetDetail({
 
   const setArray = recentActivity?.[`${workoutSet.type === 'Warmup' ? 'warmupSets' : 'mainSets'}`]
 
-  const similarSet = setArray?.[workoutSetIndex]
+  const similarSet = setArray?.[workoutSetIndex] || _.last<WorkoutSet>(setArray)
 
   const weight = similarSet?.actualWeight?.value || 0
 
