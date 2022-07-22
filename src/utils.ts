@@ -89,9 +89,9 @@ export const recentActivityByExercise = (
         program.sessions[i].activities[j].exerciseId === exerciseId &&
         program.sessions[i].sessionId !== session?.sessionId &&
         (!activity ||
-          (activity.mainSets.length === program.sessions[i].activities[j].mainSets.length &&
-            activity.warmupSets.length === program.sessions[i].activities[j].warmupSets.length &&
-            activity.reps === program.sessions[i].activities[j].reps))
+          (Math.abs(activity.mainSets.length - program.sessions[i].activities[j].mainSets.length) <
+            2 &&
+            Math.abs(activity.reps - program.sessions[i].activities[j].reps) < 3))
       ) {
         return program.sessions[i].activities[j]
       }
