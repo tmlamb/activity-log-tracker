@@ -111,21 +111,15 @@ export default function WorkoutSetDetail({
 }: Props) {
   const navigation = useNavigation()
 
-  const warmupPercent = React.useMemo(
-    () =>
-      workoutSet.type === 'Warmup'
-        ? warmupPercentages[activity.warmupSets.length][
-            activity.warmupSets.indexOf(workoutSet as WarmupSet)
-          ]
-        : 0,
-    [activity.warmupSets, workoutSet]
-  )
+  const warmupPercent =
+    workoutSet.type === 'Warmup'
+      ? warmupPercentages[activity.warmupSets.length][
+          activity.warmupSets.indexOf(workoutSet as WarmupSet)
+        ]
+      : 0
 
-  const workPercent = React.useMemo(
-    () =>
-      workoutSet.type === 'Main' && activity.load.type === 'PERCENT' ? activity.load.value : 0,
-    [activity.load.type, activity.load.value, workoutSet.type]
-  )
+  const workPercent =
+    workoutSet.type === 'Main' && activity.load.type === 'PERCENT' ? activity.load.value : 0
 
   const workoutSetIndex =
     workoutSet.type === 'Warmup'
@@ -142,13 +136,9 @@ export default function WorkoutSetDetail({
 
   const weight = similarSet?.actualWeight?.value || 0
 
-  const targetWeight = React.useMemo(
-    () =>
-      exercise.oneRepMax
-        ? round5(exercise.oneRepMax.value * (warmupPercent || workPercent))
-        : weight,
-    [exercise.oneRepMax, warmupPercent, weight, workPercent]
-  )
+  const targetWeight = exercise.oneRepMax
+    ? round5(exercise.oneRepMax.value * (warmupPercent || workPercent))
+    : weight
 
   const { control, watch, handleSubmit, setValue } = useForm<WorkoutSet>({
     defaultValues: {
@@ -165,14 +155,12 @@ export default function WorkoutSetDetail({
     }
   })
 
-  const isStartable = React.useMemo<boolean>(
-    () =>
-      workoutSet.status === 'Planned' &&
-      [...activity.warmupSets, ...activity.mainSets].find(ws =>
-        ['Planned', 'Ready'].includes(ws.status)
-      )?.workoutSetId === workoutSet.workoutSetId,
-    [activity.mainSets, activity.warmupSets, workoutSet.status, workoutSet.workoutSetId]
-  )
+  const isStartable =
+    workoutSet.status === 'Planned' &&
+    [...activity.warmupSets, ...activity.mainSets].find(ws =>
+      ['Planned', 'Ready'].includes(ws.status)
+    )?.workoutSetId === workoutSet.workoutSetId
+
   const onSubmit = React.useCallback(
     (data: WorkoutSet) => {
       updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
@@ -199,14 +187,13 @@ export default function WorkoutSetDetail({
     const subscription = watch(() => handleSubmit(onSubmit)())
     return () => subscription.unsubscribe()
   }, [handleSubmit, onSubmit, watch])
+
   return (
     <ScrollView style={tw`flex-grow px-3 pt-9`} contentContainerStyle={tw`pb-48`}>
       {(isStartable && (
         <ButtonContainer
           style={tw`mb-9`}
           onPress={() => {
-            // setElapsedTimeSeconds(1) // Without this, the UI pauses at 0 and skips straight to 2.
-
             setValue('start', new Date())
             setValue('status', 'Ready')
             handleSubmit(onSubmit)

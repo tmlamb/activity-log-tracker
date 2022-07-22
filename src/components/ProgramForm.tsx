@@ -7,13 +7,14 @@ import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Program } from '../types'
 import { spaceReplace } from '../utils'
-import CancelButton from './CancelButton'
+import ButtonContainer from './ButtonContainer'
 import CardInfo from './CardInfo'
 import DoubleConfirm from './DoubleConfirm'
+import HeaderLeftContainer from './HeaderLeftContainer'
+import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
-import SaveButton from './SaveButton'
 import TextInput from './TextInput'
-import { AlertText, SecondaryText } from './Typography'
+import { AlertText, SecondaryText, SpecialText } from './Typography'
 
 type Props = {
   program?: Program
@@ -51,8 +52,16 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
 
   return (
     <>
-      <SaveButton onPress={handleSubmit(onSubmit)} />
-      <CancelButton onPress={goBack} />
+      <HeaderRightContainer>
+        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`px-4 py-4 -my-4 -mr-4`}>
+          <SpecialText style={tw`font-bold`}>Save</SpecialText>
+        </ButtonContainer>
+      </HeaderRightContainer>
+      <HeaderLeftContainer>
+        <ButtonContainer onPress={goBack} style={tw`px-4 py-4 -my-4 -ml-4`}>
+          <SpecialText>Cancel</SpecialText>
+        </ButtonContainer>
+      </HeaderLeftContainer>
       <ScrollView style={tw`flex-grow py-9`}>
         <Controller
           name="name"

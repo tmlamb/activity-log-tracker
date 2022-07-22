@@ -1,6 +1,5 @@
 import { AntDesign } from '@expo/vector-icons'
-import { useNavigation } from '@react-navigation/native'
-import { add } from 'date-fns'
+import { add, differenceInMinutes } from 'date-fns'
 import React, { useRef } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native'
@@ -29,19 +28,7 @@ type Props = {
   sessions?: Session[]
   exercises?: Exercise[]
   deleteHandler?: (programId: string, sessionId: string) => void
-}
-
-const dateToElapsedTime = (start: Date, end: Date) => {
-  const elapsedTimeSeconds = Math.ceil((end.getTime() - start.getTime()) / 1000)
-
-  return String(Math.floor(elapsedTimeSeconds / 60))
-}
-
-// Converts the percent string to it's numeric value. The old value is needed to detect the case where
-// the value to the left of the decimal is getting deleted.
-const elapsedTimeToEndDate = (start: Date, elapsedTime: string) => {
-  const endDate = add(start, { minutes: Number(elapsedTime) })
-  return endDate
+  goBack: () => void
 }
 
 export default function SessionForm({
@@ -50,10 +37,9 @@ export default function SessionForm({
   session,
   sessions,
   exercises,
-  deleteHandler
+  deleteHandler,
+  goBack
 }: Props) {
-  const navigation = useNavigation()
-
   const {
     control,
     watch,
@@ -68,6 +54,7 @@ export default function SessionForm({
       activities: (session && session.activities) || []
     }
   })
+
   const fieldArray = useFieldArray({
     control,
     name: 'activities'
@@ -96,7 +83,7 @@ export default function SessionForm({
             status: 'Planned'
           }
     )
-    navigation.goBack()
+    goBack()
   }
 
   const watchedName = watch('name')
@@ -131,20 +118,20 @@ export default function SessionForm({
       })
     }
   }, [fieldArray, sessionTemplate, setValue, watchedName])
+
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`py-4 -my-4 px-4 -mr-4`}>
+        <ButtonContainer
+          onPress={handleSubmit(onSubmit)}
+          disabled={!fromType && !session}
+          style={tw`py-4 -my-4 px-4 -mr-4`}
+        >
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
       <HeaderLeftContainer>
-        <ButtonContainer
-          style={tw`py-4 -my-4 px-4 -ml-4`}
-          onPress={() => {
-            navigation.goBack()
-          }}
-        >
+        <ButtonContainer style={tw`py-4 -my-4 px-4 -ml-4`} onPress={goBack}>
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
@@ -269,12 +256,14 @@ export default function SessionForm({
                     onChange(
                       (newValue &&
                         session.start &&
-                        elapsedTimeToEndDate(session.start, newValue)) ||
+                        add(session.start, { minutes: Number(newValue) })) ||
                         ''
                     )
                   }
                   onBlur={onBlur}
-                  value={value && session.start && dateToElapsedTime(session.start, value)}
+                  value={
+                    value && session.start && String(differenceInMinutes(value, session.start))
+                  }
                   maxLength={3}
                   style={tw`mb-9`}
                   textInputStyle={tw`web:w-1/4`}

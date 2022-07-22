@@ -1,4 +1,5 @@
 import { AntDesign } from '@expo/vector-icons'
+import _ from 'lodash'
 import React from 'react'
 import { SectionList } from 'react-native'
 import tw from '../tailwind'
@@ -23,8 +24,8 @@ export default function Dashboard({ programs }: Props) {
         </LinkButton>
       </HeaderLeftContainer>
       <SectionList
-        keyExtractor={program => (program as Program).programId}
-        style={tw`flex-grow px-3 py-9`}
+        keyExtractor={program => program.programId}
+        style={tw`flex-1 px-3 py-9`}
         contentContainerStyle={tw`pb-48`}
         sections={[{ title: 'Workout Programs', data: programs }]}
         ListHeaderComponent={
@@ -49,12 +50,11 @@ export default function Dashboard({ programs }: Props) {
                 </LinkButton>
               </>
             )}
-            {programs.length > 0 &&
-              programs.reduce((total, program) => total + program.sessions.length, 0) < 4 && (
-                <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
-                  Select a program to start planning workout sessions.
-                </SecondaryText>
-              )}
+            {programs.length > 0 && _.sumBy(programs, o => o.sessions.length) < 4 && (
+              <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
+                Select a program to start planning workout sessions.
+              </SecondaryText>
+            )}
           </>
         }
         renderSectionHeader={({ section: { title, data } }) => (

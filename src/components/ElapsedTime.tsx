@@ -1,3 +1,4 @@
+import { differenceInSeconds } from 'date-fns'
 import React from 'react'
 import tw from '../tailwind'
 import CardInfo from './CardInfo'
@@ -14,18 +15,12 @@ export default function ElapsedTime({
   showHours?: boolean
 }) {
   const [elapsedTimeSeconds, setElapsedTimeSeconds] = React.useState(
-    // eslint-disable-next-line no-nested-ternary
-    start
-      ? end
-        ? Math.ceil((end.getTime() - start.getTime()) / 1000)
-        : Math.ceil((Date.now() - start.getTime()) / 1000)
-      : 0
+    differenceInSeconds(end ? end.getTime() : Date.now(), start.getTime())
   )
 
   React.useEffect(() => {
     const timer = () => {
-      setElapsedTimeSeconds(Math.ceil((Date.now() - start.getTime()) / 1000))
-      //   setElapsedTimeSeconds(elapsedTimeSeconds + 1)
+      setElapsedTimeSeconds(differenceInSeconds(end ? end.getTime() : Date.now(), start.getTime()))
     }
 
     if (status === 'Ready' && start) {
@@ -34,8 +29,10 @@ export default function ElapsedTime({
         clearInterval(id)
       }
     }
+    setElapsedTimeSeconds(differenceInSeconds(end ? end.getTime() : Date.now(), start.getTime()))
+
     return undefined
-  }, [elapsedTimeSeconds, start, status])
+  }, [elapsedTimeSeconds, start, end, status])
 
   const formattedTime = showHours
     ? `${String(Math.floor(elapsedTimeSeconds / 60 / 60)).padStart(2, '0')}:${String(

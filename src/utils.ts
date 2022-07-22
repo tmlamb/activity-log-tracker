@@ -1,4 +1,4 @@
-import { isToday } from 'date-fns'
+import { daysToWeeks, differenceInCalendarDays, isToday } from 'date-fns'
 import { Activity, Load, Program, Session, Weight } from './types'
 
 // One day in milliseconds
@@ -20,21 +20,20 @@ export const mapSessionsByDate = (
   return map
 }
 
-export const formatDateByProgramWeek = (date: Date, program: Program) => {
-  const daysDiff =
-    program &&
-    program.sessions &&
-    program.sessions.length > 0 &&
-    program.sessions[0].start &&
-    program.sessions[0].start.getTime() < date.getTime()
-      ? Math.floor(
-          (date.getTime() - (program.sessions[0].start?.getTime() || new Date().getTime())) /
-            oneDayMilliseconds
-        )
-      : 0
-  const week = Math.floor(daysDiff / 7)
-  const day = daysDiff % 7
-  return `${week > 0 ? `Week ${week + 1}, ` : ''}Day ${day + 1}${isToday(date) ? ' (Today)' : ''}`
+export const weeksAndDaysBetween = (start: Date, end: Date) => {
+  const normalizedStart = new Date(
+    Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())
+  )
+  const normalizedEnd = new Date(
+    Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate())
+  )
+  const daysDiff = differenceInCalendarDays(normalizedEnd, normalizedStart)
+  return [daysToWeeks(daysDiff) + 1, (daysDiff % 7) + 1]
+}
+
+export const formatWeekAndDayKey = (start: Date, end: Date) => {
+  const [week, day] = weeksAndDaysBetween(start, end)
+  return `${week > 1 ? `Week ${week}, ` : ''}Day ${day}${isToday(end) ? ' (Today)' : ''}`
 }
 
 export const formatShortDateByProgramWeek = (date: Date, program: Program) => {

@@ -1,5 +1,6 @@
 import { AntDesign } from '@expo/vector-icons'
 import { format } from 'date-fns'
+import _ from 'lodash'
 import React from 'react'
 import { SectionList } from 'react-native'
 import Animated, { Layout } from 'react-native-reanimated'
@@ -11,13 +12,6 @@ import ElapsedTime from './ElapsedTime'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText } from './Typography'
-
-type Props = {
-  program: Program
-  session: Session
-  exercises: Exercise[]
-  changeHandler: (programId: string, session: Session) => void
-}
 
 type WorkoutSetCardProps = {
   workoutSet: WarmupSet | MainSet
@@ -75,45 +69,53 @@ function WorkoutSetCard({
   )
 }
 
+type Props = {
+  program: Program
+  session: Session
+  exercises: Exercise[]
+  changeHandler: (programId: string, session: Session) => void
+}
+
 export default function SessionDetail({ program, session, exercises, changeHandler }: Props) {
-  const workoutSetsPending = React.useMemo<WorkoutSet[]>(
-    () =>
-      session.activities.reduce((total, activity) => {
-        total.push(
-          ...[...activity.warmupSets, ...activity.mainSets].filter(
-            workoutSet => workoutSet.status !== 'Done'
-          )
+  const workoutSetsPending = _.reduce(
+    session.activities,
+    (result, activity) =>
+      _.concat(
+        result,
+        _.filter(
+          _.concat(activity.warmupSets as WorkoutSet[], activity.mainSets as WorkoutSet[]),
+          workoutSet => workoutSet.status !== 'Done'
         )
-        return total
-      }, [] as WorkoutSet[]),
-    [session.activities]
+      ),
+    [] as WorkoutSet[]
   )
+
   // This process maps the workout set data by activity for the section list.
-  const sections: { title: string; data: WorkoutSetCardProps[] }[] = React.useMemo(
-    () =>
-      Array.from(session.activities, activity => ({
-        title: `${exercises.find(exercise => exercise.exerciseId === activity.exerciseId)!.name}`,
-        data: [
-          ...activity.warmupSets.map((workoutSet, index) => ({
-            workoutSet,
-            activity,
-            session,
-            program,
-            title: `${workoutSet.type} Set ${index + 1}`,
-            index
-          })),
-          ...activity.mainSets.map((workoutSet, index) => ({
-            workoutSet,
-            activity,
-            session,
-            program,
-            title: `${workoutSet.type} Set ${index + 1}`,
-            index
-          }))
-        ]
-      })),
-    [session, exercises, program]
+  const sections: { title: string; data: WorkoutSetCardProps[] }[] = Array.from(
+    session.activities,
+    activity => ({
+      title: `${exercises.find(exercise => exercise.exerciseId === activity.exerciseId)!.name}`,
+      data: [
+        ...activity.warmupSets.map((workoutSet, index) => ({
+          workoutSet,
+          activity,
+          session,
+          program,
+          title: `${workoutSet.type} Set ${index + 1}`,
+          index
+        })),
+        ...activity.mainSets.map((workoutSet, index) => ({
+          workoutSet,
+          activity,
+          session,
+          program,
+          title: `${workoutSet.type} Set ${index + 1}`,
+          index
+        }))
+      ]
+    })
   )
+
   return (
     <>
       <HeaderRightContainer>
