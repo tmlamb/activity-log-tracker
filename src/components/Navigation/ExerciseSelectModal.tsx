@@ -7,12 +7,11 @@ import ModalLayout from './ModalLayout'
 import { RootStackScreenProps } from './types'
 
 export default function ExerciseSelectModal({
-  route
+  route: { params }
 }: RootStackScreenProps<'ExerciseSelectModal'>) {
   const availableExercises = useExerciseStore(state => state.exercises)
-  const usedExercises = useWorkoutStore(state => state.exercises)
-  const addExercise = useWorkoutStore(state => state.addExercise)
-  const { value, parentScreen, parentParams, modalSelectId } = route.params
+  const { exercises: usedExercises, addExercise } = useWorkoutStore(state => state)
+  const { value, parentScreen, parentParams, modalSelectId } = params
 
   return (
     <ModalLayout>

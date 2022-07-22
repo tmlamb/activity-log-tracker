@@ -1,14 +1,16 @@
+import _ from 'lodash'
 import React from 'react'
 import useWorkoutStore from '../../hooks/use-workout-store'
 import LoadForm from '../LoadForm'
 import ModalLayout from './ModalLayout'
 import { RootStackScreenProps } from './types'
 
-export default function LoadFormModal({ route }: RootStackScreenProps<'LoadFormModal'>) {
-  const { value, exerciseId, parentScreen, parentParams, modalSelectId } = route.params
-  const exercises = useWorkoutStore(store => store.exercises)
-  const exercise = exercises.find(e => e.exerciseId === exerciseId)
-  const updateExercise = useWorkoutStore(store => store.updateExercise)
+export default function LoadFormModal({
+  route: { params }
+}: RootStackScreenProps<'LoadFormModal'>) {
+  const { value, exerciseId, parentScreen, parentParams, modalSelectId } = params
+  const { exercises, updateExercise } = useWorkoutStore(store => store)
+  const exercise = _.find(exercises, { exerciseId })
 
   return (
     <ModalLayout>

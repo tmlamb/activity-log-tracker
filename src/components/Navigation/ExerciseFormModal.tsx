@@ -1,21 +1,18 @@
+import _ from 'lodash'
 import React from 'react'
 import useWorkoutStore from '../../hooks/use-workout-store'
 import ExerciseForm from '../ExerciseForm'
 import ModalLayout from './ModalLayout'
 import { RootStackScreenProps } from './types'
 
-export default function ExerciseFormModal({ route }: RootStackScreenProps<'ExerciseFormModal'>) {
+export default function ExerciseFormModal({
+  route: { params }
+}: RootStackScreenProps<'ExerciseFormModal'>) {
   // TODO: combine all these useWorkoutStores
-  const exercises = useWorkoutStore(state => state.exercises)
-  const updateExercise = useWorkoutStore(state => state.updateExercise)
-  const addExercise = useWorkoutStore(state => state.addExercise)
-  const deleteExercise = useWorkoutStore(state => state.deleteExercise)
-  const programs = useWorkoutStore(state => state.programs)
-  const exercise = route.params
-    ? exercises.find(p => p.exerciseId === route.params?.exerciseId)
-    : undefined
-
-  const name = route.params?.name
+  const { exercises, updateExercise, addExercise, deleteExercise, programs } = useWorkoutStore(
+    state => state
+  )
+  const exercise = _.find(exercises, { exerciseId: params.exerciseId })
 
   return (
     <ModalLayout>
@@ -28,7 +25,7 @@ export default function ExerciseFormModal({ route }: RootStackScreenProps<'Exerc
           exercises={exercises}
         />
       ) : (
-        <ExerciseForm changeHandler={addExercise} name={name} exercises={exercises} />
+        <ExerciseForm changeHandler={addExercise} name={params.name} exercises={exercises} />
       )}
     </ModalLayout>
   )
