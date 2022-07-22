@@ -5,6 +5,7 @@ import { ClassInput } from 'twrnc/dist/esm/types'
 import useWorkoutStore from '../hooks/use-workout-store'
 import tw from '../tailwind'
 import { Weight } from '../types'
+import { sumPlateWeights } from '../utils'
 import { SecondaryText } from './Typography'
 
 type Props = {
@@ -52,20 +53,23 @@ export default function PlateChart({ style, totalWeight }: Props) {
   ])
 
   return (
-    <View style={tw.style(style)}>
-      {platesPerSide.length > 0 && (
-        <Animated.View entering={FadeIn.duration(500)} exiting={FadeOut.duration(500)}>
-          <SecondaryText style={tw`text-sm`}>Barbell Configuration:</SecondaryText>
-        </Animated.View>
-      )}
-      {platesPerSide.map((plate, index) => (
-        // eslint-disable-next-line react/no-array-index-key
-        <Plate key={`${plate.value}.${index}`} weight={plate} />
-      ))}
+    <View>
+      {platesPerSide.length > 0 &&
+        sumPlateWeights(platesPerSide) * 2 + equipment.barbellWeight.value ===
+          totalWeight.value && (
+          <View style={tw.style(style)}>
+            <Animated.View entering={FadeIn.duration(500)} exiting={FadeOut.duration(500)}>
+              <SecondaryText style={tw`text-sm`}>Barbell Configuration:</SecondaryText>
+            </Animated.View>
+            {platesPerSide.map((plate, index) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <Plate key={`${plate.value}.${index}`} weight={plate} />
+            ))}
+          </View>
+        )}
     </View>
   )
 }
-
 PlateChart.defaultProps = {
   style: undefined
 }

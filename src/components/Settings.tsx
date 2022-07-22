@@ -21,6 +21,17 @@ export default function Settings() {
           style={tw.style('rounded-t-xl border-b-2')}
         />
       </LinkButton>
+      <LinkButton to={{ screen: 'EquipmentSettingsScreen' }} style={tw``}>
+        <CardInfo
+          rightIcon={
+            <SecondaryText>
+              <AntDesign name="setting" size={24} />
+            </SecondaryText>
+          }
+          primaryText="Manage Equipment"
+          style={tw.style('border-b-2')}
+        />
+      </LinkButton>
       <LinkButton to={{ screen: 'ProgramSettingsScreen' }} style={tw``}>
         <CardInfo
           rightIcon={

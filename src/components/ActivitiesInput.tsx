@@ -206,10 +206,7 @@ export default function ActivitiesInput({
                   />
                 )}
               />
-              <ButtonContainer
-                style={tw`top-1 left-2 p-1   absolute`}
-                onPress={() => remove(index)}
-              >
+              <ButtonContainer style={tw`top-1 left-2 p-1 absolute`} onPress={() => remove(index)}>
                 <AlertText style={tw``}>
                   <AntDesign name="minuscircle" size={15} />
                 </AlertText>

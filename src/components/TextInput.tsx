@@ -120,11 +120,12 @@ export default function TextInput({
         <Animated.View
           entering={SlideInRight.springify().stiffness(40).damping(6).mass(0.3)}
           exiting={SlideOutRight.springify().stiffness(40).damping(6).mass(0.3)}
+          pointerEvents="none"
           style={[
             tw.style('absolute items-center justify-center h-full -top-8 right-3', errorStyle)
           ]}
         >
-          <AlertText style={tw`text-sm`}>{error}</AlertText>
+          <AlertText style={tw`text-xs`}>{error}</AlertText>
         </Animated.View>
       )}
     </Card>

@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React from 'react'
 import tw from '../../tailwind'
 import DashboardScreen from './DashboardScreen'
+import EquipmentSettingsScreen from './EquipmentSettingsScreen'
 import ExerciseFormModal from './ExerciseFormModal'
 import ExerciseSelectModal from './ExerciseSelectModal'
 import ExerciseSettingsScreen from './ExerciseSettingsScreen'
@@ -74,6 +75,11 @@ export default function Navigation() {
           name="ProgramSettingsScreen"
           component={ProgramSettingsScreen}
           options={{ title: 'Manage Programs' }}
+        />
+        <AppStack.Screen
+          name="EquipmentSettingsScreen"
+          component={EquipmentSettingsScreen}
+          options={{ title: 'Manage Equipment' }}
         />
         <AppStack.Screen
           name="ProgramFiguresScreen"
