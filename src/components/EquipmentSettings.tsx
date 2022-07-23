@@ -69,6 +69,10 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
         behavior="padding"
       >
         <ScrollView style={tw`flex-grow px-3`} contentContainerStyle={tw`pb-48`}>
+          <SecondaryText style={tw`text-xs mt-9 px-3 mb-1.5`}>
+            These settings will be used by the Barbell Configuration hints when performing sets
+            during workouts.
+          </SecondaryText>
           <Controller
             name="barbellWeight"
             control={control}
@@ -88,7 +92,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                 value={value ? String(value.value) : undefined}
                 placeholder="0"
                 maxLength={3}
-                style={tw`rounded-xl my-9`}
+                style={tw`rounded-xl mb-6`}
                 textInputStyle={tw`text-right web:text-base`}
                 labelStyle={tw`web:text-base`}
                 keyboardType="number-pad"
@@ -97,7 +101,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
               />
             )}
           />
-          <SecondaryText style={tw`text-sm px-3 pb-1.5`}>Plate Pairs</SecondaryText>
+          <SecondaryText style={tw`text-sm px-3 pb-1.5`}>Plate Pairs (2x each)</SecondaryText>
           {fields.map((item, index) => (
             <Animated.View
               key={uuidv4()}
@@ -129,7 +133,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                       onBlur={onBlur}
                       value={String(value)}
                       placeholder="0"
-                      maxLength={3}
+                      maxLength={4}
                       style={tw.style('py-0 border-b-2', index === 0 ? 'rounded-t-xl' : undefined)}
                       textInputStyle={tw`pl-0 py-2.5 pr-6 text-right web:text-base`}
                       labelStyle={tw`pl-9 web:text-base`}

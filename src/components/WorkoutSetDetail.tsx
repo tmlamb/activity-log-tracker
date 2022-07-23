@@ -292,7 +292,41 @@ export default function WorkoutSetDetail({
         <Animated.View
           entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
           exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+          style={tw`mt-9`}
         >
+          {(targetWeight === 0 && workoutSet.type === 'Warmup' && (
+            <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
+              {`Future workout sessions will prepopulate Actual Weight with the values from previous similar sets, if available, based on:\
+               \n\t- Target Load\
+                \n\t- Target Reps\
+                 \n\t- Number of Planned Main Sets`}
+            </SecondaryText>
+          )) ||
+            (workoutSet.type === 'Main' && program.sessions.length < 4 && (
+              <>
+                <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
+                  Try to find a weight that will cause you to meet the target RPE. Recall:
+                </SecondaryText>
+                <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
+                  <SecondaryText style={tw`mb-0 text-xs`}>
+                    10 - another rep would have been impossible
+                  </SecondaryText>
+                </View>
+                <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
+                  <SecondaryText style={tw`mb-0 text-xs`}>
+                    9 - you left one in the tank
+                  </SecondaryText>
+                </View>
+                <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
+                  <SecondaryText style={tw`mb-0 text-xs`}>
+                    8 - you could have done a couple more
+                  </SecondaryText>
+                </View>
+                <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
+                  <SecondaryText style={tw`mb-1.5 text-xs`}>etc...</SecondaryText>
+                </View>
+              </>
+            ))}
           <Controller
             control={control}
             rules={{
@@ -315,7 +349,7 @@ export default function WorkoutSetDetail({
                 value={value ? String(value.value) : undefined}
                 placeholder="0"
                 maxLength={4}
-                style={tw`border-b-2 rounded-t-xl mt-9`}
+                style={tw`border-b-2 rounded-t-xl`}
                 textInputStyle={tw`text-right web:text-base`}
                 labelStyle={tw`web:text-base`}
                 keyboardType="number-pad"
