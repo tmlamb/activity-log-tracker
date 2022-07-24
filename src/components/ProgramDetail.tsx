@@ -6,9 +6,9 @@ import { SectionList } from 'react-native'
 import tw from '../tailwind'
 import { Program, Session } from '../types'
 import { formatWeekAndDayKey, normalizedLocalDate } from '../utils'
-import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
+import { ThemedView } from './Themed'
 import { PrimaryText, SecondaryText, SpecialText } from './Typography'
 
 type Props = {
@@ -28,6 +28,7 @@ export default function ProgramDetail({ program }: Props) {
     .value()
 
   if (
+    sections.length > 0 &&
     differenceInCalendarDays(
       normalizedLocalDate(new Date()),
       normalizedLocalDate(sections?.[sections.length - 1]?.data?.[0]?.start || new Date())
@@ -41,7 +42,6 @@ export default function ProgramDetail({ program }: Props) {
     })
   }
   sections.reverse() // Reverse to show most recent at the top.
-
   return (
     <>
       <HeaderRightContainer>
@@ -56,8 +56,8 @@ export default function ProgramDetail({ program }: Props) {
       </HeaderRightContainer>
       {sections && sections.length > 0 && (
         <SectionList
-          style={tw`flex-grow pt-9 px-3`}
-          contentContainerStyle={tw`pb-48`}
+          style={tw`flex-grow px-3`}
+          contentContainerStyle={tw`pb-48 pt-9`}
           scrollEnabled={program.sessions.length > 4}
           sections={sections}
           keyExtractor={(session, index) =>
@@ -65,7 +65,10 @@ export default function ProgramDetail({ program }: Props) {
           }
           ListHeaderComponent={
             <>
-              <CardInfo style={tw`rounded-xl`} primaryText="Program" secondaryText={program.name} />
+              <ThemedView rounded>
+                <PrimaryText>Program</PrimaryText>
+                <SecondaryText>{program.name}</SecondaryText>
+              </ThemedView>
               <PrimaryText style={tw`font-semibold text-xl mt-9 ml-1.5 mb-2.5`}>
                 Workout Sessions
               </PrimaryText>
@@ -79,14 +82,12 @@ export default function ProgramDetail({ program }: Props) {
               {!item && (
                 <>
                   <LinkButton
+                    style={tw`mb-6`}
                     to={{ screen: 'SessionFormModal', params: { programId: program.programId } }}
                   >
-                    <CardInfo
-                      style={tw.style('rounded-xl mb-6')}
-                      specialText="Plan Workout Session"
-                      textStyle={tw``}
-                      reverse
-                    />
+                    <ThemedView rounded style={tw``}>
+                      <SpecialText>Plan Workout Session</SpecialText>
+                    </ThemedView>
                   </LinkButton>
                   {program.sessions.length < 1 && (
                     <SecondaryText style={tw`pl-3 -mt-4 text-xs`}>
@@ -105,7 +106,7 @@ export default function ProgramDetail({ program }: Props) {
                     }
                   }}
                 >
-                  <CardInfo
+                  <ThemedView
                     style={tw.style(
                       'border-b-2',
                       index === 0 ? 'rounded-t-xl' : undefined,
@@ -113,25 +114,22 @@ export default function ProgramDetail({ program }: Props) {
                         ? 'rounded-b-xl border-b-0 mb-6'
                         : undefined
                     )}
-                    primaryText={item.name}
-                    centeredText={
-                      item.start && item.end
+                  >
+                    <PrimaryText>{item.name}</PrimaryText>
+                    <SecondaryText>
+                      {item.start && item.end
                         ? `${Math.ceil(
                             (item.end.getTime() - item.start.getTime()) / 1000 / 60
                           )} min`
-                        : undefined
-                    }
-                    secondaryText={
-                      // eslint-disable-next-line no-nested-ternary
-                      ['Planned', 'Done'].includes(item.status) ? item.status : undefined
-                    }
-                    specialText={item.status === 'Ready' ? item.status : undefined}
-                    rightIcon={
-                      <SecondaryText>
-                        <AntDesign name="right" size={16} />
-                      </SecondaryText>
-                    }
-                  />
+                        : undefined}
+                    </SecondaryText>
+                    {(item.status === 'Ready' && (
+                      <SpecialText style={tw`pr-5`}>{item.status}</SpecialText>
+                    )) || <SecondaryText style={tw`pr-5`}>{item.status}</SecondaryText>}
+                    <SecondaryText style={tw`absolute right-2`}>
+                      <AntDesign name="right" size={16} />
+                    </SecondaryText>
+                  </ThemedView>
                 </LinkButton>
               )}
               {section.title.includes('Today') && index === section.data.length - 1 && item && (
@@ -141,12 +139,9 @@ export default function ProgramDetail({ program }: Props) {
                     params: { programId: program.programId }
                   }}
                 >
-                  <CardInfo
-                    style={tw.style('rounded-b-xl mb-6')}
-                    specialText="Plan Workout Session"
-                    textStyle={tw``}
-                    reverse
-                  />
+                  <ThemedView style={tw`rounded-b-xl mb-6`}>
+                    <SpecialText>Plan Workout Session</SpecialText>
+                  </ThemedView>
                 </LinkButton>
               )}
             </>

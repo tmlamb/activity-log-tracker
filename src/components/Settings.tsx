@@ -1,6 +1,6 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
-import { ScrollView } from 'react-native'
+import { View } from 'react-native'
 import tw from '../tailwind'
 import CardInfo from './CardInfo'
 import LinkButton from './LinkButton'
@@ -9,7 +9,7 @@ import { SecondaryText } from './Typography'
 export default function Settings() {
   return (
     // Make this a list view
-    <ScrollView style={tw`flex-grow px-3 pt-9 pb-36`}>
+    <View style={tw`flex-grow px-3 pt-9 pb-36`}>
       <LinkButton to={{ screen: 'ExerciseSettingsScreen' }} style={tw``}>
         <CardInfo
           rightIcon={
@@ -43,6 +43,6 @@ export default function Settings() {
           style={tw.style('rounded-b-xl')}
         />
       </LinkButton>
-    </ScrollView>
+    </View>
   )
 }

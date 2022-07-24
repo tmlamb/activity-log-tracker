@@ -4,10 +4,9 @@ import React from 'react'
 import { SectionList } from 'react-native'
 import tw from '../tailwind'
 import { Program } from '../types'
-import CardInfo from './CardInfo'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import LinkButton from './LinkButton'
-import { PrimaryText, SecondaryText, SpecialText } from './Typography'
+import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type Props = {
   programs: Program[]
@@ -17,7 +16,7 @@ export default function Dashboard({ programs }: Props) {
   return (
     <>
       <HeaderLeftContainer>
-        <LinkButton to={{ screen: 'SettingsScreen' }} style={tw`py-6 pl-3 pr-8 -my-6 -ml-4`}>
+        <LinkButton to={{ screen: 'SettingsScreen' }} style={tw`py-6 pl-2.5 pr-8 -my-6 -ml-4`}>
           <SpecialText>
             <AntDesign name="setting" size={24} />
           </SpecialText>
@@ -25,8 +24,9 @@ export default function Dashboard({ programs }: Props) {
       </HeaderLeftContainer>
       <SectionList
         keyExtractor={program => program.programId}
-        style={tw`flex-1 px-3 py-9`}
-        contentContainerStyle={tw`pb-48`}
+        style={tw`flex-1 px-3`}
+        contentContainerStyle={tw`pb-48 pt-9`}
+        scrollEnabled={programs.length > 5}
         sections={[{ title: 'Workout Programs', data: programs }]}
         ListHeaderComponent={
           <PrimaryText style={tw`text-4xl font-bold tracking-tight pb-9`}>
@@ -42,11 +42,9 @@ export default function Dashboard({ programs }: Props) {
                   track your workout sessions.
                 </SecondaryText>
                 <LinkButton to={{ screen: 'ProgramFormModal' }} style={tw``}>
-                  <CardInfo
-                    style={tw.style('rounded-xl')}
-                    specialText="Create Workout Program"
-                    reverse
-                  />
+                  <ThemedView rounded>
+                    <SpecialText>Create Workout Program</SpecialText>
+                  </ThemedView>
                 </LinkButton>
               </>
             )}
@@ -69,19 +67,18 @@ export default function Dashboard({ programs }: Props) {
               params: { programId: item.programId }
             }}
           >
-            <CardInfo
+            <ThemedView
               style={tw.style(
                 'border-b-2',
                 index === 0 ? 'rounded-t-xl' : undefined,
                 index === section.data.length - 1 ? 'rounded-b-xl border-b-0' : undefined
               )}
-              primaryText={item.name}
-              rightIcon={
-                <SecondaryText>
-                  <AntDesign name="right" size={16} />
-                </SecondaryText>
-              }
-            />
+            >
+              <PrimaryText>{item.name}</PrimaryText>
+              <SecondaryText style={tw`absolute right-2`}>
+                <AntDesign style={tw``} name="right" size={16} />
+              </SecondaryText>
+            </ThemedView>
           </LinkButton>
         )}
       />

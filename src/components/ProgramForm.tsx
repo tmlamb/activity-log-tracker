@@ -1,19 +1,18 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { ScrollView } from 'react-native'
+import { View } from 'react-native'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Program } from '../types'
 import { spaceReplace } from '../utils'
 import ButtonContainer from './ButtonContainer'
-import CardInfo from './CardInfo'
 import DoubleConfirm from './DoubleConfirm'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
-import TextInput from './TextInput'
+import { ThemedTextInput, ThemedView } from './Themed'
 import { AlertText, SecondaryText, SpecialText } from './Typography'
 
 type Props = {
@@ -53,16 +52,16 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`px-4 py-4 -my-4 -mr-4`}>
+        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw``}>
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
       <HeaderLeftContainer>
-        <ButtonContainer onPress={goBack} style={tw`px-4 py-4 -my-4 -ml-4`}>
+        <ButtonContainer onPress={goBack} style={tw``}>
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
-      <ScrollView style={tw`flex-grow py-9`}>
+      <View style={tw`flex-1 pt-9`}>
         <Controller
           name="name"
           control={control}
@@ -70,13 +69,13 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
             required: true
           }}
           render={({ field: { onChange, ref, onBlur, value } }) => (
-            <TextInput
+            <ThemedTextInput
               onChangeText={onChange}
               onBlur={onBlur}
               innerRef={ref}
               value={value}
               label="Program Name"
-              maxLength={24}
+              maxLength={33}
               error={errors.name ? 'Program Name is required' : undefined}
             />
           )}
@@ -89,7 +88,11 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
         {isEdit && deleteHandler && (
           <DoubleConfirm
             style={tw`mt-9`}
-            first={<CardInfo style={tw``} alertText="Delete This Program" />}
+            first={
+              <ThemedView>
+                <AlertText>Delete This Program</AlertText>
+              </ThemedView>
+            }
             second={
               <LinkButton
                 to={{ screen: 'DashboardScreen' }}
@@ -102,7 +105,7 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
             }
           />
         )}
-      </ScrollView>
+      </View>
     </>
   )
 }
