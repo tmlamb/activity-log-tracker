@@ -100,7 +100,7 @@ export default function ModalSelectInput<
         disabled={disabled}
       >
         <CardInfo
-          style={tw.style(style)}
+          style={tw.style('py-3', style)}
           textStyle={tw.style(textStyle)}
           primaryText={!labelPosition || labelPosition === 'left' ? label : undefined}
           centeredText={labelPosition === 'center' ? label : undefined}

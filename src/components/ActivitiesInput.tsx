@@ -249,7 +249,7 @@ export default function ActivitiesInput({
                     placeholder="0"
                     maxLength={1}
                     style={tw`py-0 border-b-2 border-l-2`}
-                    textInputStyle={tw`pl-0 pr-6 pb-2.5 pt-3 text-right web:text-base`}
+                    textInputStyle={tw`pl-0 pr-6 py-2.5 text-right web:text-base`}
                     labelStyle={tw`px-2 web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
@@ -381,7 +381,7 @@ export default function ActivitiesInput({
                 render={({ field: { onChange, value } }) => (
                   <ModalSelectInput
                     label="Load"
-                    style={tw`py-2 pl-2 pr-2 border-l-2`}
+                    style={tw`py-2.5 pl-2 pr-2 border-l-2`}
                     value={value && stringifyLoad(value)}
                     textStyle={tw`web:text-base`}
                     modalScreen="LoadFormModal"
@@ -404,7 +404,7 @@ export default function ActivitiesInput({
         <CardInfo
           leftIcon={
             <ButtonContainer
-              style={tw`py-3 pr-64`}
+              style={tw`py-2 pr-64`}
               onPress={() =>
                 append({
                   activityId: uuidv4()
@@ -418,7 +418,7 @@ export default function ActivitiesInput({
             </ButtonContainer>
           }
           textStyle={tw``}
-          style={tw`py-5`}
+          style={tw`py-[21.35px]`}
         />
       </Animated.View>
     </View>

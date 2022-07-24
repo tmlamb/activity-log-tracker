@@ -8,11 +8,11 @@ import { RootStackScreenProps } from './types'
 export default function ProgramFiguresScreen({
   route
 }: RootStackScreenProps<'ProgramFiguresScreen'>) {
-  const programs = useWorkoutStore(state => state.programs)
+  const { programs, exercises } = useWorkoutStore(state => state)
   const program = programs.find(p => p.programId === route.params.programId)
   return (
     <ScreenLayout>
-      <View>{program && <ProgramFigures program={program} />}</View>
+      <View>{program && <ProgramFigures program={program} exercises={exercises} />}</View>
     </ScreenLayout>
   )
 }

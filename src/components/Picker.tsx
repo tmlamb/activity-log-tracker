@@ -36,16 +36,14 @@ export default function Picker({
   return (
     <Card
       style={tw.style(
-        'relative py-2.5 web:p-0 web:flex-row web:justify-between web:items-center',
+        'relative py-[9.35px] web:p-0 justify-center web:flex-row web:justify-between web:items-center',
         style,
         {
           cursor: 'pointer'
         }
       )}
     >
-      <PrimaryText style={tw`absolute pt-2 pl-4 web:relative web:w-1/3 web:pl-0`}>
-        {label}
-      </PrimaryText>
+      <PrimaryText style={tw`absolute left-3 web:relative web:w-1/3 web:pl-0`}>{label}</PrimaryText>
       <View>
         <RNPickerSelect
           placeholder={{ inputLabel: 'Select', key: -1 }}

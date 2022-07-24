@@ -176,7 +176,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                 </ButtonContainer>
               }
               textStyle={tw``}
-              style={tw.style('py-5', fields.length === 0 ? 'rounded-xl' : 'rounded-b-xl')}
+              style={tw.style('py-[21.35]', fields.length === 0 ? 'rounded-xl' : 'rounded-b-xl')}
             />
           </Animated.View>
         </ScrollView>

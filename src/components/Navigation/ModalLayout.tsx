@@ -19,7 +19,7 @@ export default function ModalLayout({ children }: { children: React.ReactNode })
 
   return (
     <View style={tw`flex-row justify-center flex-1 bg-white dark:bg-slate-900`}>
-      <View style={tw`flex-1 max-w-2xl android:mt-20`}>{children}</View>
+      <View style={tw`flex-1 max-w-2xl`}>{children}</View>
     </View>
   )
 }
