@@ -20,14 +20,11 @@ export const mapSessionsByDate = (
   return map
 }
 
+export const normalizedLocalDate = (date: Date) =>
+  new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+
 export const weeksAndDaysBetween = (start: Date, end: Date) => {
-  const normalizedStart = new Date(
-    Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())
-  )
-  const normalizedEnd = new Date(
-    Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate())
-  )
-  const daysDiff = differenceInCalendarDays(normalizedEnd, normalizedStart)
+  const daysDiff = differenceInCalendarDays(normalizedLocalDate(end), normalizedLocalDate(start))
   return [daysToWeeks(daysDiff) + 1, (daysDiff % 7) + 1]
 }
 

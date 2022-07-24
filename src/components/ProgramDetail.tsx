@@ -1,11 +1,11 @@
 import { AntDesign } from '@expo/vector-icons'
-import { isToday } from 'date-fns'
+import { differenceInCalendarDays } from 'date-fns'
 import _ from 'lodash'
 import React from 'react'
 import { SectionList } from 'react-native'
 import tw from '../tailwind'
 import { Program, Session } from '../types'
-import { formatWeekAndDayKey } from '../utils'
+import { formatWeekAndDayKey, normalizedLocalDate } from '../utils'
 import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
@@ -27,15 +27,11 @@ export default function ProgramDetail({ program }: Props) {
     .map((data, title) => ({ title, data }))
     .value()
 
-  console.log(sections[sections.length - 1])
-  console.log('11111', sections?.[sections.length - 1]?.data?.[0]?.start)
   if (
-    sections &&
-    sections[sections.length - 1] &&
-    sections[sections.length - 1].data &&
-    sections[sections.length - 1].data[0] &&
-    (!sections[sections.length - 1].data[0]?.start ||
-      isToday(sections?.[sections.length - 1]?.data?.[0]?.start))
+    differenceInCalendarDays(
+      normalizedLocalDate(new Date()),
+      normalizedLocalDate(sections?.[sections.length - 1]?.data?.[0]?.start || new Date())
+    ) === 0
   ) {
     sections[sections.length - 1].title += ' (Today)'
   } else {
