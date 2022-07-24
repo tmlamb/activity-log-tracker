@@ -1,5 +1,4 @@
 import { AntDesign } from '@expo/vector-icons'
-import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { ScrollView } from 'react-native'
@@ -37,8 +36,6 @@ export default function ExerciseForm({
   exercises,
   goBack
 }: Props) {
-  const navigation = useNavigation()
-
   const {
     control,
     handleSubmit,
@@ -83,7 +80,7 @@ export default function ExerciseForm({
             exerciseId: uuidv4()
           }
     )
-    navigation.goBack()
+    goBack()
   }
 
   return (
@@ -94,11 +91,7 @@ export default function ExerciseForm({
         </ButtonContainer>
       </HeaderRightContainer>
       <HeaderLeftContainer>
-        <ButtonContainer
-          onPress={() => {
-            navigation.goBack()
-          }}
-        >
+        <ButtonContainer onPress={goBack}>
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
