@@ -8,8 +8,7 @@ import { Program, Session } from '../types'
 import { formatWeekAndDayKey, normalizedLocalDate } from '../utils'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
-import { ThemedView } from './Themed'
-import { PrimaryText, SecondaryText, SpecialText } from './Typography'
+import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type Props = {
   program: Program
@@ -56,8 +55,7 @@ export default function ProgramDetail({ program }: Props) {
       </HeaderRightContainer>
       {sections && sections.length > 0 && (
         <SectionList
-          style={tw`flex-grow px-3`}
-          contentContainerStyle={tw`pb-48 pt-9`}
+          contentContainerStyle={tw`pb-48 pt-9 px-3`}
           scrollEnabled={program.sessions.length > 4}
           sections={sections}
           keyExtractor={(session, index) =>

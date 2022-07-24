@@ -7,7 +7,8 @@ import ModalLayout from './ModalLayout'
 import { RootStackScreenProps } from './types'
 
 export default function ExerciseSelectModal({
-  route: { params }
+  route: { params },
+  navigation: { goBack }
 }: RootStackScreenProps<'ExerciseSelectModal'>) {
   const availableExercises = useExerciseStore(state => state.exercises)
   const { exercises: usedExercises, addExercise } = useWorkoutStore(state => state)
@@ -23,6 +24,7 @@ export default function ExerciseSelectModal({
         parentScreen={parentScreen}
         parentParams={parentParams}
         modalSelectId={modalSelectId}
+        goBack={goBack}
       />
     </ModalLayout>
   )

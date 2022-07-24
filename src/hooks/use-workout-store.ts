@@ -4,6 +4,596 @@ import create from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Activity, Equipment, Exercise, Program, Session, WorkoutSet } from '../types'
 
+AsyncStorage.removeItem('workout-storage')
+const mockPrograms: Program[] = [
+  {
+    name: 'Strength',
+    sessions: [
+      {
+        name: 'Chest',
+        sessionId: '1',
+        start: new Date('2022-04-01T04:22:30.000Z'),
+        end: new Date('2022-04-01T05:21:30.000Z'),
+        status: 'Done',
+        activities: [
+          {
+            activityId: '1',
+            reps: 5,
+            load: {
+              value: 8,
+              type: 'RPE'
+            },
+            rest: 3,
+            exerciseId: '1',
+            warmupSets: [
+              {
+                workoutSetId: '1',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '2',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '3',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
+              }
+            ],
+            mainSets: [
+              {
+                workoutSetId: '4',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '5',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '6',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
+              }
+            ]
+          }
+        ]
+      },
+
+      {
+        name: 'Chest',
+        sessionId: '331',
+        start: new Date('2022-04-01T05:22:30.000Z'),
+        end: new Date('2022-04-01T06:21:30.000Z'),
+        status: 'Done',
+        activities: [
+          {
+            activityId: '1',
+            reps: 5,
+            load: {
+              value: 8,
+              type: 'RPE'
+            },
+            rest: 3,
+            exerciseId: '1',
+            warmupSets: [
+              {
+                workoutSetId: '1',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '2',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '3',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
+              }
+            ],
+            mainSets: [
+              {
+                workoutSetId: '4',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '5',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '6',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-01T04:22:30.000Z'),
+                end: new Date('2022-04-01T05:21:30.000Z'),
+                feedback: 'Neutral'
+              }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'Chest',
+        sessionId: '2122',
+        start: new Date('2022-04-08T01:00:00.000Z'),
+        end: new Date('2022-04-08T01:21:30.000Z'),
+        status: 'Done',
+        activities: [
+          {
+            activityId: '22',
+            reps: 5,
+            load: {
+              value: 0.775,
+              type: 'PERCENT'
+            },
+            rest: 3,
+            exerciseId: '12',
+            warmupSets: [
+              {
+                workoutSetId: '122',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-08T01:00:00.000Z'),
+                end: new Date('2022-04-08T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '22',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-08T01:00:00.000Z'),
+                end: new Date('2022-04-08T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '33',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-08T01:00:00.000Z'),
+                end: new Date('2022-04-08T01:21:30.000Z'),
+                feedback: 'Neutral'
+              }
+            ],
+            mainSets: [
+              {
+                workoutSetId: '4',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-08T01:00:00.000Z'),
+                end: new Date('2022-04-08T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '5',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-08T00:02:00.000Z'),
+                end: new Date('2022-04-08T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '6',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-08T01:00:00.000Z'),
+                end: new Date('2022-04-08T01:21:30.000Z'),
+                feedback: 'Neutral'
+              }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'Chest',
+        sessionId: '212',
+        start: new Date('2022-04-07T01:00:00.000Z'),
+        end: new Date('2022-04-07T01:21:30.000Z'),
+        status: 'Done',
+        activities: [
+          {
+            activityId: '22',
+            reps: 5,
+            load: {
+              value: 0.775,
+              type: 'PERCENT'
+            },
+            rest: 3,
+            exerciseId: '12',
+            warmupSets: [
+              {
+                workoutSetId: '122',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-07T01:00:00.000Z'),
+                end: new Date('2022-04-07T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '22',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-07T01:00:00.000Z'),
+                end: new Date('2022-04-07T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '33',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-07T01:00:00.000Z'),
+                end: new Date('2022-04-07T01:21:30.000Z'),
+                feedback: 'Neutral'
+              }
+            ],
+            mainSets: [
+              {
+                workoutSetId: '4',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-07T01:00:00.000Z'),
+                end: new Date('2022-04-07T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '5',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-07T00:02:00.000Z'),
+                end: new Date('2022-04-07T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '6',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-07T01:00:00.000Z'),
+                end: new Date('2022-04-07T01:21:30.000Z'),
+                feedback: 'Neutral'
+              }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'Chest',
+        sessionId: '21',
+        start: new Date('2022-04-02T01:00:00.000Z'),
+        end: new Date('2022-04-02T01:21:30.000Z'),
+        status: 'Done',
+        activities: [
+          {
+            activityId: '22',
+            reps: 5,
+            load: {
+              value: 0.775,
+              type: 'PERCENT'
+            },
+            rest: 3,
+            exerciseId: '12',
+            warmupSets: [
+              {
+                workoutSetId: '122',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-02T00:00:00.000Z'),
+                end: new Date('2022-04-02T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '22',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-02T00:00:00.000Z'),
+                end: new Date('2022-04-02T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '33',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-02T00:00:00.000Z'),
+                end: new Date('2022-04-02T01:21:30.000Z'),
+                feedback: 'Neutral'
+              }
+            ],
+            mainSets: [
+              {
+                workoutSetId: '4',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-02T00:00:00.000Z'),
+                end: new Date('2022-04-02T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '5',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-02T00:00:00.000Z'),
+                end: new Date('2022-04-02T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '6',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-02T00:00:00.000Z'),
+                end: new Date('2022-04-02T01:21:30.000Z'),
+                feedback: 'Neutral'
+              }
+            ]
+          }
+        ]
+      },
+
+      {
+        name: 'Chest',
+        sessionId: '2',
+        start: new Date('2022-04-10T00:00:00.000Z'),
+        end: new Date('2022-04-10T01:21:30.000Z'),
+        status: 'Done',
+        activities: [
+          {
+            activityId: '2',
+            reps: 5,
+            load: {
+              value: 0.775,
+              type: 'PERCENT'
+            },
+            rest: 3,
+            exerciseId: '1',
+            warmupSets: [
+              {
+                workoutSetId: '1',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-10T00:00:00.000Z'),
+                end: new Date('2022-04-10T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '2',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-10T00:00:00.000Z'),
+                end: new Date('2022-04-10T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '3',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-10T00:00:00.000Z'),
+                end: new Date('2022-04-10T01:21:30.000Z'),
+                feedback: 'Neutral'
+              }
+            ],
+            mainSets: [
+              {
+                workoutSetId: '4',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-10T00:00:00.000Z'),
+                end: new Date('2022-04-10T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '5',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-10T00:00:00.000Z'),
+                end: new Date('2022-04-10T01:21:30.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '6',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-10T00:00:00.000Z'),
+                end: new Date('2022-04-10T01:21:30.000Z'),
+                feedback: 'Neutral'
+              }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'Chest',
+        sessionId: '3',
+        start: new Date('2022-04-11T00:00:00.000Z'),
+        end: new Date('2022-04-11T10:01:00.000Z'),
+        status: 'Done',
+        activities: [
+          {
+            activityId: '3',
+            reps: 5,
+            load: {
+              value: 0.775,
+              type: 'PERCENT'
+            },
+            rest: 3,
+            exerciseId: '1',
+            warmupSets: [
+              {
+                workoutSetId: '1',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-11T00:00:00.000Z'),
+                end: new Date('2022-04-11T10:01:00.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '2',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-11T00:00:00.000Z'),
+                end: new Date('2022-04-11T10:01:00.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '3',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-11T00:00:00.000Z'),
+                end: new Date('2022-04-11T10:01:00.000Z'),
+                feedback: 'Neutral'
+              }
+            ],
+            mainSets: [
+              {
+                workoutSetId: '4',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-11T00:00:00.000Z'),
+                end: new Date('2022-04-11T10:01:00.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '5',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-11T00:00:00.000Z'),
+                end: new Date('2022-04-11T10:01:00.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '6',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-11T00:00:00.000Z'),
+                end: new Date('2022-04-11T10:01:00.000Z'),
+                feedback: 'Neutral'
+              }
+            ]
+          }
+        ]
+      },
+
+      {
+        name: 'Chest',
+        sessionId: '4',
+        start: new Date('2022-04-16T00:00:00.000Z'),
+        end: undefined,
+        status: 'Ready',
+        activities: [
+          {
+            activityId: '4',
+            reps: 5,
+            load: {
+              value: 0.775,
+              type: 'PERCENT'
+            },
+            rest: 3,
+            exerciseId: '1',
+            warmupSets: [
+              {
+                workoutSetId: '1',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-16T00:00:00.000Z'),
+                end: new Date('2022-04-16T00:00:00.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '2',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-16T00:00:00.000Z'),
+                end: new Date('2022-04-16T00:00:00.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '3',
+                type: 'Warmup',
+                status: 'Done',
+                start: new Date('2022-04-16T00:00:00.000Z'),
+                end: new Date('2022-04-16T00:00:00.000Z'),
+                feedback: 'Neutral'
+              }
+            ],
+            mainSets: [
+              {
+                workoutSetId: '4',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-16T00:00:00.000Z'),
+                end: new Date('2022-04-16T00:00:00.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '5',
+                type: 'Main',
+                status: 'Done',
+                start: new Date('2022-04-16T00:00:00.000Z'),
+                end: new Date('2022-04-16T00:00:00.000Z'),
+                feedback: 'Neutral'
+              },
+              {
+                workoutSetId: '6',
+                type: 'Main',
+                status: 'Ready',
+                start: new Date('2022-04-16T00:00:00.000Z'),
+                feedback: 'Neutral'
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    programId: '1'
+  }
+]
+
+const mockExercises: Exercise[] = [
+  {
+    exerciseId: '1',
+    name: 'Back Squat',
+    oneRepMax: {
+      value: 106,
+      unit: 'lbs'
+    }
+  }
+]
 export interface WorkoutStore {
   programs: Program[]
   exercises: Exercise[]
@@ -32,20 +622,20 @@ export interface WorkoutStore {
 const useWorkoutStore = create<WorkoutStore>()(
   persist(
     set => ({
-      programs: [],
-      exercises: [],
+      programs: mockPrograms, // [],
+      exercises: mockExercises, // [],
       equipment: {
         barbellWeight: { value: 45, unit: 'lbs' },
         platePairs: [
-          { value: 2.5, unit: 'lbs' },
-          { value: 5, unit: 'lbs' },
-          { value: 10, unit: 'lbs' },
-          { value: 10, unit: 'lbs' },
-          { value: 25, unit: 'lbs' },
-          { value: 45, unit: 'lbs' },
-          { value: 45, unit: 'lbs' },
-          { value: 45, unit: 'lbs' },
-          { value: 45, unit: 'lbs' }
+          { value: 2.5, unit: 'lbs', platePairId: '1' },
+          { value: 5, unit: 'lbs', platePairId: '2' },
+          { value: 10, unit: 'lbs', platePairId: '3' },
+          { value: 10, unit: 'lbs', platePairId: '4' },
+          { value: 25, unit: 'lbs', platePairId: '5' },
+          { value: 45, unit: 'lbs', platePairId: '6' },
+          { value: 45, unit: 'lbs', platePairId: '7' },
+          { value: 45, unit: 'lbs', platePairId: '8' },
+          { value: 45, unit: 'lbs', platePairId: '9' }
         ]
       },
       addProgram: (program: Program) => {

@@ -2,16 +2,15 @@ import { AntDesign } from '@expo/vector-icons'
 import { format } from 'date-fns'
 import _ from 'lodash'
 import React from 'react'
-import { SectionList } from 'react-native'
+import { SectionList, View } from 'react-native'
 import Animated, { Layout } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Activity, Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import ButtonContainer from './ButtonContainer'
-import CardInfo from './CardInfo'
 import ElapsedTime from './ElapsedTime'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
-import { PrimaryText, SecondaryText, SpecialText } from './Typography'
+import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type WorkoutSetCardProps = {
   workoutSet: WarmupSet | MainSet
@@ -43,20 +42,8 @@ function WorkoutSetCard({
         }
       }}
     >
-      <CardInfo
-        primaryText={title}
-        specialText={
-          workoutSet.status === 'Ready' || (workoutSet.status === 'Planned' && index === 0)
-            ? 'Ready'
-            : undefined
-        }
-        secondaryText={workoutSet.status === 'Done' ? workoutSet.status : undefined}
-        rightIcon={
-          <SecondaryText>
-            <AntDesign name="right" size={16} />
-          </SecondaryText>
-        }
-        textStyle={tw`web:text-base web:sm:text-lg`}
+      <ThemedView
+        // textStyle={tw`web:text-base web:sm:text-lg`}
         style={tw.style(
           'border-b-2',
           index === 0 ? 'rounded-t-xl' : undefined,
@@ -64,7 +51,22 @@ function WorkoutSetCard({
             ? 'rounded-b-xl border-b-0 mb-6'
             : undefined
         )}
-      />
+      >
+        <PrimaryText>{title}</PrimaryText>
+        <View style={tw`flex-row pr-4`}>
+          <SpecialText>
+            {workoutSet.status === 'Ready' || (workoutSet.status === 'Planned' && index === 0)
+              ? 'Ready'
+              : undefined}
+          </SpecialText>
+          <SecondaryText>
+            {workoutSet.status === 'Done' ? workoutSet.status : undefined}
+          </SecondaryText>
+          <SecondaryText style={tw`absolute -right-1`}>
+            <AntDesign name="right" size={16} />
+          </SecondaryText>
+        </View>
+      </ThemedView>
     </LinkButton>
   )
 }
@@ -140,7 +142,9 @@ export default function SessionDetail({ program, session, exercises, changeHandl
             })
           }}
         >
-          <CardInfo specialText="Complete Workout Session" style={tw`rounded-xl`} reverse />
+          <ThemedView style={tw`rounded-xl`}>
+            <SpecialText>Complete Workout Session</SpecialText>
+          </ThemedView>
         </ButtonContainer>
       )}
       <Animated.View layout={Layout.duration(500)}>
@@ -151,18 +155,20 @@ export default function SessionDetail({ program, session, exercises, changeHandl
           keyExtractor={item => `${item.workoutSet.workoutSetId}`}
           ListHeaderComponent={
             <Animated.View layout={Layout.duration(500)}>
-              <CardInfo
+              <ThemedView
                 style={tw.style('rounded-t-xl', !session.start ? 'rounded-b-xl' : 'border-b-2')}
-                primaryText="Session"
-                secondaryText={session.name}
-              />
+              >
+                <PrimaryText>Session</PrimaryText>
+                <SecondaryText>{session.name}</SecondaryText>
+              </ThemedView>
               {session.start && (
                 <>
-                  <CardInfo
+                  <ThemedView
                     style={tw.style(!session.end && !session.start ? 'rounded-b-xl' : 'border-b-2')}
-                    primaryText="Start Time"
-                    secondaryText={format(session.start, 'MMM do,  hh:mm aa')}
-                  />
+                  >
+                    <PrimaryText>Start Time</PrimaryText>
+                    <SecondaryText>{format(session.start, 'MMM do,  hh:mm aa')}</SecondaryText>
+                  </ThemedView>
                   <ElapsedTime
                     start={session.start}
                     end={session.end}

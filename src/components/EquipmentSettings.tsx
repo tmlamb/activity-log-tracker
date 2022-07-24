@@ -6,12 +6,11 @@ import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native'
 import Animated, { FadeInUp, FadeOutUp, Layout } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
-import { Equipment, Weight } from '../types'
+import { Equipment } from '../types'
 import ButtonContainer from './ButtonContainer'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
-import { ThemedTextInput, ThemedView } from './Themed'
-import { AlertText, SecondaryText, SpecialText } from './Typography'
+import { AlertText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
 
 type Props = {
   equipment: Equipment
@@ -38,13 +37,11 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
     updateEquipment({
       ...data,
       platePairs: _(data.platePairs)
-        .map(
-          weight =>
-            ({
-              value: Number(weight.value),
-              unit: 'lbs'
-            } as Weight)
-        )
+        .map(weight => ({
+          value: Number(weight.value),
+          unit: weight.unit,
+          platePairId: weight.platePairId
+        }))
         .sortBy(weight => weight.value)
         .value()
     })
@@ -63,15 +60,10 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
         </ButtonContainer>
       </HeaderLeftContainer>
       <KeyboardAvoidingView
-        style={tw`flex-1`}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : -225}
         behavior="padding"
       >
-        <ScrollView style={tw`flex-grow px-3`} contentContainerStyle={tw`pb-48`}>
-          <SecondaryText style={tw`text-xs mt-9 px-3 mb-1.5`}>
-            These settings will be used by the Barbell Configuration hints when performing sets
-            during workouts.
-          </SecondaryText>
+        <ScrollView contentContainerStyle={tw`pt-9 pb-48 px-3`} bounces={false}>
           <Controller
             name="barbellWeight"
             control={control}
@@ -100,14 +92,15 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
               />
             )}
           />
-          <SecondaryText style={tw`text-sm px-3 pb-1.5`}>Plate Pairs (2x each)</SecondaryText>
+          <SecondaryText style={tw`text-xs px-3 pb-1.5`}>Plate Pairs (2x each)</SecondaryText>
           {fields.map((item, index) => (
             <Animated.View
-              key={uuidv4()}
+              // eslint-disable-next-line react/no-array-index-key
+              key={item.platePairId}
               entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
               exiting={FadeOutUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
             >
-              <View style={tw`relative justify-between`}>
+              <View style={tw`relative items-center flex-row justify-between`}>
                 <ButtonContainer style={tw`absolute z-1 p-3`} onPress={() => remove(index)}>
                   <AlertText style={tw`p-0`}>
                     <AntDesign name="minuscircle" size={15} />
@@ -162,7 +155,8 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
               onPress={() =>
                 append({
                   value: 0,
-                  unit: 'lbs'
+                  unit: 'lbs',
+                  platePairId: uuidv4()
                 })
               }
             >
@@ -179,6 +173,10 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
               </ThemedView>
             </ButtonContainer>
           </Animated.View>
+          <SecondaryText style={tw`text-xs px-3 mt-9`}>
+            These settings will be used by the Barbell Configuration hints when performing sets
+            during workouts.
+          </SecondaryText>
         </ScrollView>
       </KeyboardAvoidingView>
     </>

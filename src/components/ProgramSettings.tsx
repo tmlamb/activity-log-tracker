@@ -5,8 +5,7 @@ import tw from '../tailwind'
 import { Program } from '../types'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
-import { PrimaryText, ThemedView } from './Themed'
-import { SecondaryText, SpecialText } from './Typography'
+import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type Props = {
   programs: Program[]
@@ -23,9 +22,9 @@ export default function ProgramSettings({ programs }: Props) {
         </LinkButton>
       </HeaderRightContainer>
       <FlatList
-        style={tw`flex-grow px-3 py-9`}
-        contentContainerStyle={tw`pb-48`}
+        contentContainerStyle={tw`px-3 pb-48 pt-9`}
         data={programs}
+        bounces={false}
         renderItem={({ index, item }) => (
           <LinkButton
             to={{
@@ -35,9 +34,8 @@ export default function ProgramSettings({ programs }: Props) {
           >
             <ThemedView
               style={tw.style(
-                'border-b-2',
-                index === 0 ? 'rounded-t-xl' : undefined,
-                index === programs.length - 1 ? 'rounded-b-xl border-b-0' : undefined
+                index !== programs.length - 1 ? 'border-b-2' : 'border-b-0 rounded-b-xl',
+                index === 0 ? 'rounded-t-xl' : undefined
               )}
             >
               <PrimaryText>{item.name}</PrimaryText>

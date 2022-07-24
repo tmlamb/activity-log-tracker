@@ -55,7 +55,11 @@ export type Program = {
 
 export type Equipment = {
   barbellWeight: Weight
-  platePairs: Weight[]
+  platePairs: PlatePair[]
+}
+
+export type PlatePair = Weight & {
+  platePairId: string
 }
 
 export type Weight = {

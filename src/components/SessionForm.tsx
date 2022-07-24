@@ -11,15 +11,19 @@ import { Exercise, Program, Session } from '../types'
 import { spaceReplace } from '../utils'
 import ActivitiesInput from './ActivitiesInput'
 import ButtonContainer from './ButtonContainer'
-import Card from './Card'
-import CardInfo from './CardInfo'
 import DoubleConfirm from './DoubleConfirm'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import ModalSelectInput from './ModalSelectInput'
-import TextInput from './TextInput'
-import { AlertText, PrimaryText, primaryTextColor, SpecialText } from './Typography'
+import {
+  AlertText,
+  PrimaryText,
+  primaryTextColor,
+  SpecialText,
+  ThemedTextInput,
+  ThemedView
+} from './Themed'
 
 type Props = {
   changeHandler: (programId: string, session: Session) => void
@@ -95,26 +99,29 @@ export default function SessionForm({
       didTemplateUpdate.current = true
       setValue('name', sessionTemplate.name, { shouldDirty: true })
       sessionTemplate.activities.forEach(activity => {
-        fieldArray.append({
-          ...activity,
-          warmupSets: Array.from(Array(activity.warmupSets.length)).map(() => ({
-            workoutSetId: uuidv4(),
-            type: 'Warmup',
-            status: 'Planned',
-            start: undefined,
-            end: undefined,
-            feedback: 'Neutral'
-          })),
-          mainSets: Array.from(Array(activity.mainSets.length)).map(() => ({
-            workoutSetId: uuidv4(),
-            type: 'Main',
-            status: 'Planned',
-            start: undefined,
-            end: undefined,
-            feedback: 'Neutral'
-          })),
-          activityId: uuidv4()
-        })
+        fieldArray.append(
+          {
+            ...activity,
+            warmupSets: Array.from(Array(activity.warmupSets.length)).map(() => ({
+              workoutSetId: uuidv4(),
+              type: 'Warmup',
+              status: 'Planned',
+              start: undefined,
+              end: undefined,
+              feedback: 'Neutral'
+            })),
+            mainSets: Array.from(Array(activity.mainSets.length)).map(() => ({
+              workoutSetId: uuidv4(),
+              type: 'Main',
+              status: 'Planned',
+              start: undefined,
+              end: undefined,
+              feedback: 'Neutral'
+            })),
+            activityId: uuidv4()
+          },
+          { shouldFocus: false }
+        )
       })
     }
   }, [fieldArray, sessionTemplate, setValue, watchedName])
@@ -125,13 +132,12 @@ export default function SessionForm({
         <ButtonContainer
           onPress={handleSubmit(onSubmit)}
           disabled={!session && sessions && sessions.length > 0 && !fromType}
-          style={tw`py-4 -my-4 px-4 -mr-4`}
         >
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
       <HeaderLeftContainer>
-        <ButtonContainer style={tw`py-4 -my-4 px-4 -ml-4`} onPress={goBack}>
+        <ButtonContainer onPress={goBack}>
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
@@ -140,47 +146,47 @@ export default function SessionForm({
         keyboardVerticalOffset={Platform.OS === 'ios' ? 114 : -225}
         behavior="padding"
       >
-        <ScrollView style={tw`flex-1 pt-9`} contentContainerStyle={tw`pb-48`}>
+        <ScrollView style={tw`flex-1`} contentContainerStyle={tw`pt-9 pb-48`}>
           {!session && sessions && sessions.length > 0 && (
-            <Card style={tw`flex-row justify-evenly mb-9`}>
-              <View
-                style={tw.style(
-                  'items-stretch w-1/2  dark:border-slate-700 border-slate-400 -my-0',
-                  fromType === 'Scratch'
-                    ? 'border-0 mt-0 opacity-100'
-                    : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40',
-                  !fromType ? 'border-r-2' : undefined
-                )}
+            <ThemedView style={tw`p-0 justify-between mb-9`}>
+              <ButtonContainer
+                style={tw`w-1/2 flex-row items-stretch h-full`}
+                onPress={() => {
+                  setFromType('Scratch')
+                }}
+                disabled={!!fromType && isDirty}
               >
-                <ButtonContainer
-                  style={tw`items-start px-3 self-stretch py-1.5`}
-                  onPress={() => {
-                    setFromType('Scratch')
-                  }}
-                  disabled={!!fromType && isDirty}
+                <View
+                  style={tw.style(
+                    'px-3 w-full items-center justify-center dark:border-slate-700 border-slate-400',
+                    fromType === 'Scratch'
+                      ? 'border-0 opacity-100'
+                      : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40',
+                    !fromType ? 'border-r-2' : undefined
+                  )}
                 >
                   <PrimaryText>From Scratch</PrimaryText>
-                </ButtonContainer>
-              </View>
+                </View>
+              </ButtonContainer>
               <View
                 style={tw.style(
-                  'items-end w-1/2 dark:border-slate-700 border-slate-200 -my-0',
+                  'w-1/2 dark:border-slate-700 border-slate-200',
                   fromType === 'Template'
                     ? 'border-0 mt-0 opacity-100 '
                     : 'border-0 border-l-0 bg-slate-300 dark:bg-slate-600 opacity-40'
                 )}
               >
                 <ModalSelectInput
-                  style={tw`bg-transparent`}
+                  style={tw`bg-transparent justify-center`}
                   value="From Template"
-                  textStyle={tw.style('web:text-base -mr-5', primaryTextColor)}
+                  textStyle={tw.style('web:text-base', primaryTextColor)}
                   modalScreen="SessionSelectModal"
                   modalParams={{
                     modalSelectId: `${program.programId}.addSession`,
                     programId: program.programId
                   }}
                   // eslint-disable-next-line react/jsx-no-useless-fragment
-                  rightIcon={<></>}
+                  icon={<></>}
                   beforeNavigation={() => {
                     didTemplateUpdate.current = false
                   }}
@@ -197,7 +203,7 @@ export default function SessionForm({
                   disabled={!!fromType && isDirty}
                 />
               </View>
-            </Card>
+            </ThemedView>
           )}
           {(fromType || session || !sessions || sessions.length === 0) && (
             <Animated.View
@@ -211,7 +217,7 @@ export default function SessionForm({
                   required: true
                 }}
                 render={({ field: { onChange, ref, onBlur, value } }) => (
-                  <TextInput
+                  <ThemedTextInput
                     onChangeText={onChange}
                     onBlur={onBlur}
                     value={value}
@@ -248,7 +254,7 @@ export default function SessionForm({
                 required: false
               }}
               render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
+                <ThemedTextInput
                   label="Elapsed Time (minutes)"
                   onChangeText={newValue =>
                     newValue &&
@@ -278,7 +284,11 @@ export default function SessionForm({
 
           {session && deleteHandler && (
             <DoubleConfirm
-              first={<CardInfo style={tw``} alertText="Delete This Session" />}
+              first={
+                <ThemedView>
+                  <AlertText>Delete This Session</AlertText>
+                </ThemedView>
+              }
               second={
                 <LinkButton
                   to={{

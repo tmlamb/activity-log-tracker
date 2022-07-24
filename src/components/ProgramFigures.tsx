@@ -3,7 +3,7 @@ import React from 'react'
 import { ScrollView } from 'react-native'
 import tw from '../tailwind'
 import { Exercise, Program } from '../types'
-import CardInfo from './CardInfo'
+import { PrimaryText, SecondaryText, ThemedView } from './Themed'
 
 type Props = {
   program: Program
@@ -29,19 +29,17 @@ export default function ProgramFigures({ program, exercises }: Props) {
   )
 
   return (
-    <ScrollView style={tw`px-3`} contentContainerStyle={tw`pb-48 mt-9`}>
-      <CardInfo
-        style={tw`border-b-2 rounded-t-xl`}
-        primaryText="Program"
-        secondaryText={program.name}
-      />
-      <CardInfo
-        style={tw`rounded-b-xl`}
-        primaryText="Sessions Completed"
-        secondaryText={String(
-          program.sessions.filter(session => session.status === 'Done').length || 0
-        )}
-      />
+    <ScrollView contentContainerStyle={tw`px-3 pb-48 mt-9`}>
+      <ThemedView style={tw`border-b-2 rounded-t-xl`}>
+        <PrimaryText>Program</PrimaryText>
+        <SecondaryText>{program.name}</SecondaryText>
+      </ThemedView>
+      <ThemedView style={tw`rounded-b-xl`}>
+        <PrimaryText>Session Completed</PrimaryText>
+        <SecondaryText>
+          {String(program.sessions.filter(session => session.status === 'Done').length || 0)}
+        </SecondaryText>
+      </ThemedView>
     </ScrollView>
   )
 }

@@ -6,7 +6,8 @@ import ModalLayout from './ModalLayout'
 import { RootStackScreenProps } from './types'
 
 export default function LoadFormModal({
-  route: { params }
+  route: { params },
+  navigation: { goBack }
 }: RootStackScreenProps<'LoadFormModal'>) {
   const { value, exerciseId, parentScreen, parentParams, modalSelectId } = params
   const { exercises, updateExercise } = useWorkoutStore(store => store)
@@ -21,6 +22,7 @@ export default function LoadFormModal({
         parentScreen={parentScreen}
         parentParams={parentParams}
         modalSelectId={modalSelectId}
+        goBack={goBack}
       />
     </ModalLayout>
   )

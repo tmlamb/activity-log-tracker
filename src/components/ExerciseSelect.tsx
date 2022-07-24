@@ -1,18 +1,16 @@
 import { AntDesign } from '@expo/vector-icons'
-import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Exercise } from '../types'
 import { sortByName } from '../utils'
 import ButtonContainer from './ButtonContainer'
-import CardInfo from './CardInfo'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { RootStackParamList } from './Navigation'
 import SelectList from './SelectList'
-import { SecondaryText, SpecialText } from './Typography'
+import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type Props = {
   exercise?: Exercise
@@ -22,6 +20,7 @@ type Props = {
   parentScreen: keyof RootStackParamList
   parentParams: object
   modalSelectId: string
+  goBack: () => void
 }
 
 export default function ExerciseSelect({
@@ -31,9 +30,9 @@ export default function ExerciseSelect({
   addExercise,
   parentScreen,
   parentParams,
-  modalSelectId
+  modalSelectId,
+  goBack
 }: Props) {
-  const navigation = useNavigation()
   // TODO: remove 'React.' everywhere
   const [selected, setSelected] = React.useState(initialValue)
 
@@ -74,24 +73,19 @@ export default function ExerciseSelect({
             !usedExercises?.find(exercise => exercise.exerciseId === selected?.exerciseId) &&
             addExercise(selected)
           }
-          style={tw`px-4 py-4 -my-4 -mr-4`}
           disabled={!selected}
         >
           <SpecialText style={tw`font-bold`}>Done</SpecialText>
         </LinkButton>
       </HeaderRightContainer>
       <HeaderLeftContainer>
-        <ButtonContainer
-          style={tw`px-4 py-4 -my-4 -ml-4`}
-          onPress={() => {
-            navigation.goBack()
-          }}
-        >
+        <ButtonContainer onPress={goBack}>
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
       <SelectList
-        style={tw`flex-grow px-3 pt-9`}
+        style={tw`flex-1`}
+        contentContainerStyle="pt-9 px-3 pb-48"
         keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
         items={exercisesSortedAndDeduped}
         onSelect={item => {
@@ -99,15 +93,7 @@ export default function ExerciseSelect({
         }}
         renderItem={({ item, index }) => (
           <>
-            <CardInfo
-              rightIcon={
-                (item as Exercise).name === selected?.name && (
-                  <SpecialText>
-                    <AntDesign name="check" size={22} />
-                  </SpecialText>
-                )
-              }
-              primaryText={(item as Exercise).name}
+            <ThemedView
               style={tw.style(
                 'border-b-2',
                 index === 0 || (usedExercises && index === usedExercises.length)
@@ -118,7 +104,14 @@ export default function ExerciseSelect({
                   ? 'border-b-0 rounded-b-xl mb-6'
                   : undefined
               )}
-            />
+            >
+              <PrimaryText>{(item as Exercise).name}</PrimaryText>
+              {(item as Exercise).name === selected?.name && (
+                <SpecialText>
+                  <AntDesign name="check" size={22} />
+                </SpecialText>
+              )}
+            </ThemedView>
             {usedExercises && index === usedExercises.length - 1 && (
               <SecondaryText style={tw`pb-1 pl-3 mt-0 text-sm`}>Available Exercises</SecondaryText>
             )}

@@ -4,10 +4,9 @@ import { FlatList } from 'react-native'
 import tw from '../tailwind'
 import { Exercise } from '../types'
 import { sortByName } from '../utils'
-import CardInfo from './CardInfo'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
-import { SecondaryText, SpecialText } from './Typography'
+import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type Props = {
   availableExercises: Partial<Exercise>[]
@@ -35,8 +34,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
         </LinkButton>
       </HeaderRightContainer>
       <FlatList
-        style={tw`flex-grow px-3`}
-        contentContainerStyle={tw`pb-48`}
+        contentContainerStyle={tw`pb-48 pt-9 px-3`}
         keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
         data={exercisesSortedAndDeduped}
         renderItem={({ item, index }) => (
@@ -48,13 +46,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
               }}
               style={tw``}
             >
-              <CardInfo
-                rightIcon={
-                  <SecondaryText>
-                    <AntDesign name="right" size={16} />
-                  </SecondaryText>
-                }
-                primaryText={(item as Exercise).name}
+              <ThemedView
                 style={tw.style(
                   'border-b-2',
                   index === 0 || (usedExercises && index === usedExercises.length)
@@ -65,7 +57,12 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
                     ? 'border-b-0 rounded-b-xl mb-6'
                     : undefined
                 )}
-              />
+              >
+                <PrimaryText>{item.name}</PrimaryText>
+                <SecondaryText>
+                  <AntDesign name="right" size={16} />
+                </SecondaryText>
+              </ThemedView>
             </LinkButton>
             {usedExercises && usedExercises.length > 0 && index === usedExercises.length - 1 && (
               <SecondaryText style={tw`pl-3 pb-1 mt-0 text-sm`}>Available Exercises</SecondaryText>
@@ -74,10 +71,8 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
         )}
         ListHeaderComponent={
           (usedExercises && usedExercises.length > 0 && (
-            <SecondaryText style={tw`pl-3 pb-1 mt-6 text-sm`}>Your Exercises</SecondaryText>
-          )) || (
-            <SecondaryText style={tw`pl-3 pb-1 mt-6 text-sm`}>Available Exercises</SecondaryText>
-          )
+            <SecondaryText style={tw`pl-3 pb-1 text-sm`}>Your Exercises</SecondaryText>
+          )) || <SecondaryText style={tw`pl-3 pb-1 text-sm`}>Available Exercises</SecondaryText>
         }
       />
     </>

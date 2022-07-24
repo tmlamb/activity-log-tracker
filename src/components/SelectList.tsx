@@ -10,6 +10,7 @@ type Props = {
   keyExtractor: (value: Partial<unknown>, index: number) => string
   scrollEnabled?: boolean
   ListHeaderComponent?: JSX.Element
+  contentContainerStyle?: ClassInput
   renderItem?: ListRenderItem<Partial<unknown>> | null
   onSelect: (value: Partial<unknown>) => void
 }
@@ -21,13 +22,14 @@ export default function SelectList({
   keyExtractor,
   scrollEnabled,
   ListHeaderComponent,
+  contentContainerStyle,
   renderItem,
   onSelect
 }: Props) {
   return (
     <FlatList
       ListHeaderComponent={ListHeaderComponent}
-      contentContainerStyle={tw`pb-36`}
+      contentContainerStyle={tw.style(contentContainerStyle)}
       data={items}
       scrollEnabled={scrollEnabled}
       keyExtractor={keyExtractor}
@@ -45,5 +47,6 @@ SelectList.defaultProps = {
   style: undefined,
   scrollEnabled: true,
   ListHeaderComponent: undefined,
+  contentContainerStyle: undefined,
   renderItem: undefined
 }

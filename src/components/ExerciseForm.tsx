@@ -1,3 +1,4 @@
+import { AntDesign } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -7,11 +8,10 @@ import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Exercise, Program } from '../types'
 import ButtonContainer from './ButtonContainer'
-import CardInfo from './CardInfo'
+import DoubleConfirm from './DoubleConfirm'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
-import TextInput from './TextInput'
-import { SecondaryText, SpecialText } from './Typography'
+import { AlertText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
 
 type Props = {
   changeHandler: (exercise: Exercise) => void
@@ -20,6 +20,7 @@ type Props = {
   deleteHandler?: (exerciseId: string) => void
   programs?: Program[]
   exercises?: Exercise[]
+  goBack: () => void
 }
 
 function compareStrings(a: string, b: string) {
@@ -33,7 +34,8 @@ export default function ExerciseForm({
   name,
   deleteHandler,
   programs,
-  exercises
+  exercises,
+  goBack
 }: Props) {
   const navigation = useNavigation()
 
@@ -48,6 +50,15 @@ export default function ExerciseForm({
       primaryMuscle: (exercise && exercise.primaryMuscle) || undefined
     }
   })
+
+  const usedInWorkout =
+    programs &&
+    programs?.find(program =>
+      program.sessions.find(session =>
+        session.activities.find(activity => activity.exerciseId === exercise?.exerciseId)
+      )
+    )
+
   const onSubmit = (data: Exercise) => {
     if (
       exercises?.find(
@@ -78,13 +89,12 @@ export default function ExerciseForm({
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw`py-4 -my-4 px-4 -mr-4`}>
+        <ButtonContainer onPress={handleSubmit(onSubmit)}>
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
       <HeaderLeftContainer>
         <ButtonContainer
-          style={tw`px-4 py-4 -my-4 -ml-4`}
           onPress={() => {
             navigation.goBack()
           }}
@@ -92,13 +102,7 @@ export default function ExerciseForm({
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
-      <ScrollView style={tw`flex-grow py-9`}>
-        {exercise && (
-          <SecondaryText style={tw`px-3 pb-1.5 text-xs`}>
-            Warning: Modified exercise data reflects in existing workouts where it&apos;s been used.
-            Exercises used in a workout cannot be deleted.
-          </SecondaryText>
-        )}
+      <ScrollView style={tw`py-9`}>
         <Controller
           name="name"
           control={control}
@@ -106,47 +110,53 @@ export default function ExerciseForm({
             required: true
           }}
           render={({ field: { ref, onChange, onBlur, value } }) => (
-            <TextInput
+            <ThemedTextInput
               label="Exercise Name"
               innerRef={ref}
               onChangeText={onChange}
               onBlur={onBlur}
               value={value}
               maxLength={25}
-              style={tw`mb-9`}
               textInputStyle={tw`pl-32`}
               error={errors.name ? 'Exercise Name is required' : undefined}
             />
           )}
         />
+        {exercise && usedInWorkout && (
+          <SecondaryText style={tw`px-3 pt-1.5 text-xs`}>
+            Warning: Modifying exercise name reflects in existing workouts where it&apos;s been
+            used.
+          </SecondaryText>
+        )}
         <Controller
+          name="oneRepMax"
           control={control}
           rules={{
             required: false,
             min: 5
           }}
           render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
+            <ThemedTextInput
               label="One Rep Max (lbs)"
               onChangeText={text => onChange({ unit: value?.unit, value: Number(text) })}
               onBlur={onBlur}
               value={String((value && value.value) || '')}
               maxLength={4}
-              style={tw``}
+              style={tw`mt-9`}
               textInputStyle={tw``}
               keyboardType="number-pad"
               numeric
             />
           )}
-          name="oneRepMax"
         />
         <Controller
+          name="primaryMuscle"
           control={control}
           rules={{
             required: false
           }}
           render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
+            <ThemedTextInput
               label="Primary Muscle"
               onChangeText={onChange}
               onBlur={onBlur}
@@ -156,29 +166,34 @@ export default function ExerciseForm({
               textInputStyle={tw`pl-32`}
             />
           )}
-          name="primaryMuscle"
         />
-        {exercise &&
-          deleteHandler &&
-          !(
-            programs &&
-            programs?.find(program =>
-              program.sessions.find(session =>
-                session.activities.find(activity => activity.exerciseId === exercise.exerciseId)
-              )
-            )
-          ) && (
-            <ButtonContainer
-              onPress={() => {
-                deleteHandler(exercise.exerciseId)
-
-                navigation.goBack()
-              }}
-              style={tw`mt-9`}
-            >
-              <CardInfo style={tw``} alertText="Delete This Exercise" />
-            </ButtonContainer>
-          )}
+        {exercise && deleteHandler && !usedInWorkout && (
+          <DoubleConfirm
+            style={tw`mt-9`}
+            first={
+              <ThemedView>
+                <AlertText>Delete This Exercise</AlertText>
+              </ThemedView>
+            }
+            second={
+              <ButtonContainer
+                onPress={() => {
+                  deleteHandler(exercise.exerciseId)
+                  goBack()
+                }}
+              >
+                <AlertText style={tw`px-3 py-3 -my-3`}>
+                  <AntDesign name="minuscircle" size={15} />
+                </AlertText>
+              </ButtonContainer>
+            }
+          />
+        )}
+        {usedInWorkout && (
+          <SecondaryText style={tw`px-3 pt-9 text-xs`}>
+            Exercises used in a workout cannot be deleted.
+          </SecondaryText>
+        )}
       </ScrollView>
     </>
   )

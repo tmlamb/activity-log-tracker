@@ -1,4 +1,4 @@
-import { daysToWeeks, differenceInCalendarDays, isToday } from 'date-fns'
+import { daysToWeeks, differenceInCalendarDays } from 'date-fns'
 import { Activity, Load, Program, Session, Weight } from './types'
 
 // One day in milliseconds
@@ -30,11 +30,6 @@ export const weeksAndDaysBetween = (start: Date, end: Date) => {
 
 export const formatWeekAndDayKey = (start: Date, end: Date) => {
   const [week, day] = weeksAndDaysBetween(start, end)
-  console.log('week', week)
-  console.log('day', day)
-  console.log('start', start)
-  console.log('end', end)
-  console.log('itoday', isToday(end))
   return `${week > 1 ? `Week ${week}, ` : ''}Day ${day}`
 }
 

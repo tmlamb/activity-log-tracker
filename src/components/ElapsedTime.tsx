@@ -1,7 +1,7 @@
 import { differenceInSeconds } from 'date-fns'
 import React from 'react'
 import tw from '../tailwind'
-import CardInfo from './CardInfo'
+import { PrimaryText, SecondaryText, ThemedView } from './Themed'
 
 export default function ElapsedTime({
   start,
@@ -43,7 +43,10 @@ export default function ElapsedTime({
       ).padStart(2, '0')}`
 
   return (
-    <CardInfo primaryText="Elapsed Time" secondaryText={formattedTime} style={tw`rounded-b-xl`} />
+    <ThemedView style={tw`rounded-b-xl`}>
+      <PrimaryText>Elapsed Time</PrimaryText>
+      <SecondaryText>{formattedTime}</SecondaryText>
+    </ThemedView>
   )
 }
 ElapsedTime.defaultProps = {

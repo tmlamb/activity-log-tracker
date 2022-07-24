@@ -1,48 +1,42 @@
 import { AntDesign } from '@expo/vector-icons'
+import { To } from '@react-navigation/native/lib/typescript/src/useLinkTo'
 import React from 'react'
-import { View } from 'react-native'
+import { FlatList } from 'react-native'
 import tw from '../tailwind'
-import CardInfo from './CardInfo'
 import LinkButton from './LinkButton'
-import { SecondaryText } from './Typography'
+import { RootStackParamList } from './Navigation'
+import { PrimaryText, SecondaryText, ThemedView } from './Themed'
 
 export default function Settings() {
+  const data: {
+    to: To<RootStackParamList, keyof RootStackParamList>
+    label: string
+  }[] = [
+    { to: { screen: 'ProgramSettingsScreen' }, label: 'Programs' },
+    { to: { screen: 'ExerciseSettingsScreen' }, label: 'Exercises' },
+    { to: { screen: 'EquipmentSettingsScreen' }, label: 'Equipment' }
+  ]
+
   return (
-    // Make this a list view
-    <View style={tw`flex-grow px-3 pt-9 pb-36`}>
-      <LinkButton to={{ screen: 'ExerciseSettingsScreen' }} style={tw``}>
-        <CardInfo
-          rightIcon={
+    <FlatList
+      contentContainerStyle={tw`px-3 pb-48 pt-9`}
+      data={data}
+      bounces={false}
+      renderItem={({ item, index }) => (
+        <LinkButton to={item.to} style={tw``}>
+          <ThemedView
+            style={tw.style(
+              index !== data.length - 1 ? 'border-b-2' : 'border-b-0 rounded-b-xl',
+              index === 0 ? 'rounded-t-xl' : undefined
+            )}
+          >
+            <PrimaryText>{item.label}</PrimaryText>
             <SecondaryText>
               <AntDesign name="setting" size={24} />
             </SecondaryText>
-          }
-          primaryText="Manage Exercises"
-          style={tw.style('rounded-t-xl border-b-2')}
-        />
-      </LinkButton>
-      <LinkButton to={{ screen: 'EquipmentSettingsScreen' }} style={tw``}>
-        <CardInfo
-          rightIcon={
-            <SecondaryText>
-              <AntDesign name="setting" size={24} />
-            </SecondaryText>
-          }
-          primaryText="Manage Equipment"
-          style={tw.style('border-b-2')}
-        />
-      </LinkButton>
-      <LinkButton to={{ screen: 'ProgramSettingsScreen' }} style={tw``}>
-        <CardInfo
-          rightIcon={
-            <SecondaryText>
-              <AntDesign name="setting" size={24} />
-            </SecondaryText>
-          }
-          primaryText="Manage Programs"
-          style={tw.style('rounded-b-xl')}
-        />
-      </LinkButton>
-    </View>
+          </ThemedView>
+        </LinkButton>
+      )}
+    />
   )
 }

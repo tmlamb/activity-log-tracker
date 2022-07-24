@@ -1,4 +1,3 @@
-import { useNavigation } from '@react-navigation/native'
 import { add, subMinutes } from 'date-fns'
 import _ from 'lodash'
 import React from 'react'
@@ -10,12 +9,9 @@ import tw from '../tailwind'
 import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import { recentActivityByExercise, round5, stringifyLoad } from '../utils'
 import ButtonContainer from './ButtonContainer'
-import Card from './Card'
-import CardInfo from './CardInfo'
 import ElapsedTime from './ElapsedTime'
 import PlateChart from './PlateChart'
-import TextInput from './TextInput'
-import { PrimaryText, SecondaryText } from './Typography'
+import { PrimaryText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
 
 type Props = {
   program: Program
@@ -30,6 +26,7 @@ type Props = {
     workoutSet: WorkoutSet
   ) => void
   updateSession: (programId: string, session: Session) => void
+  goBack: () => void
 }
 
 // Defined warmup set percentages in relation to one rep max based on number of warmup sets.
@@ -57,7 +54,7 @@ export function FeedbackSelectInput({
   onSelect: (value: 'Easy' | 'Neutral' | 'Hard') => void
 }) {
   return (
-    <Card style={tw`flex-row rounded-xl justify-evenly mt-9`}>
+    <ThemedView style={tw`p-0 justify-evenly mt-9`} rounded>
       <View
         style={tw.style(
           'items-center w-1/3 rounded-l-xl dark:border-slate-700 border-slate-300 bg-sky-300 dark:bg-sky-400',
@@ -97,7 +94,7 @@ export function FeedbackSelectInput({
           <PrimaryText>Hard</PrimaryText>
         </ButtonContainer>
       </View>
-    </Card>
+    </ThemedView>
   )
 }
 
@@ -108,10 +105,9 @@ export default function WorkoutSetDetail({
   workoutSet,
   exercise,
   updateWorkoutSet,
-  updateSession
+  updateSession,
+  goBack
 }: Props) {
-  const navigation = useNavigation()
-
   const warmupPercent =
     workoutSet.type === 'Warmup'
       ? warmupPercentages[activity.warmupSets.length][
@@ -214,7 +210,9 @@ export default function WorkoutSetDetail({
             }
           }}
         >
-          <CardInfo specialText={`Start ${workoutSet.type} Set`} style={tw`rounded-xl`} reverse />
+          <ThemedView rounded>
+            <SpecialText>{`Start ${workoutSet.type} Set`}</SpecialText>
+          </ThemedView>
         </ButtonContainer>
       )) ||
         (workoutSet.status === 'Ready' && (
@@ -238,53 +236,50 @@ export default function WorkoutSetDetail({
                 })
               }
 
-              navigation.goBack()
+              goBack()
             }}
           >
-            <CardInfo
-              specialText={`Complete ${workoutSet.type} Set`}
-              style={tw`rounded-xl`}
-              reverse
-            />
+            <ThemedView rounded>
+              <SpecialText>{`Complete ${workoutSet.type} Set`}</SpecialText>
+            </ThemedView>
           </ButtonContainer>
         ))}
-      <CardInfo
+      <ThemedView
         style={tw.style(
           workoutSet.type === 'Main' || exercise.oneRepMax
             ? 'border-b-2 rounded-t-xl'
             : 'rounded-xl'
         )}
-        primaryText="Exercise"
-        secondaryText={exercise.name}
-      />
+      >
+        <PrimaryText>Exercise</PrimaryText>
+        <SecondaryText>{exercise.name}</SecondaryText>
+      </ThemedView>
       {workoutSet.type === 'Warmup' && exercise.oneRepMax && (
-        <CardInfo
-          style={tw`rounded-b-xl`}
-          primaryText="Warmup Load"
-          secondaryText={`${String(warmupPercent * 100)}%${
+        <ThemedView style={tw`rounded-b-xl`}>
+          <PrimaryText>Warmup Load</PrimaryText>
+          <SecondaryText>{`${String(warmupPercent * 100)}%${
             targetWeight ? ` / ${targetWeight}lbs` : ''
-          }`}
-        />
+          }`}</SecondaryText>
+        </ThemedView>
       )}
       {workoutSet.type === 'Main' && (
         <>
-          <CardInfo
-            style={tw`border-b-2`}
-            primaryText="Target Load"
-            secondaryText={`${stringifyLoad(activity.load)}${
+          <ThemedView style={tw`border-b-2`}>
+            <PrimaryText>Target Load</PrimaryText>
+            <SecondaryText>{`${stringifyLoad(activity.load)}${
               activity.load.type === 'PERCENT' && targetWeight ? ` / ${targetWeight}lbs` : ''
-            }`}
-          />
-          <CardInfo
-            style={tw`border-b-2`}
-            primaryText="Target Reps"
-            secondaryText={String(activity.reps)}
-          />
-          <CardInfo
-            primaryText="Target Rest"
-            secondaryText={activity.rest > 0 ? `${String(activity.rest)} minutes` : 'No rest'}
-            style={tw`rounded-b-xl`}
-          />
+            }`}</SecondaryText>
+          </ThemedView>
+          <ThemedView style={tw`border-b-2`}>
+            <PrimaryText>Target Reps</PrimaryText>
+            <SecondaryText>{String(activity.reps)}</SecondaryText>
+          </ThemedView>
+          <ThemedView style={tw`rounded-b-xl`}>
+            <PrimaryText>Target Rest</PrimaryText>
+            <SecondaryText>
+              {activity.rest > 0 ? `${String(activity.rest)} minutes` : 'No rest'}
+            </SecondaryText>
+          </ThemedView>
         </>
       )}
 
@@ -334,7 +329,7 @@ export default function WorkoutSetDetail({
               min: 1
             }}
             render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
+              <ThemedTextInput
                 label="Actual Weight (lbs)"
                 onChangeText={newValue => {
                   onChange({
@@ -367,7 +362,7 @@ export default function WorkoutSetDetail({
               min: 1
             }}
             render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
+              <ThemedTextInput
                 label="Actual Reps"
                 onChangeText={onChange}
                 onBlur={() => {

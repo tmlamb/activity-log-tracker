@@ -12,8 +12,7 @@ import DoubleConfirm from './DoubleConfirm'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
-import { ThemedTextInput, ThemedView } from './Themed'
-import { AlertText, SecondaryText, SpecialText } from './Typography'
+import { AlertText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
 
 type Props = {
   program?: Program
@@ -61,7 +60,7 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
-      <View style={tw`flex-1 pt-9`}>
+      <View style={tw`pt-9`}>
         <Controller
           name="name"
           control={control}

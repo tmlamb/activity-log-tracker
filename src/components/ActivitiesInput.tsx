@@ -17,11 +17,8 @@ import tw from '../tailwind'
 import { Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import { recentActivityByExercise, stringifyLoad } from '../utils'
 import ButtonContainer from './ButtonContainer'
-import Card from './Card'
-import CardInfo from './CardInfo'
 import ModalSelectInput from './ModalSelectInput'
-import TextInput from './TextInput'
-import { AlertText, SpecialText } from './Typography'
+import { AlertText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
 
 type Props = {
   fieldArray: UseFieldArrayReturn<Partial<Session>, 'activities', 'id'>
@@ -80,7 +77,7 @@ export default function ActivitiesInput({
           entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
           exiting={FadeOutUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
         >
-          <Card style={tw`flex-row justify-between border-b-2`}>
+          <ThemedView style={tw`flex-row p-0 items-stretch border-b-2`}>
             <View style={tw`flex-initial relative justify-evenly w-1/2`}>
               <Controller
                 name={`activities.${index}.exerciseId`}
@@ -88,13 +85,16 @@ export default function ActivitiesInput({
                 rules={{
                   required: true
                 }}
-                render={({ field: { ref, onChange, value } }) => (
+                render={({ field: { onChange, value } }) => (
                   <ModalSelectInput
                     modalScreen="ExerciseSelectModal"
                     modalParams={{
                       value: exercises?.find(exercise => exercise.exerciseId === value),
                       modalSelectId: `${item.activityId}.exerciseId`
                     }}
+                    textStyle={tw`pr-3`}
+                    placeholder="Select Exercise"
+                    value={exercises?.find(exercise => exercise.exerciseId === value)?.name}
                     onChangeSelect={(selectedExercise: Exercise) => {
                       const recentActivity = recentActivityByExercise(
                         program,
@@ -189,11 +189,11 @@ export default function ActivitiesInput({
                         onChange(selectedExercise.exerciseId)
                       }
                     }}
-                    textStyle={tw``}
-                    placeholder="Select Exercise"
-                    style={tw``}
-                    value={exercises?.find(exercise => exercise.exerciseId === value)?.name}
-                    innerRef={ref}
+                    icon={
+                      <SecondaryText>
+                        <AntDesign name="right" size={16} />
+                      </SecondaryText>
+                    }
                     error={
                       errors &&
                       errors.activities &&
@@ -207,7 +207,7 @@ export default function ActivitiesInput({
                 )}
               />
               <ButtonContainer style={tw`top-1 left-2 p-1 absolute`} onPress={() => remove(index)}>
-                <AlertText style={tw``}>
+                <AlertText>
                   <AntDesign name="minuscircle" size={15} />
                 </AlertText>
               </ButtonContainer>
@@ -230,7 +230,7 @@ export default function ActivitiesInput({
                   required: false
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
+                  <ThemedTextInput
                     label="Warmup Sets"
                     onChangeText={v => {
                       const newLength = Number(v)
@@ -248,9 +248,9 @@ export default function ActivitiesInput({
                     value={value.length ? String(value.length) : undefined}
                     placeholder="0"
                     maxLength={1}
-                    style={tw`py-0 border-b-2 border-l-2`}
-                    textInputStyle={tw`pl-0 pr-6 py-2.5 text-right web:text-base`}
-                    labelStyle={tw`px-2 web:text-base`}
+                    style={tw`border-b-2 border-l-2`}
+                    textInputStyle={tw`pr-2.5 text-right web:text-base`}
+                    labelStyle={tw`web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
                     numeric
@@ -272,11 +272,9 @@ export default function ActivitiesInput({
                 }
                 rules={{
                   required: true
-                  // minLength: 1,
-                  // maxLength: 9
                 }}
                 render={({ field: { onChange, ref, onBlur, value } }) => (
-                  <TextInput
+                  <ThemedTextInput
                     label="Main Sets"
                     onChangeText={v => {
                       const newLength = Number(v)
@@ -295,9 +293,9 @@ export default function ActivitiesInput({
                     innerRef={ref}
                     placeholder="0"
                     maxLength={2}
-                    style={tw`py-0 border-b-2 border-l-2`}
-                    textInputStyle={tw`pl-0 py-2.5 pr-6 text-right web:text-base`}
-                    labelStyle={tw`px-2 web:text-base`}
+                    style={tw`border-b-2 border-l-2`}
+                    textInputStyle={tw`pr-3 text-right web:text-base`}
+                    labelStyle={tw`web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
                     numeric
@@ -318,12 +316,10 @@ export default function ActivitiesInput({
                 control={control}
                 defaultValue={3}
                 rules={{
-                  required: true,
-                  min: 1,
-                  max: 99
+                  required: true
                 }}
                 render={({ field: { onChange, ref, onBlur, value } }) => (
-                  <TextInput
+                  <ThemedTextInput
                     label="Repetitions"
                     onChangeText={onChange}
                     onBlur={onBlur}
@@ -331,9 +327,9 @@ export default function ActivitiesInput({
                     innerRef={ref}
                     placeholder="0"
                     maxLength={2}
-                    style={tw`py-0 border-b-2 border-l-2`}
-                    textInputStyle={tw`pl-0 py-2.5 pr-6 text-right web:text-base`}
-                    labelStyle={tw`px-2 web:text-base`}
+                    style={tw`border-b-2 border-l-2`}
+                    textInputStyle={tw`pr-3 text-right web:text-base`}
+                    labelStyle={tw`web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
                     numeric
@@ -357,16 +353,16 @@ export default function ActivitiesInput({
                   required: false
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
+                  <ThemedTextInput
                     label="Rest (minutes)"
                     onChangeText={onChange}
                     onBlur={onBlur}
                     value={String(value)}
                     placeholder="0"
                     maxLength={2}
-                    style={tw`py-0  border-b-2 border-l-2`}
-                    textInputStyle={tw`pl-0 py-2.5 pr-6 text-right web:text-base`}
-                    labelStyle={tw`px-2 web:text-base`}
+                    style={tw`border-b-2 border-l-2`}
+                    textInputStyle={tw`pr-3 text-right web:text-base`}
+                    labelStyle={tw`web:text-base`}
                     selectTextOnFocus
                     keyboardType="number-pad"
                     numeric
@@ -381,9 +377,9 @@ export default function ActivitiesInput({
                 render={({ field: { onChange, value } }) => (
                   <ModalSelectInput
                     label="Load"
-                    style={tw`py-2.5 pl-2 pr-2 border-l-2`}
+                    style={tw`border-l-2`}
                     value={value && stringifyLoad(value)}
-                    textStyle={tw`web:text-base`}
+                    textStyle={tw`pr-3 web:text-base`}
                     modalScreen="LoadFormModal"
                     modalParams={{
                       value,
@@ -392,34 +388,37 @@ export default function ActivitiesInput({
                       modalSelectId: `${item.activityId}.load`
                     }}
                     onChangeSelect={v => onChange(v)}
+                    icon={
+                      <SecondaryText>
+                        <AntDesign name="right" size={16} />
+                      </SecondaryText>
+                    }
                   />
                 )}
                 name={`activities.${index}.load`}
               />
             </View>
-          </Card>
+          </ThemedView>
         </Animated.View>
       ))}
       <Animated.View layout={Layout.duration(1000).springify().damping(6).mass(0.3).stiffness(50)}>
-        <CardInfo
-          leftIcon={
-            <ButtonContainer
-              style={tw`py-2 pr-64`}
-              onPress={() =>
-                append({
-                  activityId: uuidv4()
-                })
-              }
-            >
-              <SpecialText style={tw``}>
-                <AntDesign style={tw``} name="pluscircle" size={16} />
-                &nbsp;&nbsp;Add Exercise
-              </SpecialText>
-            </ButtonContainer>
+        <ButtonContainer
+          onPress={() =>
+            append(
+              {
+                activityId: uuidv4()
+              },
+              { shouldFocus: false }
+            )
           }
-          textStyle={tw``}
-          style={tw`py-[21.35px]`}
-        />
+        >
+          <ThemedView style={tw`justify-start`}>
+            <SpecialText>
+              <AntDesign name="pluscircle" size={16} />
+            </SpecialText>
+            <SpecialText style={tw`px-3`}>Add Exercise</SpecialText>
+          </ThemedView>
+        </ButtonContainer>
       </Animated.View>
     </View>
   )

@@ -6,7 +6,7 @@ import useWorkoutStore from '../hooks/use-workout-store'
 import tw from '../tailwind'
 import { Weight } from '../types'
 import { sumPlateWeights } from '../utils'
-import { SecondaryText } from './Typography'
+import { SecondaryText } from './Themed'
 
 type Props = {
   style?: ClassInput

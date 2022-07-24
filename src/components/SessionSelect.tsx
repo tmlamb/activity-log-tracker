@@ -1,17 +1,16 @@
 import { AntDesign } from '@expo/vector-icons'
-import { useNavigation } from '@react-navigation/native'
 import React from 'react'
+import { View } from 'react-native'
 import tw from '../tailwind'
 import { Program, Session } from '../types'
 import { formatShortDateByProgramWeek } from '../utils'
 import ButtonContainer from './ButtonContainer'
-import CardInfo from './CardInfo'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { RootStackParamList } from './Navigation'
 import SelectList from './SelectList'
-import { SecondaryText, SpecialText } from './Typography'
+import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type Props = {
   session?: Session
@@ -20,6 +19,7 @@ type Props = {
   parentScreen: keyof RootStackParamList
   parentParams: object
   modalSelectId: string
+  goBack: () => void
 }
 
 export default function SessionSelect({
@@ -28,10 +28,9 @@ export default function SessionSelect({
   program,
   parentScreen,
   parentParams,
-  modalSelectId
+  modalSelectId,
+  goBack
 }: Props) {
-  const navigation = useNavigation()
-  // TODO: remove 'React.' everywhere
   const [selected, setSelected] = React.useState<Partial<Session> | undefined>(initialValue)
   return (
     <>
@@ -48,25 +47,20 @@ export default function SessionSelect({
                   }
                 : undefined
           }}
-          style={tw`px-4 py-4 -my-4 -mr-4`}
           disabled={!selected}
         >
           <SpecialText style={tw`font-bold`}>Done</SpecialText>
         </LinkButton>
       </HeaderRightContainer>
       <HeaderLeftContainer>
-        <ButtonContainer
-          style={tw`px-4 py-4 -my-4 -ml-4`}
-          onPress={() => {
-            navigation.goBack()
-          }}
-        >
+        <ButtonContainer onPress={goBack}>
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
       {sessions && (
         <SelectList
-          style={tw`flex-grow px-3 pt-9`}
+          style={tw`flex-1`}
+          contentContainerStyle={tw`px-3 pb-48 pt-9`}
           keyExtractor={(item, index) => `${(item as Session).name}.${index}`}
           items={sessions}
           onSelect={item => {
@@ -93,26 +87,25 @@ export default function SessionSelect({
             }
           }}
           renderItem={({ item, index }) => (
-            <CardInfo
-              rightIcon={
-                <SpecialText style={tw``}>
+            <ThemedView
+              style={tw.style(
+                'border-b-2',
+                index === 0 ? 'rounded-t-xl' : undefined,
+                index === sessions.length - 1 ? 'border-b-0 rounded-b-xl' : undefined
+              )}
+            >
+              <PrimaryText>{(item as Session).name}</PrimaryText>
+              <View style={tw`relative flex-row`}>
+                <SecondaryText style={tw`pr-6`}>
+                  {formatShortDateByProgramWeek((item as Session).start || new Date(), program)}
+                </SecondaryText>
+                <SpecialText style={tw`absolute -right-1`}>
                   {(item as Session).sessionId === selected?.sessionId && (
                     <AntDesign name="check" size={22} />
                   )}
                 </SpecialText>
-              }
-              primaryText={(item as Session).name}
-              secondaryText={formatShortDateByProgramWeek(
-                (item as Session).start || new Date(),
-                program
-              )}
-              textStyle={tw`mr-2`}
-              style={tw.style(
-                'border-b-2',
-                index === 0 ? 'rounded-t-xl' : undefined,
-                index === sessions.length - 1 ? 'border-b-0 rounded-b-xl mb-6' : undefined
-              )}
-            />
+              </View>
+            </ThemedView>
           )}
           ListHeaderComponent={
             sessions.length ? (

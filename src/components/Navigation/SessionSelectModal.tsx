@@ -7,7 +7,8 @@ import ModalLayout from './ModalLayout'
 import { RootStackScreenProps } from './types'
 
 export default function SessionSelectModal({
-  route: { params }
+  route: { params },
+  navigation: { goBack }
 }: RootStackScreenProps<'SessionSelectModal'>) {
   const { programs } = useWorkoutStore(state => state)
   const { value, programId, parentScreen, parentParams, modalSelectId } = params
@@ -27,6 +28,7 @@ export default function SessionSelectModal({
         parentScreen={parentScreen}
         parentParams={parentParams}
         modalSelectId={modalSelectId}
+        goBack={goBack}
       />
     </ModalLayout>
   )

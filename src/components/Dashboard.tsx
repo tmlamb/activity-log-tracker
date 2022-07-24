@@ -24,36 +24,13 @@ export default function Dashboard({ programs }: Props) {
       </HeaderLeftContainer>
       <SectionList
         keyExtractor={program => program.programId}
-        style={tw`flex-1 px-3`}
-        contentContainerStyle={tw`pb-48 pt-9`}
-        scrollEnabled={programs.length > 5}
+        contentContainerStyle={tw`pb-48 pt-9 px-3`}
+        bounces={false}
         sections={[{ title: 'Workout Programs', data: programs }]}
         ListHeaderComponent={
           <PrimaryText style={tw`text-4xl font-bold tracking-tight pb-9`}>
             {`Workout\nActivity Log Tracker`}
           </PrimaryText>
-        }
-        ListFooterComponent={
-          <>
-            {programs.length < 1 && (
-              <>
-                <SecondaryText style={tw`pb-9 px-3 text-xs`}>
-                  Welcome! To get started, first create a new workout program, which will be used to
-                  track your workout sessions.
-                </SecondaryText>
-                <LinkButton to={{ screen: 'ProgramFormModal' }} style={tw``}>
-                  <ThemedView rounded>
-                    <SpecialText>Create Workout Program</SpecialText>
-                  </ThemedView>
-                </LinkButton>
-              </>
-            )}
-            {programs.length > 0 && _.sumBy(programs, o => o.sessions.length) < 4 && (
-              <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
-                Select a program to start planning workout sessions.
-              </SecondaryText>
-            )}
-          </>
         }
         renderSectionHeader={({ section: { title, data } }) => (
           <SecondaryText style={tw`pl-3 pb-1.5 uppercase text-sm`}>
@@ -76,11 +53,33 @@ export default function Dashboard({ programs }: Props) {
             >
               <PrimaryText>{item.name}</PrimaryText>
               <SecondaryText style={tw`absolute right-2`}>
-                <AntDesign style={tw``} name="right" size={16} />
+                <AntDesign name="right" size={16} />
               </SecondaryText>
             </ThemedView>
           </LinkButton>
         )}
+        ListFooterComponent={
+          <>
+            {programs.length < 1 && (
+              <>
+                <SecondaryText style={tw`pb-9 px-3 text-xs`}>
+                  Welcome! To get started, first create a new workout program, which will be used to
+                  track your workout sessions.
+                </SecondaryText>
+                <LinkButton to={{ screen: 'ProgramFormModal' }} style={tw``}>
+                  <ThemedView rounded>
+                    <SpecialText>Create Workout Program</SpecialText>
+                  </ThemedView>
+                </LinkButton>
+              </>
+            )}
+            {programs.length > 0 && _.sumBy(programs, o => o.sessions.length) < 4 && (
+              <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
+                Select a program to start planning workout sessions.
+              </SecondaryText>
+            )}
+          </>
+        }
       />
     </>
   )

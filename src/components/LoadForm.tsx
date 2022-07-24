@@ -1,7 +1,6 @@
-import { useNavigation } from '@react-navigation/native'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { ScrollView, View } from 'react-native'
+import { View } from 'react-native'
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Exercise, Load } from '../types'
@@ -11,8 +10,13 @@ import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { RootStackParamList } from './Navigation'
 import Picker from './Picker'
-import TextInput from './TextInput'
-import { alertTextColor, primaryTextColor, SecondaryText, SpecialText } from './Typography'
+import {
+  alertTextColor,
+  primaryTextColor,
+  SecondaryText,
+  SpecialText,
+  ThemedTextInput
+} from './Themed'
 
 type Props = {
   load?: Load
@@ -21,6 +25,7 @@ type Props = {
   parentScreen: keyof RootStackParamList
   parentParams: object
   modalSelectId: string
+  goBack: () => void
 }
 
 type FormData = Partial<Load> & { oneRepMaxVal: number }
@@ -31,9 +36,9 @@ export default function LoadForm({
   updateExercise,
   parentScreen,
   parentParams,
-  modalSelectId
+  modalSelectId,
+  goBack
 }: Props) {
-  const navigation = useNavigation()
   const {
     control,
     handleSubmit,
@@ -119,23 +124,17 @@ export default function LoadForm({
                 : undefined
           }}
           beforeNavigation={handleSubmit(onSubmit)}
-          style={tw`px-4 py-4 -my-4 -mr-4`}
           disabled={!isValid}
         >
           <SpecialText style={tw`font-bold`}>Done</SpecialText>
         </LinkButton>
       </HeaderRightContainer>
       <HeaderLeftContainer>
-        <ButtonContainer
-          style={tw`py-4 -my-4 px-4 -ml-4`}
-          onPress={() => {
-            navigation.goBack()
-          }}
-        >
+        <ButtonContainer onPress={goBack}>
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
-      <ScrollView style={tw`flex-grow py-9`}>
+      <View style={tw`flex-1 py-9`}>
         <Controller
           name="type"
           control={control}
@@ -185,7 +184,7 @@ export default function LoadForm({
                 max: 10
               }}
               render={({ field: { ref, onChange, onBlur, value } }) => (
-                <TextInput
+                <ThemedTextInput
                   label="RPE Value"
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -242,10 +241,10 @@ export default function LoadForm({
               rules={{
                 required: true,
                 min: 0.001,
-                max: 0.999
+                max: 0.9999
               }}
               render={({ field: { ref, onChange, onBlur, value } }) => (
-                <TextInput
+                <ThemedTextInput
                   label="% of One Rep Max"
                   onChangeText={newValue => {
                     onChange(percentStringToNum(newValue, String(value)))
@@ -288,7 +287,7 @@ export default function LoadForm({
                     required: true
                   }}
                   render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
+                    <ThemedTextInput
                       label="One Rep Max (lbs)"
                       placeholder="Required"
                       placeholderTextColor={tw.color(alertTextColor)}
@@ -321,7 +320,7 @@ export default function LoadForm({
             </View>
           </Animated.View>
         )}
-      </ScrollView>
+      </View>
     </>
   )
 }

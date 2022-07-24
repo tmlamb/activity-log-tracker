@@ -6,13 +6,14 @@ import ModalLayout from './ModalLayout'
 import { RootStackScreenProps } from './types'
 
 export default function ExerciseFormModal({
-  route: { params }
+  route: { params },
+  navigation: { goBack }
 }: RootStackScreenProps<'ExerciseFormModal'>) {
   // TODO: combine all these useWorkoutStores
   const { exercises, updateExercise, addExercise, deleteExercise, programs } = useWorkoutStore(
     state => state
   )
-  const exercise = _.find(exercises, { exerciseId: params.exerciseId })
+  const exercise = _.find(exercises, { exerciseId: params?.exerciseId })
 
   return (
     <ModalLayout>
@@ -23,9 +24,15 @@ export default function ExerciseFormModal({
           deleteHandler={deleteExercise}
           programs={programs}
           exercises={exercises}
+          goBack={goBack}
         />
       ) : (
-        <ExerciseForm changeHandler={addExercise} name={params.name} exercises={exercises} />
+        <ExerciseForm
+          changeHandler={addExercise}
+          name={params?.name}
+          exercises={exercises}
+          goBack={goBack}
+        />
       )}
     </ModalLayout>
   )

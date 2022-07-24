@@ -8,10 +8,10 @@ import {
   TextInputKeyPressEventData,
   ViewStyle
 } from 'react-native'
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
+import Animated, { FadeInRight, FadeOutRight } from 'react-native-reanimated'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../../tailwind'
-import { AlertText, primaryTextColor, SecondaryText, secondaryTextColor } from '../Typography'
+import { AlertText, primaryTextColor, SecondaryText, secondaryTextColor } from './ThemedText'
 import ThemedView from './ThemedView'
 
 type Props = {
@@ -118,8 +118,8 @@ export default function TextInput({
       />
       {error && (
         <Animated.View
-          entering={FadeInDown.springify().stiffness(40).damping(6).mass(0.3)}
-          exiting={FadeInUp.springify().stiffness(40).damping(6).mass(0.3)}
+          entering={FadeInRight.springify().stiffness(40).damping(6).mass(0.3)}
+          exiting={FadeOutRight.springify().stiffness(40).damping(6).mass(0.3)}
           pointerEvents="none"
           style={tw.style('absolute items-center justify-center h-full -top-8 right-3', errorStyle)}
         >
