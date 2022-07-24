@@ -1,4 +1,5 @@
 import { AntDesign } from '@expo/vector-icons'
+import { isToday } from 'date-fns'
 import _ from 'lodash'
 import React from 'react'
 import { SectionList } from 'react-native'
@@ -26,14 +27,23 @@ export default function ProgramDetail({ program }: Props) {
     .map((data, title) => ({ title, data }))
     .value()
 
-  // Add a section for 'Today' if there wasn't already a workout planned for today.
-  if (!sections[0] || !sections[sections.length - 1].title.includes('Today')) {
+  console.log(sections[sections.length - 1])
+  console.log('11111', sections?.[sections.length - 1]?.data?.[0]?.start)
+  if (
+    sections &&
+    sections[sections.length - 1] &&
+    sections[sections.length - 1].data &&
+    sections[sections.length - 1].data[0] &&
+    (!sections[sections.length - 1].data[0]?.start ||
+      isToday(sections?.[sections.length - 1]?.data?.[0]?.start))
+  ) {
+    sections[sections.length - 1].title += ' (Today)'
+  } else {
     sections.push({
       title: formatWeekAndDayKey(programStart, new Date()),
       data: [undefined]
     })
   }
-
   sections.reverse() // Reverse to show most recent at the top.
 
   return (
@@ -52,6 +62,7 @@ export default function ProgramDetail({ program }: Props) {
         <SectionList
           style={tw`flex-grow pt-9 px-3`}
           contentContainerStyle={tw`pb-48`}
+          scrollEnabled={program.sessions.length > 4}
           sections={sections}
           keyExtractor={(session, index) =>
             session ? (session as Session).sessionId : String(index)

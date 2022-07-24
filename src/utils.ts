@@ -33,7 +33,12 @@ export const weeksAndDaysBetween = (start: Date, end: Date) => {
 
 export const formatWeekAndDayKey = (start: Date, end: Date) => {
   const [week, day] = weeksAndDaysBetween(start, end)
-  return `${week > 1 ? `Week ${week}, ` : ''}Day ${day}${isToday(end) ? ' (Today)' : ''}`
+  console.log('week', week)
+  console.log('day', day)
+  console.log('start', start)
+  console.log('end', end)
+  console.log('itoday', isToday(end))
+  return `${week > 1 ? `Week ${week}, ` : ''}Day ${day}`
 }
 
 export const formatShortDateByProgramWeek = (date: Date, program: Program) => {

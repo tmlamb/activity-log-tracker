@@ -278,18 +278,18 @@ const useWorkoutStore = create<WorkoutStore>()(
           ...program,
           sessions: program.sessions.map(session => ({
             ...session,
-            start: new Date(String(session.start)),
+            start: session.start ? new Date(String(session.start)) : undefined,
             end: session.end ? new Date(String(session.end)) : undefined,
             activities: session.activities.map(activity => ({
               ...activity,
               warmupSets: activity.warmupSets.map(warmupSet => ({
                 ...warmupSet,
-                start: new Date(String(warmupSet.start)),
+                start: warmupSet.start ? new Date(String(warmupSet.start)) : undefined,
                 end: warmupSet.end ? new Date(String(warmupSet.end)) : undefined
               })),
               mainSets: activity.mainSets.map(mainSet => ({
                 ...mainSet,
-                start: new Date(String(mainSet.start)),
+                start: mainSet.start ? new Date(String(mainSet.start)) : undefined,
                 end: mainSet.end ? new Date(String(mainSet.end)) : undefined
               }))
             }))
