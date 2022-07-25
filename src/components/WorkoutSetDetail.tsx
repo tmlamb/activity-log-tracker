@@ -4,7 +4,6 @@ import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { ScrollView, View } from 'react-native'
 import Animated, { FadeInUp, FadeOutDown, Layout } from 'react-native-reanimated'
-import useWorkoutStore from '../hooks/use-workout-store'
 import tw from '../tailwind'
 import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import { recentActivityByExercise, round5, stringifyLoad } from '../utils'
@@ -25,7 +24,7 @@ type Props = {
     activityId: string,
     workoutSet: WorkoutSet
   ) => void
-  updateSession: (programId: string, session: Session) => void
+  startSession: (programId: string, sessionId: string) => void
   goBack: () => void
 }
 
@@ -105,7 +104,7 @@ export default function WorkoutSetDetail({
   workoutSet,
   exercise,
   updateWorkoutSet,
-  updateSession,
+  startSession,
   goBack
 }: Props) {
   const warmupPercent =
@@ -196,18 +195,8 @@ export default function WorkoutSetDetail({
             setValue('status', 'Ready')
             handleSubmit(onSubmit)
 
-            // TODO: Need a better way to handle getting updated state from a nested object..
-            const latestSession = useWorkoutStore
-              .getState()
-              .programs.find(p => p.programId === program.programId)
-              ?.sessions.find(s => s.sessionId === session.sessionId)
-
             if (session.status === 'Planned') {
-              updateSession(program.programId, {
-                ...latestSession!,
-                status: 'Ready',
-                start: new Date()
-              })
+              startSession(program.programId, session.sessionId)
             }
           }}
         >

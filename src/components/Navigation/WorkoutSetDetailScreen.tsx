@@ -10,7 +10,7 @@ function WorkoutSetDetailScreen({
   route: { params },
   navigation: { goBack }
 }: RootStackScreenProps<'WorkoutSetDetailScreen'>) {
-  const { programs, exercises, updateWorkoutSet, updateSession } = useWorkoutStore(store => store)
+  const { programs, exercises, updateWorkoutSet, startSession } = useWorkoutStore(store => store)
   const program = _.find(programs, { programId: params.programId })
 
   if (!program) {
@@ -54,7 +54,7 @@ function WorkoutSetDetailScreen({
             workoutSet={workoutSet}
             exercise={exercise}
             updateWorkoutSet={updateWorkoutSet}
-            updateSession={updateSession}
+            startSession={startSession}
             goBack={goBack}
           />
         )}
