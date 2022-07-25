@@ -38,6 +38,8 @@ type Props = {
   errorStyle?: ClassInput
 }
 
+// TODO: fix issues with entering leading zeroes in various places
+
 // Why is this necessary? Because when we right justify the text in
 // our TextInput, any trailing whitespace in the field gets treated
 // as space to be removed so that the text is right aligned. This

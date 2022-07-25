@@ -3,7 +3,7 @@ import _ from 'lodash'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { ScrollView, View } from 'react-native'
-import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
+import Animated, { FadeInUp, FadeOutDown, Layout } from 'react-native-reanimated'
 import useWorkoutStore from '../hooks/use-workout-store'
 import tw from '../tailwind'
 import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
@@ -179,6 +179,7 @@ export default function WorkoutSetDetail({
   )
 
   const actualWeightWatcher = watch('actualWeight')
+  const actualRepsWatcher = watch('actualReps')
 
   React.useEffect(() => {
     const subscription = watch(() => handleSubmit(onSubmit)())
@@ -215,207 +216,215 @@ export default function WorkoutSetDetail({
           </ThemedView>
         </ButtonContainer>
       )) ||
-        (workoutSet.status === 'Ready' && (
-          <ButtonContainer
-            style={tw`mb-9`}
-            onPress={() => {
-              const now = new Date()
-              setValue('end', now)
-              setValue('status', 'Done')
-              handleSubmit(onSubmit)
-
-              const nextWorkoutSet = [...activity.warmupSets, ...activity.mainSets].find(
-                (ws, index, obj) =>
-                  obj[index - 1] && obj[index - 1].workoutSetId === workoutSet.workoutSetId
-              )
-              if (nextWorkoutSet && nextWorkoutSet.status === 'Planned') {
-                updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
-                  ...nextWorkoutSet,
-                  start: now,
-                  status: 'Ready'
-                })
-              }
-
-              goBack()
-            }}
+        (workoutSet.status === 'Ready' && !!actualRepsWatcher && actualRepsWatcher > 0 && (
+          <Animated.View
+            entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+            exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+            style={tw``}
           >
-            <ThemedView rounded>
-              <SpecialText>{`Complete ${workoutSet.type} Set`}</SpecialText>
-            </ThemedView>
-          </ButtonContainer>
+            <ButtonContainer
+              style={tw`mb-9`}
+              onPress={() => {
+                const now = new Date()
+                setValue('end', now)
+                setValue('status', 'Done')
+                handleSubmit(onSubmit)
+
+                const nextWorkoutSet = [...activity.warmupSets, ...activity.mainSets].find(
+                  (ws, index, obj) =>
+                    obj[index - 1] && obj[index - 1].workoutSetId === workoutSet.workoutSetId
+                )
+                if (nextWorkoutSet && nextWorkoutSet.status === 'Planned') {
+                  updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
+                    ...nextWorkoutSet,
+                    start: now,
+                    status: 'Ready'
+                  })
+                }
+
+                goBack()
+              }}
+            >
+              <ThemedView rounded>
+                <SpecialText>{`Complete ${workoutSet.type} Set`}</SpecialText>
+              </ThemedView>
+            </ButtonContainer>
+          </Animated.View>
         ))}
-      <ThemedView
-        style={tw.style(
-          workoutSet.type === 'Main' || exercise.oneRepMax
-            ? 'border-b-2 rounded-t-xl'
-            : 'rounded-xl'
-        )}
-      >
-        <PrimaryText>Exercise</PrimaryText>
-        <SecondaryText>{exercise.name}</SecondaryText>
-      </ThemedView>
-      {workoutSet.type === 'Warmup' && exercise.oneRepMax && (
-        <ThemedView style={tw`rounded-b-xl`}>
-          <PrimaryText>Warmup Load</PrimaryText>
-          <SecondaryText>{`${String(warmupPercent * 100)}%${
-            targetWeight ? ` / ${targetWeight}lbs` : ''
-          }`}</SecondaryText>
+      <Animated.View layout={Layout}>
+        <ThemedView
+          style={tw.style(
+            workoutSet.type === 'Main' || exercise.oneRepMax
+              ? 'border-b-2 rounded-t-xl'
+              : 'rounded-xl'
+          )}
+        >
+          <PrimaryText>Exercise</PrimaryText>
+          <SecondaryText>{exercise.name}</SecondaryText>
         </ThemedView>
-      )}
-      {workoutSet.type === 'Main' && (
-        <>
-          <ThemedView style={tw`border-b-2`}>
-            <PrimaryText>Target Load</PrimaryText>
-            <SecondaryText>{`${stringifyLoad(activity.load)}${
-              activity.load.type === 'PERCENT' && targetWeight ? ` / ${targetWeight}lbs` : ''
+        {workoutSet.type === 'Warmup' && exercise.oneRepMax && (
+          <ThemedView style={tw`rounded-b-xl`}>
+            <PrimaryText>Warmup Load</PrimaryText>
+            <SecondaryText>{`${String(warmupPercent * 100)}%${
+              targetWeight ? ` / ${targetWeight}lbs` : ''
             }`}</SecondaryText>
           </ThemedView>
-          <ThemedView style={tw`border-b-2`}>
-            <PrimaryText>Target Reps</PrimaryText>
-            <SecondaryText>{String(activity.reps)}</SecondaryText>
-          </ThemedView>
-          <ThemedView style={tw`rounded-b-xl`}>
-            <PrimaryText>Target Rest</PrimaryText>
-            <SecondaryText>
-              {activity.rest > 0 ? `${String(activity.rest)} minutes` : 'No rest'}
-            </SecondaryText>
-          </ThemedView>
-        </>
-      )}
+        )}
+        {workoutSet.type === 'Main' && (
+          <>
+            <ThemedView style={tw`border-b-2`}>
+              <PrimaryText>Target Load</PrimaryText>
+              <SecondaryText>{`${stringifyLoad(activity.load)}${
+                activity.load.type === 'PERCENT' && targetWeight ? ` / ${targetWeight}lbs` : ''
+              }`}</SecondaryText>
+            </ThemedView>
+            <ThemedView style={tw`border-b-2`}>
+              <PrimaryText>Target Reps</PrimaryText>
+              <SecondaryText>{String(activity.reps)}</SecondaryText>
+            </ThemedView>
+            <ThemedView style={tw`rounded-b-xl`}>
+              <PrimaryText>Target Rest</PrimaryText>
+              <SecondaryText>
+                {activity.rest > 0 ? `${String(activity.rest)} minutes` : 'No rest'}
+              </SecondaryText>
+            </ThemedView>
+          </>
+        )}
 
-      {workoutSet.status !== 'Planned' && (
-        <Animated.View
-          entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-          exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-          style={tw`mt-9`}
-        >
-          {(targetWeight === 0 && workoutSet.type === 'Warmup' && (
-            <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
-              {`Future workout sessions will prepopulate Actual Weight with the values from previous similar sets, if available, based on:\
+        {workoutSet.status !== 'Planned' && (
+          <Animated.View
+            entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+            exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+            style={tw`mt-9`}
+          >
+            {(targetWeight === 0 && workoutSet.type === 'Warmup' && (
+              <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
+                {`Future workout sessions will prepopulate Actual Weight with the values from previous similar sets, if available, based on:\
                \n\t- Target Load\
                 \n\t- Target Reps\
                  \n\t- Number of Planned Main Sets`}
-            </SecondaryText>
-          )) ||
-            (workoutSet.type === 'Main' && program.sessions.length < 4 && (
-              <>
-                <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
-                  Try to find a weight that will cause you to meet the target RPE. Recall:
-                </SecondaryText>
-                <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
-                  <SecondaryText style={tw`mb-0 text-xs`}>
-                    10 - another rep would have been impossible
+              </SecondaryText>
+            )) ||
+              (workoutSet.type === 'Main' && program.sessions.length < 4 && (
+                <>
+                  <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
+                    Try to find a weight that will cause you to meet the target RPE. Recall:
                   </SecondaryText>
-                </View>
-                <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
-                  <SecondaryText style={tw`mb-0 text-xs`}>
-                    9 - you left one in the tank
-                  </SecondaryText>
-                </View>
-                <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
-                  <SecondaryText style={tw`mb-0 text-xs`}>
-                    8 - you could have done a couple more
-                  </SecondaryText>
-                </View>
-                <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
-                  <SecondaryText style={tw`mb-1.5 text-xs`}>etc...</SecondaryText>
-                </View>
-              </>
-            ))}
-          <Controller
-            control={control}
-            rules={{
-              required: true,
-              min: 1
-            }}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <ThemedTextInput
-                label="Actual Weight (lbs)"
-                onChangeText={newValue => {
-                  onChange({
-                    value: Number(newValue),
-                    unit: 'lbs'
-                  })
-                }}
-                onBlur={() => {
-                  handleSubmit(onSubmit)
-                  onBlur()
-                }}
-                value={value ? String(value.value) : undefined}
-                placeholder="0"
-                maxLength={4}
-                style={tw`border-b-2 rounded-t-xl`}
-                textInputStyle={tw`text-right web:text-base`}
-                labelStyle={tw`web:text-base`}
-                keyboardType="number-pad"
-                numeric
-                selectTextOnFocus
-              />
-            )}
-            name="actualWeight"
-          />
-
-          <Controller
-            control={control}
-            rules={{
-              required: true,
-              min: 1
-            }}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <ThemedTextInput
-                label="Actual Reps"
-                onChangeText={onChange}
-                onBlur={() => {
-                  handleSubmit(onSubmit)
-                  onBlur()
-                }}
-                value={value ? String(value) : undefined}
-                placeholder="0"
-                maxLength={2}
-                style={tw`border-b-2`}
-                textInputStyle={tw`text-right web:text-base`}
-                labelStyle={tw`web:text-base`}
-                keyboardType="number-pad"
-                numeric
-                selectTextOnFocus
-              />
-            )}
-            name="actualReps"
-          />
-          <ElapsedTime
-            start={workoutSet.start || new Date()}
-            end={workoutSet.end}
-            status={workoutSet.status}
-          />
-
-          {workoutSet.type === 'Main' && (
+                  <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
+                    <SecondaryText style={tw`mb-0 text-xs`}>
+                      10 - another rep would have been impossible
+                    </SecondaryText>
+                  </View>
+                  <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
+                    <SecondaryText style={tw`mb-0 text-xs`}>
+                      9 - you left one in the tank
+                    </SecondaryText>
+                  </View>
+                  <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
+                    <SecondaryText style={tw`mb-0 text-xs`}>
+                      8 - you could have done a couple more
+                    </SecondaryText>
+                  </View>
+                  <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
+                    <SecondaryText style={tw`mb-1.5 text-xs`}>etc...</SecondaryText>
+                  </View>
+                </>
+              ))}
             <Controller
-              name="feedback"
               control={control}
               rules={{
-                required: true
+                required: true,
+                min: 1
               }}
-              render={({ field: { value } }) => (
-                <FeedbackSelectInput
-                  value={value}
-                  onSelect={feedback => {
-                    setValue('feedback', feedback)
-                    handleSubmit(onSubmit)
+              render={({ field: { onChange, onBlur, value } }) => (
+                <ThemedTextInput
+                  label="Actual Weight (lbs)"
+                  onChangeText={newValue => {
+                    onChange({
+                      value: Number(newValue),
+                      unit: 'lbs'
+                    })
                   }}
+                  onBlur={() => {
+                    handleSubmit(onSubmit)
+                    onBlur()
+                  }}
+                  value={value ? String(value.value) : undefined}
+                  placeholder="0"
+                  maxLength={4}
+                  style={tw`border-b-2 rounded-t-xl`}
+                  textInputStyle={tw`text-right web:text-base`}
+                  labelStyle={tw`web:text-base`}
+                  keyboardType="number-pad"
+                  numeric
+                  selectTextOnFocus
                 />
               )}
+              name="actualWeight"
             />
-          )}
-        </Animated.View>
-      )}
-      {workoutSet.status === 'Planned' && !isNextWorkoutSet(workoutSet, activity) && (
-        <SecondaryText style={tw`pl-3 text-xs mt-9`}>
-          Complete the previous Workout Sets for this Exercise before continuing.
-        </SecondaryText>
-      )}
-      {actualWeightWatcher && actualWeightWatcher.value > 0 && (
-        <PlateChart style={tw`px-3 mt-9`} totalWeight={actualWeightWatcher} />
-      )}
+
+            <Controller
+              control={control}
+              rules={{
+                required: true,
+                min: 1
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <ThemedTextInput
+                  label="Actual Reps"
+                  onChangeText={onChange}
+                  onBlur={() => {
+                    handleSubmit(onSubmit)
+                    onBlur()
+                  }}
+                  value={value ? String(value) : undefined}
+                  placeholder="0"
+                  maxLength={2}
+                  style={tw`border-b-2`}
+                  textInputStyle={tw`text-right web:text-base`}
+                  labelStyle={tw`web:text-base`}
+                  keyboardType="number-pad"
+                  numeric
+                  selectTextOnFocus
+                />
+              )}
+              name="actualReps"
+            />
+            <ElapsedTime
+              start={workoutSet.start || new Date()}
+              end={workoutSet.end}
+              status={workoutSet.status}
+            />
+
+            {workoutSet.type === 'Main' && (
+              <Controller
+                name="feedback"
+                control={control}
+                rules={{
+                  required: true
+                }}
+                render={({ field: { value } }) => (
+                  <FeedbackSelectInput
+                    value={value}
+                    onSelect={feedback => {
+                      setValue('feedback', feedback)
+                      handleSubmit(onSubmit)
+                    }}
+                  />
+                )}
+              />
+            )}
+          </Animated.View>
+        )}
+        {workoutSet.status === 'Planned' && !isNextWorkoutSet(workoutSet, activity) && (
+          <SecondaryText style={tw`pl-3 text-xs mt-9`}>
+            Complete the previous Workout Sets for this Exercise before continuing.
+          </SecondaryText>
+        )}
+        {actualWeightWatcher && actualWeightWatcher.value > 0 && (
+          <PlateChart style={tw`px-3 mt-9`} totalWeight={actualWeightWatcher} />
+        )}
+      </Animated.View>
     </ScrollView>
   )
 }
