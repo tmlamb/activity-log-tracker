@@ -1,4 +1,5 @@
 import { AntDesign } from '@expo/vector-icons'
+import _ from 'lodash'
 import React from 'react'
 import { View } from 'react-native'
 import tw from '../tailwind'
@@ -32,6 +33,9 @@ export default function SessionSelect({
   goBack
 }: Props) {
   const [selected, setSelected] = React.useState<Partial<Session> | undefined>(initialValue)
+
+  const sessionsSorted = _(sessions).filter('end').orderBy(['start'], ['desc']).value()
+
   return (
     <>
       <HeaderRightContainer>
@@ -62,7 +66,7 @@ export default function SessionSelect({
           style={tw`flex-1`}
           contentContainerStyle={tw`px-3 pb-48 pt-9`}
           keyExtractor={(item, index) => `${item.name}.${index}`}
-          items={sessions}
+          items={sessionsSorted}
           onSelect={item => {
             if (item) {
               setSelected({
