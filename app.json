@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "activity-log-tracker",
+    "name": "Workout Activity Log Tracker",
     "slug": "activity-log-tracker",
     "owner": "tmlamb",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.triplesight.activitylogtracker",
-      "buildNumber": "1.0.0"
+      "buildNumber": "1.0.2"
     },
     "android": {
       "adaptiveIcon": {
