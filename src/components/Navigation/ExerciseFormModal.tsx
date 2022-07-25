@@ -9,7 +9,6 @@ export default function ExerciseFormModal({
   route: { params },
   navigation: { goBack }
 }: RootStackScreenProps<'ExerciseFormModal'>) {
-  // TODO: combine all these useWorkoutStores
   const { exercises, updateExercise, addExercise, deleteExercise, programs } = useWorkoutStore(
     state => state
   )

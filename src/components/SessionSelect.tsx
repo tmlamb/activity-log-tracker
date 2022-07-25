@@ -61,16 +61,15 @@ export default function SessionSelect({
         <SelectList
           style={tw`flex-1`}
           contentContainerStyle={tw`px-3 pb-48 pt-9`}
-          keyExtractor={(item, index) => `${(item as Session).name}.${index}`}
+          keyExtractor={(item, index) => `${item.name}.${index}`}
           items={sessions}
           onSelect={item => {
-            if (item as Session) {
+            if (item) {
               setSelected({
-                // TODO: Learn lodash
-                ...(item as Session),
+                ...item,
                 start: undefined,
                 end: undefined,
-                activities: (item as Session)?.activities?.map(actvy => ({
+                activities: item?.activities?.map(actvy => ({
                   ...actvy,
                   warmupSets: actvy.warmupSets?.map(ws => ({
                     ...ws,
@@ -94,15 +93,13 @@ export default function SessionSelect({
                 index === sessions.length - 1 ? 'border-b-0 rounded-b-xl' : undefined
               )}
             >
-              <PrimaryText>{(item as Session).name}</PrimaryText>
+              <PrimaryText>{item.name}</PrimaryText>
               <View style={tw`relative flex-row`}>
                 <SecondaryText style={tw`pr-6`}>
-                  {formatShortDateByProgramWeek((item as Session).start || new Date(), program)}
+                  {formatShortDateByProgramWeek(item.start || new Date(), program)}
                 </SecondaryText>
                 <SpecialText style={tw`absolute -right-1`}>
-                  {(item as Session).sessionId === selected?.sessionId && (
-                    <AntDesign name="check" size={22} />
-                  )}
+                  {item.sessionId === selected?.sessionId && <AntDesign name="check" size={22} />}
                 </SpecialText>
               </View>
             </ThemedView>

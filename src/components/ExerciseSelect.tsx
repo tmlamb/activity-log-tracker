@@ -33,7 +33,6 @@ export default function ExerciseSelect({
   modalSelectId,
   goBack
 }: Props) {
-  // TODO: remove 'React.' everywhere
   const [selected, setSelected] = React.useState(initialValue)
 
   React.useEffect(
@@ -86,7 +85,7 @@ export default function ExerciseSelect({
       <SelectList
         style={tw`flex-1`}
         contentContainerStyle="pt-9 px-3 pb-48"
-        keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
+        keyExtractor={(item, index) => `${item.name}.${index}`}
         items={exercisesSortedAndDeduped}
         onSelect={item => {
           setSelected(item as Exercise)
@@ -105,8 +104,8 @@ export default function ExerciseSelect({
                   : undefined
               )}
             >
-              <PrimaryText>{(item as Exercise).name}</PrimaryText>
-              {(item as Exercise).name === selected?.name && (
+              <PrimaryText>{item.name}</PrimaryText>
+              {item.name === selected?.name && (
                 <SpecialText>
                   <AntDesign name="check" size={22} />
                 </SpecialText>

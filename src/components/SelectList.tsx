@@ -4,19 +4,18 @@ import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
 import ButtonContainer from './ButtonContainer'
 
-type Props = {
-  items: Partial<unknown>[]
+type Props<T> = {
+  items: Partial<T>[]
   style?: ClassInput
-  keyExtractor: (value: Partial<unknown>, index: number) => string
+  keyExtractor: (value: Partial<T>, index: number) => string
   scrollEnabled?: boolean
   ListHeaderComponent?: JSX.Element
   contentContainerStyle?: ClassInput
-  renderItem?: ListRenderItem<Partial<unknown>> | null
-  onSelect: (value: Partial<unknown>) => void
+  renderItem?: ListRenderItem<Partial<T>> | null
+  onSelect: (value: Partial<T>) => void
 }
 
-// TODO: Make this generic
-export default function SelectList({
+export default function SelectList<T>({
   items,
   style,
   keyExtractor,
@@ -25,7 +24,7 @@ export default function SelectList({
   contentContainerStyle,
   renderItem,
   onSelect
-}: Props) {
+}: Props<T>) {
   return (
     <FlatList
       ListHeaderComponent={ListHeaderComponent}
@@ -34,9 +33,9 @@ export default function SelectList({
       scrollEnabled={scrollEnabled}
       keyExtractor={keyExtractor}
       style={tw.style(style, 'flex-grow')}
-      renderItem={theItem => (
-        <ButtonContainer onPress={() => onSelect(theItem.item)}>
-          {renderItem && renderItem(theItem)}
+      renderItem={item => (
+        <ButtonContainer onPress={() => onSelect(item.item)}>
+          {renderItem && renderItem(item)}
         </ButtonContainer>
       )}
     />
