@@ -25,7 +25,6 @@ export default function ProgramDetail({ program }: Props) {
     })
     .map((data, title) => ({ title, data }))
     .value()
-
   if (
     sections.length > 0 &&
     differenceInCalendarDays(
@@ -41,6 +40,7 @@ export default function ProgramDetail({ program }: Props) {
     })
   }
   sections.reverse() // Reverse to show most recent at the top.
+
   return (
     <>
       <HeaderRightContainer>
@@ -114,13 +114,6 @@ export default function ProgramDetail({ program }: Props) {
                     )}
                   >
                     <PrimaryText>{item.name}</PrimaryText>
-                    <SecondaryText>
-                      {item.start && item.end
-                        ? `${Math.ceil(
-                            (item.end.getTime() - item.start.getTime()) / 1000 / 60
-                          )} min`
-                        : undefined}
-                    </SecondaryText>
                     {(item.status === 'Ready' && (
                       <SpecialText style={tw`pr-5`}>{item.status}</SpecialText>
                     )) || <SecondaryText style={tw`pr-5`}>{item.status}</SecondaryText>}
