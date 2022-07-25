@@ -23,11 +23,14 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
       ) as Partial<Exercise>[],
     [availableExercises, usedExercises]
   )
-
   return (
     <>
       <HeaderRightContainer>
-        <LinkButton to={{ screen: 'ExerciseFormModal' }} style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}>
+        <LinkButton
+          to={{ screen: 'ExerciseFormModal' }}
+          style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}
+          disabled={exercisesSortedAndDeduped.length > 1000}
+        >
           <SpecialText>
             <AntDesign name="plus" size={28} />
           </SpecialText>

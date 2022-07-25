@@ -412,6 +412,7 @@ export default function ActivitiesInput({
               { shouldFocus: false }
             )
           }
+          disabled={fields.length > 100}
         >
           <ThemedView style={tw`justify-start`}>
             <SpecialText>

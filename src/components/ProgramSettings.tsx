@@ -15,7 +15,11 @@ export default function ProgramSettings({ programs }: Props) {
   return (
     <>
       <HeaderRightContainer>
-        <LinkButton to={{ screen: 'ProgramFormModal' }} style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}>
+        <LinkButton
+          to={{ screen: 'ProgramFormModal' }}
+          style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}
+          disabled={programs.length > 100}
+        >
           <SpecialText>
             <AntDesign name="plus" size={28} />
           </SpecialText>
