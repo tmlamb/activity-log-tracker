@@ -159,6 +159,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                   platePairId: uuidv4()
                 })
               }
+              disabled={fields.length > 100}
             >
               <ThemedView
                 style={tw.style(
