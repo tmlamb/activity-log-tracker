@@ -249,7 +249,7 @@ export default function ActivitiesInput({
                     placeholder="0"
                     maxLength={1}
                     style={tw`border-b-2 border-l-2`}
-                    textInputStyle={tw`pr-2.5 text-right web:text-base`}
+                    textInputStyle={tw`pr-3 text-right web:text-base`}
                     labelStyle={tw`web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
@@ -304,10 +304,10 @@ export default function ActivitiesInput({
                       errors.activities &&
                       errors.activities[index] &&
                       errors?.activities[index]?.mainSets
-                        ? '*'
+                        ? '!'
                         : undefined
                     }
-                    errorStyle={tw`bottom-0 right-2.5 top-1`}
+                    errorStyle={tw`right-2.5 top-2`}
                   />
                 )}
               />
@@ -316,7 +316,8 @@ export default function ActivitiesInput({
                 control={control}
                 defaultValue={3}
                 rules={{
-                  required: true
+                  required: true,
+                  min: 1
                 }}
                 render={({ field: { onChange, ref, onBlur, value } }) => (
                   <ThemedTextInput
@@ -338,10 +339,10 @@ export default function ActivitiesInput({
                       errors.activities &&
                       errors.activities[index] &&
                       errors?.activities[index]?.reps
-                        ? '*'
+                        ? '!'
                         : undefined
                     }
-                    errorStyle={tw`bottom-0 right-2.5 top-1`}
+                    errorStyle={tw`bottom-0 right-2.5 top-2`}
                   />
                 )}
               />
