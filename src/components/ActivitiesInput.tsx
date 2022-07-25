@@ -70,7 +70,7 @@ export default function ActivitiesInput({
   const { fields, append, remove } = fieldArray
   const watchActivities = watch('activities')
   return (
-    <View style={tw`mb-9`}>
+    <View style={tw`my-9`}>
       {fields.map((item, index) => (
         <Animated.View
           key={item.activityId}

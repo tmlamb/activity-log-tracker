@@ -20,6 +20,7 @@ import {
   AlertText,
   PrimaryText,
   primaryTextColor,
+  SecondaryText,
   SpecialText,
   ThemedTextInput,
   ThemedView
@@ -146,11 +147,11 @@ export default function SessionForm({
         keyboardVerticalOffset={Platform.OS === 'ios' ? 114 : -225}
         behavior="padding"
       >
-        <ScrollView style={tw`flex-1`} contentContainerStyle={tw`pt-9 pb-48`}>
+        <ScrollView style={tw`flex-1`} contentContainerStyle={tw`pb-48 pt-9`}>
           {!session && sessions && sessions.length > 0 && (
-            <ThemedView style={tw`p-0 justify-between mb-9`}>
+            <ThemedView style={tw`justify-between p-0 mb-9`}>
               <ButtonContainer
-                style={tw`w-1/2 flex-row items-stretch h-full`}
+                style={tw`flex-row items-stretch w-1/2 h-full`}
                 onPress={() => {
                   setFromType('Scratch')
                 }}
@@ -177,7 +178,7 @@ export default function SessionForm({
                 )}
               >
                 <ModalSelectInput
-                  style={tw`bg-transparent justify-center`}
+                  style={tw`justify-center bg-transparent`}
                   value="From Template"
                   textStyle={tw.style('web:text-base', primaryTextColor)}
                   modalScreen="SessionSelectModal"
@@ -224,13 +225,17 @@ export default function SessionForm({
                     label="Session Name"
                     innerRef={ref}
                     maxLength={25}
-                    style={tw`mb-9`}
-                    textInputStyle={tw``}
+                    textInputStyle={tw`pr-3`}
                     error={errors.name ? 'Session Name is required' : undefined}
                   />
                 )}
               />
-
+              {program.sessions.length < 3 && fromType !== 'Template' && (
+                <SecondaryText style={tw`text-xs px-3 pt-1.5`}>
+                  Use a descriptive name for your workout session, like &apos;Lower Body&apos; or
+                  &apos;Chest Day&apos;. You can re-use it as a template later.
+                </SecondaryText>
+              )}
               <ActivitiesInput
                 {...{
                   fieldArray,
