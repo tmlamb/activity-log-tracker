@@ -225,7 +225,6 @@ export default function SessionForm({
                     label="Session Name"
                     innerRef={ref}
                     maxLength={25}
-                    textInputStyle={tw`pr-3`}
                     error={errors.name ? 'Session Name is required' : undefined}
                   />
                 )}

@@ -249,7 +249,7 @@ export default function ActivitiesInput({
                     placeholder="0"
                     maxLength={1}
                     style={tw`border-b-2 border-l-2`}
-                    textInputStyle={tw`pr-3 text-right web:text-base`}
+                    textInputStyle={tw`web:text-base`}
                     labelStyle={tw`web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
@@ -294,7 +294,7 @@ export default function ActivitiesInput({
                     placeholder="0"
                     maxLength={2}
                     style={tw`border-b-2 border-l-2`}
-                    textInputStyle={tw`pr-3 text-right web:text-base`}
+                    textInputStyle={tw`web:text-base`}
                     labelStyle={tw`web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
@@ -329,7 +329,7 @@ export default function ActivitiesInput({
                     placeholder="0"
                     maxLength={2}
                     style={tw`border-b-2 border-l-2`}
-                    textInputStyle={tw`pr-3 text-right web:text-base`}
+                    textInputStyle={tw`web:text-base`}
                     labelStyle={tw`web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
@@ -362,7 +362,7 @@ export default function ActivitiesInput({
                     placeholder="0"
                     maxLength={2}
                     style={tw`border-b-2 border-l-2`}
-                    textInputStyle={tw`pr-3 text-right web:text-base`}
+                    textInputStyle={tw`web:text-base`}
                     labelStyle={tw`web:text-base`}
                     selectTextOnFocus
                     keyboardType="number-pad"
@@ -380,7 +380,7 @@ export default function ActivitiesInput({
                     label="Load"
                     style={tw`border-l-2`}
                     value={value && stringifyLoad(value)}
-                    textStyle={tw`pr-3 web:text-base`}
+                    textStyle={tw`pr-4 web:text-base`}
                     modalScreen="LoadFormModal"
                     modalParams={{
                       value,
@@ -390,7 +390,7 @@ export default function ActivitiesInput({
                     }}
                     onChangeSelect={v => onChange(v)}
                     icon={
-                      <SecondaryText>
+                      <SecondaryText style={tw`pr-1`}>
                         <AntDesign name="right" size={16} />
                       </SecondaryText>
                     }

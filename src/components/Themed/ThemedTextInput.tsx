@@ -97,7 +97,7 @@ export default function TextInput({
         value={value}
         style={tw.style(
           primaryTextColor,
-          'w-full py-[2.65px] pr-2 text-lg leading-tight tracking-tight',
+          'w-full py-[2.65px] pr-0 text-lg leading-tight tracking-tight',
           textInputStyle
         )}
         placeholder={placeholder}
@@ -123,7 +123,7 @@ export default function TextInput({
           entering={FadeInRight.springify().stiffness(40).damping(6).mass(0.3)}
           exiting={FadeOutRight.springify().stiffness(40).damping(6).mass(0.3)}
           pointerEvents="none"
-          style={tw.style('absolute items-center justify-center h-full -top-6 right-5', errorStyle)}
+          style={tw.style('absolute items-center justify-center h-full -top-6 right-3', errorStyle)}
         >
           <AlertText style={tw`text-xs`}>{error}</AlertText>
         </Animated.View>
