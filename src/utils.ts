@@ -33,23 +33,6 @@ export const formatWeekAndDayKey = (start: Date, end: Date) => {
   return `${week > 1 ? `Week ${week}, ` : ''}Day ${day}`
 }
 
-export const formatShortDateByProgramWeek = (date: Date, program: Program) => {
-  const daysDiff =
-    program &&
-    program.sessions &&
-    program.sessions.length > 0 &&
-    program.sessions[0].start &&
-    program.sessions[0].start.getTime() < date.getTime()
-      ? Math.floor(
-          (date.getTime() - (program.sessions[0].start?.getTime() || new Date().getTime())) /
-            oneDayMilliseconds
-        )
-      : 0
-  const week = Math.floor(daysDiff / 7)
-  const day = daysDiff % 7
-  return `${week > 0 ? `Week ${week + 1}, ` : ''}Day ${day + 1}`
-}
-
 export const stringifyLoad = ({ type, value }: Load) =>
   type === 'PERCENT' ? `${(value * 100).toFixed(2)}%` : `RPE ${value}`
 

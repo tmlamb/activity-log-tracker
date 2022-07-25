@@ -4,7 +4,7 @@ import React from 'react'
 import { View } from 'react-native'
 import tw from '../tailwind'
 import { Program, Session } from '../types'
-import { formatShortDateByProgramWeek } from '../utils'
+import { formatWeekAndDayKey } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
@@ -35,6 +35,9 @@ export default function SessionSelect({
   const [selected, setSelected] = React.useState<Partial<Session> | undefined>(initialValue)
 
   const sessionsSorted = _(sessions).filter('end').orderBy(['start'], ['desc']).value()
+
+  const orderedByStart = _.orderBy(program.sessions, ['start'], ['asc'])
+  const programStart = orderedByStart[0]?.start || new Date() // The first session is considered the program start
 
   return (
     <>
@@ -100,7 +103,7 @@ export default function SessionSelect({
               <PrimaryText>{item.name}</PrimaryText>
               <View style={tw`relative flex-row`}>
                 <SecondaryText style={tw`pr-6`}>
-                  {formatShortDateByProgramWeek(item.start || new Date(), program)}
+                  {formatWeekAndDayKey(programStart, item.start || new Date())}
                 </SecondaryText>
                 <SpecialText style={tw`absolute -right-1`}>
                   {item.sessionId === selected?.sessionId && <AntDesign name="check" size={22} />}
