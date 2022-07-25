@@ -34,7 +34,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
         </LinkButton>
       </HeaderRightContainer>
       <FlatList
-        contentContainerStyle={tw`pb-48 pt-9 px-3`}
+        contentContainerStyle={tw`px-3 pb-48 pt-9`}
         keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
         data={exercisesSortedAndDeduped}
         renderItem={({ item, index }) => (
@@ -44,7 +44,6 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
                 screen: 'ExerciseFormModal',
                 params: { exerciseId: item.exerciseId, name: item.name }
               }}
-              style={tw``}
             >
               <ThemedView
                 style={tw.style(
@@ -59,20 +58,20 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
                 )}
               >
                 <PrimaryText>{item.name}</PrimaryText>
-                <SecondaryText>
+                <SecondaryText style={tw`absolute right-2`}>
                   <AntDesign name="right" size={16} />
                 </SecondaryText>
               </ThemedView>
             </LinkButton>
             {usedExercises && usedExercises.length > 0 && index === usedExercises.length - 1 && (
-              <SecondaryText style={tw`pl-3 pb-1 mt-0 text-sm`}>Available Exercises</SecondaryText>
+              <SecondaryText style={tw`pb-1 pl-3 mt-0 text-sm`}>Available Exercises</SecondaryText>
             )}
           </>
         )}
         ListHeaderComponent={
           (usedExercises && usedExercises.length > 0 && (
-            <SecondaryText style={tw`pl-3 pb-1 text-sm`}>Your Exercises</SecondaryText>
-          )) || <SecondaryText style={tw`pl-3 pb-1 text-sm`}>Available Exercises</SecondaryText>
+            <SecondaryText style={tw`pb-1 pl-3 text-sm`}>Your Exercises</SecondaryText>
+          )) || <SecondaryText style={tw`pb-1 pl-3 text-sm`}>Available Exercises</SecondaryText>
         }
       />
     </>

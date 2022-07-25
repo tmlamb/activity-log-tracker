@@ -190,7 +190,7 @@ export default function ActivitiesInput({
                       }
                     }}
                     icon={
-                      <SecondaryText>
+                      <SecondaryText style={tw`pr-0.5`}>
                         <AntDesign name="right" size={16} />
                       </SecondaryText>
                     }

@@ -163,7 +163,7 @@ export default function LoadForm({
                 onChange(v)
               }}
               value={value}
-              style={tw`px-3`}
+              style={tw`pl-3 pr-2`}
               innerRef={ref}
               error={errors && errors.type ? 'Select a type' : undefined}
               errorStyle={tw`absolute left-3 top-8 text-xs`}
