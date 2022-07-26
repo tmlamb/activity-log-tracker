@@ -59,7 +59,7 @@ export default function PlateChart({ style, totalWeight }: Props) {
           totalWeight.value && (
           <View style={tw.style(style)}>
             <Animated.View entering={FadeIn.duration(500)} exiting={FadeOut.duration(500)}>
-              <SecondaryText style={tw`text-sm`}>Barbell Configuration:</SecondaryText>
+              <SecondaryText style={tw`text-sm font-bold`}>Barbell Configuration:</SecondaryText>
             </Animated.View>
             {platesPerSide.map((plate, index) => (
               // eslint-disable-next-line react/no-array-index-key

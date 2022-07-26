@@ -142,15 +142,15 @@ export default function LoadForm({
           rules={{
             required: true
           }}
-          render={({ field: { ref, onChange, value } }) => (
+          render={({ field: { onChange } }) => (
             <View>
               <ThemedView style={tw`justify-between p-0 relative`}>
                 <ButtonContainer
                   style={tw`flex-row items-stretch w-1/2`}
                   onPress={() => {
                     onChange('RPE')
+                    setValue('value', undefined)
                   }}
-                  // disabled={!!fromType && isDirty}
                 >
                   <View
                     style={tw.style(
@@ -168,8 +168,8 @@ export default function LoadForm({
                   style={tw`flex-row items-stretch w-1/2`}
                   onPress={() => {
                     onChange('PERCENT')
+                    setValue('value', undefined)
                   }}
-                  // disabled={!!fromType && isDirty}
                 >
                   <View
                     style={tw.style(
@@ -187,7 +187,7 @@ export default function LoadForm({
                 <Animated.View
                   entering={FadeInDown.springify().stiffness(40).damping(6).mass(0.3)}
                   exiting={FadeOutDown.springify().stiffness(40).damping(6).mass(0.3)}
-                  // pointerEvents="none"
+                  pointerEvents="none"
                   style={tw`absolute items-center w-full justify-center -top-4`}
                 >
                   <AlertText style={tw`text-xs`}>Select a type</AlertText>
