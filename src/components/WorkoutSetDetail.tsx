@@ -255,7 +255,7 @@ export default function WorkoutSetDetail({
           <ThemedView style={tw`rounded-b-xl`}>
             <PrimaryText>Warmup Load</PrimaryText>
             <SecondaryText>{`${String(warmupPercent * 100)}%${
-              targetWeight ? ` / ${targetWeight}lbs` : ''
+              targetWeight && workoutSet.status !== 'Done' ? ` / ${targetWeight}lbs` : ''
             }`}</SecondaryText>
           </ThemedView>
         )}
