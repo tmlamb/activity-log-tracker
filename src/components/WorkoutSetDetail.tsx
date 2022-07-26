@@ -387,7 +387,7 @@ export default function WorkoutSetDetail({
         )}
         {workoutSet.status === 'Planned' && !isNextWorkoutSet(workoutSet, activity) && (
           <SecondaryText style={tw`pl-3 text-xs mt-9`}>
-            Complete the previous Workout Sets for this Exercise before continuing.
+            Complete the previous workout sets for this exercise before continuing.
           </SecondaryText>
         )}
         {actualWeightWatcher && actualWeightWatcher.value > 0 && (
