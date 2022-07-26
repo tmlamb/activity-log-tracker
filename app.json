@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Workout Activity Log Tracker",
+    "name": "Activity Log",
     "slug": "activity-log-tracker",
     "owner": "tmlamb",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
