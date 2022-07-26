@@ -1,7 +1,7 @@
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { View } from 'react-native'
-import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
+import Animated, { FadeInDown, FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Exercise, Load } from '../types'
 import ButtonContainer from './ButtonContainer'
@@ -9,13 +9,14 @@ import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { RootStackParamList } from './Navigation'
-import Picker from './Picker'
 import {
+  AlertText,
   alertTextColor,
-  primaryTextColor,
+  PrimaryText,
   SecondaryText,
   SpecialText,
-  ThemedTextInput
+  ThemedTextInput,
+  ThemedView
 } from './Themed'
 
 type Props = {
@@ -142,32 +143,57 @@ export default function LoadForm({
             required: true
           }}
           render={({ field: { ref, onChange, value } }) => (
-            <Picker
-              label="Load Type"
-              items={[
-                {
-                  label: 'RPE',
-                  value: 'RPE',
-                  color: tw.style(primaryTextColor).color as string,
-                  key: 'RPE'
-                },
-                {
-                  label: 'Percent',
-                  value: 'PERCENT',
-                  color: tw.style(primaryTextColor).color as string,
-                  key: 'PERCENT'
-                }
-              ]}
-              onValueChange={v => {
-                setValue('value', 0, { shouldValidate: false })
-                onChange(v)
-              }}
-              value={value}
-              style={tw`pl-3 pr-2`}
-              innerRef={ref}
-              error={errors && errors.type ? 'Select a type' : undefined}
-              errorStyle={tw`absolute left-3 top-8 text-xs`}
-            />
+            <View>
+              <ThemedView style={tw`justify-between p-0 relative`}>
+                <ButtonContainer
+                  style={tw`flex-row items-stretch w-1/2`}
+                  onPress={() => {
+                    onChange('RPE')
+                  }}
+                  // disabled={!!fromType && isDirty}
+                >
+                  <View
+                    style={tw.style(
+                      'px-3 py-2 w-full items-center justify-center dark:border-slate-700 border-slate-400',
+                      selectedType === 'RPE'
+                        ? 'border-0 opacity-100'
+                        : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40',
+                      !selectedType ? 'border-r-2' : undefined
+                    )}
+                  >
+                    <PrimaryText>RPE</PrimaryText>
+                  </View>
+                </ButtonContainer>
+                <ButtonContainer
+                  style={tw`flex-row items-stretch w-1/2`}
+                  onPress={() => {
+                    onChange('PERCENT')
+                  }}
+                  // disabled={!!fromType && isDirty}
+                >
+                  <View
+                    style={tw.style(
+                      'px-3 py-2 w-full items-center justify-center dark:border-slate-700 border-slate-400',
+                      selectedType === 'PERCENT'
+                        ? 'border-0 opacity-100'
+                        : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40'
+                    )}
+                  >
+                    <PrimaryText>%1RM</PrimaryText>
+                  </View>
+                </ButtonContainer>
+              </ThemedView>
+              {errors && errors.type && (
+                <Animated.View
+                  entering={FadeInDown.springify().stiffness(40).damping(6).mass(0.3)}
+                  exiting={FadeOutDown.springify().stiffness(40).damping(6).mass(0.3)}
+                  // pointerEvents="none"
+                  style={tw`absolute items-center w-full justify-center -top-4`}
+                >
+                  <AlertText style={tw`text-xs`}>Select a type</AlertText>
+                </Animated.View>
+              )}
+            </View>
           )}
         />
         {selectedType === 'RPE' && (
@@ -192,8 +218,8 @@ export default function LoadForm({
                   value={(value && String(value)) || undefined}
                   placeholder="0"
                   maxLength={2}
-                  style={tw`px-0 py-0 mt-9`}
-                  textInputStyle={tw`px-3 py-2.5 text-right`}
+                  style={tw`mt-9`}
+                  textInputStyle={tw`web:w-1/4`}
                   keyboardType="number-pad"
                   selectTextOnFocus
                   numeric
@@ -203,7 +229,7 @@ export default function LoadForm({
             />
             <View>
               <View style={tw`px-3 mb-1 mt-9`}>
-                <SecondaryText style={tw`text-sm mb-1.5`}>
+                <SecondaryText style={tw`text-sm font-bold mb-1.5`}>
                   Rate of Perceived Exertion scale (RPE)
                 </SecondaryText>
                 <SecondaryText style={tw`text-xs`}>
@@ -309,11 +335,13 @@ export default function LoadForm({
               </Animated.View>
             )}
             <View style={tw`px-3 mb-1 mt-9`}>
-              <SecondaryText style={tw`text-sm mb-1.5`}>One Rep Max (1RM)</SecondaryText>
+              <SecondaryText style={tw`text-sm mb-1.5 font-bold`}>One Rep Max (1RM)</SecondaryText>
               <SecondaryText style={tw`text-xs`}>
                 Heaviest weight that can be lifted for one rep.
               </SecondaryText>
-              <SecondaryText style={tw`text-sm mb-1.5 mt-9`}>% of One Rep Max (%1RM)</SecondaryText>
+              <SecondaryText style={tw`text-sm mb-1.5 mt-9 font-bold`}>
+                % of One Rep Max (%1RM)
+              </SecondaryText>
               <SecondaryText style={tw`text-xs`}>
                 A way to quantify the amount to be lifted in a set, proportional to the 1RM.
               </SecondaryText>

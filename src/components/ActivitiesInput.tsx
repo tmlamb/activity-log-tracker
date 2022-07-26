@@ -307,7 +307,7 @@ export default function ActivitiesInput({
                         ? '!'
                         : undefined
                     }
-                    errorStyle={tw`right-2.5 top-2`}
+                    errorStyle={tw`right-1 top-0`}
                   />
                 )}
               />
@@ -342,7 +342,7 @@ export default function ActivitiesInput({
                         ? '!'
                         : undefined
                     }
-                    errorStyle={tw`bottom-0 right-2.5 top-2`}
+                    errorStyle={tw`right-1 top-0`}
                   />
                 )}
               />

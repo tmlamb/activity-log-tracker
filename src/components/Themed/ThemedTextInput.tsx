@@ -8,7 +8,7 @@ import {
   TextInputKeyPressEventData,
   ViewStyle
 } from 'react-native'
-import Animated, { FadeInRight, FadeOutRight } from 'react-native-reanimated'
+import Animated, { FadeInRight, FadeOutDown } from 'react-native-reanimated'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../../tailwind'
 import { AlertText, primaryTextColor, SecondaryText, secondaryTextColor } from './ThemedText'
@@ -84,46 +84,51 @@ export default function TextInput({
   }
 
   return (
-    <ThemedView style={tw.style('relative', style)}>
-      {label && (
-        <SecondaryText style={tw.style('absolute pl-3 web:relative', labelStyle)}>
-          {label}
-        </SecondaryText>
-      )}
-      <NativeTextInput
-        onChangeText={handleChange}
-        onChange={onChange}
-        onBlur={onBlur}
-        value={value}
-        style={tw.style(
-          primaryTextColor,
-          'w-full py-[2.65px] pr-0 text-lg leading-tight tracking-tight',
-          textInputStyle
+    <ThemedView style={tw.style('relative py-0', style)}>
+      <ThemedView style={tw`px-0 py-2`}>
+        {label && (
+          <SecondaryText style={tw.style('absolute pl-0 web:relative', labelStyle)}>
+            {label}
+          </SecondaryText>
         )}
-        placeholder={placeholder}
-        placeholderTextColor={placeholderTextColor || tw.color(secondaryTextColor)}
-        maxLength={maxLength}
-        keyboardType={keyboardType}
-        textAlign={label ? 'right' : undefined}
-        textAlignVertical="top"
-        selectTextOnFocus={selectTextOnFocus}
-        clearTextOnFocus={clearTextOnFocus}
-        editable={editable}
-        selection={selection}
-        onKeyPress={onKeyPress}
-        multiline
-        numberOfLines={1}
-        scrollEnabled={false}
-        ref={innerRef}
-        returnKeyType="go"
-        blurOnSubmit
-      />
+        <NativeTextInput
+          onChangeText={handleChange}
+          onChange={onChange}
+          onBlur={onBlur}
+          value={value}
+          style={tw.style(
+            primaryTextColor,
+            'w-full py-[2.65px] z-20 pr-0 text-lg leading-tight tracking-tight',
+            textInputStyle
+          )}
+          placeholder={placeholder}
+          placeholderTextColor={placeholderTextColor || tw.color(secondaryTextColor)}
+          maxLength={maxLength}
+          keyboardType={keyboardType}
+          textAlign={label ? 'right' : undefined}
+          textAlignVertical="top"
+          selectTextOnFocus={selectTextOnFocus}
+          clearTextOnFocus={clearTextOnFocus}
+          editable={editable}
+          selection={selection}
+          onKeyPress={onKeyPress}
+          multiline
+          numberOfLines={1}
+          scrollEnabled={false}
+          ref={innerRef}
+          returnKeyType="go"
+          blurOnSubmit
+        />
+      </ThemedView>
       {error && (
         <Animated.View
           entering={FadeInRight.springify().stiffness(40).damping(6).mass(0.3)}
-          exiting={FadeOutRight.springify().stiffness(40).damping(6).mass(0.3)}
+          exiting={FadeOutDown.springify().stiffness(40).damping(6).mass(0.3)}
           pointerEvents="none"
-          style={tw.style('absolute items-center justify-center h-full -top-6 right-3', errorStyle)}
+          style={tw.style(
+            'absolute items-center justify-center h-full z-0 -top-[30px] right-3',
+            errorStyle
+          )}
         >
           <AlertText style={tw`text-xs`}>{error}</AlertText>
         </Animated.View>

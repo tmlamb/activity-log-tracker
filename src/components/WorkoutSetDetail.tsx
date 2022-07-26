@@ -295,29 +295,9 @@ export default function WorkoutSetDetail({
               </SecondaryText>
             )) ||
               (workoutSet.type === 'Main' && program.sessions.length < 4 && (
-                <>
-                  <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
-                    Try to find a weight that will cause you to meet the target RPE. Recall:
-                  </SecondaryText>
-                  <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
-                    <SecondaryText style={tw`mb-0 text-xs`}>
-                      10 - another rep would have been impossible
-                    </SecondaryText>
-                  </View>
-                  <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
-                    <SecondaryText style={tw`mb-0 text-xs`}>
-                      9 - you left one in the tank
-                    </SecondaryText>
-                  </View>
-                  <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
-                    <SecondaryText style={tw`mb-0 text-xs`}>
-                      8 - you could have done a couple more
-                    </SecondaryText>
-                  </View>
-                  <View style={tw`flex-row flex-wrap items-center justify-start ml-7`}>
-                    <SecondaryText style={tw`mb-1.5 text-xs`}>etc...</SecondaryText>
-                  </View>
-                </>
+                <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
+                  Find a weight that will meet the target RPE.
+                </SecondaryText>
               ))}
             <Controller
               control={control}

@@ -127,8 +127,8 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                       placeholder="0"
                       maxLength={4}
                       style={tw.style('py-0 border-b-2', index === 0 ? 'rounded-t-xl' : undefined)}
-                      textInputStyle={tw`pl-0 py-2.5 text-right web:text-base`}
-                      labelStyle={tw`pl-10 web:text-base`}
+                      textInputStyle={tw`pl-0 py-[1.7px] text-right web:text-base`}
+                      labelStyle={tw`pl-7 web:text-base`}
                       selectTextOnFocus
                       keyboardType="numeric"
                       numeric
