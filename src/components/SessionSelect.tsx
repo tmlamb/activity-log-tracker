@@ -36,8 +36,7 @@ export default function SessionSelect({
 
   const sessionsSorted = _(sessions).filter('end').orderBy(['start'], ['desc']).value()
 
-  const orderedByStart = _.orderBy(program.sessions, ['start'], ['asc'])
-  const programStart = orderedByStart[0]?.start || new Date() // The first session is considered the program start
+  const programStart = _.last(sessionsSorted)?.start || new Date() // The first session is considered the program start
 
   return (
     <>
@@ -97,10 +96,12 @@ export default function SessionSelect({
               style={tw.style(
                 'border-b-2',
                 index === 0 ? 'rounded-t-xl' : undefined,
-                index === sessions.length - 1 ? 'border-b-0 rounded-b-xl' : undefined
+                index === sessionsSorted.length - 1 ? 'border-b-0 rounded-b-xl' : undefined
               )}
             >
-              <PrimaryText>{item.name}</PrimaryText>
+              <PrimaryText numberOfLines={1} style={tw`flex-1`}>
+                {item.name}
+              </PrimaryText>
               <View style={tw`relative flex-row`}>
                 <SecondaryText style={tw`pr-6`}>
                   {formatWeekAndDayKey(programStart, item.start || new Date())}

@@ -42,7 +42,9 @@ export default function ProgramSettings({ programs }: Props) {
                 index === 0 ? 'rounded-t-xl' : undefined
               )}
             >
-              <PrimaryText>{item.name}</PrimaryText>
+              <PrimaryText style={tw`flex-1`} numberOfLines={1}>
+                {item.name}
+              </PrimaryText>
               <SecondaryText style={tw`pr-5`}>
                 {`${item.sessions.length} session${item.sessions.length !== 1 ? 's' : ''}`}
               </SecondaryText>

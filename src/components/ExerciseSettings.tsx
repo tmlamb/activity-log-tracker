@@ -60,7 +60,9 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
                     : undefined
                 )}
               >
-                <PrimaryText>{item.name}</PrimaryText>
+                <PrimaryText style={tw`flex-1 pr-2`} numberOfLines={1}>
+                  {item.name}
+                </PrimaryText>
                 <SecondaryText style={tw`absolute right-2`}>
                   <AntDesign name="right" size={16} />
                 </SecondaryText>

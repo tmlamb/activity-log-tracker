@@ -43,7 +43,6 @@ function WorkoutSetCard({
       }}
     >
       <ThemedView
-        // textStyle={tw`web:text-base web:sm:text-lg`}
         style={tw.style(
           'border-b-2',
           index === 0 ? 'rounded-t-xl' : undefined,
@@ -158,8 +157,10 @@ export default function SessionDetail({ program, session, exercises, changeHandl
               <ThemedView
                 style={tw.style('rounded-t-xl', !session.start ? 'rounded-b-xl' : 'border-b-2')}
               >
-                <PrimaryText>Session</PrimaryText>
-                <SecondaryText>{session.name}</SecondaryText>
+                <PrimaryText style={tw`pr-3`}>Session</PrimaryText>
+                <SecondaryText style={tw`flex-1 text-right`} numberOfLines={1}>
+                  {session.name}
+                </SecondaryText>
               </ThemedView>
               {session.start && (
                 <>

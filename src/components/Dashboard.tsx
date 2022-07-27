@@ -51,7 +51,9 @@ export default function Dashboard({ programs }: Props) {
                 index === section.data.length - 1 ? 'rounded-b-xl border-b-0' : undefined
               )}
             >
-              <PrimaryText>{item.name}</PrimaryText>
+              <PrimaryText style={tw`flex-1 pr-2`} numberOfLines={1}>
+                {item.name}
+              </PrimaryText>
               <SecondaryText style={tw`absolute right-2`}>
                 <AntDesign name="right" size={16} />
               </SecondaryText>

@@ -64,8 +64,10 @@ export default function ProgramDetail({ program }: Props) {
           ListHeaderComponent={
             <>
               <ThemedView rounded>
-                <PrimaryText>Program</PrimaryText>
-                <SecondaryText>{program.name}</SecondaryText>
+                <PrimaryText style={tw`pr-3`}>Program</PrimaryText>
+                <SecondaryText style={tw`flex-1 text-right`} numberOfLines={1}>
+                  {program.name}
+                </SecondaryText>
               </ThemedView>
               <PrimaryText style={tw`font-semibold text-xl mt-9 ml-1.5 mb-2.5`}>
                 Workout Sessions
@@ -113,7 +115,9 @@ export default function ProgramDetail({ program }: Props) {
                         : undefined
                     )}
                   >
-                    <PrimaryText>{item.name}</PrimaryText>
+                    <PrimaryText style={tw`flex-1`} numberOfLines={1}>
+                      {item.name}
+                    </PrimaryText>
                     {(item.status === 'Ready' && (
                       <SpecialText style={tw`pr-5`}>{item.status}</SpecialText>
                     )) || <SecondaryText style={tw`pr-5`}>{item.status}</SecondaryText>}

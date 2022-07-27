@@ -154,7 +154,7 @@ export default function ExerciseForm({
               onChangeText={onChange}
               onBlur={onBlur}
               value={value}
-              maxLength={25}
+              maxLength={18}
               style={tw`mt-9`}
               textInputStyle={tw`pl-32`}
             />
