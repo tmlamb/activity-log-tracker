@@ -10,7 +10,8 @@
     "eject": "expo eject",
     "check-types": "tsc --pretty --noEmit",
     "prepare": "husky install",
-    "test": "jest --watch --coverage=false --changedSince=origin/main"
+    "test": "jest --watch --coverage=false --changedSince=origin/main",
+    "testFinal": "jest"
   },
   "dependencies": {
     "@expo/vector-icons": "^13.0.0",

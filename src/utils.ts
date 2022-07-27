@@ -8,7 +8,7 @@ export const weekAndDayFromStart = (start: Date, end: Date) => {
   const daysDiff = differenceInCalendarDays(normalizedLocalDate(end), normalizedLocalDate(start))
   const week = daysToWeeks(daysDiff) + 1
   const day = (daysDiff % 7) + 1
-  return `${week > 1 ? `Week ${week}, ` : ''}Day ${day}`
+  return `${week > 1 ? `Week ${week + 1}, ` : ''}Day ${day}`
 }
 
 export const stringifyLoad = ({ type, value }: Load) =>
