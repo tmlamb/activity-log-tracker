@@ -12,7 +12,8 @@ npm run check-types ||
 
 npm run testFinal ||
 (
-    echo 'Test Failed. Checking failing test listed above and try commit again.'
+    echo 'Unit test Failed. Check failing tests listed above and try commit again.'
+    false;
 )
 
 npx lint-staged
