@@ -13,18 +13,16 @@ export default function SessionSelectModal({
   const { programs } = useWorkoutStore(state => state)
   const { value, programId, parentScreen, parentParams, modalSelectId } = params
   const program = _.find(programs, { programId })
-  const sessions = program?.sessions
-
   if (!program) {
     throw Error(`Possible data corruption: unable to find program ${params.programId}`)
   }
+  const sessions = program?.sessions
 
   return (
     <ModalLayout>
       <SessionSelect
         session={value as Session}
         sessions={sessions}
-        program={program}
         parentScreen={parentScreen}
         parentParams={parentParams}
         modalSelectId={modalSelectId}

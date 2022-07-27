@@ -5,7 +5,7 @@ import React from 'react'
 import { SectionList } from 'react-native'
 import tw from '../tailwind'
 import { Program, Session } from '../types'
-import { formatWeekAndDayKey, normalizedLocalDate } from '../utils'
+import { normalizedLocalDate, weekAndDayFromStart } from '../utils'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
@@ -21,7 +21,7 @@ export default function ProgramDetail({ program }: Props) {
   const sections: { title: string; data: (Session | undefined)[] }[] = _(orderedByStart)
     .groupBy(session => {
       const sessionStart = session.start || new Date()
-      return formatWeekAndDayKey(programStart, sessionStart)
+      return weekAndDayFromStart(programStart, sessionStart)
     })
     .map((data, title) => ({ title, data }))
     .value()
@@ -35,7 +35,7 @@ export default function ProgramDetail({ program }: Props) {
     sections[sections.length - 1].title += ' (Today)'
   } else {
     sections.push({
-      title: formatWeekAndDayKey(programStart, new Date()),
+      title: weekAndDayFromStart(programStart, new Date()),
       data: [undefined]
     })
   }

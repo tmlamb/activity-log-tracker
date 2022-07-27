@@ -3,8 +3,8 @@ import _ from 'lodash'
 import React from 'react'
 import { View } from 'react-native'
 import tw from '../tailwind'
-import { Program, Session } from '../types'
-import { formatWeekAndDayKey } from '../utils'
+import { Session } from '../types'
+import { weekAndDayFromStart } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
@@ -16,7 +16,6 @@ import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 type Props = {
   session?: Session
   sessions?: Session[]
-  program: Program
   parentScreen: keyof RootStackParamList
   parentParams: object
   modalSelectId: string
@@ -26,7 +25,6 @@ type Props = {
 export default function SessionSelect({
   session: initialValue,
   sessions,
-  program,
   parentScreen,
   parentParams,
   modalSelectId,
@@ -104,7 +102,7 @@ export default function SessionSelect({
               </PrimaryText>
               <View style={tw`relative flex-row`}>
                 <SecondaryText style={tw`pr-6`}>
-                  {formatWeekAndDayKey(programStart, item.start || new Date())}
+                  {weekAndDayFromStart(programStart, item.start || new Date())}
                 </SecondaryText>
                 <SpecialText style={tw`absolute -right-1`}>
                   {item.sessionId === selected?.sessionId && <AntDesign name="check" size={22} />}

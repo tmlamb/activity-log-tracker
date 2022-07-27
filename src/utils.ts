@@ -1,35 +1,13 @@
 import { daysToWeeks, differenceInCalendarDays } from 'date-fns'
 import { Activity, Load, Program, Session, Weight } from './types'
 
-// One day in milliseconds
-export const oneDayMilliseconds = 1000 * 60 * 60 * 24
-
-export const mapSessionsByDate = (
-  sessions: Session[],
-  program: Program,
-  dateFormatCallback: (date: Date, program: Program) => string
-) => {
-  const map = new Map<string, Session[]>()
-  sessions.forEach(session => {
-    const dateKey = dateFormatCallback(session.start || new Date(), program)
-    if (!map.has(dateKey)) {
-      map.set(dateKey, [])
-    }
-    map.get(dateKey)?.push(session)
-  })
-  return map
-}
-
 export const normalizedLocalDate = (date: Date) =>
-  new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
-export const weeksAndDaysBetween = (start: Date, end: Date) => {
+export const weekAndDayFromStart = (start: Date, end: Date) => {
   const daysDiff = differenceInCalendarDays(normalizedLocalDate(end), normalizedLocalDate(start))
-  return [daysToWeeks(daysDiff) + 1, (daysDiff % 7) + 1]
-}
-
-export const formatWeekAndDayKey = (start: Date, end: Date) => {
-  const [week, day] = weeksAndDaysBetween(start, end)
+  const week = daysToWeeks(daysDiff) + 1
+  const day = (daysDiff % 7) + 1
   return `${week > 1 ? `Week ${week}, ` : ''}Day ${day}`
 }
 
