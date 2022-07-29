@@ -294,11 +294,13 @@ export default function WorkoutSetDetail({
                  \n\t- Number of Planned Main Sets`}
               </SecondaryText>
             )) ||
-              (workoutSet.type === 'Main' && program.sessions.length < 4 && (
-                <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
-                  Find a weight that will meet the target RPE.
-                </SecondaryText>
-              ))}
+              (workoutSet.type === 'Main' &&
+                activity.load.type === 'RPE' &&
+                program.sessions.length < 4 && (
+                  <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
+                    Find a weight that will meet the target RPE.
+                  </SecondaryText>
+                ))}
             <Controller
               control={control}
               rules={{
