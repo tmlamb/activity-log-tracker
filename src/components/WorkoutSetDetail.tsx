@@ -288,17 +288,19 @@ export default function WorkoutSetDetail({
           >
             {(targetWeight === 0 && workoutSet.type === 'Warmup' && (
               <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
-                {`Future workout sessions will prepopulate Actual Weight with the values from previous similar sets, if available, based on:\
+                {`Future workout sessions will pre-populate the Actual Weight with the values from previous, similar sets, if available, based on:\
                \n\t- Target Load\
                 \n\t- Target Reps\
                  \n\t- Number of Planned Main Sets`}
               </SecondaryText>
             )) ||
-              (workoutSet.type === 'Main' && program.sessions.length < 4 && (
-                <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
-                  Find a weight that will meet the target RPE.
-                </SecondaryText>
-              ))}
+              (workoutSet.type === 'Main' &&
+                activity.load.type === 'RPE' &&
+                program.sessions.length < 4 && (
+                  <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
+                    Find a weight that will meet the target RPE.
+                  </SecondaryText>
+                ))}
             <Controller
               control={control}
               rules={{
