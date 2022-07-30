@@ -3,7 +3,7 @@
     "name": "Activity Log",
     "slug": "activity-log-tracker",
     "owner": "tmlamb",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.triplesight.activitylogtracker",
-      "buildNumber": "1.5.0"
+      "buildNumber": "1.5.1"
     },
     "android": {
       "adaptiveIcon": {
