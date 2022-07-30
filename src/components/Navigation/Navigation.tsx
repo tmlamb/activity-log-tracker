@@ -65,7 +65,8 @@ export default function Navigation() {
             options={{
               title: 'Settings',
               headerBackTitle: 'Back',
-              headerBackTitleStyle: tw.style('self-center')
+              headerBackTitleStyle: tw.style('self-center'),
+              animation: 'fade_from_bottom'
             }}
           />
           <AppStack.Screen

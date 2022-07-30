@@ -6,7 +6,6 @@ import { SectionList } from 'react-native'
 import tw from '../tailwind'
 import { Program, Session } from '../types'
 import { normalizedLocalDate, weekAndDayFromStart } from '../utils'
-import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
@@ -43,7 +42,7 @@ export default function ProgramDetail({ program }: Props) {
 
   return (
     <>
-      <HeaderRightContainer>
+      {/* <HeaderRightContainer>
         <LinkButton
           to={{ screen: 'ProgramFiguresScreen', params: { programId: program.programId } }}
           style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}
@@ -52,7 +51,7 @@ export default function ProgramDetail({ program }: Props) {
             <AntDesign name="linechart" size={22} />
           </SpecialText>
         </LinkButton>
-      </HeaderRightContainer>
+      </HeaderRightContainer> */}
       {sections && sections.length > 0 && (
         <SectionList
           contentContainerStyle={tw`pb-48 pt-9 px-3`}
