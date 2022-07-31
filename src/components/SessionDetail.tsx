@@ -117,6 +117,9 @@ export default function SessionDetail({ program, session, exercises, changeHandl
     }))
     .value()
 
+  const completable =
+    !workoutSetsPending.length && session.status === 'Ready' && session.activities.length > 0
+
   return (
     <>
       <HeaderRightContainer>
@@ -130,9 +133,9 @@ export default function SessionDetail({ program, session, exercises, changeHandl
           <SpecialText>Edit</SpecialText>
         </LinkButton>
       </HeaderRightContainer>
-      {!workoutSetsPending.length && session.status === 'Ready' && session.activities.length > 0 && (
+      {completable && (
         <ButtonContainer
-          style={tw`px-3 pt-9`}
+          style={tw`px-3 pt-9 pb-[18px]`}
           onPress={() => {
             changeHandler(program.programId, {
               ...session,
@@ -148,9 +151,12 @@ export default function SessionDetail({ program, session, exercises, changeHandl
       )}
       <Animated.View layout={Layout.duration(500)}>
         <SectionList
-          style={tw`flex-grow px-3 pt-9`}
+          style={tw`flex-grow`}
           sections={sections}
-          contentContainerStyle={tw`flex-grow pb-48`}
+          contentContainerStyle={tw.style(
+            'flex-grow px-3',
+            completable ? 'pt-[18px] pb-72' : 'pt-9 pb-48'
+          )}
           keyExtractor={item => `${item.workoutSet.workoutSetId}`}
           ListHeaderComponent={
             <Animated.View layout={Layout.duration(500)}>
