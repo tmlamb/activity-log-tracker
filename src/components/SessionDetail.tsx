@@ -61,7 +61,7 @@ function WorkoutSetCard({
           <SecondaryText>
             {workoutSet.status === 'Done' ? workoutSet.status : undefined}
           </SecondaryText>
-          <SecondaryText style={tw`absolute -right-1`}>
+          <SecondaryText style={tw`absolute self-center -right-1`}>
             <AntDesign name="right" size={16} />
           </SecondaryText>
         </View>

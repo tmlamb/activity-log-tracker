@@ -35,7 +35,8 @@ type Props = {
 const numberToWorkoutSetArray = <T extends WorkoutSet>(
   length: number,
   current: T[],
-  type: 'Warmup' | 'Main'
+  type: 'Warmup' | 'Main',
+  session?: Session
 ): T[] => {
   const newArray = [...current]
   if (length < current.length) {
@@ -47,7 +48,9 @@ const numberToWorkoutSetArray = <T extends WorkoutSet>(
           ({
             workoutSetId: uuidv4(),
             type,
-            status: 'Planned',
+            status: session?.status === 'Done' ? 'Done' : 'Planned',
+            start: session?.status === 'Done' ? session.end : undefined,
+            end: session?.status === 'Done' ? session.end : undefined,
             feedback: 'Neutral'
           } as T)
       )
@@ -137,7 +140,8 @@ export default function ActivitiesInput({
                             watchActivities && watchActivities[index]
                               ? watchActivities[index].warmupSets
                               : [],
-                            'Warmup'
+                            'Warmup',
+                            session
                           )
                         )
                       }
@@ -156,7 +160,8 @@ export default function ActivitiesInput({
                             watchActivities && watchActivities[index]
                               ? watchActivities[index].mainSets
                               : [],
-                            'Main'
+                            'Main',
+                            session
                           )
                         )
                       }
@@ -240,7 +245,8 @@ export default function ActivitiesInput({
                           watchActivities && watchActivities[index]
                             ? watchActivities[index].warmupSets
                             : [],
-                          'Warmup'
+                          'Warmup',
+                          session
                         )
                       )
                     }}
@@ -284,7 +290,8 @@ export default function ActivitiesInput({
                           watchActivities && watchActivities[index]
                             ? watchActivities[index].mainSets
                             : [],
-                          'Main'
+                          'Main',
+                          session
                         )
                       )
                     }}
