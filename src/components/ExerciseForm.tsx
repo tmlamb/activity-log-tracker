@@ -142,7 +142,7 @@ export default function ExerciseForm({
             />
           )}
         />
-        <Controller
+        {/* <Controller
           name="primaryMuscle"
           control={control}
           rules={{
@@ -159,7 +159,7 @@ export default function ExerciseForm({
               textInputStyle={tw`pl-32`}
             />
           )}
-        />
+        /> */}
         {exercise && deleteHandler && !usedInWorkout && (
           <DoubleConfirm
             style={tw`mt-9`}

@@ -1,5 +1,6 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
+import { View } from 'react-native'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Exercise } from '../types'
@@ -117,9 +118,14 @@ export default function ExerciseSelect({
           </>
         )}
         ListHeaderComponent={
-          (usedExercises && usedExercises.length > 0 && (
-            <SecondaryText style={tw`pb-1 pl-3 text-sm`}>Your Exercises</SecondaryText>
-          )) || <SecondaryText style={tw`pb-1 pl-3 text-sm`}>Available Exercises</SecondaryText>
+          <View style={tw`flex-row items-center px-3 pb-1`}>
+            <SecondaryText style={tw`text-sm`}>
+              {usedExercises && usedExercises.length > 0 ? 'Your Exercises' : 'Available Exercises'}
+            </SecondaryText>
+            <LinkButton to={{ screen: 'ExerciseSettingsModal' }}>
+              <SpecialText style={tw`text-sm`}>&nbsp;&ndash;&nbsp;Manage</SpecialText>
+            </LinkButton>
+          </View>
         }
       />
     </>

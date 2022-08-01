@@ -4,9 +4,9 @@ import EquipmentSettings from '../EquipmentSettings'
 import ScreenLayout from './ScreenLayout'
 import { RootStackScreenProps } from './types'
 
-function ExerciseSettingsScreen({
+function EquipmentSettingsScreen({
   navigation: { goBack }
-}: RootStackScreenProps<'ExerciseSettingsScreen'>) {
+}: RootStackScreenProps<'EquipmentSettingsScreen'>) {
   const { equipment, updateEquipment } = useWorkoutStore(state => state)
 
   return (
@@ -16,4 +16,4 @@ function ExerciseSettingsScreen({
   )
 }
 
-export default ExerciseSettingsScreen
+export default EquipmentSettingsScreen

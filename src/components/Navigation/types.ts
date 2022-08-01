@@ -69,6 +69,7 @@ export type ModalSelectResponseParams<T> = {
 export type RootStackParamList = {
   DashboardScreen: undefined
   SettingsScreen: undefined
+  ExerciseSettingsModal: undefined
   ExerciseSettingsScreen: undefined
   ProgramSettingsScreen: undefined
   EquipmentSettingsScreen: undefined

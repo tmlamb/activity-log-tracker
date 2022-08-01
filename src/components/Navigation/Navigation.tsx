@@ -7,6 +7,7 @@ import DashboardScreen from './DashboardScreen'
 import EquipmentSettingsScreen from './EquipmentSettingsScreen'
 import ExerciseFormModal from './ExerciseFormModal'
 import ExerciseSelectModal from './ExerciseSelectModal'
+import ExerciseSettingsModal from './ExerciseSettingsModal'
 import ExerciseSettingsScreen from './ExerciseSettingsScreen'
 import LoadFormModal from './LoadFormModal'
 import ProgramDetailScreen from './ProgramDetailScreen'
@@ -70,9 +71,20 @@ export default function Navigation() {
             }}
           />
           <AppStack.Screen
+            name="ExerciseSettingsModal"
+            component={ExerciseSettingsModal}
+            options={{
+              title: 'Manage Exercises',
+              presentation: 'modal',
+              gestureEnabled: true
+            }}
+          />
+          <AppStack.Screen
             name="ExerciseSettingsScreen"
             component={ExerciseSettingsScreen}
-            options={{ title: 'Manage Exercises' }}
+            options={{
+              title: 'Manage Exercises'
+            }}
           />
           <AppStack.Screen
             name="ProgramSettingsScreen"
@@ -91,6 +103,25 @@ export default function Navigation() {
               title: 'Program Data'
             }}
           />
+          <AppStack.Screen
+            name="ExerciseSelectModal"
+            component={ExerciseSelectModal}
+            options={() => ({
+              title: 'Select Exercise',
+              presentation: 'modal'
+            })}
+          />
+          <AppStack.Screen
+            name="SessionFormModal"
+            component={SessionFormModal}
+            options={({ route }) => ({
+              title:
+                route.params && (route.params as Readonly<SessionFormNavParams>).sessionId
+                  ? 'Edit Session'
+                  : 'Add Session',
+              presentation: 'modal'
+            })}
+          />
           <AppStack.Group screenOptions={{ presentation: 'modal' }}>
             <AppStack.Screen
               name="ProgramFormModal"
@@ -100,27 +131,10 @@ export default function Navigation() {
               })}
             />
             <AppStack.Screen
-              name="SessionFormModal"
-              component={SessionFormModal}
-              options={({ route }) => ({
-                title:
-                  route.params && (route.params as Readonly<SessionFormNavParams>).sessionId
-                    ? 'Edit Session'
-                    : 'Add Session'
-              })}
-            />
-            <AppStack.Screen
               name="LoadFormModal"
               component={LoadFormModal}
               options={() => ({
                 title: 'Select Load'
-              })}
-            />
-            <AppStack.Screen
-              name="ExerciseSelectModal"
-              component={ExerciseSelectModal}
-              options={() => ({
-                title: 'Select Exercise'
               })}
             />
             <AppStack.Screen

@@ -54,11 +54,6 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
-      <HeaderLeftContainer>
-        <ButtonContainer onPress={goBack}>
-          <SpecialText>Cancel</SpecialText>
-        </ButtonContainer>
-      </HeaderLeftContainer>
       <KeyboardAvoidingView
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : -225}
         behavior="padding"
