@@ -54,7 +54,13 @@ function WorkoutSetCard({
         <PrimaryText>{title}</PrimaryText>
         <View style={tw`flex-row pr-4`}>
           <SpecialText>
-            {workoutSet.status === 'Ready' || (workoutSet.status === 'Planned' && index === 0)
+            {workoutSet.status === 'Ready' ||
+            (workoutSet.status === 'Planned' &&
+              (index === 0 ||
+                _.find(
+                  _.concat(activity.warmupSets as WorkoutSet[], activity.mainSets as WorkoutSet[]),
+                  ws => ws.status !== 'Done'
+                )?.workoutSetId === workoutSet.workoutSetId))
               ? 'Ready'
               : undefined}
           </SpecialText>
@@ -90,7 +96,6 @@ export default function SessionDetail({ program, session, exercises, changeHandl
       ),
     [] as WorkoutSet[]
   )
-
   // Map the Warmup/Main workout set data by activity for the section list.
   const sections = _(session.activities)
     .map<{ title: string; data: WorkoutSetCardProps[] }>((activity, index) => ({

@@ -29,7 +29,7 @@ type Props = {
 }
 
 // Defined warmup set percentages in relation to one rep max based on number of warmup sets.
-const warmupPercentages: { [key: number]: number[] } = {
+const warmupPercentageMap: { [key: number]: number[] } = {
   1: [0.6],
   2: [0.4, 0.6],
   3: [0.4, 0.5, 0.6],
@@ -107,11 +107,14 @@ export default function WorkoutSetDetail({
   startSession,
   goBack
 }: Props) {
+  const warmupPercentages =
+    warmupPercentageMap[activity.warmupSets.length] || warmupPercentageMap[5]
+
   const warmupPercent =
     workoutSet.type === 'Warmup'
-      ? warmupPercentages[activity.warmupSets.length][
-          activity.warmupSets.indexOf(workoutSet as WarmupSet)
-        ]
+      ? warmupPercentages[activity.warmupSets.indexOf(workoutSet as WarmupSet)] ||
+        _.last(warmupPercentages) ||
+        0
       : 0
 
   const workPercent =
