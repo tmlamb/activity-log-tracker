@@ -94,14 +94,16 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
               </ThemedView>
             }
             second={
-              <LinkButton
-                to={{ screen: 'DashboardScreen' }}
-                beforeNavigation={() => deleteHandler(program.programId)}
+              <ButtonContainer
+                onPress={() => {
+                  deleteHandler(program.programId)
+                  goBack()
+                }}
               >
                 <AlertText style={tw`px-3 py-3 -my-3`}>
                   <AntDesign name="minuscircle" size={15} />
                 </AlertText>
-              </LinkButton>
+              </ButtonContainer>
             }
           />
         )}
