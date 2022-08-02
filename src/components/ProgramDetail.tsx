@@ -34,7 +34,7 @@ export default function ProgramDetail({ program }: Props) {
     sections[sections.length - 1].title += ' (Today)'
   } else {
     sections.push({
-      title: weekAndDayFromStart(programStart, new Date()),
+      title: `${weekAndDayFromStart(programStart, new Date())} (Today)`,
       data: [undefined]
     })
   }
