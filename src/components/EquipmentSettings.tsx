@@ -94,7 +94,6 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
           <SecondaryText style={tw`text-xs px-3 pb-1.5`}>Plate Pairs (2x each)</SecondaryText>
           {fields.map((item, index) => (
             <Animated.View
-              // eslint-disable-next-line react/no-array-index-key
               key={item.platePairId}
               entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
               exiting={FadeOutUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
