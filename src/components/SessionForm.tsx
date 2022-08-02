@@ -254,6 +254,7 @@ export default function SessionForm({
           )}
           {session && session.status === 'Done' && session.start && (
             <Controller
+              name="end"
               control={control}
               rules={{
                 required: false
@@ -262,14 +263,7 @@ export default function SessionForm({
                 <ThemedTextInput
                   label="Elapsed Time (minutes)"
                   onChangeText={newValue =>
-                    newValue &&
-                    session.start &&
-                    onChange(
-                      (newValue &&
-                        session.start &&
-                        add(session.start, { minutes: Number(newValue) })) ||
-                        ''
-                    )
+                    onChange(session.start && add(session.start, { minutes: Number(newValue) }))
                   }
                   onBlur={onBlur}
                   value={
@@ -283,7 +277,6 @@ export default function SessionForm({
                   numeric
                 />
               )}
-              name="end"
             />
           )}
 
