@@ -48,7 +48,9 @@ type Props = {
 // behave this way.
 const nbspReplace = (str: string) => str.replace(/\u0020/, '\u00a0')
 // TODO: unify nbsp replacement here
-const numericReplace = (str: string) => str.replace(/[^0-9|\\.]/g, '')
+
+// Removes non-numeric values from numeric fields
+const numericReplace = (str: string) => str.replace(/[^0-9|\\.]/g, '').replace(/\b0+/g, '')
 
 interface PropsFilled extends Props {
   onChangeText: (text: string) => void
