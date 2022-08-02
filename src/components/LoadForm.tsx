@@ -1,6 +1,6 @@
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { View } from 'react-native'
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native'
 import Animated, { FadeInDown, FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Exercise, Load } from '../types'
@@ -45,7 +45,10 @@ export default function LoadForm({
     handleSubmit,
     watch,
     formState: { isValid, errors },
-    setValue
+    setValue,
+    clearErrors,
+    trigger,
+    reset
   } = useForm<FormData>({
     defaultValues: {
       type: load && load.type,
@@ -69,6 +72,8 @@ export default function LoadForm({
   }, [selected, selectedType, selectedValue])
 
   const onSubmit = () => {
+    trigger('value')
+    clearErrors()
     if (selectedType === 'PERCENT' && exercise && selectedOneRepMaxVal) {
       updateExercise({ ...exercise, oneRepMax: { value: selectedOneRepMaxVal, unit: 'lbs' } })
     }
@@ -108,7 +113,6 @@ export default function LoadForm({
     }
     return decimalValue
   }
-
   return (
     <>
       <HeaderRightContainer>
@@ -127,7 +131,7 @@ export default function LoadForm({
           beforeNavigation={handleSubmit(onSubmit)}
           disabled={!isValid}
         >
-          <SpecialText style={tw`font-bold`}>Done</SpecialText>
+          <SpecialText style={tw.style('font-bold')}>Done</SpecialText>
         </LinkButton>
       </HeaderRightContainer>
       <HeaderLeftContainer>
@@ -135,220 +139,241 @@ export default function LoadForm({
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
-      <View style={tw`flex-1 py-9`}>
-        <Controller
-          name="type"
-          control={control}
-          rules={{
-            required: true
-          }}
-          render={({ field: { onChange } }) => (
-            <View>
-              <ThemedView style={tw`justify-between p-0 relative`}>
-                <ButtonContainer
-                  style={tw`flex-row items-stretch w-1/2`}
-                  onPress={() => {
-                    onChange('RPE')
-                    setValue('value', undefined)
-                  }}
-                >
-                  <View
-                    style={tw.style(
-                      'px-3 py-2 w-full items-center justify-center dark:border-slate-700 border-slate-400',
-                      selectedType === 'RPE'
-                        ? 'border-0 opacity-100'
-                        : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40',
-                      !selectedType ? 'border-r-2' : undefined
-                    )}
+      <KeyboardAvoidingView
+        style={tw`flex-1`}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 114 : -225}
+        behavior="padding"
+      >
+        <ScrollView style={tw`flex-1`} contentContainerStyle={tw`pt-9  pb-48`}>
+          <Controller
+            name="type"
+            control={control}
+            rules={{
+              required: true
+            }}
+            render={({ field: { onChange } }) => (
+              <View>
+                <ThemedView style={tw`justify-between p-0 relative`}>
+                  <ButtonContainer
+                    style={tw`flex-row items-stretch w-1/2`}
+                    onPress={() => {
+                      onChange('RPE')
+                      setValue('value', load?.type === 'RPE' ? load.value : 0, {
+                        shouldValidate: false
+                      })
+                      if (load?.type === 'RPE') {
+                        reset()
+                      }
+                    }}
                   >
-                    <PrimaryText>RPE</PrimaryText>
-                  </View>
-                </ButtonContainer>
-                <ButtonContainer
-                  style={tw`flex-row items-stretch w-1/2`}
-                  onPress={() => {
-                    onChange('PERCENT')
-                    setValue('value', undefined)
-                  }}
-                >
-                  <View
-                    style={tw.style(
-                      'px-3 py-2 w-full items-center justify-center dark:border-slate-700 border-slate-400',
-                      selectedType === 'PERCENT'
-                        ? 'border-0 opacity-100'
-                        : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40'
-                    )}
+                    <View
+                      style={tw.style(
+                        'px-3 py-2 w-full items-center justify-center dark:border-slate-700 border-slate-400',
+                        selectedType === 'RPE'
+                          ? 'border-0 opacity-100'
+                          : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40',
+                        !selectedType ? 'border-r-2' : undefined
+                      )}
+                    >
+                      <PrimaryText>RPE</PrimaryText>
+                    </View>
+                  </ButtonContainer>
+                  <ButtonContainer
+                    style={tw`flex-row items-stretch w-1/2`}
+                    onPress={() => {
+                      onChange('PERCENT')
+                      clearErrors('value')
+                      setValue('value', load?.type === 'PERCENT' ? load.value : 0, {
+                        shouldValidate: false
+                      })
+                      if (load?.type === 'PERCENT') {
+                        reset()
+                      }
+                    }}
                   >
-                    <PrimaryText>%1RM</PrimaryText>
-                  </View>
-                </ButtonContainer>
-              </ThemedView>
-              {errors && errors.type && (
+                    <View
+                      style={tw.style(
+                        'px-3 py-2 w-full items-center justify-center dark:border-slate-700 border-slate-400',
+                        selectedType === 'PERCENT'
+                          ? 'border-0 opacity-100'
+                          : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40'
+                      )}
+                    >
+                      <PrimaryText>%1RM</PrimaryText>
+                    </View>
+                  </ButtonContainer>
+                </ThemedView>
+                {errors && errors.type && (
+                  <Animated.View
+                    entering={FadeInDown.springify().stiffness(40).damping(6).mass(0.3)}
+                    exiting={FadeOutDown.springify().stiffness(40).damping(6).mass(0.3)}
+                    pointerEvents="none"
+                    style={tw`absolute items-center w-full justify-center -top-4`}
+                  >
+                    <AlertText style={tw`text-xs`}>Select a type</AlertText>
+                  </Animated.View>
+                )}
+              </View>
+            )}
+          />
+          {selectedType === 'RPE' && (
+            <Animated.View
+              entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+              exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+            >
+              <Controller
+                name="value"
+                control={control}
+                rules={{
+                  required: true,
+                  min: 1,
+                  max: 10
+                }}
+                render={({ field: { ref, onChange, onBlur, value } }) => (
+                  <ThemedTextInput
+                    label="RPE Value"
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    innerRef={ref}
+                    value={(value && String(value)) || undefined}
+                    placeholder="0"
+                    maxLength={2}
+                    style={tw`mt-9`}
+                    textInputStyle={tw`web:w-1/4`}
+                    keyboardType="number-pad"
+                    selectTextOnFocus
+                    numeric
+                    error={errors.value ? 'RPE value must be between 1 and 10' : undefined}
+                  />
+                )}
+              />
+              <View>
+                <View style={tw`px-3 mb-1 mt-9`}>
+                  <SecondaryText style={tw`text-sm font-bold mb-1.5`}>
+                    Rate of Perceived Exertion scale (RPE)
+                  </SecondaryText>
+                  <SecondaryText style={tw`text-xs`}>
+                    Measures intensity of a given weight and number of reps. Values are on a 1-10
+                    scale:
+                  </SecondaryText>
+                </View>
+                <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
+                  <SecondaryText style={tw`text-xs mb-1`}>
+                    10 - another rep would have been impossible
+                  </SecondaryText>
+                </View>
+                <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
+                  <SecondaryText style={tw`text-xs mb-1`}>
+                    9 - you left one in the tank
+                  </SecondaryText>
+                </View>
+                <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
+                  <SecondaryText style={tw`text-xs mb-1`}>
+                    8 - you could have done a couple more
+                  </SecondaryText>
+                </View>
+                <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
+                  <SecondaryText style={tw`text-xs mb-1`}>etc...</SecondaryText>
+                </View>
+              </View>
+            </Animated.View>
+          )}
+          {selectedType === 'PERCENT' && (
+            <Animated.View
+              entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+              exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+            >
+              <Controller
+                name="value"
+                control={control}
+                rules={{
+                  required: true,
+                  min: 0.001,
+                  max: 0.9999
+                }}
+                render={({ field: { ref, onChange, onBlur, value } }) => (
+                  <ThemedTextInput
+                    label="% of One Rep Max"
+                    onChangeText={newValue => {
+                      onChange(percentStringToNum(newValue, String(value)))
+                    }}
+                    onBlur={onBlur}
+                    innerRef={ref}
+                    value={value ? percentNumToString(value) : undefined}
+                    placeholder="00.00"
+                    maxLength={5}
+                    style={tw`mt-9`}
+                    textInputStyle={tw`web:w-1/4`}
+                    keyboardType="number-pad"
+                    selectTextOnFocus
+                    numeric
+                    error={errors.value ? '%1RM value is required' : undefined}
+                  />
+                )}
+              />
+              {exercise && !exercise?.oneRepMax && (
                 <Animated.View
-                  entering={FadeInDown.springify().stiffness(40).damping(6).mass(0.3)}
-                  exiting={FadeOutDown.springify().stiffness(40).damping(6).mass(0.3)}
-                  pointerEvents="none"
-                  style={tw`absolute items-center w-full justify-center -top-4`}
+                  entering={FadeInUp.delay(250)
+                    .duration(1000)
+                    .springify()
+                    .stiffness(50)
+                    .damping(6)
+                    .mass(0.3)}
+                  exiting={FadeOutDown.delay(100)
+                    .duration(1000)
+                    .springify()
+                    .stiffness(50)
+                    .damping(6)
+                    .mass(0.3)}
                 >
-                  <AlertText style={tw`text-xs`}>Select a type</AlertText>
+                  <SecondaryText style={tw`uppercase px-3 text-sm mt-9 mb-1.5`}>
+                    {exercise.name}
+                  </SecondaryText>
+                  <Controller
+                    control={control}
+                    rules={{
+                      required: true
+                    }}
+                    render={({ field: { onChange, onBlur, value } }) => (
+                      <ThemedTextInput
+                        label="One Rep Max (lbs)"
+                        placeholder="Required"
+                        placeholderTextColor={tw.color(alertTextColor)}
+                        onChangeText={onChange}
+                        onBlur={onBlur}
+                        value={(value && String(value)) || undefined}
+                        maxLength={4}
+                        style={tw``}
+                        textInputStyle={tw``}
+                        keyboardType="number-pad"
+                        numeric
+                      />
+                    )}
+                    name="oneRepMaxVal"
+                  />
+                  <SecondaryText style={tw`px-3 py-1.5 text-xs`}>
+                    Enter a One Rep Max for this exercise in order to use the Percent load type.
+                  </SecondaryText>
                 </Animated.View>
               )}
-            </View>
-          )}
-        />
-        {selectedType === 'RPE' && (
-          <Animated.View
-            entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-            exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-          >
-            <Controller
-              name="value"
-              control={control}
-              rules={{
-                required: true,
-                min: 1,
-                max: 10
-              }}
-              render={({ field: { ref, onChange, onBlur, value } }) => (
-                <ThemedTextInput
-                  label="RPE Value"
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  innerRef={ref}
-                  value={(value && String(value)) || undefined}
-                  placeholder="0"
-                  maxLength={2}
-                  style={tw`mt-9`}
-                  textInputStyle={tw`web:w-1/4`}
-                  keyboardType="number-pad"
-                  selectTextOnFocus
-                  numeric
-                  error={errors.value ? 'RPE value must be between 1 and 10' : undefined}
-                />
-              )}
-            />
-            <View>
               <View style={tw`px-3 mb-1 mt-9`}>
-                <SecondaryText style={tw`text-sm font-bold mb-1.5`}>
-                  Rate of Perceived Exertion scale (RPE)
+                <SecondaryText style={tw`text-sm mb-1.5 font-bold`}>
+                  One Rep Max (1RM)
                 </SecondaryText>
                 <SecondaryText style={tw`text-xs`}>
-                  Measures intensity of a given weight and number of reps. Values are on a 1-10
-                  scale:
+                  Heaviest weight that can be lifted for one rep.
+                </SecondaryText>
+                <SecondaryText style={tw`text-sm mb-1.5 mt-9 font-bold`}>
+                  % of One Rep Max (%1RM)
+                </SecondaryText>
+                <SecondaryText style={tw`text-xs`}>
+                  A way to quantify the amount to be lifted in a set, proportional to the 1RM.
                 </SecondaryText>
               </View>
-              <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
-                <SecondaryText style={tw`text-xs mb-1`}>
-                  10 - another rep would have been impossible
-                </SecondaryText>
-              </View>
-              <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
-                <SecondaryText style={tw`text-xs mb-1`}>9 - you left one in the tank</SecondaryText>
-              </View>
-              <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
-                <SecondaryText style={tw`text-xs mb-1`}>
-                  8 - you could have done a couple more
-                </SecondaryText>
-              </View>
-              <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
-                <SecondaryText style={tw`text-xs mb-1`}>etc...</SecondaryText>
-              </View>
-            </View>
-          </Animated.View>
-        )}
-        {selectedType === 'PERCENT' && (
-          <Animated.View
-            entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-            exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-          >
-            <Controller
-              name="value"
-              control={control}
-              rules={{
-                required: true,
-                min: 0.001,
-                max: 0.9999
-              }}
-              render={({ field: { ref, onChange, onBlur, value } }) => (
-                <ThemedTextInput
-                  label="% of One Rep Max"
-                  onChangeText={newValue => {
-                    onChange(percentStringToNum(newValue, String(value)))
-                  }}
-                  onBlur={onBlur}
-                  innerRef={ref}
-                  value={value ? percentNumToString(value) : undefined}
-                  placeholder="00.00"
-                  maxLength={5}
-                  style={tw`mt-9`}
-                  textInputStyle={tw`web:w-1/4`}
-                  keyboardType="number-pad"
-                  selectTextOnFocus
-                  numeric
-                  error={errors.value ? '%1RM value is required' : undefined}
-                />
-              )}
-            />
-            {exercise && !exercise?.oneRepMax && (
-              <Animated.View
-                entering={FadeInUp.delay(250)
-                  .duration(1000)
-                  .springify()
-                  .stiffness(50)
-                  .damping(6)
-                  .mass(0.3)}
-                exiting={FadeOutDown.delay(100)
-                  .duration(1000)
-                  .springify()
-                  .stiffness(50)
-                  .damping(6)
-                  .mass(0.3)}
-              >
-                <SecondaryText style={tw`uppercase px-3 text-sm mt-9 mb-1.5`}>
-                  {exercise.name}
-                </SecondaryText>
-                <Controller
-                  control={control}
-                  rules={{
-                    required: true
-                  }}
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <ThemedTextInput
-                      label="One Rep Max (lbs)"
-                      placeholder="Required"
-                      placeholderTextColor={tw.color(alertTextColor)}
-                      onChangeText={onChange}
-                      onBlur={onBlur}
-                      value={(value && String(value)) || undefined}
-                      maxLength={4}
-                      style={tw``}
-                      textInputStyle={tw``}
-                      keyboardType="number-pad"
-                      numeric
-                    />
-                  )}
-                  name="oneRepMaxVal"
-                />
-                <SecondaryText style={tw`px-3 py-1.5 text-xs`}>
-                  Enter a One Rep Max for this exercise in order to use the Percent load type.
-                </SecondaryText>
-              </Animated.View>
-            )}
-            <View style={tw`px-3 mb-1 mt-9`}>
-              <SecondaryText style={tw`text-sm mb-1.5 font-bold`}>One Rep Max (1RM)</SecondaryText>
-              <SecondaryText style={tw`text-xs`}>
-                Heaviest weight that can be lifted for one rep.
-              </SecondaryText>
-              <SecondaryText style={tw`text-sm mb-1.5 mt-9 font-bold`}>
-                % of One Rep Max (%1RM)
-              </SecondaryText>
-              <SecondaryText style={tw`text-xs`}>
-                A way to quantify the amount to be lifted in a set, proportional to the 1RM.
-              </SecondaryText>
-            </View>
-          </Animated.View>
-        )}
-      </View>
+            </Animated.View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </>
   )
 }
