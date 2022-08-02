@@ -105,9 +105,11 @@ export default function ExerciseSelect({
                   : undefined
               )}
             >
-              <PrimaryText>{item.name}</PrimaryText>
+              <PrimaryText style={tw`pr-6`} numberOfLines={1}>
+                {item.name}
+              </PrimaryText>
               {item.name === selected?.name && (
-                <SpecialText>
+                <SpecialText style={tw`absolute right-2`}>
                   <AntDesign name="check" size={22} />
                 </SpecialText>
               )}

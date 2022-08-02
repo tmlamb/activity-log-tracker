@@ -60,7 +60,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
                     : undefined
                 )}
               >
-                <PrimaryText style={tw`flex-1 pr-2`} numberOfLines={1}>
+                <PrimaryText style={tw`flex-1 pr-2.5`} numberOfLines={1}>
                   {item.name}
                 </PrimaryText>
                 <SecondaryText style={tw`absolute right-2`}>
