@@ -118,12 +118,15 @@ export default function ExerciseSelect({
           </>
         )}
         ListHeaderComponent={
-          <View style={tw`flex-row items-center px-3 pb-1`}>
+          <View style={tw`flex-row items-baseline justify-between px-3 pb-1`}>
             <SecondaryText style={tw`text-sm`}>
               {usedExercises && usedExercises.length > 0 ? 'Your Exercises' : 'Available Exercises'}
             </SecondaryText>
-            <LinkButton to={{ screen: 'ExerciseSettingsModal' }}>
-              <SpecialText style={tw`text-sm`}>&nbsp;&ndash;&nbsp;Manage</SpecialText>
+            <LinkButton to={{ screen: 'ExerciseSettingsModal' }} style={tw`flex-row items-center`}>
+              <SpecialText style={tw`text-xs`}>Manage</SpecialText>
+              <SpecialText style={tw`pl-0.5 pt-0.5 -pb-0.5 text-xs`}>
+                <AntDesign name="setting" size={12} />
+              </SpecialText>
             </LinkButton>
           </View>
         }

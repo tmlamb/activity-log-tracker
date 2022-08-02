@@ -9,7 +9,7 @@ import { RootStackParamList } from './Navigation'
 type Props = {
   to: To<RootStackParamList>
   action?: NavigationAction
-  children: JSX.Element
+  children: JSX.Element | JSX.Element[]
   style?: ClassInput
   beforeNavigation?: () => void
   disabled?: boolean
