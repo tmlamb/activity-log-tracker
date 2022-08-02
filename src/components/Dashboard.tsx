@@ -51,7 +51,7 @@ export default function Dashboard({ programs }: Props) {
                 index === section.data.length - 1 ? 'rounded-b-xl border-b-0' : undefined
               )}
             >
-              <PrimaryText style={tw`flex-1 pr-2`} numberOfLines={1}>
+              <PrimaryText style={tw`flex-1 pr-2.5`} numberOfLines={1}>
                 {item.name}
               </PrimaryText>
               <SecondaryText style={tw`absolute right-2`}>
@@ -65,8 +65,8 @@ export default function Dashboard({ programs }: Props) {
             {programs.length < 1 && (
               <>
                 <SecondaryText style={tw`pb-9 px-3 text-xs`}>
-                  Welcome! To get started, first create a new workout program, which will be used to
-                  track your workout sessions.
+                  To get started, first create a new workout program, which will be used to track
+                  your workout sessions.
                 </SecondaryText>
                 <LinkButton to={{ screen: 'ProgramFormModal' }} style={tw``}>
                   <ThemedView rounded>

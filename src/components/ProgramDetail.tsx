@@ -63,7 +63,7 @@ export default function ProgramDetail({ program }: Props) {
           ListHeaderComponent={
             <>
               <ThemedView rounded>
-                <PrimaryText style={tw`pr-3`}>Program</PrimaryText>
+                <PrimaryText style={tw`pr-2`}>Program</PrimaryText>
                 <SecondaryText style={tw`flex-1 text-right`} numberOfLines={1}>
                   {program.name}
                 </SecondaryText>
@@ -79,21 +79,21 @@ export default function ProgramDetail({ program }: Props) {
           renderItem={({ index, item, section }) => (
             <>
               {!item && (
-                <>
-                  <LinkButton
-                    style={tw`mb-6`}
-                    to={{ screen: 'SessionFormModal', params: { programId: program.programId } }}
-                  >
+                <LinkButton
+                  style={tw`mb-6`}
+                  to={{ screen: 'SessionFormModal', params: { programId: program.programId } }}
+                >
+                  <>
                     <ThemedView rounded style={tw``}>
                       <SpecialText>Plan Workout Session</SpecialText>
                     </ThemedView>
-                  </LinkButton>
-                  {program.sessions.length < 1 && (
-                    <SecondaryText style={tw`pl-3 -mt-4 text-xs`}>
-                      Start tracking your exercises by planning a session.
-                    </SecondaryText>
-                  )}
-                </>
+                    {program.sessions.length < 1 && (
+                      <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
+                        Start tracking your exercises by planning a session.
+                      </SecondaryText>
+                    )}
+                  </>
+                </LinkButton>
               )}
               {item && (
                 <LinkButton
