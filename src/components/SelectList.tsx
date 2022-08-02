@@ -13,6 +13,7 @@ type Props<T> = {
   contentContainerStyle?: ClassInput
   renderItem?: ListRenderItem<Partial<T>> | null
   onSelect: (value: Partial<T>) => void
+  keyboardShouldPersistTaps?: 'always' | 'handled' | 'never'
 }
 
 export default function SelectList<T>({
@@ -23,12 +24,14 @@ export default function SelectList<T>({
   ListHeaderComponent,
   contentContainerStyle,
   renderItem,
-  onSelect
+  onSelect,
+  keyboardShouldPersistTaps
 }: Props<T>) {
   return (
     <FlatList
       ListHeaderComponent={ListHeaderComponent}
       contentContainerStyle={tw.style(contentContainerStyle)}
+      keyboardShouldPersistTaps={keyboardShouldPersistTaps}
       data={items}
       scrollEnabled={scrollEnabled}
       keyExtractor={keyExtractor}
@@ -47,5 +50,6 @@ SelectList.defaultProps = {
   scrollEnabled: true,
   ListHeaderComponent: undefined,
   contentContainerStyle: undefined,
-  renderItem: undefined
+  renderItem: undefined,
+  keyboardShouldPersistTaps: undefined
 }

@@ -1,6 +1,7 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
-import { View } from 'react-native'
+import { TouchableWithoutFeedback, View } from 'react-native'
+import Animated, { FadeIn, FadeInUp, FadeOut, FadeOutUp, Layout } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Exercise } from '../types'
@@ -11,7 +12,7 @@ import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { RootStackParamList } from './Navigation'
 import SelectList from './SelectList'
-import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
+import { PrimaryText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
 
 type Props = {
   exercise?: Exercise
@@ -36,6 +37,8 @@ export default function ExerciseSelect({
 }: Props) {
   const [selected, setSelected] = React.useState(initialValue)
 
+  const [searchFilter, setSearchFilter] = React.useState<string>()
+
   React.useEffect(
     () =>
       selected && !selected.exerciseId
@@ -44,15 +47,23 @@ export default function ExerciseSelect({
     [selected]
   )
 
-  const exercisesSortedAndDeduped = React.useMemo(
-    () =>
-      sortByName([...(usedExercises || [])]).concat(
-        availableExercises.filter(
-          availableExercise => !usedExercises?.find(e => e.name === availableExercise.name)
-        )
-      ),
-    [availableExercises, usedExercises]
+  const filteredUsedExercises = usedExercises?.filter(ue =>
+    searchFilter ? ue.name.toUpperCase().includes(searchFilter.toUpperCase()) : true
   )
+
+  const filteredAvailableExercises = availableExercises.filter(ae =>
+    searchFilter ? ae.name?.toUpperCase().includes(searchFilter.toUpperCase()) : true
+  )
+
+  const exercisesSortedAndDedupedAndFiltered = sortByName([
+    ...(filteredUsedExercises || [])
+  ]).concat(
+    filteredAvailableExercises.filter(
+      filteredAvailableExercise =>
+        !filteredUsedExercises?.find(e => e.name === filteredAvailableExercise.name)
+    )
+  )
+
   return (
     <>
       <HeaderRightContainer>
@@ -87,20 +98,23 @@ export default function ExerciseSelect({
         style={tw`flex-1`}
         contentContainerStyle="pt-9 px-3 pb-48"
         keyExtractor={(item, index) => `${item.name}.${index}`}
-        items={exercisesSortedAndDeduped}
+        items={exercisesSortedAndDedupedAndFiltered}
         onSelect={item => {
           setSelected(item as Exercise)
         }}
         renderItem={({ item, index }) => (
-          <>
+          <Animated.View
+            entering={FadeIn.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+            exiting={FadeOut.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+          >
             <ThemedView
               style={tw.style(
                 'border-b-2',
-                index === 0 || (usedExercises && index === usedExercises.length)
+                index === 0 || (filteredUsedExercises && index === filteredUsedExercises.length)
                   ? 'rounded-t-xl'
                   : undefined,
-                (usedExercises && index === usedExercises.length - 1) ||
-                  index === exercisesSortedAndDeduped.length - 1
+                (filteredUsedExercises && index === filteredUsedExercises.length - 1) ||
+                  index === exercisesSortedAndDedupedAndFiltered.length - 1
                   ? 'border-b-0 rounded-b-xl mb-6'
                   : undefined
               )}
@@ -114,24 +128,45 @@ export default function ExerciseSelect({
                 </SpecialText>
               )}
             </ThemedView>
-            {usedExercises && index === usedExercises.length - 1 && (
-              <SecondaryText style={tw`pb-1 pl-3 mt-0 text-sm`}>Available Exercises</SecondaryText>
-            )}
-          </>
+            {filteredUsedExercises &&
+              index === filteredUsedExercises.length - 1 &&
+              filteredAvailableExercises.length > 0 && (
+                <View pointerEvents="none">
+                  <SecondaryText style={tw`pb-1 pl-3 mt-0 text-sm`}>
+                    Available Exercises
+                  </SecondaryText>
+                </View>
+              )}
+          </Animated.View>
         )}
         ListHeaderComponent={
-          <View style={tw`flex-row items-baseline justify-between px-3 pb-1`}>
-            <SecondaryText style={tw`text-sm`}>
-              {usedExercises && usedExercises.length > 0 ? 'Your Exercises' : 'Available Exercises'}
-            </SecondaryText>
-            <LinkButton to={{ screen: 'ExerciseSettingsModal' }} style={tw`flex-row items-center`}>
-              <SpecialText style={tw`text-xs`}>Manage</SpecialText>
-              <SpecialText style={tw`pl-0.5 pt-0.5 -pb-0.5 text-xs`}>
-                <AntDesign name="setting" size={12} />
-              </SpecialText>
-            </LinkButton>
-          </View>
+          <>
+            <ThemedTextInput
+              onChangeText={text => setSearchFilter(text)}
+              style={tw`mb-9 rounded-xl`}
+              label="Search"
+              textInputStyle={tw`pl-32`}
+              maxLength={25}
+            />
+            <View style={tw`flex-row items-baseline justify-between px-3 pb-1`}>
+              <SecondaryText style={tw`text-sm`}>
+                {filteredUsedExercises && filteredUsedExercises.length > 0
+                  ? 'Your Exercises'
+                  : 'Available Exercises'}
+              </SecondaryText>
+              <LinkButton
+                to={{ screen: 'ExerciseSettingsModal' }}
+                style={tw`flex-row items-center`}
+              >
+                <SpecialText style={tw`text-xs`}>Manage</SpecialText>
+                <SpecialText style={tw`pl-0.5 pt-0.5 -pb-0.5 text-xs`}>
+                  <AntDesign name="setting" size={12} />
+                </SpecialText>
+              </LinkButton>
+            </View>
+          </>
         }
+        keyboardShouldPersistTaps="handled"
       />
     </>
   )
