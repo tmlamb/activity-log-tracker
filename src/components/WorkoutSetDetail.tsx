@@ -267,7 +267,9 @@ export default function WorkoutSetDetail({
             <ThemedView style={tw`border-b-2`}>
               <PrimaryText>Target Load</PrimaryText>
               <SecondaryText>{`${stringifyLoad(activity.load)}${
-                activity.load.type === 'PERCENT' && targetWeight ? ` / ${targetWeight}lbs` : ''
+                activity.load.type === 'PERCENT' && targetWeight && workoutSet.status !== 'Done'
+                  ? ` / ${targetWeight}lbs`
+                  : ''
               }`}</SecondaryText>
             </ThemedView>
             <ThemedView style={tw`border-b-2`}>
