@@ -113,17 +113,13 @@ export default function ActivitiesInput({
                       ) {
                         setValue(`activities.${index}.load`, recentActivity.load)
                       } else if (
-                        selectedExercise?.oneRepMax &&
+                        selectedExercise.oneRepMax &&
+                        selectedExercise.oneRepMax.value > 0 &&
                         watchActivities &&
                         !watchActivities[index].load
                       ) {
                         setValue(`activities.${index}.load`, { type: 'PERCENT', value: 0.75 })
-                      } else if (
-                        !selectedExercise?.oneRepMax &&
-                        watchActivities &&
-                        (watchActivities[index].load?.type === 'PERCENT' ||
-                          !watchActivities[index].load)
-                      ) {
+                      } else {
                         setValue(`activities.${index}.load`, { type: 'RPE', value: 5 })
                       }
 

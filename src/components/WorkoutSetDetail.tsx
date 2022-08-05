@@ -10,7 +10,14 @@ import { recentActivityByExercise, round5, stringifyLoad } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import ElapsedTime from './ElapsedTime'
 import PlateChart from './PlateChart'
-import { PrimaryText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
+import {
+  PrimaryText,
+  SecondaryText,
+  SpecialText,
+  AlertText,
+  ThemedTextInput,
+  ThemedView
+} from './Themed'
 
 type Props = {
   program: Program
@@ -284,6 +291,13 @@ export default function WorkoutSetDetail({
             </ThemedView>
           </>
         )}
+
+        {activity.load.type === 'PERCENT' &&
+          (!exercise.oneRepMax || exercise.oneRepMax.value <= 0) && (
+            <AlertText style={tw`text-xs px-3 pt-1.5`}>
+              Setup a One Rep Max for this exercise before using the percent load type.
+            </AlertText>
+          )}
 
         {workoutSet.status !== 'Planned' && (
           <Animated.View

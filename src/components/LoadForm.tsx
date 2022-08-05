@@ -311,7 +311,7 @@ export default function LoadForm({
                   />
                 )}
               />
-              {exercise && !exercise?.oneRepMax && (
+              {exercise && (
                 <Animated.View
                   entering={FadeInUp.delay(250)
                     .duration(1000)
@@ -351,9 +351,11 @@ export default function LoadForm({
                     )}
                     name="oneRepMaxVal"
                   />
-                  <SecondaryText style={tw`px-3 py-1.5 text-xs`}>
-                    Enter a One Rep Max for this exercise in order to use the Percent load type.
-                  </SecondaryText>
+                  {(!exercise.oneRepMax || exercise.oneRepMax.value <= 0) && (
+                    <SecondaryText style={tw`px-3 py-1.5 text-xs`}>
+                      Enter a One Rep Max for this exercise in order to use the Percent load type.
+                    </SecondaryText>
+                  )}
                 </Animated.View>
               )}
               <View style={tw`px-3 mb-1 mt-9`}>
