@@ -7,7 +7,7 @@ import 'react-native-get-random-values'
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
-import { Exercise, Program, Session } from '../types'
+import { Activity, Exercise, Program, Session } from '../types'
 import { spaceReplace } from '../utils'
 import ActivitiesInput from './ActivitiesInput'
 import ButtonContainer from './ButtonContainer'
@@ -36,6 +36,15 @@ type Props = {
   goBack: () => void
 }
 
+export type SessionFormData = {
+  name?: string
+  sessionId?: string
+  start?: Date
+  end?: Date
+  status?: 'Planned' | 'Ready' | 'Done'
+  activities?: Partial<Activity>[]
+}
+
 export default function SessionForm({
   changeHandler,
   program,
@@ -52,7 +61,7 @@ export default function SessionForm({
     setValue,
     getValues,
     formState: { isDirty, errors, dirtyFields }
-  } = useForm<Partial<Session>>({
+  } = useForm<SessionFormData>({
     defaultValues: {
       name: (session && session.name) || '',
       end: (session && session.end) || undefined,
@@ -67,14 +76,14 @@ export default function SessionForm({
 
   const [fromType, setFromType] = React.useState<'Scratch' | 'Template' | undefined>()
 
-  const onSubmit = (data: Partial<Session>) => {
+  const onSubmit = (data: SessionFormData) => {
     changeHandler(
       program.programId,
       session
         ? {
             name: spaceReplace(data.name!),
             sessionId: session.sessionId!,
-            activities: data.activities!,
+            activities: data.activities! as Activity[],
             start: session.start,
             end: data.end,
             status: session.status
@@ -82,7 +91,7 @@ export default function SessionForm({
         : {
             name: spaceReplace(data.name!),
             sessionId: uuidv4(),
-            activities: data.activities!,
+            activities: data.activities! as Activity[],
             start: undefined,
             end: undefined,
             status: 'Planned'

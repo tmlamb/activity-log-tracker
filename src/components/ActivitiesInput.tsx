@@ -18,18 +18,19 @@ import { Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } from '../t
 import { recentActivityByExercise, stringifyLoad } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import ModalSelectInput from './ModalSelectInput'
+import { SessionFormData } from './SessionForm'
 import { AlertText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
 
 type Props = {
-  fieldArray: UseFieldArrayReturn<Partial<Session>, 'activities', 'id'>
-  control: Control<Partial<Session>, object>
-  watch: UseFormWatch<Partial<Session>>
-  setValue: UseFormSetValue<Partial<Session>>
+  fieldArray: UseFieldArrayReturn<SessionFormData, 'activities', 'id'>
+  control: Control<SessionFormData, object>
+  watch: UseFormWatch<SessionFormData>
+  setValue: UseFormSetValue<SessionFormData>
   exercises?: Exercise[]
   session?: Session
   program: Program
-  errors?: FieldErrorsImpl<DeepRequired<Partial<Session>>>
-  dirtyFields: FieldNamesMarkedBoolean<Partial<Session>>
+  errors?: FieldErrorsImpl<DeepRequired<SessionFormData>>
+  dirtyFields: FieldNamesMarkedBoolean<SessionFormData>
 }
 
 const numberToWorkoutSetArray = <T extends WorkoutSet>(
@@ -138,7 +139,7 @@ export default function ActivitiesInput({
                           numberToWorkoutSetArray<WarmupSet>(
                             recentActivity.warmupSets.length,
                             watchActivities && watchActivities[index]
-                              ? watchActivities[index].warmupSets
+                              ? watchActivities[index].warmupSets!
                               : [],
                             'Warmup',
                             session
@@ -158,7 +159,7 @@ export default function ActivitiesInput({
                           numberToWorkoutSetArray<MainSet>(
                             recentActivity.mainSets.length,
                             watchActivities && watchActivities[index]
-                              ? watchActivities[index].mainSets
+                              ? watchActivities[index].mainSets!
                               : [],
                             'Main',
                             session
@@ -243,7 +244,7 @@ export default function ActivitiesInput({
                         numberToWorkoutSetArray<WarmupSet>(
                           newLength,
                           watchActivities && watchActivities[index]
-                            ? watchActivities[index].warmupSets
+                            ? watchActivities[index].warmupSets!
                             : [],
                           'Warmup',
                           session
@@ -251,7 +252,7 @@ export default function ActivitiesInput({
                       )
                     }}
                     onBlur={onBlur}
-                    value={value.length ? String(value.length) : undefined}
+                    value={value!.length ? String(value!.length) : undefined}
                     placeholder="0"
                     maxLength={1}
                     style={tw`border-b-2 border-l-2`}
@@ -288,7 +289,7 @@ export default function ActivitiesInput({
                         numberToWorkoutSetArray<MainSet>(
                           newLength,
                           watchActivities && watchActivities[index]
-                            ? watchActivities[index].mainSets
+                            ? watchActivities[index].mainSets!
                             : [],
                           'Main',
                           session

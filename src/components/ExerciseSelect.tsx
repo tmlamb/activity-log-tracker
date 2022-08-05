@@ -1,7 +1,15 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
 import { TouchableWithoutFeedback, View } from 'react-native'
-import Animated, { FadeIn, FadeInUp, FadeOut, FadeOutUp, Layout } from 'react-native-reanimated'
+import Animated, {
+  FadeIn,
+  FadeInUp,
+  FadeOut,
+  FadeOutUp,
+  Layout,
+  SlideInRight,
+  SlideOutRight
+} from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Exercise } from '../types'
@@ -141,13 +149,32 @@ export default function ExerciseSelect({
         )}
         ListHeaderComponent={
           <>
-            <ThemedTextInput
-              onChangeText={text => setSearchFilter(text)}
-              style={tw`mb-9 rounded-xl`}
-              label="Search"
-              textInputStyle={tw`pl-32`}
-              maxLength={25}
-            />
+            <View style={tw`flex-row items-center justify-between w-full mb-9`}>
+              <Animated.View
+                layout={Layout.duration(1000)}
+                style={tw.style(searchFilter ? 'w-4/5' : undefined)}
+              >
+                <ThemedTextInput
+                  onChangeText={text => setSearchFilter(text)}
+                  value={searchFilter}
+                  style={tw.style('rounded-xl')}
+                  label="Search"
+                  textInputStyle={tw`pl-32`}
+                  maxLength={25}
+                />
+              </Animated.View>
+              {searchFilter && (
+                <Animated.View
+                  entering={SlideInRight.duration(1000).stiffness(50).damping(6).mass(0.3)}
+                  exiting={SlideOutRight.duration(1000).stiffness(50).damping(6).mass(0.3)}
+                  style={tw`w-1/6 text-right`}
+                >
+                  <ButtonContainer onPress={() => setSearchFilter(undefined)}>
+                    <SpecialText>Cancel</SpecialText>
+                  </ButtonContainer>
+                </Animated.View>
+              )}
+            </View>
             <View style={tw`flex-row items-baseline justify-between px-3 pb-1`}>
               <SecondaryText style={tw`text-sm`}>
                 {filteredUsedExercises && filteredUsedExercises.length > 0
