@@ -1,11 +1,12 @@
 import { AntDesign } from '@expo/vector-icons'
 import { To } from '@react-navigation/native/lib/typescript/src/useLinkTo'
 import React from 'react'
-import { FlatList } from 'react-native'
+import { FlatList, Linking, View } from 'react-native'
 import tw from '../tailwind'
+import ButtonContainer from './ButtonContainer'
 import LinkButton from './LinkButton'
 import { RootStackParamList } from './Navigation'
-import { PrimaryText, SecondaryText, ThemedView } from './Themed'
+import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 export default function Settings() {
   const data: {
@@ -18,25 +19,33 @@ export default function Settings() {
   ]
 
   return (
-    <FlatList
-      contentContainerStyle={tw`px-3 pb-48 pt-9`}
-      data={data}
-      bounces={false}
-      renderItem={({ item, index }) => (
-        <LinkButton to={item.to} style={tw``}>
-          <ThemedView
-            style={tw.style(
-              index !== data.length - 1 ? 'border-b-2' : 'border-b-0 rounded-b-xl',
-              index === 0 ? 'rounded-t-xl' : undefined
-            )}
-          >
-            <PrimaryText>{item.label}</PrimaryText>
-            <SecondaryText>
-              <AntDesign name="setting" size={24} />
-            </SecondaryText>
-          </ThemedView>
-        </LinkButton>
-      )}
-    />
+    <View style={tw`flex-grow justify-between pb-9`}>
+      <FlatList
+        contentContainerStyle={tw`px-3 pt-9`}
+        style={tw``}
+        data={data}
+        bounces={false}
+        renderItem={({ item, index }) => (
+          <LinkButton to={item.to} style={tw``}>
+            <ThemedView
+              style={tw.style(
+                index !== data.length - 1 ? 'border-b-2' : 'border-b-0 rounded-b-xl',
+                index === 0 ? 'rounded-t-xl' : undefined
+              )}
+            >
+              <PrimaryText>{item.label}</PrimaryText>
+              <SecondaryText>
+                <AntDesign name="setting" size={24} />
+              </SecondaryText>
+            </ThemedView>
+          </LinkButton>
+        )}
+      />
+      <ButtonContainer
+        onPress={() => Linking.openURL('https://github.com/tmlamb/activity-log-tracker/issues')}
+      >
+        <SpecialText style={tw`self-center`}>Feedback?</SpecialText>
+      </ButtonContainer>
+    </View>
   )
 }
