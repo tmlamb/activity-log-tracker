@@ -4,9 +4,11 @@ import { FlatList, View } from 'react-native'
 import Animated, {
   FadeIn,
   FadeOut,
-  Layout,
-  SlideInRight,
-  SlideOutRight
+  FadeInRight,
+  FadeOutRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
 } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Exercise } from '../types'
@@ -23,6 +25,10 @@ type Props = {
 
 export default function ExerciseSettings({ availableExercises, usedExercises }: Props) {
   const [searchFilter, setSearchFilter] = React.useState<string>()
+  const searchFilterWidth = useSharedValue(100)
+  const searchFilterStyle = useAnimatedStyle(() => ({
+    width: `${searchFilterWidth.value}%`
+  }))
 
   const filteredUsedExercises = usedExercises?.filter(ue =>
     searchFilter ? ue.name.toUpperCase().includes(searchFilter.toUpperCase()) : true
@@ -101,12 +107,12 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
         ListHeaderComponent={
           <>
             <View style={tw`flex-row items-center justify-between w-full mb-9`}>
-              <Animated.View
-                layout={Layout.duration(1000)}
-                style={tw.style(searchFilter ? 'w-4/5' : undefined)}
-              >
+              <Animated.View style={searchFilterStyle}>
                 <ThemedTextInput
-                  onChangeText={text => setSearchFilter(text)}
+                  onChangeText={text => {
+                    searchFilterWidth.value = withTiming(text?.length > 0 ? 81 : 100)
+                    setSearchFilter(text)
+                  }}
                   value={searchFilter}
                   style={tw.style('rounded-xl')}
                   label="Search"
@@ -116,11 +122,15 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
               </Animated.View>
               {searchFilter && (
                 <Animated.View
-                  entering={SlideInRight.duration(1000).stiffness(50).damping(6).mass(0.3)}
-                  exiting={SlideOutRight.duration(1000).stiffness(50).damping(6).mass(0.3)}
-                  style={tw`w-1/6 text-right`}
+                  entering={FadeInRight.duration(500).stiffness(50).damping(6).mass(0.3)}
+                  exiting={FadeOutRight.duration(500).stiffness(50).damping(6).mass(0.3)}
                 >
-                  <ButtonContainer onPress={() => setSearchFilter(undefined)}>
+                  <ButtonContainer
+                    onPress={() => {
+                      searchFilterWidth.value = withTiming(100)
+                      setSearchFilter(undefined)
+                    }}
+                  >
                     <SpecialText>Cancel</SpecialText>
                   </ButtonContainer>
                 </Animated.View>
