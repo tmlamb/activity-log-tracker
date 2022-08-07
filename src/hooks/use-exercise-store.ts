@@ -51,7 +51,7 @@ Overhead Tricep Extension
 Single-Leg Leg Press
 Decline Bench Press
 Pendlay Row
-EZ Bar Curl 21s
+EZ Bar Curl
 Cable Crunch
 Lat Pulldown
 Rope Face Pull
