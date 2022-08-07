@@ -355,7 +355,7 @@ export default function LoadForm({
                   />
                   {(!exercise.oneRepMax || exercise.oneRepMax.value <= 0) && (
                     <SecondaryText style={tw`px-3 py-1.5 text-xs`}>
-                      Enter a One Rep Max for this exercise in order to use the Percent load type.
+                      Enter a One Rep Max for this exercise in order to use the %1RM load type.
                     </SecondaryText>
                   )}
                 </Animated.View>
