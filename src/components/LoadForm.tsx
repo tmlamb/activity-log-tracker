@@ -113,6 +113,7 @@ export default function LoadForm({
     }
     return decimalValue
   }
+
   return (
     <>
       <HeaderRightContainer>
@@ -332,7 +333,8 @@ export default function LoadForm({
                   <Controller
                     control={control}
                     rules={{
-                      required: true
+                      required: true,
+                      min: 1
                     }}
                     render={({ field: { onChange, onBlur, value } }) => (
                       <ThemedTextInput

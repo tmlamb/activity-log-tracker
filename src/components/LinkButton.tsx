@@ -29,10 +29,10 @@ export default function LinkButton({
     <ButtonContainer
       style={tw.style(style)}
       onPress={e => {
-        beforeNavigation?.()
         if (disabled) {
           return
         }
+        beforeNavigation?.()
         onPress(e)
       }}
     >
