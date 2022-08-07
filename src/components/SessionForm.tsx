@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native'
 import 'react-native-get-random-values'
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
+import _ from 'lodash'
 import tw from '../tailwind'
 import { Activity, Exercise, Program, Session } from '../types'
 import { spaceReplace } from '../utils'
@@ -310,6 +311,64 @@ export default function SessionForm({
                 </LinkButton>
               }
             />
+          )}
+
+          {session && session.start && (
+            <>
+              <DoubleConfirm
+                style={tw`mt-9`}
+                first={
+                  <ThemedView>
+                    <AlertText>Reset This Session</AlertText>
+                  </ThemedView>
+                }
+                second={
+                  <LinkButton
+                    to={{
+                      screen: 'ProgramDetailScreen',
+                      params: { programId: program.programId, sessionId: session.sessionId }
+                    }}
+                    beforeNavigation={() =>
+                      changeHandler(program.programId, {
+                        ...session,
+                        start: undefined,
+                        end: undefined,
+                        status: 'Planned',
+                        activities: _.map(session.activities, actvy => ({
+                          ...actvy,
+                          warmupSets: _.map(actvy.warmupSets, wus => ({
+                            ...wus,
+                            start: undefined,
+                            end: undefined,
+                            actualWeight: undefined,
+                            actualReps: 0,
+                            status: 'Planned',
+                            feedback: 'Neutral'
+                          })),
+                          mainSets: _.map(actvy.mainSets, ms => ({
+                            ...ms,
+                            start: undefined,
+                            end: undefined,
+                            actualWeight: undefined,
+                            actualReps: 0,
+                            status: 'Planned',
+                            feedback: 'Neutral'
+                          }))
+                        }))
+                      })
+                    }
+                  >
+                    <AlertText style={tw`px-3 py-3 -my-3`}>
+                      <AntDesign name="minuscircle" size={15} />
+                    </AlertText>
+                  </LinkButton>
+                }
+              />
+              <SecondaryText style={tw`text-xs px-3 pt-1.5`}>
+                Resets session to &apos;Planned&apos; state by clearing all completed set&apos;s
+                actual weight/reps and start/end times.
+              </SecondaryText>
+            </>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
