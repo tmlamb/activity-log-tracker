@@ -20,6 +20,10 @@ import { AlertText, PrimaryText, SecondaryText, SpecialText, ThemedView } from '
 // can be processed by the parent form via a similar interface to
 // a typical input field's "onChangeSelect" callback.
 
+// This design maintains serializability of React Navigation screen
+// state, otherwise simply passing onChangeSelect to the modal would
+// have worked (functions are not serializable).
+
 // TODO: can any of this be better abstracted to reduce the number of things needed here?
 type ModalSelectEntity = Exercise | Load | Session
 type ModalSelectNavParams =
@@ -28,7 +32,7 @@ type ModalSelectNavParams =
   | Omit<Omit<SessionSelectNavParams, 'parentScreen'>, 'parentParams'>
 type ModalSelectScreen = 'ExerciseSelectModal' | 'LoadFormModal' | 'SessionSelectModal'
 
-type Props<T, K> = {
+type Props<T> = {
   label?: string
   value?: string
   style?: ClassInput
@@ -63,18 +67,22 @@ export default function ModalSelectInput<
   beforeNavigation,
   error,
   errorStyle
-}: Props<T, K>) {
+}: Props<T>) {
   const route = useRoute<RouteProp<RootStackParamList, K>>()
 
   const { modalSelectValue, modalSelectId } = route.params as Readonly<ModalSelectResponseParams<T>>
 
+  // Processes the "output" sent back to the originating screen by the modal select screen.
   React.useEffect(() => {
+    // We need to avoid unecessary renders (or infinite loops) by only processing the
+    // modalSelectValue under specific circumstances:
     if (
-      modalSelectValue &&
-      modalSelectId &&
-      modalSelectId === modalParams.modalSelectId &&
-      JSON.stringify(modalSelectValue) !== JSON.stringify(modalParams.value)
+      modalSelectValue && // there is a modal selection value passed in the route
+      modalSelectId && // and there is an id for this instance passed in the route
+      modalSelectId === modalParams.modalSelectId && // and the id matches this instance's id
+      JSON.stringify(modalSelectValue) !== JSON.stringify(modalParams.value) // and the value has changed
     ) {
+      // Trigger the modal select callback to process the value
       onChangeSelect(modalSelectValue)
     }
   }, [
