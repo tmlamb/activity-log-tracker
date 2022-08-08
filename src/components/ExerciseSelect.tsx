@@ -1,6 +1,6 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
-import { View } from 'react-native'
+import { View, Keyboard } from 'react-native'
 import Animated, {
   FadeIn,
   FadeInRight,
@@ -123,6 +123,7 @@ export default function ExerciseSelect({
         contentContainerStyle="pt-9 px-3 pb-48"
         keyExtractor={(item, index) => `${item.name}.${index}`}
         items={exercisesSortedAndDedupedAndFiltered}
+        keyboardShouldPersistTaps="handled"
         onSelect={item => {
           setSelected(item as Exercise)
         }}
@@ -204,6 +205,7 @@ export default function ExerciseSelect({
                     onPress={() => {
                       searchFilterWidth.value = withTiming(Math.floor(searchComponentWidth))
                       setSearchFilter(undefined)
+                      Keyboard.dismiss()
                     }}
                   >
                     <SpecialText style={tw`pl-2.5 text-lg tracking-tight`}>Cancel</SpecialText>
@@ -229,7 +231,6 @@ export default function ExerciseSelect({
             </View>
           </>
         }
-        keyboardShouldPersistTaps="handled"
       />
     </>
   )
