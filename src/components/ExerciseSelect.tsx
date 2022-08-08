@@ -13,7 +13,7 @@ import Animated, {
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Exercise } from '../types'
-import { sortByName } from '../utils'
+import { sortByName, spaceReplace } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
