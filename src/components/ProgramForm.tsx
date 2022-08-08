@@ -11,7 +11,6 @@ import ButtonContainer from './ButtonContainer'
 import DoubleConfirm from './DoubleConfirm'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
-import LinkButton from './LinkButton'
 import { AlertText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
 
 type Props = {

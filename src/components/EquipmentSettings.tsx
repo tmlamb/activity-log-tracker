@@ -8,7 +8,6 @@ import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Equipment } from '../types'
 import ButtonContainer from './ButtonContainer'
-import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import { AlertText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
 

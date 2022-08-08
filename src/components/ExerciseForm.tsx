@@ -142,24 +142,6 @@ export default function ExerciseForm({
             />
           )}
         />
-        {/* <Controller
-          name="primaryMuscle"
-          control={control}
-          rules={{
-            required: false
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <ThemedTextInput
-              label="Primary Muscle"
-              onChangeText={onChange}
-              onBlur={onBlur}
-              value={value}
-              maxLength={18}
-              style={tw`mt-9`}
-              textInputStyle={tw`pl-32`}
-            />
-          )}
-        /> */}
         {exercise && deleteHandler && !usedInWorkout && (
           <DoubleConfirm
             style={tw`mt-9`}
