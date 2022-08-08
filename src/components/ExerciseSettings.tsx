@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Exercise } from '../types'
-import { sortByName, spaceReplace } from '../utils'
+import { sortByName } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
