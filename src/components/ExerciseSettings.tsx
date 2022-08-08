@@ -25,17 +25,29 @@ type Props = {
 
 export default function ExerciseSettings({ availableExercises, usedExercises }: Props) {
   const [searchFilter, setSearchFilter] = React.useState<string>()
-  const searchFilterWidth = useSharedValue(100)
+  const [searchComponentWidth, setSearchComponentWidth] = React.useState<number>(0)
+  const [cancelButtonWidth, setCancelButtonWidth] = React.useState<number>(0)
+  const searchFilterWidth = useSharedValue(searchComponentWidth)
   const searchFilterStyle = useAnimatedStyle(() => ({
-    width: `${searchFilterWidth.value}%`
+    width: Math.floor(searchFilterWidth.value)
   }))
 
   const filteredUsedExercises = usedExercises?.filter(ue =>
-    searchFilter ? ue.name.toUpperCase().includes(searchFilter.toUpperCase()) : true
+    searchFilter
+      ? ue.name
+          .replace(/\s/g, '')
+          .toUpperCase()
+          .includes(searchFilter.replace(/\s/g, '').toUpperCase())
+      : true
   )
 
   const filteredAvailableExercises = availableExercises.filter(ae =>
-    searchFilter ? ae.name?.toUpperCase().includes(searchFilter.toUpperCase()) : true
+    searchFilter
+      ? ae.name
+          ?.replace(/\s/g, '')
+          .toUpperCase()
+          .includes(searchFilter.replace(/\s/g, '').toUpperCase())
+      : true
   )
 
   const exercisesSortedAndDedupedAndFiltered = sortByName([
@@ -66,8 +78,8 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
         data={exercisesSortedAndDedupedAndFiltered}
         renderItem={({ item, index }) => (
           <Animated.View
-            entering={FadeIn.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-            exiting={FadeOut.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+            entering={FadeIn.duration(500).springify().stiffness(50).damping(6).mass(0.3)}
+            exiting={FadeOut.duration(500).springify().stiffness(50).damping(6).mass(0.3)}
           >
             <LinkButton
               to={{
@@ -106,17 +118,29 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
         )}
         ListHeaderComponent={
           <>
-            <View style={tw`flex-row items-center justify-between w-full mb-9`}>
+            <View
+              style={tw`flex-row items-center justify-between w-full mb-9`}
+              onLayout={event => {
+                const { width } = event.nativeEvent.layout
+                setSearchComponentWidth(Math.floor(width))
+                searchFilterWidth.value = withTiming(Math.floor(width))
+                // searchFilterWidth.value = withTiming(Math.floor(width - cancelButtonWidth))
+              }}
+            >
               <Animated.View style={searchFilterStyle}>
                 <ThemedTextInput
                   onChangeText={text => {
-                    searchFilterWidth.value = withTiming(text?.length > 0 ? 81 : 100)
+                    searchFilterWidth.value = withTiming(
+                      text?.length > 0
+                        ? Math.floor(searchComponentWidth - cancelButtonWidth)
+                        : Math.floor(searchComponentWidth)
+                    )
                     setSearchFilter(text)
                   }}
                   value={searchFilter}
                   style={tw.style('rounded-xl')}
                   label="Search"
-                  textInputStyle={tw`pl-32`}
+                  textInputStyle={tw`pl-16`}
                   maxLength={25}
                 />
               </Animated.View>
@@ -124,14 +148,19 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
                 <Animated.View
                   entering={FadeInRight.duration(500).stiffness(50).damping(6).mass(0.3)}
                   exiting={FadeOutRight.duration(500).stiffness(50).damping(6).mass(0.3)}
+                  onLayout={event => {
+                    const { width } = event.nativeEvent.layout
+                    setCancelButtonWidth(Math.floor(width))
+                    searchFilterWidth.value = withTiming(searchComponentWidth - Math.floor(width))
+                  }}
                 >
                   <ButtonContainer
                     onPress={() => {
-                      searchFilterWidth.value = withTiming(100)
+                      searchFilterWidth.value = withTiming(Math.floor(searchComponentWidth))
                       setSearchFilter(undefined)
                     }}
                   >
-                    <SpecialText>Cancel</SpecialText>
+                    <SpecialText style={tw`pl-2.5 text-lg tracking-tight`}>Cancel</SpecialText>
                   </ButtonContainer>
                 </Animated.View>
               )}
