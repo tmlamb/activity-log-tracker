@@ -12,6 +12,7 @@ type Props = {
   children: JSX.Element | JSX.Element[]
   style?: ClassInput
   beforeNavigation?: () => void
+  onPress?: () => void
   disabled?: boolean
 }
 
@@ -21,19 +22,21 @@ export default function LinkButton({
   children,
   style,
   beforeNavigation,
+  onPress,
   disabled
 }: Props) {
-  const { onPress } = useLinkProps<RootStackParamList>({ to, action })
+  const { onPress: navigate } = useLinkProps<RootStackParamList>({ to, action })
 
   return (
     <ButtonContainer
       style={tw.style(style)}
       onPress={e => {
+        onPress?.()
         if (disabled) {
           return
         }
         beforeNavigation?.()
-        onPress(e)
+        navigate(e)
       }}
     >
       {children}
@@ -45,5 +48,6 @@ LinkButton.defaultProps = {
   action: undefined,
   style: undefined,
   beforeNavigation: () => null,
+  onPress: () => null,
   disabled: false
 }

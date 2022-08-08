@@ -129,7 +129,7 @@ export default function LoadForm({
                   }
                 : undefined
           }}
-          beforeNavigation={handleSubmit(onSubmit)}
+          onPress={handleSubmit(onSubmit)}
           disabled={!isValid}
         >
           <SpecialText style={tw.style('font-bold')}>Done</SpecialText>
