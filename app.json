@@ -18,8 +18,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.triplesight.activitylogtracker",
-      "buildNumber": "1.5.9"
+      "bundleIdentifier": "com.triplesight.activitylogtracker"
     },
     "android": {
       "adaptiveIcon": {
