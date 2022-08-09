@@ -25,8 +25,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.triplesight.activitylogtracker",
-      "versionCode": 1
+      "package": "com.triplesight.activitylogtracker"
     },
     "web": {
       "favicon": "./assets/favicon.png"
