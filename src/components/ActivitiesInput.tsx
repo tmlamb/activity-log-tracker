@@ -11,7 +11,7 @@ import {
   UseFormWatch
 } from 'react-hook-form'
 import { View } from 'react-native'
-import Animated, { FadeInUp, FadeOutUp, Layout } from 'react-native-reanimated'
+import Animated, { FadeInLeft, FadeOutRight, Layout } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } from '../types'
@@ -71,15 +71,16 @@ export default function ActivitiesInput({
   errors,
   dirtyFields
 }: Props) {
-  const { fields, append, remove } = fieldArray
+  const { fields, append, remove, swap } = fieldArray
   const watchActivities = watch('activities')
   return (
     <View style={tw`my-9`}>
       {fields.map((item, index) => (
         <Animated.View
           key={item.activityId}
-          entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-          exiting={FadeOutUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+          entering={FadeInLeft}
+          exiting={FadeOutRight}
+          layout={Layout}
         >
           <ThemedView style={tw`flex-row p-0 items-stretch border-b-2`}>
             <View style={tw`flex-initial relative justify-evenly w-1/2`}>
@@ -213,6 +214,26 @@ export default function ActivitiesInput({
                   <AntDesign name="minuscircle" size={15} />
                 </AlertText>
               </ButtonContainer>
+              {index !== 0 && (
+                <ButtonContainer
+                  style={tw`top-1 right-1 p-1 absolute`}
+                  onPress={() => swap(index, index - 1)}
+                >
+                  <SecondaryText>
+                    <AntDesign name="up" size={16} />
+                  </SecondaryText>
+                </ButtonContainer>
+              )}
+              {index !== fields.length - 1 && (
+                <ButtonContainer
+                  style={tw`bottom-1 right-1 p-1 absolute`}
+                  onPress={() => swap(index, index + 1)}
+                >
+                  <SecondaryText>
+                    <AntDesign name="down" size={16} />
+                  </SecondaryText>
+                </ButtonContainer>
+              )}
             </View>
             <View style={tw`justify-between flex-initial w-1/2`}>
               <Controller
@@ -406,7 +427,7 @@ export default function ActivitiesInput({
           </ThemedView>
         </Animated.View>
       ))}
-      <Animated.View layout={Layout.duration(1000).springify().damping(6).mass(0.3).stiffness(50)}>
+      <Animated.View layout={Layout}>
         <ButtonContainer
           onPress={() =>
             append(
