@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Equipment } from '../types'
 import ButtonContainer from './ButtonContainer'
+import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import { AlertText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
 
@@ -53,6 +54,11 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
+      <HeaderLeftContainer>
+        <ButtonContainer onPress={goBack} style={tw``}>
+          <SpecialText>Cancel</SpecialText>
+        </ButtonContainer>
+      </HeaderLeftContainer>
       <KeyboardAvoidingView
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : -225}
         behavior="padding"
