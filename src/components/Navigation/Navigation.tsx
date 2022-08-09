@@ -1,7 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native'
+import { StatusBar, Platform, View } from 'react-native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React from 'react'
-import { View } from 'react-native'
 import tw from '../../tailwind'
 import DashboardScreen from './DashboardScreen'
 import EquipmentSettingsScreen from './EquipmentSettingsScreen'
@@ -30,7 +30,14 @@ export default function Navigation() {
         <AppStack.Navigator
           // Modals are too easy to dismiss by gesture - We will force users to use a
           // "Cancel" button to avoid unintended data loss.
-          screenOptions={{ gestureEnabled: false }}
+          screenOptions={{
+            gestureEnabled: false,
+            headerTitleAlign: 'center',
+            contentStyle: {
+              paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 42 : 0
+            },
+            headerBackVisible: Platform.OS !== 'android'
+          }}
           initialRouteName="DashboardScreen"
         >
           <AppStack.Screen
@@ -94,7 +101,7 @@ export default function Navigation() {
           <AppStack.Screen
             name="EquipmentSettingsScreen"
             component={EquipmentSettingsScreen}
-            options={{ title: 'Manage Equipment' }}
+            options={{ title: 'Manage Equipment', headerBackVisible: false }}
           />
           <AppStack.Screen
             name="ProgramFiguresScreen"
