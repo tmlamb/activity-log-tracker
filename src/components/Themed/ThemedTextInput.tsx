@@ -100,7 +100,7 @@ export default function TextInput({
           value={value}
           style={tw.style(
             primaryTextColor,
-            'w-full py-[2.65px] z-20 pr-0 text-lg leading-tight tracking-tight',
+            'w-full py-[2.65px] android:py-[.15px] z-20 pr-0 text-lg leading-tight tracking-tight',
             textInputStyle
           )}
           placeholder={placeholder}
@@ -108,7 +108,7 @@ export default function TextInput({
           maxLength={maxLength}
           keyboardType={keyboardType}
           textAlign={label ? 'right' : undefined}
-          textAlignVertical="top"
+          textAlignVertical="center"
           selectTextOnFocus={selectTextOnFocus}
           clearTextOnFocus={clearTextOnFocus}
           editable={editable}
