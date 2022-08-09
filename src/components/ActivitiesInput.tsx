@@ -216,21 +216,21 @@ export default function ActivitiesInput({
               </ButtonContainer>
               {index !== 0 && (
                 <ButtonContainer
-                  style={tw`top-1 right-1 p-1 absolute`}
+                  style={tw`top-0 opacity-50 self-center p-2 absolute`}
                   onPress={() => swap(index, index - 1)}
                 >
                   <SecondaryText>
-                    <AntDesign name="up" size={16} />
+                    <AntDesign name="caretup" size={16} />
                   </SecondaryText>
                 </ButtonContainer>
               )}
               {index !== fields.length - 1 && (
                 <ButtonContainer
-                  style={tw`bottom-1 right-1 p-1 absolute`}
+                  style={tw`bottom-0 opacity-50 self-center p-2 absolute`}
                   onPress={() => swap(index, index + 1)}
                 >
                   <SecondaryText>
-                    <AntDesign name="down" size={16} />
+                    <AntDesign name="caretdown" size={16} />
                   </SecondaryText>
                 </ButtonContainer>
               )}
