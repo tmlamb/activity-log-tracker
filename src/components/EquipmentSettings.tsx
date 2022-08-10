@@ -55,7 +55,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
         </ButtonContainer>
       </HeaderRightContainer>
       <HeaderLeftContainer>
-        <ButtonContainer onPress={goBack} style={tw``}>
+        <ButtonContainer onPress={goBack}>
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
