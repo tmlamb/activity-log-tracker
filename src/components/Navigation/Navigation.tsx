@@ -1,8 +1,8 @@
 import { NavigationContainer } from '@react-navigation/native'
-import { StatusBar, Platform, View } from 'react-native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React from 'react'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Platform } from 'react-native'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import tw from '../../tailwind'
 import DashboardScreen from './DashboardScreen'
 import EquipmentSettingsScreen from './EquipmentSettingsScreen'
@@ -25,20 +25,15 @@ import WorkoutSetDetailScreen from './WorkoutSetDetailScreen'
 const AppStack = createNativeStackNavigator<RootStackParamList>()
 
 export default function Navigation() {
-  const insets = useSafeAreaInsets()
   return (
-    <View style={tw`flex-1 bg-slate-50 dark:bg-black`}>
+    <SafeAreaProvider style={tw`bg-slate-50 dark:bg-black`}>
       <NavigationContainer>
         <AppStack.Navigator
-          // Modals are too easy to dismiss by gesture - We will force users to use a
-          // "Cancel" button to avoid unintended data loss.
           screenOptions={{
+            // Modals are too easy to dismiss by gesture - We will force users to use a
+            // "Cancel" button to avoid unintended data loss.
             gestureEnabled: false,
             headerTitleAlign: 'center',
-            contentStyle: {
-              paddingTop:
-                Platform.OS === 'android' ? Number(StatusBar.currentHeight) + insets.top : 0
-            },
             headerBackVisible: Platform.OS !== 'android'
           }}
           initialRouteName="DashboardScreen"
@@ -164,6 +159,6 @@ export default function Navigation() {
           </AppStack.Group>
         </AppStack.Navigator>
       </NavigationContainer>
-    </View>
+    </SafeAreaProvider>
   )
 }
