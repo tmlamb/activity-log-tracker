@@ -329,10 +329,10 @@ export default function ActivitiesInput({
                       errors.activities &&
                       errors.activities[index] &&
                       errors?.activities[index]?.mainSets
-                        ? '!'
+                        ? 'Required'
                         : undefined
                     }
-                    errorStyle={tw`right-1 top-0`}
+                    errorStyle={tw`right-3 top-3.5 text-xs`}
                   />
                 )}
               />
@@ -364,10 +364,10 @@ export default function ActivitiesInput({
                       errors.activities &&
                       errors.activities[index] &&
                       errors?.activities[index]?.reps
-                        ? '!'
+                        ? 'Required'
                         : undefined
                     }
-                    errorStyle={tw`right-1 top-0`}
+                    errorStyle={tw`right-3 top-3.5 text-xs`}
                   />
                 )}
               />
