@@ -1,22 +1,14 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
-import { FlatList, View, Keyboard } from 'react-native'
-import Animated, {
-  FadeIn,
-  FadeOut,
-  FadeInRight,
-  FadeOutRight,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming
-} from 'react-native-reanimated'
+import { FlatList } from 'react-native'
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Exercise } from '../types'
 import { sortByName } from '../utils'
-import ButtonContainer from './ButtonContainer'
+import ExerciseSearchInput from './ExerciseSearchInput'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
-import { PrimaryText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
+import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type Props = {
   availableExercises: Partial<Exercise>[]
@@ -25,12 +17,6 @@ type Props = {
 
 export default function ExerciseSettings({ availableExercises, usedExercises }: Props) {
   const [searchFilter, setSearchFilter] = React.useState<string>()
-  const [searchComponentWidth, setSearchComponentWidth] = React.useState<number>(0)
-  const [cancelButtonWidth, setCancelButtonWidth] = React.useState<number>(0)
-  const searchFilterWidth = useSharedValue(searchComponentWidth)
-  const searchFilterStyle = useAnimatedStyle(() => ({
-    width: Math.round(searchFilterWidth.value)
-  }))
 
   const filteredUsedExercises = usedExercises?.filter(ue =>
     searchFilter
@@ -116,58 +102,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
         )}
         ListHeaderComponent={
           <>
-            <View
-              style={tw`flex-row items-center justify-between w-full mb-9`}
-              onLayout={event => {
-                const { width } = event.nativeEvent.layout
-                setSearchComponentWidth(Math.round(width))
-                searchFilterWidth.value = withTiming(Math.round(width), { duration: 500 })
-              }}
-            >
-              <Animated.View style={searchFilterStyle}>
-                <ThemedTextInput
-                  onChangeText={text => {
-                    searchFilterWidth.value = withTiming(
-                      text?.length > 0
-                        ? Math.round(searchComponentWidth - cancelButtonWidth)
-                        : Math.round(searchComponentWidth),
-                      { duration: 500 }
-                    )
-                    setSearchFilter(text)
-                  }}
-                  value={searchFilter}
-                  style={tw.style('rounded-xl')}
-                  label="Search"
-                  textInputStyle={tw`pl-16`}
-                  maxLength={25}
-                />
-              </Animated.View>
-              {searchFilter && (
-                <Animated.View
-                  entering={FadeInRight}
-                  exiting={FadeOutRight}
-                  onLayout={event => {
-                    const { width } = event.nativeEvent.layout
-                    setCancelButtonWidth(Math.round(width))
-                    searchFilterWidth.value = withTiming(searchComponentWidth - Math.round(width), {
-                      duration: 500
-                    })
-                  }}
-                >
-                  <ButtonContainer
-                    onPress={() => {
-                      searchFilterWidth.value = withTiming(Math.round(searchComponentWidth), {
-                        duration: 500
-                      })
-                      setSearchFilter(undefined)
-                      Keyboard.dismiss()
-                    }}
-                  >
-                    <SpecialText style={tw`pl-2.5 text-lg tracking-tight`}>Cancel</SpecialText>
-                  </ButtonContainer>
-                </Animated.View>
-              )}
-            </View>
+            <ExerciseSearchInput onChange={text => setSearchFilter(text)} />
             <SecondaryText style={tw`pb-1 pl-3 text-sm`}>
               {filteredUsedExercises && filteredUsedExercises.length > 0
                 ? 'Your Exercises'

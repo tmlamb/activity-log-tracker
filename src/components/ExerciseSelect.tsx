@@ -1,26 +1,19 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
-import { View, Keyboard } from 'react-native'
-import Animated, {
-  FadeIn,
-  FadeInRight,
-  FadeOutRight,
-  FadeOut,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming
-} from 'react-native-reanimated'
+import { View } from 'react-native'
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Exercise } from '../types'
 import { sortByName } from '../utils'
 import ButtonContainer from './ButtonContainer'
+import ExerciseSearchInput from './ExerciseSearchInput'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { RootStackParamList } from './Navigation'
 import SelectList from './SelectList'
-import { PrimaryText, SecondaryText, SpecialText, ThemedTextInput, ThemedView } from './Themed'
+import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type Props = {
   exercise?: Exercise
@@ -46,12 +39,6 @@ export default function ExerciseSelect({
   const [selected, setSelected] = React.useState(initialValue)
 
   const [searchFilter, setSearchFilter] = React.useState<string>()
-  const [searchComponentWidth, setSearchComponentWidth] = React.useState<number>(0)
-  const [cancelButtonWidth, setCancelButtonWidth] = React.useState<number>(0)
-  const searchFilterWidth = useSharedValue(searchComponentWidth)
-  const searchFilterStyle = useAnimatedStyle(() => ({
-    width: Math.round(searchFilterWidth.value)
-  }))
 
   React.useEffect(
     () =>
@@ -163,58 +150,7 @@ export default function ExerciseSelect({
         )}
         ListHeaderComponent={
           <>
-            <View
-              style={tw`flex-row items-center justify-between w-full mb-9`}
-              onLayout={event => {
-                const { width } = event.nativeEvent.layout
-                setSearchComponentWidth(Math.round(width))
-                searchFilterWidth.value = withTiming(Math.round(width), { duration: 500 })
-              }}
-            >
-              <Animated.View style={searchFilterStyle}>
-                <ThemedTextInput
-                  onChangeText={text => {
-                    searchFilterWidth.value = withTiming(
-                      text?.length > 0
-                        ? Math.round(searchComponentWidth - cancelButtonWidth)
-                        : Math.round(searchComponentWidth),
-                      { duration: 500 }
-                    )
-                    setSearchFilter(text)
-                  }}
-                  value={searchFilter}
-                  style={tw.style('rounded-xl')}
-                  label="Search"
-                  textInputStyle={tw`pl-16`}
-                  maxLength={25}
-                />
-              </Animated.View>
-              {searchFilter && (
-                <Animated.View
-                  entering={FadeInRight}
-                  exiting={FadeOutRight}
-                  onLayout={event => {
-                    const { width } = event.nativeEvent.layout
-                    setCancelButtonWidth(Math.round(width))
-                    searchFilterWidth.value = withTiming(searchComponentWidth - Math.round(width), {
-                      duration: 500
-                    })
-                  }}
-                >
-                  <ButtonContainer
-                    onPress={() => {
-                      searchFilterWidth.value = withTiming(Math.round(searchComponentWidth), {
-                        duration: 500
-                      })
-                      setSearchFilter(undefined)
-                      Keyboard.dismiss()
-                    }}
-                  >
-                    <SpecialText style={tw`pl-2.5 text-lg tracking-tight`}>Cancel</SpecialText>
-                  </ButtonContainer>
-                </Animated.View>
-              )}
-            </View>
+            <ExerciseSearchInput onChange={text => setSearchFilter(text)} />
             <View style={tw`flex-row items-baseline justify-between px-3 pb-1`}>
               <SecondaryText style={tw`text-sm`}>
                 {filteredUsedExercises && filteredUsedExercises.length > 0
@@ -227,7 +163,7 @@ export default function ExerciseSelect({
               >
                 <SpecialText style={tw`text-xs`}>Manage</SpecialText>
                 <SpecialText style={tw`pl-0.5 pt-0.5 -pb-0.5 text-xs`}>
-                  <AntDesign name="setting" size={12} />
+                  <AntDesign name="plus" size={14} />
                 </SpecialText>
               </LinkButton>
             </View>
