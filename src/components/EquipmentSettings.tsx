@@ -88,8 +88,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                 placeholder="0"
                 maxLength={3}
                 style={tw`rounded-xl mb-6`}
-                textInputStyle={tw`text-right web:text-base`}
-                labelStyle={tw`web:text-base`}
+                textInputStyle={tw`pl-40 web:pl-0`}
                 keyboardType="number-pad"
                 numeric
                 selectTextOnFocus
@@ -97,64 +96,62 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
             )}
           />
           <SecondaryText style={tw`text-xs px-3 pb-1.5`}>Plate Pairs (2x each)</SecondaryText>
-          {fields.map((item, index) => (
-            <Animated.View
-              key={item.platePairId}
-              entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-              exiting={FadeOutUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-            >
-              <View style={tw`relative items-center flex-row justify-between`}>
-                <ButtonContainer style={tw`absolute z-1 p-3`} onPress={() => remove(index)}>
-                  <AlertText style={tw`p-0`}>
-                    <AntDesign name="minuscircle" size={15} />
-                  </AlertText>
-                </ButtonContainer>
-                <Controller
-                  name={`platePairs.${index}.value`}
-                  control={control}
-                  defaultValue={45}
-                  rules={{
-                    required: true,
-                    validate: (value: number) =>
-                      !!_.find(
-                        ['1.25', '2.5', '5', '10', '15', '25', '35', '45', '55', '65'],
-                        v => v === String(value)
-                      )
-                  }}
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <ThemedTextInput
-                      label="Plate Pair Weight (lbs)"
-                      onChangeText={onChange}
-                      onBlur={onBlur}
-                      value={String(value)}
-                      placeholder="0"
-                      maxLength={4}
-                      style={tw.style('py-0 border-b-2', index === 0 ? 'rounded-t-xl' : undefined)}
-                      textInputStyle={tw`pl-0 py-[1.7px] text-right web:text-base`}
-                      labelStyle={tw`pl-7 web:text-base`}
-                      selectTextOnFocus
-                      keyboardType="numeric"
-                      numeric
-                      error={
-                        errors &&
-                        errors.platePairs &&
-                        errors.platePairs[index] &&
-                        errors?.platePairs[index]?.value
-                          ? 'Invalid plate size'
-                          : undefined
-                      }
-                      errorStyle={tw`top-0 mt-3.5`}
-                    />
-                  )}
-                />
-              </View>
-            </Animated.View>
-          ))}
-          <Animated.View
-            layout={Layout.duration(1000).springify().damping(6).mass(0.3).stiffness(50)}
-          >
+          <View>
+            {fields.map((item, index) => (
+              <Animated.View key={item.platePairId} entering={FadeInUp} exiting={FadeOutUp}>
+                <View style={tw`relative items-center flex-row justify-between`}>
+                  <ButtonContainer style={tw`absolute z-1 p-3`} onPress={() => remove(index)}>
+                    <AlertText style={tw`p-0`}>
+                      <AntDesign name="minuscircle" size={15} />
+                    </AlertText>
+                  </ButtonContainer>
+                  <Controller
+                    name={`platePairs.${index}.value`}
+                    control={control}
+                    defaultValue={45}
+                    rules={{
+                      required: true,
+                      validate: (value: number) =>
+                        !!_.find(
+                          ['1.25', '2.5', '5', '10', '15', '25', '35', '45', '55', '65'],
+                          v => v === String(value)
+                        )
+                    }}
+                    render={({ field: { onChange, onBlur, value } }) => (
+                      <ThemedTextInput
+                        label="Plate Pair Weight (lbs)"
+                        onChangeText={onChange}
+                        onBlur={onBlur}
+                        value={String(value)}
+                        placeholder="0"
+                        maxLength={4}
+                        style={tw.style(
+                          'py-0 border-b-2 w-full',
+                          index === 0 ? 'rounded-t-xl' : undefined
+                        )}
+                        textInputStyle={tw`pl-0 web:ml-6`}
+                        labelStyle={tw`pl-7`}
+                        selectTextOnFocus
+                        keyboardType="numeric"
+                        numeric
+                        error={
+                          errors &&
+                          errors.platePairs &&
+                          errors.platePairs[index] &&
+                          errors?.platePairs[index]?.value
+                            ? 'Invalid plate size'
+                            : undefined
+                        }
+                        errorStyle={tw`top-0 mt-3.5`}
+                      />
+                    )}
+                  />
+                </View>
+              </Animated.View>
+            ))}
+          </View>
+          <Animated.View layout={Layout}>
             <ButtonContainer
-              style={tw``}
               onPress={() =>
                 append({
                   value: 0,
@@ -166,7 +163,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
             >
               <ThemedView
                 style={tw.style(
-                  'justify-start',
+                  'justify-start web:py-[7.25px] web:pb-[3.25px]',
                   fields.length === 0 ? 'rounded-xl' : 'rounded-b-xl'
                 )}
               >

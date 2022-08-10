@@ -110,7 +110,7 @@ export default function ExerciseForm({
               onBlur={onBlur}
               value={value}
               maxLength={25}
-              textInputStyle={tw`pl-32`}
+              textInputStyle={tw`pl-40 web:pl-0`}
               error={errors.name ? 'Exercise Name is required' : undefined}
             />
           )}
@@ -136,7 +136,7 @@ export default function ExerciseForm({
               value={String((value && value.value) || '')}
               maxLength={4}
               style={tw`mt-9`}
-              textInputStyle={tw``}
+              textInputStyle={tw`pl-40 web:pl-0`}
               keyboardType="number-pad"
               numeric
             />

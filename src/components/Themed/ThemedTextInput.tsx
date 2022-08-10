@@ -86,10 +86,15 @@ export default function TextInput({
   }
 
   return (
-    <ThemedView style={tw.style('relative py-0', style)}>
-      <ThemedView style={tw`px-0 py-2`}>
+    <ThemedView style={tw.style('relative py-0 web:pr-0.5', style)}>
+      <ThemedView style={tw`px-0 py-2 web:pt-0 web:pb-0 relative w-full bg-transparent`}>
         {label && (
-          <SecondaryText style={tw.style('absolute pl-0 web:relative', labelStyle)}>
+          <SecondaryText
+            style={tw.style(
+              'absolute leading-tight text-lg tracking-tight pl-0 web:mt-1',
+              labelStyle
+            )}
+          >
             {label}
           </SecondaryText>
         )}
@@ -100,7 +105,7 @@ export default function TextInput({
           value={value}
           style={tw.style(
             primaryTextColor,
-            'w-full py-[2.65px] android:py-[.15px] z-20 pr-0 text-lg leading-tight tracking-tight',
+            'w-full pb-[2.8px] pt-[2.5px] android:py-[.15px] z-20 pr-0 text-lg web:text-right web:pr-2 web:pt-[11px] web:pb-[6.5px] leading-tight tracking-tight',
             textInputStyle
           )}
           placeholder={placeholder}

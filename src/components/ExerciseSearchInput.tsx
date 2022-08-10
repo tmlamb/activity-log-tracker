@@ -46,7 +46,7 @@ export default function ExerciseSearchInput({ onChange }: Props) {
           //   value={searchFilter}
           style={tw.style('rounded-xl')}
           label="Search"
-          textInputStyle={tw`pl-16`}
+          textInputStyle={tw`pl-16 web:pl-0`}
           maxLength={25}
         />
       </Animated.View>

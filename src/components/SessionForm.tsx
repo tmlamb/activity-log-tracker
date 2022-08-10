@@ -169,7 +169,7 @@ export default function SessionForm({
               >
                 <View
                   style={tw.style(
-                    'px-3 w-full items-center justify-center dark:border-slate-700 border-slate-400',
+                    'px-3 web:pt-2 web:pb-1 w-full items-center justify-center dark:border-slate-700 border-slate-400',
                     fromType === 'Scratch'
                       ? 'border-0 opacity-100'
                       : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40',
@@ -188,9 +188,9 @@ export default function SessionForm({
                 )}
               >
                 <ModalSelectInput
-                  style={tw`justify-center bg-transparent`}
+                  style={tw`justify-center bg-transparent web:pt-2 web:pb-1`}
                   value="From Template"
-                  textStyle={tw.style('web:text-base', primaryTextColor)}
+                  textStyle={tw.style(primaryTextColor)}
                   modalScreen="SessionSelectModal"
                   modalParams={{
                     modalSelectId: `${program.programId}.addSession`,
@@ -235,7 +235,7 @@ export default function SessionForm({
                     label="Session Name"
                     innerRef={ref}
                     maxLength={25}
-                    textInputStyle={tw`pl-32`}
+                    textInputStyle={tw`pl-32 web:pl-0`}
                     error={errors.name ? 'Session Name is required' : undefined}
                   />
                 )}
@@ -281,7 +281,6 @@ export default function SessionForm({
                   }
                   maxLength={3}
                   style={tw`mb-9`}
-                  textInputStyle={tw`web:w-1/4`}
                   keyboardType="number-pad"
                   selectTextOnFocus
                   numeric

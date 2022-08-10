@@ -68,7 +68,7 @@ export default function Dashboard({ programs }: Props) {
                   To get started, first create a new workout program, which will be used to track
                   your workout sessions.
                 </SecondaryText>
-                <LinkButton to={{ screen: 'ProgramFormModal' }} style={tw``}>
+                <LinkButton to={{ screen: 'ProgramFormModal' }}>
                   <ThemedView rounded>
                     <SpecialText>Create Workout Program</SpecialText>
                   </ThemedView>

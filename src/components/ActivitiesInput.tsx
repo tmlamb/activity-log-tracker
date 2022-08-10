@@ -97,7 +97,7 @@ export default function ActivitiesInput({
                       value: exercises?.find(exercise => exercise.exerciseId === value),
                       modalSelectId: `${item.activityId}.exerciseId`
                     }}
-                    textStyle={tw`pr-3`}
+                    textStyle={tw`pr-3 text-lg leading-tight`}
                     placeholder="Select Exercise"
                     value={exercises?.find(exercise => exercise.exerciseId === value)?.name}
                     onChangeSelect={(selectedExercise: Exercise) => {
@@ -205,7 +205,6 @@ export default function ActivitiesInput({
                         ? 'Required'
                         : undefined
                     }
-                    errorStyle={tw``}
                   />
                 )}
               />
@@ -273,8 +272,6 @@ export default function ActivitiesInput({
                     placeholder="0"
                     maxLength={1}
                     style={tw`border-b-2 border-l-2`}
-                    textInputStyle={tw`web:text-base`}
-                    labelStyle={tw`web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
                     numeric
@@ -319,8 +316,6 @@ export default function ActivitiesInput({
                     placeholder="0"
                     maxLength={2}
                     style={tw`border-b-2 border-l-2`}
-                    textInputStyle={tw`web:text-base`}
-                    labelStyle={tw`web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
                     numeric
@@ -354,8 +349,6 @@ export default function ActivitiesInput({
                     placeholder="0"
                     maxLength={2}
                     style={tw`border-b-2 border-l-2`}
-                    textInputStyle={tw`web:text-base`}
-                    labelStyle={tw`web:text-base`}
                     keyboardType="number-pad"
                     selectTextOnFocus
                     numeric
@@ -387,8 +380,6 @@ export default function ActivitiesInput({
                     placeholder="0"
                     maxLength={2}
                     style={tw`border-b-2 border-l-2`}
-                    textInputStyle={tw`web:text-base`}
-                    labelStyle={tw`web:text-base`}
                     selectTextOnFocus
                     keyboardType="number-pad"
                     numeric
@@ -405,7 +396,7 @@ export default function ActivitiesInput({
                     label="Load"
                     style={tw`border-l-2`}
                     value={value && stringifyLoad(value)}
-                    textStyle={tw`pr-4 web:text-base`}
+                    textStyle={tw`pr-4`}
                     modalScreen="LoadFormModal"
                     modalParams={{
                       value,
@@ -439,7 +430,7 @@ export default function ActivitiesInput({
           }
           disabled={fields.length > 100}
         >
-          <ThemedView style={tw`justify-start`}>
+          <ThemedView style={tw`justify-start web:py-[7.25px] web:pb-[3.25px]`}>
             <SpecialText>
               <AntDesign name="pluscircle" size={16} />
             </SpecialText>

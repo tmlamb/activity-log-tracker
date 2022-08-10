@@ -117,7 +117,14 @@ export default function ModalSelectInput<
             <SpecialText style={tw.style(textStyle)}>{placeholder}</SpecialText>
           )}
           {icon && (
-            <View style={tw.style('absolute pt-0.5', placeholder ? 'left-1.5' : 'right-1.5')}>
+            <View
+              style={tw.style(
+                'absolute pt-0.5 web:pt-0',
+                placeholder
+                  ? 'ios:left-1.5 android:left-1.5 web:right-1.5'
+                  : 'right-1.5 web:right-1.5'
+              )}
+            >
               {icon}
             </View>
           )}

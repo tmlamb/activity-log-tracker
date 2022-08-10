@@ -335,8 +335,6 @@ export default function WorkoutSetDetail({
                   placeholder="0"
                   maxLength={4}
                   style={tw`border-b-2 rounded-t-xl`}
-                  textInputStyle={tw`text-right web:text-base`}
-                  labelStyle={tw`web:text-base`}
                   keyboardType="number-pad"
                   numeric
                   selectTextOnFocus
@@ -363,8 +361,6 @@ export default function WorkoutSetDetail({
                   placeholder="0"
                   maxLength={2}
                   style={tw`border-b-2`}
-                  textInputStyle={tw`text-right web:text-base`}
-                  labelStyle={tw`web:text-base`}
                   keyboardType="number-pad"
                   numeric
                   selectTextOnFocus

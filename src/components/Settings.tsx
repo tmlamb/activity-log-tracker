@@ -29,13 +29,14 @@ export default function Settings() {
           <LinkButton to={item.to} style={tw``}>
             <ThemedView
               style={tw.style(
+                'web:pt-[7px] web:pb-[3px] relative',
                 index !== data.length - 1 ? 'border-b-2' : 'border-b-0 rounded-b-xl',
                 index === 0 ? 'rounded-t-xl' : undefined
               )}
             >
               <PrimaryText>{item.label}</PrimaryText>
-              <SecondaryText>
-                <AntDesign name="setting" size={24} />
+              <SecondaryText style={tw`absolute right-2 self-center`}>
+                <AntDesign name="setting" size={20} />
               </SecondaryText>
             </ThemedView>
           </LinkButton>

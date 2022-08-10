@@ -145,7 +145,7 @@ export default function LoadForm({
         keyboardVerticalOffset={Platform.OS === 'ios' ? 114 : -225}
         behavior="padding"
       >
-        <ScrollView style={tw`flex-1`} contentContainerStyle={tw`pt-9  pb-48`}>
+        <ScrollView style={tw`flex-1`} contentContainerStyle={tw`pt-9 pb-48`}>
           <Controller
             name="type"
             control={control}
@@ -169,7 +169,7 @@ export default function LoadForm({
                   >
                     <View
                       style={tw.style(
-                        'px-3 py-2 w-full items-center justify-center dark:border-slate-700 border-slate-400',
+                        'px-3 py-2 web:pt-2 web:pb-1 w-full items-center justify-center dark:border-slate-700 border-slate-400',
                         selectedType === 'RPE'
                           ? 'border-0 opacity-100'
                           : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40',
@@ -194,7 +194,7 @@ export default function LoadForm({
                   >
                     <View
                       style={tw.style(
-                        'px-3 py-2 w-full items-center justify-center dark:border-slate-700 border-slate-400',
+                        'px-3 py-2 web:pt-2 web:pb-1 w-full items-center justify-center dark:border-slate-700 border-slate-400',
                         selectedType === 'PERCENT'
                           ? 'border-0 opacity-100'
                           : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40'
@@ -240,7 +240,6 @@ export default function LoadForm({
                     placeholder="0"
                     maxLength={2}
                     style={tw`mt-9`}
-                    textInputStyle={tw`web:w-1/4`}
                     keyboardType="number-pad"
                     selectTextOnFocus
                     numeric
@@ -304,7 +303,6 @@ export default function LoadForm({
                     placeholder="00.00"
                     maxLength={5}
                     style={tw`mt-9`}
-                    textInputStyle={tw`web:w-1/4`}
                     keyboardType="number-pad"
                     selectTextOnFocus
                     numeric
@@ -345,8 +343,6 @@ export default function LoadForm({
                         onBlur={onBlur}
                         value={(value && String(value)) || undefined}
                         maxLength={4}
-                        style={tw``}
-                        textInputStyle={tw``}
                         keyboardType="number-pad"
                         numeric
                       />
