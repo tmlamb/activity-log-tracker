@@ -50,7 +50,7 @@ export default function ExerciseSelect({
   const [cancelButtonWidth, setCancelButtonWidth] = React.useState<number>(0)
   const searchFilterWidth = useSharedValue(searchComponentWidth)
   const searchFilterStyle = useAnimatedStyle(() => ({
-    width: Math.floor(searchFilterWidth.value)
+    width: Math.round(searchFilterWidth.value)
   }))
 
   React.useEffect(
@@ -128,10 +128,7 @@ export default function ExerciseSelect({
           setSelected(item as Exercise)
         }}
         renderItem={({ item, index }) => (
-          <Animated.View
-            entering={FadeIn.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-            exiting={FadeOut.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-          >
+          <Animated.View entering={FadeIn} exiting={FadeOut}>
             <ThemedView
               style={tw.style(
                 'border-b-2',
@@ -170,8 +167,8 @@ export default function ExerciseSelect({
               style={tw`flex-row items-center justify-between w-full mb-9`}
               onLayout={event => {
                 const { width } = event.nativeEvent.layout
-                setSearchComponentWidth(Math.floor(width))
-                searchFilterWidth.value = withTiming(Math.floor(width))
+                setSearchComponentWidth(Math.round(width))
+                searchFilterWidth.value = withTiming(Math.round(width), { duration: 500 })
               }}
             >
               <Animated.View style={searchFilterStyle}>
@@ -179,8 +176,9 @@ export default function ExerciseSelect({
                   onChangeText={text => {
                     searchFilterWidth.value = withTiming(
                       text?.length > 0
-                        ? Math.floor(searchComponentWidth - cancelButtonWidth)
-                        : Math.floor(searchComponentWidth)
+                        ? Math.round(searchComponentWidth - cancelButtonWidth)
+                        : Math.round(searchComponentWidth),
+                      { duration: 500 }
                     )
                     setSearchFilter(text)
                   }}
@@ -193,17 +191,21 @@ export default function ExerciseSelect({
               </Animated.View>
               {searchFilter && (
                 <Animated.View
-                  entering={FadeInRight.duration(500).stiffness(50).damping(6).mass(0.3)}
-                  exiting={FadeOutRight.duration(500).stiffness(50).damping(6).mass(0.3)}
+                  entering={FadeInRight}
+                  exiting={FadeOutRight}
                   onLayout={event => {
                     const { width } = event.nativeEvent.layout
-                    setCancelButtonWidth(Math.floor(width))
-                    searchFilterWidth.value = withTiming(searchComponentWidth - Math.floor(width))
+                    setCancelButtonWidth(Math.round(width))
+                    searchFilterWidth.value = withTiming(searchComponentWidth - Math.round(width), {
+                      duration: 500
+                    })
                   }}
                 >
                   <ButtonContainer
                     onPress={() => {
-                      searchFilterWidth.value = withTiming(Math.floor(searchComponentWidth))
+                      searchFilterWidth.value = withTiming(Math.round(searchComponentWidth), {
+                        duration: 500
+                      })
                       setSearchFilter(undefined)
                       Keyboard.dismiss()
                     }}
