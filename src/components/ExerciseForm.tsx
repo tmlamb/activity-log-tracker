@@ -118,7 +118,8 @@ export default function ExerciseForm({
         {exercise && usedInWorkout && (
           <SecondaryText style={tw`px-3 pt-1.5 text-xs`}>
             Warning: Modifying exercise name reflects in existing workouts where it&apos;s been
-            used.
+            used. Take care to avoid corrupting existing workout data with inaccurate exercise
+            details.
           </SecondaryText>
         )}
         <Controller
@@ -139,6 +140,7 @@ export default function ExerciseForm({
               textInputStyle={tw`pl-40 web:pl-0`}
               keyboardType="number-pad"
               numeric
+              accessibilityLabel="One Rep Max in pounds"
             />
           )}
         />
@@ -162,6 +164,7 @@ export default function ExerciseForm({
                 </AlertText>
               </ButtonContainer>
             }
+            accessibilityLabel={`Delete Exercise with name ${exercise.name}`}
           />
         )}
         {usedInWorkout && (

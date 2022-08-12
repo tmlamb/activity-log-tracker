@@ -26,6 +26,8 @@ const AppStack = createNativeStackNavigator<RootStackParamList>()
 
 export default function Navigation() {
   return (
+    // Repeating the background color here prevents white background flash on Android
+    // when navigating between screens.
     <SafeAreaProvider style={tw`bg-slate-50 dark:bg-black`}>
       <NavigationContainer>
         <AppStack.Navigator

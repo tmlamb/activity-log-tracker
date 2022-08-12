@@ -143,6 +143,7 @@ export default function SessionForm({
         <ButtonContainer
           onPress={handleSubmit(onSubmit)}
           disabled={!session && sessions && sessions.length > 0 && !fromType}
+          accessibilityLabel="Save session and close form"
         >
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
@@ -166,6 +167,7 @@ export default function SessionForm({
                   setFromType('Scratch')
                 }}
                 disabled={!!fromType && isDirty}
+                accessibilityLabel="Create new session from scratch"
               >
                 <View
                   style={tw.style(
@@ -191,6 +193,7 @@ export default function SessionForm({
                   style={tw`justify-center bg-transparent web:pt-2 web:pb-1`}
                   value="From Template"
                   textStyle={tw.style(primaryTextColor)}
+                  accessibilityLabel="Navigate to template selection form to create new session from template"
                   modalScreen="SessionSelectModal"
                   modalParams={{
                     modalSelectId: `${program.programId}.addSession`,
@@ -241,7 +244,7 @@ export default function SessionForm({
                 )}
               />
               {program.sessions.length < 3 && fromType !== 'Template' && (
-                <SecondaryText style={tw`text-xs px-3 pt-1.5`}>
+                <SecondaryText style={tw`text-xs mx-3 mt-1.5`}>
                   Use a descriptive name for your workout session, like &apos;Lower Body&apos; or
                   &apos;Chest Day&apos;. You can re-use it as a template later.
                 </SecondaryText>
@@ -309,6 +312,7 @@ export default function SessionForm({
                   </AlertText>
                 </LinkButton>
               }
+              accessibilityLabel={`Delete Workout Session with name ${session.name}`}
             />
           )}
 
@@ -362,8 +366,9 @@ export default function SessionForm({
                     </AlertText>
                   </LinkButton>
                 }
+                accessibilityLabel={`Reset Workout Session with name ${session.name}`}
               />
-              <SecondaryText style={tw`text-xs px-3 pt-1.5`}>
+              <SecondaryText style={tw`text-xs mx-3 mt-1.5`}>
                 Resets session to &apos;Planned&apos; state by clearing all completed set&apos;s
                 actual weight/reps and start/end times.
               </SecondaryText>

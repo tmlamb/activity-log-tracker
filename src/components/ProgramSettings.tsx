@@ -19,6 +19,7 @@ export default function ProgramSettings({ programs }: Props) {
           to={{ screen: 'ProgramFormModal' }}
           style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}
           disabled={programs.length > 100}
+          accessibilityLabel="Navigate to Create Workout Program Form"
         >
           <SpecialText>
             <AntDesign name="plus" size={28} />
@@ -35,6 +36,7 @@ export default function ProgramSettings({ programs }: Props) {
               screen: 'ProgramFormModal',
               params: { programId: item.programId }
             }}
+            accessibilityLabel={`Navigate to Edit Workout Program with name ${item.name}`}
           >
             <ThemedView
               style={tw.style(

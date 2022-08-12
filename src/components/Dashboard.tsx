@@ -1,7 +1,7 @@
 import { AntDesign } from '@expo/vector-icons'
 import _ from 'lodash'
 import React from 'react'
-import { SectionList } from 'react-native'
+import { SectionList, View } from 'react-native'
 import tw from '../tailwind'
 import { Program } from '../types'
 import HeaderLeftContainer from './HeaderLeftContainer'
@@ -16,7 +16,11 @@ export default function Dashboard({ programs }: Props) {
   return (
     <>
       <HeaderLeftContainer>
-        <LinkButton to={{ screen: 'SettingsScreen' }} style={tw`py-6 pl-2.5 pr-8 -my-6 -ml-4`}>
+        <LinkButton
+          to={{ screen: 'SettingsScreen' }}
+          style={tw`py-6 pl-2.5 pr-8 -my-6 -ml-4`}
+          accessibilityLabel="Navigate to Application Settings"
+        >
           <SpecialText>
             <AntDesign name="setting" size={24} />
           </SpecialText>
@@ -28,14 +32,21 @@ export default function Dashboard({ programs }: Props) {
         bounces={false}
         sections={[{ title: 'Workout Programs', data: programs }]}
         ListHeaderComponent={
-          <PrimaryText style={tw`text-4xl font-bold tracking-tight pb-9`}>
+          <PrimaryText
+            style={tw`text-4xl font-bold tracking-tight mb-9`}
+            accessibilityRole="header"
+          >
             {`Workout\nActivity Log Tracker`}
           </PrimaryText>
         }
         renderSectionHeader={({ section: { title, data } }) => (
-          <SecondaryText style={tw`pl-3 pb-1.5 uppercase text-sm`}>
-            {data.length ? title : undefined}
-          </SecondaryText>
+          <View>
+            {!!data.length && (
+              <SecondaryText style={tw`ml-3 mb-1.5 uppercase text-sm`}>
+                {data.length ? title : undefined}
+              </SecondaryText>
+            )}
+          </View>
         )}
         renderItem={({ index, item, section }) => (
           <LinkButton
@@ -43,6 +54,7 @@ export default function Dashboard({ programs }: Props) {
               screen: 'ProgramDetailScreen',
               params: { programId: item.programId }
             }}
+            accessibilityLabel={`Navigate to View Workout Program with name ${item.name}`}
           >
             <ThemedView
               style={tw.style(
@@ -64,11 +76,14 @@ export default function Dashboard({ programs }: Props) {
           <>
             {programs.length < 1 && (
               <>
-                <SecondaryText style={tw`pb-9 px-3 text-xs`}>
+                <SecondaryText style={tw`mb-9 mx-3 text-xs`} accessibilityRole="summary">
                   To get started, first create a new workout program, which will be used to track
                   your workout sessions.
                 </SecondaryText>
-                <LinkButton to={{ screen: 'ProgramFormModal' }}>
+                <LinkButton
+                  to={{ screen: 'ProgramFormModal' }}
+                  accessibilityLabel="Navigate to Create Workout Program Form"
+                >
                   <ThemedView rounded>
                     <SpecialText>Create Workout Program</SpecialText>
                   </ThemedView>
@@ -76,7 +91,7 @@ export default function Dashboard({ programs }: Props) {
               </>
             )}
             {programs.length > 0 && _.sumBy(programs, o => o.sessions.length) < 4 && (
-              <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
+              <SecondaryText style={tw`ml-3 mt-1.5 text-xs`} accessibilityRole="summary">
                 Select a program to start planning workout sessions.
               </SecondaryText>
             )}

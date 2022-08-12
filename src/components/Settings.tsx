@@ -12,21 +12,34 @@ export default function Settings() {
   const data: {
     to: To<RootStackParamList, keyof RootStackParamList>
     label: string
+    accessibilityLabel?: string
   }[] = [
-    { to: { screen: 'ProgramSettingsScreen' }, label: 'Programs' },
-    { to: { screen: 'ExerciseSettingsScreen' }, label: 'Exercises' },
-    { to: { screen: 'EquipmentSettingsScreen' }, label: 'Equipment' }
+    {
+      to: { screen: 'ProgramSettingsScreen' },
+      label: 'Workout Programs',
+      accessibilityLabel: 'Navigate To Manage Workout Programs'
+    },
+    {
+      to: { screen: 'ExerciseSettingsScreen' },
+      label: 'Exercises',
+      accessibilityLabel: 'Navigate To Manage Exercises'
+    },
+    {
+      to: { screen: 'EquipmentSettingsScreen' },
+      label: 'Equipment',
+      accessibilityLabel: 'Navigate To Manage Equipment'
+    }
   ]
 
   return (
     <View style={tw`flex-grow justify-between pb-9`}>
       <FlatList
-        contentContainerStyle={tw`px-3 pt-9`}
+        contentContainerStyle={tw`mx-3 mt-9`}
         style={tw``}
         data={data}
         bounces={false}
         renderItem={({ item, index }) => (
-          <LinkButton to={item.to} style={tw``}>
+          <LinkButton to={item.to} accessibilityLabel={item.accessibilityLabel}>
             <ThemedView
               style={tw.style(
                 'web:pt-[7px] web:pb-[3px] relative',
@@ -44,7 +57,13 @@ export default function Settings() {
       />
       <ButtonContainer
         onPress={() => Linking.openURL('https://github.com/tmlamb/activity-log-tracker/issues')}
+        accessibilityRole="link"
+        accessibilityLabel="Open Application Feedback Page In Browser"
+        style={tw`flex-row justify-center items-center self-center py-2`}
       >
+        <SecondaryText style={tw`mr-2`}>
+          <AntDesign name="github" size={16} />
+        </SecondaryText>
         <SpecialText style={tw`self-center`}>Feedback?</SpecialText>
       </ButtonContainer>
     </View>

@@ -25,6 +25,7 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
   const {
     control,
     handleSubmit,
+    getValues,
     formState: { errors }
   } = useForm<FormData>({
     defaultValues: {
@@ -50,12 +51,12 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
   return (
     <>
       <HeaderRightContainer>
-        <ButtonContainer onPress={handleSubmit(onSubmit)} style={tw``}>
+        <ButtonContainer onPress={handleSubmit(onSubmit)} accessibilityLabel="Save Workout Program">
           <SpecialText style={tw`font-bold`}>Save</SpecialText>
         </ButtonContainer>
       </HeaderRightContainer>
       <HeaderLeftContainer>
-        <ButtonContainer onPress={goBack} style={tw``}>
+        <ButtonContainer onPress={goBack} accessibilityLabel="Go Back Without Saving">
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
@@ -76,11 +77,12 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
               textInputStyle={tw`pl-32 web:pl-0`}
               maxLength={25}
               error={errors.name ? 'Program Name is required' : undefined}
+              accessibilityLabel="Enter Workout Program Name"
             />
           )}
         />
         {!isEdit && (
-          <SecondaryText style={tw`text-xs px-3 pt-1.5`}>
+          <SecondaryText style={tw`text-xs mx-3 mt-1.5`}>
             {`Give your workout program a name, like 'Strength Training', 'Weightlifting', or 'Beach Bod 🏖️'`}
           </SecondaryText>
         )}
@@ -104,6 +106,7 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
                 </AlertText>
               </ButtonContainer>
             }
+            accessibilityLabel={`Delete Workout Program with name ${getValues('name')}`}
           />
         )}
       </View>

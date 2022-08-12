@@ -74,26 +74,27 @@ export default function ProgramDetail({ program }: Props) {
             </>
           }
           renderSectionHeader={({ section: { title } }) => (
-            <SecondaryText style={tw`pl-3 pb-1.5 uppercase text-sm`}>{title}</SecondaryText>
+            <SecondaryText style={tw`ml-3 mb-1.5 uppercase text-sm`}>{title}</SecondaryText>
           )}
           renderItem={({ index, item, section }) => (
             <>
               {!item && (
-                <LinkButton
-                  style={tw`mb-6`}
-                  to={{ screen: 'SessionFormModal', params: { programId: program.programId } }}
-                >
-                  <>
-                    <ThemedView rounded style={tw``}>
+                <>
+                  <LinkButton
+                    style={tw`mb-6`}
+                    to={{ screen: 'SessionFormModal', params: { programId: program.programId } }}
+                    accessibilityLabel={`Navigate to create new workout session form under workout program ${program.name}`}
+                  >
+                    <ThemedView rounded>
                       <SpecialText>Plan Workout Session</SpecialText>
                     </ThemedView>
-                    {program.sessions.length < 1 && (
-                      <SecondaryText style={tw`pl-3 pt-1.5 text-xs`}>
-                        Start tracking your exercises by planning a session.
-                      </SecondaryText>
-                    )}
-                  </>
-                </LinkButton>
+                  </LinkButton>
+                  {program.sessions.length < 1 && (
+                    <SecondaryText style={tw`ml-3 -mt-[18px] text-xs`}>
+                      Start tracking your exercises by planning a session.
+                    </SecondaryText>
+                  )}
+                </>
               )}
               {item && (
                 <LinkButton
@@ -104,6 +105,7 @@ export default function ProgramDetail({ program }: Props) {
                       sessionId: item.sessionId
                     }
                   }}
+                  accessibilityLabel={`Navigate to workout session ${item.name} with status ${item.status}`}
                 >
                   <ThemedView
                     style={tw.style(
@@ -132,8 +134,10 @@ export default function ProgramDetail({ program }: Props) {
                     screen: 'SessionFormModal',
                     params: { programId: program.programId }
                   }}
+                  style={tw`mb-6`}
+                  accessibilityLabel={`Navigate to create new workout session form under workout program ${program.name}`}
                 >
-                  <ThemedView style={tw`rounded-b-xl mb-6`}>
+                  <ThemedView style={tw`rounded-b-xl`}>
                     <SpecialText>Plan Workout Session</SpecialText>
                   </ThemedView>
                 </LinkButton>

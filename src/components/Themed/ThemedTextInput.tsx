@@ -1,5 +1,6 @@
 import React from 'react'
 import {
+  AccessibilityValue,
   ColorValue,
   KeyboardTypeOptions,
   NativeSyntheticEvent,
@@ -36,6 +37,7 @@ type Props = {
   innerRef?: React.LegacyRef<NativeTextInput>
   error?: string
   errorStyle?: ClassInput
+  accessibilityLabel?: string
 }
 
 // TODO: fix issues with entering leading zeroes in various places
@@ -78,7 +80,8 @@ export default function TextInput({
   onKeyPress,
   innerRef,
   error,
-  errorStyle
+  errorStyle,
+  accessibilityLabel
 }: PropsFilled) {
   const handleChange = (text: string) => {
     const normalizedText = nbspReplace(numeric ? numericReplace(text) : text)
@@ -94,6 +97,7 @@ export default function TextInput({
               'absolute leading-tight text-lg tracking-tight pl-0 web:mt-1',
               labelStyle
             )}
+            accessible={false}
           >
             {label}
           </SecondaryText>
@@ -123,8 +127,8 @@ export default function TextInput({
           numberOfLines={1}
           scrollEnabled={false}
           ref={innerRef}
-          returnKeyType="go"
           blurOnSubmit
+          accessibilityLabel={accessibilityLabel || label}
         />
       </ThemedView>
       {error && (
@@ -137,7 +141,9 @@ export default function TextInput({
             errorStyle
           )}
         >
-          <AlertText style={tw`text-xs`}>{error}</AlertText>
+          <AlertText accessibilityRole="alert" style={tw`text-xs`}>
+            {error}
+          </AlertText>
         </Animated.View>
       )}
     </ThemedView>
@@ -165,5 +171,6 @@ TextInput.defaultProps = {
   onKeyPress: undefined,
   innerRef: undefined,
   error: undefined,
-  errorStyle: undefined
+  errorStyle: undefined,
+  accessibilityLabel: undefined
 }

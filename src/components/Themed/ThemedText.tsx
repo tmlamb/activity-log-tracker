@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text } from 'react-native'
+import { AccessibilityRole, Text } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../../tailwind'
 
@@ -12,35 +12,81 @@ type CommonProps = {
   children: React.ReactNode
   style?: ClassInput
   numberOfLines?: number
+  accessibilityRole?: AccessibilityRole
+  accessible?: boolean
 }
 
-export function PrimaryText({ children, style, numberOfLines }: CommonProps) {
+export function PrimaryText({
+  children,
+  style,
+  numberOfLines,
+  accessibilityRole,
+  accessible
+}: CommonProps) {
   return (
-    <Text numberOfLines={numberOfLines} style={tw.style(primaryTextColor, 'text-lg', style)}>
+    <Text
+      numberOfLines={numberOfLines}
+      style={tw.style(primaryTextColor, 'text-lg', style)}
+      accessibilityRole={accessibilityRole}
+      accessible={accessible}
+    >
       {children}
     </Text>
   )
 }
 
-export function SecondaryText({ children, style, numberOfLines }: CommonProps) {
+export function SecondaryText({
+  children,
+  style,
+  numberOfLines,
+  accessibilityRole,
+  accessible
+}: CommonProps) {
   return (
-    <Text numberOfLines={numberOfLines} style={tw.style(secondaryTextColor, 'text-lg', style)}>
+    <Text
+      numberOfLines={numberOfLines}
+      style={tw.style(secondaryTextColor, 'text-lg', style)}
+      accessibilityRole={accessibilityRole}
+      accessible={accessible}
+    >
       {children}
     </Text>
   )
 }
 
-export function SpecialText({ children, style, numberOfLines }: CommonProps) {
+export function SpecialText({
+  children,
+  style,
+  numberOfLines,
+  accessibilityRole,
+  accessible
+}: CommonProps) {
   return (
-    <Text numberOfLines={numberOfLines} style={tw.style(specialTextColor, 'text-lg', style)}>
+    <Text
+      numberOfLines={numberOfLines}
+      style={tw.style(specialTextColor, 'text-lg', style)}
+      accessibilityRole={accessibilityRole}
+      accessible={accessible}
+    >
       {children}
     </Text>
   )
 }
 
-export function AlertText({ children, style, numberOfLines }: CommonProps) {
+export function AlertText({
+  children,
+  style,
+  numberOfLines,
+  accessibilityRole,
+  accessible
+}: CommonProps) {
   return (
-    <Text numberOfLines={numberOfLines} style={tw.style(alertTextColor, 'text-lg', style)}>
+    <Text
+      numberOfLines={numberOfLines}
+      style={tw.style(alertTextColor, 'text-lg', style)}
+      accessibilityRole={accessibilityRole}
+      accessible={accessible}
+    >
       {children}
     </Text>
   )
@@ -48,17 +94,25 @@ export function AlertText({ children, style, numberOfLines }: CommonProps) {
 
 PrimaryText.defaultProps = {
   style: undefined,
-  numberOfLines: undefined
+  numberOfLines: undefined,
+  accessibilityRole: undefined,
+  accessible: true
 }
 SecondaryText.defaultProps = {
   style: undefined,
-  numberOfLines: undefined
+  numberOfLines: undefined,
+  accessibilityRole: undefined,
+  accessible: true
 }
 SpecialText.defaultProps = {
   style: undefined,
-  numberOfLines: undefined
+  numberOfLines: undefined,
+  accessibilityRole: undefined,
+  accessible: true
 }
 AlertText.defaultProps = {
   style: undefined,
-  numberOfLines: undefined
+  numberOfLines: undefined,
+  accessibilityRole: undefined,
+  accessible: true
 }

@@ -52,6 +52,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
           to={{ screen: 'ExerciseFormModal' }}
           style={tw`py-6 pl-8 pr-3 -my-6 -mr-4`}
           disabled={exercisesSortedAndDedupedAndFiltered.length > 1000}
+          accessibilityLabel="Navigate to Create Exercise Form"
         >
           <SpecialText>
             <AntDesign name="plus" size={28} />
@@ -70,6 +71,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
                 screen: 'ExerciseFormModal',
                 params: { exerciseId: item.exerciseId, name: item.name }
               }}
+              accessibilityLabel={`Navigate to Edit Exercise with name ${item.name}`}
             >
               <ThemedView
                 style={tw.style(
@@ -94,7 +96,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
             {filteredUsedExercises &&
               filteredUsedExercises.length > 0 &&
               index === filteredUsedExercises.length - 1 && (
-                <SecondaryText style={tw`pb-1 pl-3 mt-0 text-sm`}>
+                <SecondaryText style={tw`mb-1 ml-3 mt-0 text-sm`}>
                   Available Exercises
                 </SecondaryText>
               )}
@@ -103,7 +105,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
         ListHeaderComponent={
           <>
             <ExerciseSearchInput onChange={text => setSearchFilter(text)} />
-            <SecondaryText style={tw`pb-1 pl-3 text-sm`}>
+            <SecondaryText style={tw`mb-1 ml-3 text-sm`}>
               {filteredUsedExercises && filteredUsedExercises.length > 0
                 ? 'Your Exercises'
                 : 'Available Exercises'}

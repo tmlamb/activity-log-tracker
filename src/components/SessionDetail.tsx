@@ -29,6 +29,15 @@ function WorkoutSetCard({
   title,
   index
 }: WorkoutSetCardProps) {
+  const status =
+    workoutSet.status === 'Planned' &&
+    (index === 0 ||
+      _.find(
+        _.concat(activity.warmupSets as WorkoutSet[], activity.mainSets as WorkoutSet[]),
+        ws => ws.status === 'Done'
+      )?.workoutSetId === workoutSet.workoutSetId)
+      ? 'Ready'
+      : workoutSet.status
   return (
     <LinkButton
       to={{
@@ -41,6 +50,7 @@ function WorkoutSetCard({
           workoutSetId: workoutSet.workoutSetId
         }
       }}
+      accessibilityLabel={`Navigate to ${title}, current status: ${status}`}
     >
       <ThemedView
         style={tw.style(
@@ -53,20 +63,8 @@ function WorkoutSetCard({
       >
         <PrimaryText>{title}</PrimaryText>
         <View style={tw`flex-row pr-4`}>
-          <SpecialText>
-            {workoutSet.status === 'Ready' ||
-            (workoutSet.status === 'Planned' &&
-              (index === 0 ||
-                _.find(
-                  _.concat(activity.warmupSets as WorkoutSet[], activity.mainSets as WorkoutSet[]),
-                  ws => ws.status !== 'Done'
-                )?.workoutSetId === workoutSet.workoutSetId))
-              ? 'Ready'
-              : undefined}
-          </SpecialText>
-          <SecondaryText>
-            {workoutSet.status === 'Done' ? workoutSet.status : undefined}
-          </SecondaryText>
+          <SpecialText>{status === 'Ready' ? status : undefined}</SpecialText>
+          <SecondaryText>{status === 'Done' ? status : undefined}</SecondaryText>
           <SecondaryText style={tw`absolute self-center -right-1`}>
             <AntDesign name="right" size={16} />
           </SecondaryText>
@@ -195,7 +193,7 @@ export default function SessionDetail({ program, session, exercises, changeHandl
             </Animated.View>
           }
           renderSectionHeader={({ section: { title } }) => (
-            <SecondaryText style={tw`pl-3 pb-1.5 uppercase font-bold text-sm`}>
+            <SecondaryText style={tw`ml-3 mb-1.5 uppercase font-bold text-sm`}>
               {title}
             </SecondaryText>
           )}
@@ -210,7 +208,7 @@ export default function SessionDetail({ program, session, exercises, changeHandl
             />
           )}
           ListFooterComponent={
-            <SecondaryText style={tw`pl-3 mt-1 text-xs`}>
+            <SecondaryText style={tw`ml-3 mt-1 text-xs`}>
               {session.activities.length < 1
                 ? "Before continuing with this workout session, use the 'Edit' button to add activities."
                 : session.activities?.length > 1 ||

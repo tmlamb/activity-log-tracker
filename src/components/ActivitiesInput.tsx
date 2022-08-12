@@ -100,6 +100,10 @@ export default function ActivitiesInput({
                     textStyle={tw`pr-3 text-lg leading-tight`}
                     placeholder="Select Exercise"
                     value={exercises?.find(exercise => exercise.exerciseId === value)?.name}
+                    accessibilityLabel="Navigate to select exercise form"
+                    accessibilityValue={{
+                      text: exercises?.find(exercise => exercise.exerciseId === value)?.name
+                    }}
                     onChangeSelect={(selectedExercise: Exercise) => {
                       const recentActivity = recentActivityByExercise(
                         program,
@@ -208,7 +212,11 @@ export default function ActivitiesInput({
                   />
                 )}
               />
-              <ButtonContainer style={tw`top-1 left-2 p-1 absolute`} onPress={() => remove(index)}>
+              <ButtonContainer
+                style={tw`top-1 left-2 p-1 absolute`}
+                onPress={() => remove(index)}
+                accessibilityLabel="Remove exercise from Session"
+              >
                 <AlertText>
                   <AntDesign name="minuscircle" size={15} />
                 </AlertText>
@@ -217,6 +225,7 @@ export default function ActivitiesInput({
                 <ButtonContainer
                   style={tw`top-0 opacity-50 self-center p-2 absolute`}
                   onPress={() => swap(index, index - 1)}
+                  accessibilityLabel="Swap exercise with previous exercise to change order"
                 >
                   <SecondaryText>
                     <AntDesign name="caretup" size={16} />
@@ -227,6 +236,7 @@ export default function ActivitiesInput({
                 <ButtonContainer
                   style={tw`bottom-0 opacity-50 self-center p-2 absolute`}
                   onPress={() => swap(index, index + 1)}
+                  accessibilityLabel="Swap exercise with next exercise to change order"
                 >
                   <SecondaryText>
                     <AntDesign name="caretdown" size={16} />
@@ -397,6 +407,10 @@ export default function ActivitiesInput({
                     style={tw`border-l-2`}
                     value={value && stringifyLoad(value)}
                     textStyle={tw`pr-4`}
+                    accessibilityLabel="Navigate to select exercise load form"
+                    accessibilityValue={{
+                      text: value && stringifyLoad(value)
+                    }}
                     modalScreen="LoadFormModal"
                     modalParams={{
                       value,

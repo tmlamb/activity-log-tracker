@@ -46,6 +46,7 @@ export default function ExerciseSearchInput({ onChange }: Props) {
           //   value={searchFilter}
           style={tw.style('rounded-xl')}
           label="Search"
+          accessibilityLabel="Filter list of exercises by name"
           textInputStyle={tw`pl-16 web:pl-0`}
           maxLength={25}
         />
@@ -73,6 +74,7 @@ export default function ExerciseSearchInput({ onChange }: Props) {
               setShowCancelButton(false)
               Keyboard.dismiss()
             }}
+            accessibilityLabel="Clear exercise filter"
           >
             <SpecialText style={tw`pl-2.5 text-lg tracking-tight`}>Cancel</SpecialText>
           </ButtonContainer>

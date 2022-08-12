@@ -9,9 +9,10 @@ type Props = {
   style?: ClassInput
   first: JSX.Element
   second: JSX.Element
+  accessibilityLabel: string
 }
 
-export default function DoubleConfirm({ style, first, second }: Props) {
+export default function DoubleConfirm({ style, first, second, accessibilityLabel }: Props) {
   const [toggle, setToggle] = React.useState(false)
 
   return (
@@ -20,6 +21,7 @@ export default function DoubleConfirm({ style, first, second }: Props) {
         onPress={() => {
           setToggle(!toggle)
         }}
+        accessibilityLabel={`${toggle ? 'Conceal' : 'Reveal'} button to ${accessibilityLabel}`}
       >
         {first}
       </ButtonContainer>
@@ -28,6 +30,9 @@ export default function DoubleConfirm({ style, first, second }: Props) {
           entering={RollInRight.springify().stiffness(50).damping(6).mass(0.3)}
           exiting={RollOutRight.springify().stiffness(50).damping(6).mass(0.3)}
           style={[tw.style('absolute items-center justify-center h-full right-0 web:mt-0.5')]}
+          accessible
+          accessibilityLabel={`${accessibilityLabel}`}
+          accessibilityRole="button"
         >
           {second}
         </Animated.View>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { View } from 'react-native'
+import { AccessibilityState, View } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../../tailwind'
 
@@ -7,9 +7,19 @@ type Props = {
   style?: ClassInput
   children: React.ReactNode
   rounded?: boolean
+  accessible?: boolean
+  accessibilityLabel?: string
+  accessibilityState?: AccessibilityState
 }
 
-export default function ThemedView({ style, children, rounded }: Props) {
+export default function ThemedView({
+  style,
+  children,
+  rounded,
+  accessible,
+  accessibilityLabel,
+  accessibilityState
+}: Props) {
   return (
     <View
       style={tw.style(
@@ -17,6 +27,9 @@ export default function ThemedView({ style, children, rounded }: Props) {
         'dark:bg-slate-800 dark:border-slate-700 border-slate-300 bg-slate-200 py-2 web:pt-2 web:pb-1 px-3 flex-row items-center justify-between',
         style
       )}
+      accessible={accessible}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={accessibilityState}
     >
       {children}
     </View>
@@ -25,5 +38,8 @@ export default function ThemedView({ style, children, rounded }: Props) {
 
 ThemedView.defaultProps = {
   style: undefined,
-  rounded: false
+  rounded: false,
+  accessible: false,
+  accessibilityLabel: undefined,
+  accessibilityState: undefined
 }

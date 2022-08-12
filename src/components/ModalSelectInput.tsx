@@ -1,6 +1,6 @@
 import { RouteProp, useRoute } from '@react-navigation/native'
 import React from 'react'
-import { View } from 'react-native'
+import { AccessibilityState, AccessibilityValue, View } from 'react-native'
 import Animated, { FadeInUp, FadeOut } from 'react-native-reanimated'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
@@ -47,6 +47,8 @@ type Props<T> = {
   beforeNavigation?: () => void
   error?: string
   errorStyle?: ClassInput
+  accessibilityLabel?: string
+  accessibilityValue?: AccessibilityValue
 }
 
 export default function ModalSelectInput<
@@ -66,7 +68,9 @@ export default function ModalSelectInput<
   icon,
   beforeNavigation,
   error,
-  errorStyle
+  errorStyle,
+  accessibilityLabel,
+  accessibilityValue
 }: Props<T>) {
   const route = useRoute<RouteProp<RootStackParamList, K>>()
 
@@ -102,6 +106,8 @@ export default function ModalSelectInput<
         }}
         beforeNavigation={beforeNavigation}
         disabled={disabled}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityValue={accessibilityValue}
       >
         <ThemedView
           style={tw.style(placeholder ? 'justify-end flex-row-reverse' : undefined, style)}
@@ -154,5 +160,7 @@ ModalSelectInput.defaultProps = {
   icon: undefined,
   beforeNavigation: undefined,
   error: undefined,
-  errorStyle: undefined
+  errorStyle: undefined,
+  accessibilityLabel: undefined,
+  accessibilityValue: undefined
 }

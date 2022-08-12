@@ -64,7 +64,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
         behavior="padding"
       >
         <ScrollView contentContainerStyle={tw`pt-9 pb-48 px-3`} bounces={false}>
-          <SecondaryText style={tw`text-xs px-3 mb-9`}>
+          <SecondaryText style={tw`text-xs mx-3 mb-9`}>
             Enter details about the equipment you have available. These settings will be used to
             calculate which plates to place on the barbell when performing sets.
           </SecondaryText>
@@ -92,15 +92,20 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                 keyboardType="number-pad"
                 numeric
                 selectTextOnFocus
+                accessibilityLabel="Barbell weight in pounds"
               />
             )}
           />
-          <SecondaryText style={tw`text-xs px-3 pb-1.5`}>Plate Pairs (2x each)</SecondaryText>
+          <SecondaryText style={tw`text-xs mx-3 mb-1.5`}>Plate Pairs (2x each)</SecondaryText>
           <View>
             {fields.map((item, index) => (
               <Animated.View key={item.platePairId} entering={FadeInUp} exiting={FadeOutUp}>
                 <View style={tw`relative items-center flex-row justify-between`}>
-                  <ButtonContainer style={tw`absolute z-1 p-3`} onPress={() => remove(index)}>
+                  <ButtonContainer
+                    style={tw`absolute z-1 p-2`}
+                    onPress={() => remove(index)}
+                    accessibilityLabel={`Remove plate pair with weight ${item.value}`}
+                  >
                     <AlertText style={tw`p-0`}>
                       <AntDesign name="minuscircle" size={15} />
                     </AlertText>
@@ -129,7 +134,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                           'py-0 border-b-2 w-full',
                           index === 0 ? 'rounded-t-xl' : undefined
                         )}
-                        textInputStyle={tw`pl-0 web:ml-6`}
+                        textInputStyle={tw`web:ml-6`}
                         labelStyle={tw`pl-7`}
                         selectTextOnFocus
                         keyboardType="numeric"
@@ -143,6 +148,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                             : undefined
                         }
                         errorStyle={tw`top-0 mt-3.5`}
+                        accessibilityLabel="Plate pair weight in pounds"
                       />
                     )}
                   />

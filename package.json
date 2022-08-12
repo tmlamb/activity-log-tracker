@@ -1,6 +1,6 @@
 {
   "name": "activity-log-tracker",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -16,12 +16,11 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^13.0.0",
-    "@expo/webpack-config": "^0.17.0",
     "@react-native-async-storage/async-storage": "~1.17.3",
     "@react-navigation/native": "^6.0.11",
     "@react-navigation/native-stack": "^6.7.0",
     "date-fns": "^2.29.1",
-    "expo": "~46.0.2",
+    "expo": "~46.0.6",
     "expo-asset": "~8.6.1",
     "expo-status-bar": "~1.4.0",
     "immer": "^9.0.15",

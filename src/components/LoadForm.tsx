@@ -166,6 +166,7 @@ export default function LoadForm({
                         reset()
                       }
                     }}
+                    accessibilityLabel="Set Load Type to Rate of Perceived Exertion"
                   >
                     <View
                       style={tw.style(
@@ -191,6 +192,7 @@ export default function LoadForm({
                         reset()
                       }
                     }}
+                    accessibilityLabel="Set Load Type to Percent of One Rep Max"
                   >
                     <View
                       style={tw.style(
@@ -253,7 +255,7 @@ export default function LoadForm({
                     Rate of Perceived Exertion scale (RPE)
                   </SecondaryText>
                   <SecondaryText style={tw`text-xs`}>
-                    Measures intensity of a given weight and number of reps. Values are on a 1-10
+                    Measures intensity of a given weight and number of reps. Values are on a 1 to 10
                     scale:
                   </SecondaryText>
                 </View>
@@ -325,7 +327,7 @@ export default function LoadForm({
                     .damping(6)
                     .mass(0.3)}
                 >
-                  <SecondaryText style={tw`uppercase px-3 text-sm mt-9 mb-1.5`}>
+                  <SecondaryText style={tw`uppercase mx-3 text-sm mt-9 mb-1.5`}>
                     {exercise.name}
                   </SecondaryText>
                   <Controller
@@ -345,12 +347,13 @@ export default function LoadForm({
                         maxLength={4}
                         keyboardType="number-pad"
                         numeric
+                        accessibilityLabel="One Rep Max in pounds"
                       />
                     )}
                     name="oneRepMaxVal"
                   />
                   {(!exercise.oneRepMax || exercise.oneRepMax.value <= 0) && (
-                    <SecondaryText style={tw`px-3 py-1.5 text-xs`}>
+                    <SecondaryText style={tw`mx-3 my-1.5 text-xs`}>
                       Enter a One Rep Max for this exercise in order to use the %1RM load type.
                     </SecondaryText>
                   )}

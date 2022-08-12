@@ -70,6 +70,7 @@ export function FeedbackSelectInput({
         <ButtonContainer
           style={tw`items-center self-stretch py-1.5`}
           onPress={() => onSelect('Easy')}
+          accessibilityLabel="Set workout set feedback: Easy"
         >
           <PrimaryText>Easy</PrimaryText>
         </ButtonContainer>
@@ -83,6 +84,7 @@ export function FeedbackSelectInput({
         <ButtonContainer
           style={tw`items-center self-stretch py-1.5`}
           onPress={() => onSelect('Neutral')}
+          accessibilityLabel="Set workout set feedback: Neutral"
         >
           <PrimaryText>Neutral</PrimaryText>
         </ButtonContainer>
@@ -96,6 +98,7 @@ export function FeedbackSelectInput({
         <ButtonContainer
           style={tw`items-center self-stretch py-1.5`}
           onPress={() => onSelect('Hard')}
+          accessibilityLabel="Set workout set feedback: Hard"
         >
           <PrimaryText>Hard</PrimaryText>
         </ButtonContainer>
@@ -308,7 +311,7 @@ export default function WorkoutSetDetail({
             {workoutSet.type === 'Main' &&
               activity.load.type === 'RPE' &&
               program.sessions.length < 4 && (
-                <SecondaryText style={tw`text-xs px-3 pb-1.5`}>
+                <SecondaryText style={tw`text-xs mx-3 mb-1.5`}>
                   Find a weight that will meet the target RPE.
                 </SecondaryText>
               )}
@@ -374,9 +377,9 @@ export default function WorkoutSetDetail({
               status={workoutSet.status}
             />
             {targetWeight === 0 && workoutSet.type === 'Warmup' && (
-              <SecondaryText style={tw`text-xs px-3 pt-1.5`}>
+              <SecondaryText style={tw`text-xs mx-3 mt-1.5`}>
                 Future warmups for this exercise will pre-populate the Actual Weight with the values
-                from previous, similar sets, if available.
+                from previous similar sets, if available.
               </SecondaryText>
             )}
 
@@ -401,12 +404,12 @@ export default function WorkoutSetDetail({
           </Animated.View>
         )}
         {workoutSet.status === 'Planned' && !isNextWorkoutSet(workoutSet, activity) && (
-          <SecondaryText style={tw`pl-3 text-xs mt-9`}>
+          <SecondaryText style={tw`ml-3 text-xs mt-9`}>
             Complete the previous workout sets for this exercise before continuing.
           </SecondaryText>
         )}
         {actualWeightWatcher && actualWeightWatcher.value > 0 && (
-          <PlateChart style={tw`px-3 mt-9`} totalWeight={actualWeightWatcher} />
+          <PlateChart style={tw`mx-3 mt-9`} totalWeight={actualWeightWatcher} />
         )}
       </Animated.View>
     </ScrollView>

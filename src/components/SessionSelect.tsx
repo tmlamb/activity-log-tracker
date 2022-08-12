@@ -112,11 +112,11 @@ export default function SessionSelect({
           )}
           ListHeaderComponent={
             sessions.length ? (
-              <SecondaryText style={tw`pl-3 pt-1.5 pb-1.5 text-xs`}>
+              <SecondaryText style={tw`ml-3 mt-1.5 mb-1.5 text-xs`}>
                 Select a previous session to use as a template.
               </SecondaryText>
             ) : (
-              <SecondaryText style={tw`pl-3 pt-1.5 pb-1.5 text-xs`}>
+              <SecondaryText style={tw`ml-3 mt-1.5 mb-1.5 text-xs`}>
                 No previous sessions in current program.
               </SecondaryText>
             )

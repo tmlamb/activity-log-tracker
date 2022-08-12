@@ -1,6 +1,7 @@
 import { NavigationAction, useLinkProps } from '@react-navigation/native'
 import { To } from '@react-navigation/native/lib/typescript/src/useLinkTo'
 import React from 'react'
+import { AccessibilityValue } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
 import ButtonContainer from './ButtonContainer'
@@ -14,6 +15,9 @@ type Props = {
   beforeNavigation?: () => void
   onPress?: () => void
   disabled?: boolean
+  accessibilityHint?: string
+  accessibilityLabel?: string
+  accessibilityValue?: AccessibilityValue
 }
 
 export default function LinkButton({
@@ -23,7 +27,10 @@ export default function LinkButton({
   style,
   beforeNavigation,
   onPress,
-  disabled
+  disabled,
+  accessibilityHint,
+  accessibilityLabel,
+  accessibilityValue
 }: Props) {
   const { onPress: navigate } = useLinkProps<RootStackParamList>({ to, action })
 
@@ -38,6 +45,10 @@ export default function LinkButton({
         beforeNavigation?.()
         navigate(e)
       }}
+      accessibilityHint={accessibilityHint}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      accessibilityValue={accessibilityValue}
     >
       {children}
     </ButtonContainer>
@@ -49,5 +60,8 @@ LinkButton.defaultProps = {
   style: undefined,
   beforeNavigation: () => null,
   onPress: () => null,
-  disabled: false
+  disabled: false,
+  accessibilityHint: undefined,
+  accessibilityLabel: undefined,
+  accessibilityValue: undefined
 }
