@@ -1,12 +1,12 @@
 import { AntDesign } from '@expo/vector-icons'
 import { add, differenceInMinutes } from 'date-fns'
+import _ from 'lodash'
 import React, { useRef } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native'
 import 'react-native-get-random-values'
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
-import _ from 'lodash'
 import tw from '../tailwind'
 import { Activity, Exercise, Program, Session } from '../types'
 import { spaceReplace } from '../utils'
@@ -38,12 +38,12 @@ type Props = {
 }
 
 export type SessionFormData = {
-  name?: string
-  sessionId?: string
+  name: string
+  sessionId: string
   start?: Date
   end?: Date
-  status?: 'Planned' | 'Ready' | 'Done'
-  activities?: Partial<Activity>[]
+  status: 'Planned' | 'Ready' | 'Done'
+  activities: Partial<Activity>[]
 }
 
 export default function SessionForm({
@@ -82,17 +82,17 @@ export default function SessionForm({
       program.programId,
       session
         ? {
-            name: spaceReplace(data.name!),
-            sessionId: session.sessionId!,
-            activities: data.activities! as Activity[],
+            name: spaceReplace(data.name),
+            sessionId: session.sessionId,
+            activities: data.activities as Activity[],
             start: session.start,
             end: data.end,
             status: session.status
           }
         : {
-            name: spaceReplace(data.name!),
+            name: spaceReplace(data.name),
             sessionId: uuidv4(),
-            activities: data.activities! as Activity[],
+            activities: data.activities as Activity[],
             start: undefined,
             end: undefined,
             status: 'Planned'
