@@ -5,7 +5,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Exercise } from '../types'
-import { sortByName } from '../utils'
+import { sortRecordsByName } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import ExerciseSearchInput from './ExerciseSearchInput'
 import HeaderLeftContainer from './HeaderLeftContainer'
@@ -17,7 +17,7 @@ import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type Props = {
   exercise?: Exercise
-  availableExercises: Partial<Exercise>[]
+  availableExercises: Pick<Exercise, 'name'>[]
   usedExercises?: Exercise[]
   addExercise: (exercise: Exercise) => void
   parentScreen: keyof RootStackParamList
@@ -66,7 +66,7 @@ export default function ExerciseSelect({
       : true
   )
 
-  const exercisesSortedAndDedupedAndFiltered = sortByName([
+  const exercisesSortedAndDedupedAndFiltered = sortRecordsByName([
     ...(filteredUsedExercises || [])
   ]).concat(
     filteredAvailableExercises.filter(

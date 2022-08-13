@@ -1,13 +1,4 @@
-// beforeAll(() => {
-// jest.useFakeTimers('modern')
-// jest.setSystemTime(new Date(2022, 2, 1, 4))
-// })
-
 import { weekAndDayFromStart } from './utils'
-
-// afterAll(() => {
-// jest.useRealTimers()
-// })
 
 describe('weekAndDayFromStart', () => {
   it('should consder two equal dates to be day 1', () => {

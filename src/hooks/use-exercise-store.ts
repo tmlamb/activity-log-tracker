@@ -3,7 +3,7 @@ import create from 'zustand'
 import { persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { Exercise } from '../types'
-import { sortByName } from '../utils'
+import { sortRecordsByName } from '../utils'
 
 const exerciseData = `name
 Back Squat
@@ -64,16 +64,12 @@ Skull Crusher
 Lateral Band Walk`
 
 function getData() {
-  const results = Papa.parse<Partial<Exercise>>(exerciseData, { header: true })
+  const results = Papa.parse<Pick<Exercise, 'name'>>(exerciseData, { header: true })
   const rows = results.data
 
-  sortByName(rows)
+  sortRecordsByName(rows)
 
-  const exercises: Partial<Exercise>[] = rows.map(row => ({
-    name: row.name
-  }))
-
-  return exercises
+  return rows
 }
 
 const useExerciseStore = create(

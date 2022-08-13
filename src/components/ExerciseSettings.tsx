@@ -4,14 +4,14 @@ import { FlatList } from 'react-native'
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Exercise } from '../types'
-import { sortByName } from '../utils'
+import { sortRecordsByName } from '../utils'
 import ExerciseSearchInput from './ExerciseSearchInput'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type Props = {
-  availableExercises: Partial<Exercise>[]
+  availableExercises: Pick<Exercise, 'name'>[]
   usedExercises?: Exercise[]
 }
 
@@ -36,7 +36,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
       : true
   )
 
-  const exercisesSortedAndDedupedAndFiltered = sortByName([
+  const exercisesSortedAndDedupedAndFiltered = sortRecordsByName([
     ...(filteredUsedExercises || [])
   ]).concat(
     filteredAvailableExercises.filter(

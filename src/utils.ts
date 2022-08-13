@@ -20,18 +20,8 @@ export const spaceReplace = (str: string) => str.replace(/\u00a0/, '\u0020')
 
 export const round5 = (value: number) => Math.round(value / 5) * 5
 
-export const sortByName = (rows: { name?: string }[]) =>
-  rows.sort((a, b) => {
-    const nameA = a.name ? a.name.toUpperCase() : '' // ignore upper and lowercase
-    const nameB = b.name ? b.name.toUpperCase() : '' // ignore upper and lowercase
-    if (nameA < nameB) {
-      return -1 // nameA comes first
-    }
-    if (nameA > nameB) {
-      return 1 // nameB comes first
-    }
-    return 0 // names must be equal
-  })
+export const sortRecordsByName = (rows: { name: string }[]) =>
+  rows.sort((a, b) => a.name.localeCompare(b.name))
 
 export const sumPlateWeights = (plates: Weight[]) => plates.reduce((total, p) => total + p.value, 0)
 
