@@ -43,7 +43,7 @@ export type SessionFormData = {
   start?: Date
   end?: Date
   status: 'Planned' | 'Ready' | 'Done'
-  activities: Partial<Activity>[]
+  activities: Activity[]
 }
 
 export default function SessionForm({
@@ -61,7 +61,7 @@ export default function SessionForm({
     handleSubmit,
     setValue,
     getValues,
-    formState: { isDirty, errors, dirtyFields }
+    formState: { isDirty, errors, dirtyFields, touchedFields }
   } = useForm<SessionFormData>({
     defaultValues: {
       name: (session && session.name) || '',
@@ -260,7 +260,8 @@ export default function SessionForm({
                   session,
                   program,
                   errors,
-                  dirtyFields
+                  dirtyFields,
+                  touchedFields
                 }}
               />
             </Animated.View>

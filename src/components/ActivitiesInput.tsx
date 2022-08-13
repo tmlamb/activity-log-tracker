@@ -5,7 +5,6 @@ import {
   Controller,
   DeepRequired,
   FieldErrorsImpl,
-  FieldNamesMarkedBoolean,
   UseFieldArrayReturn,
   UseFormSetValue,
   UseFormWatch
@@ -30,7 +29,6 @@ type Props = {
   session?: Session
   program: Program
   errors?: FieldErrorsImpl<DeepRequired<SessionFormData>>
-  dirtyFields: FieldNamesMarkedBoolean<SessionFormData>
 }
 
 const numberToWorkoutSetArray = <T extends WorkoutSet>(
@@ -68,8 +66,7 @@ export default function ActivitiesInput({
   exercises,
   session,
   program,
-  errors,
-  dirtyFields
+  errors
 }: Props) {
   const { fields, append, remove, swap } = fieldArray
   const watchActivities = watch('activities')
@@ -109,38 +106,24 @@ export default function ActivitiesInput({
                         program,
                         selectedExercise.exerciseId
                       )
-                      if (
-                        recentActivity?.load &&
-                        (!dirtyFields ||
-                          !dirtyFields.activities ||
-                          !dirtyFields.activities[index] ||
-                          !dirtyFields?.activities[index].load)
-                      ) {
+                      if (recentActivity?.load) {
                         setValue(`activities.${index}.load`, recentActivity.load)
                       } else if (
                         selectedExercise.oneRepMax &&
-                        selectedExercise.oneRepMax.value > 0 &&
-                        watchActivities &&
-                        !watchActivities[index].load
+                        selectedExercise.oneRepMax.value > 0
                       ) {
                         setValue(`activities.${index}.load`, { type: 'PERCENT', value: 0.75 })
                       } else {
                         setValue(`activities.${index}.load`, { type: 'RPE', value: 5 })
                       }
 
-                      if (
-                        recentActivity?.warmupSets &&
-                        (!dirtyFields ||
-                          !dirtyFields.activities ||
-                          !dirtyFields.activities[index] ||
-                          !dirtyFields?.activities[index].warmupSets)
-                      ) {
+                      if (recentActivity?.warmupSets) {
                         setValue(
                           `activities.${index}.warmupSets`,
                           numberToWorkoutSetArray<WarmupSet>(
                             recentActivity.warmupSets.length,
                             watchActivities && watchActivities[index]
-                              ? watchActivities[index].warmupSets!
+                              ? watchActivities[index].warmupSets
                               : [],
                             'Warmup',
                             session
@@ -148,19 +131,13 @@ export default function ActivitiesInput({
                         )
                       }
 
-                      if (
-                        recentActivity?.mainSets &&
-                        (!dirtyFields ||
-                          !dirtyFields.activities ||
-                          !dirtyFields.activities[index] ||
-                          !dirtyFields?.activities[index].mainSets)
-                      ) {
+                      if (recentActivity?.mainSets) {
                         setValue(
                           `activities.${index}.mainSets`,
                           numberToWorkoutSetArray<MainSet>(
                             recentActivity.mainSets.length,
                             watchActivities && watchActivities[index]
-                              ? watchActivities[index].mainSets!
+                              ? watchActivities[index].mainSets
                               : [],
                             'Main',
                             session
@@ -168,23 +145,11 @@ export default function ActivitiesInput({
                         )
                       }
 
-                      if (
-                        recentActivity?.reps &&
-                        (!dirtyFields ||
-                          !dirtyFields.activities ||
-                          !dirtyFields.activities[index] ||
-                          !dirtyFields?.activities[index].reps)
-                      ) {
+                      if (recentActivity?.reps) {
                         setValue(`activities.${index}.reps`, recentActivity.reps)
                       }
 
-                      if (
-                        recentActivity?.rest &&
-                        (!dirtyFields ||
-                          !dirtyFields.activities ||
-                          !dirtyFields.activities[index] ||
-                          !dirtyFields?.activities[index].rest)
-                      ) {
+                      if (recentActivity?.rest) {
                         setValue(`activities.${index}.rest`, recentActivity.rest)
                       }
 
@@ -270,7 +235,7 @@ export default function ActivitiesInput({
                         numberToWorkoutSetArray<WarmupSet>(
                           newLength,
                           watchActivities && watchActivities[index]
-                            ? watchActivities[index].warmupSets!
+                            ? watchActivities[index].warmupSets
                             : [],
                           'Warmup',
                           session
@@ -278,7 +243,7 @@ export default function ActivitiesInput({
                       )
                     }}
                     onBlur={onBlur}
-                    value={value!.length ? String(value!.length) : undefined}
+                    value={value.length ? String(value.length) : undefined}
                     placeholder="0"
                     maxLength={1}
                     style={tw`border-b-2 border-l-2`}
@@ -313,7 +278,7 @@ export default function ActivitiesInput({
                         numberToWorkoutSetArray<MainSet>(
                           newLength,
                           watchActivities && watchActivities[index]
-                            ? watchActivities[index].mainSets!
+                            ? watchActivities[index].mainSets
                             : [],
                           'Main',
                           session
@@ -434,14 +399,37 @@ export default function ActivitiesInput({
       ))}
       <Animated.View layout={Layout}>
         <ButtonContainer
-          onPress={() =>
+          onPress={() => {
             append(
               {
-                activityId: uuidv4()
+                activityId: uuidv4(),
+                exerciseId: '',
+                reps: 3,
+                rest: 3,
+                load: {
+                  type: 'RPE',
+                  value: 5
+                },
+                warmupSets: Array.from(Array(3)).map(() => ({
+                  workoutSetId: uuidv4(),
+                  type: 'Warmup',
+                  status: session?.status === 'Done' ? 'Done' : 'Planned',
+                  start: session?.status === 'Done' ? session.end : undefined,
+                  end: session?.status === 'Done' ? session.end : undefined,
+                  feedback: 'Neutral'
+                })),
+                mainSets: Array.from(Array(3)).map(() => ({
+                  workoutSetId: uuidv4(),
+                  type: 'Main',
+                  status: session?.status === 'Done' ? 'Done' : 'Planned',
+                  start: session?.status === 'Done' ? session.end : undefined,
+                  end: session?.status === 'Done' ? session.end : undefined,
+                  feedback: 'Neutral'
+                }))
               },
               { shouldFocus: false }
             )
-          }
+          }}
           disabled={fields.length > 100}
         >
           <ThemedView style={tw`justify-start web:py-[7.25px] web:pb-[3.25px]`}>
