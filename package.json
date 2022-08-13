@@ -12,7 +12,7 @@
     "check-types": "tsc --pretty --noEmit",
     "prepare": "husky install",
     "test": "jest --watch --coverage=false --changedSince=origin/main",
-    "testFinal": "jest"
+    "test:ci": "jest"
   },
   "dependencies": {
     "@expo/vector-icons": "^13.0.0",
@@ -72,11 +72,6 @@
       "eslint --cache --fix",
       "prettier --write"
     ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
   },
   "jest": {
     "preset": "jest-expo",

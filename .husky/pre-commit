@@ -10,7 +10,7 @@ npm run check-types ||
     false;
 )
 
-npm run testFinal ||
+npm run test:ci ||
 (
     echo 'Unit test Failed. Check failing tests listed above and try commit again.'
     false;
