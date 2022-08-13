@@ -1,6 +1,6 @@
 import { RouteProp, useRoute } from '@react-navigation/native'
 import React from 'react'
-import { AccessibilityState, AccessibilityValue, View } from 'react-native'
+import { AccessibilityValue, View } from 'react-native'
 import Animated, { FadeInUp, FadeOut } from 'react-native-reanimated'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
@@ -24,7 +24,6 @@ import { AlertText, PrimaryText, SecondaryText, SpecialText, ThemedView } from '
 // state, otherwise simply passing onChangeSelect to the modal would
 // have worked (functions are not serializable).
 
-// TODO: can any of this be better abstracted to reduce the number of things needed here?
 type ModalSelectEntity = Exercise | Load | Session
 type ModalSelectNavParams =
   | Omit<Omit<ExerciseSelectNavParams, 'parentScreen'>, 'parentParams'>
