@@ -1,8 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React from 'react'
-import { Platform } from 'react-native'
-import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { Platform, View } from 'react-native'
 import tw from '../../tailwind'
 import DashboardScreen from './DashboardScreen'
 import EquipmentSettingsScreen from './EquipmentSettingsScreen'
@@ -28,7 +27,7 @@ export default function Navigation() {
   return (
     // Repeating the background color here prevents white background flash on Android
     // when navigating between screens.
-    <SafeAreaProvider style={tw`bg-slate-50 dark:bg-black flex-1`}>
+    <View style={tw`flex-1 bg-slate-50 dark:bg-black`}>
       <NavigationContainer>
         <AppStack.Navigator
           screenOptions={{
@@ -161,6 +160,6 @@ export default function Navigation() {
           </AppStack.Group>
         </AppStack.Navigator>
       </NavigationContainer>
-    </SafeAreaProvider>
+    </View>
   )
 }

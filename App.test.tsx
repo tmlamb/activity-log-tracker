@@ -6,7 +6,7 @@ describe('<App />', () => {
   it('Safe area has no child', async () => {
     const tree = renderer.create(<App />).toJSON() as ReactTestRendererJSON
     await act(async () => {
-      expect(tree?.children).toBeNull()
+      expect(tree?.children?.length).toBe(1)
     })
   })
 })
