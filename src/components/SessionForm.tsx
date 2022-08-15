@@ -370,8 +370,8 @@ export default function SessionForm({
                 accessibilityLabel={`Reset Workout Session with name ${session.name}`}
               />
               <SecondaryText style={tw`text-xs mx-3 mt-1.5`}>
-                Resets session to &apos;Planned&apos; state by clearing all completed set&apos;s
-                actual weight/reps and start/end times.
+                Resets session to &apos;Planned&apos; state by clearing all entered Actual Weights
+                and Reps and any set start and end times.
               </SecondaryText>
             </>
           )}
