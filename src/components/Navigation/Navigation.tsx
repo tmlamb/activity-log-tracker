@@ -28,7 +28,7 @@ export default function Navigation() {
   return (
     // Repeating the background color here prevents white background flash on Android
     // when navigating between screens.
-    <SafeAreaProvider style={tw`bg-slate-50 dark:bg-black`}>
+    <SafeAreaProvider style={tw`bg-slate-50 dark:bg-black flex-1`}>
       <NavigationContainer>
         <AppStack.Navigator
           screenOptions={{
@@ -45,8 +45,7 @@ export default function Navigation() {
             component={DashboardScreen}
             options={{
               headerTitle: '',
-              title: 'Activity Log Tracker',
-              contentStyle: tw`-mt-[88px]`
+              title: 'Activity Log Tracker'
             }}
           />
           <AppStack.Screen
