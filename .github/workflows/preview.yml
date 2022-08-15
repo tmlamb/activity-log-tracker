@@ -1,12 +1,12 @@
-name: update
+name: update-preview
 on:
   push:
     branches:
       - 'preview'
 
 jobs:
-  update:
-    name: EAS Update
+  update-preview:
+    name: EAS Update Preview
     runs-on: ubuntu-latest
     steps:
       - name: Check for EXPO_TOKEN
