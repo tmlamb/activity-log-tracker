@@ -1,4 +1,4 @@
-name: update-prdouction
+name: update-production
 on:
   push:
     branches:
