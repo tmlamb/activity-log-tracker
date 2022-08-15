@@ -65,8 +65,8 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
       >
         <ScrollView contentContainerStyle={tw`pt-9 pb-48 px-3`} bounces={false}>
           <SecondaryText style={tw`text-xs mx-3 mb-9`}>
-            Enter details about the equipment you have available. These settings will be used to
-            calculate which plates to place on the barbell when performing sets.
+            These settings will be used to calculate which plates to place on the barbell when
+            performing sets.
           </SecondaryText>
           <Controller
             name="barbellWeight"
