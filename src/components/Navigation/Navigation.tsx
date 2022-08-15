@@ -45,7 +45,8 @@ export default function Navigation() {
             component={DashboardScreen}
             options={{
               headerTitle: '',
-              title: 'Activity Log Tracker'
+              title: 'Activity Log Tracker',
+              contentStyle: tw`-mt-[88px]`
             }}
           />
           <AppStack.Screen
