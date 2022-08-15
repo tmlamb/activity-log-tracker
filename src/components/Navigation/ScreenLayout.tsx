@@ -24,7 +24,7 @@ export default function ScreenLayout({ children }: { children: React.ReactNode }
     <View
       style={tw.style(
         'flex-1 bg-slate-50 dark:bg-black justify-between',
-        `pt-[${
+        `mt-[${
           Platform.OS === 'android' ? Number(StatusBar.currentHeight) + insets.top + 24 : 0
         }px]`
       )}
