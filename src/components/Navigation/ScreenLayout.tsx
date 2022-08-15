@@ -25,7 +25,7 @@ export default function ScreenLayout({ children }: { children: React.ReactNode }
         'flex-row justify-center flex-1 bg-slate-50 dark:bg-black',
         `pt-[${Platform.OS === 'android' ? Number(StatusBar.currentHeight) + insets.top : 0}px]`
       )}
-      edges={Platform.OS === 'android' ? ['left', 'right'] : ['left', 'right']}
+      edges={Platform.OS === 'android' ? ['top', 'left', 'right'] : ['left', 'right']}
     >
       <View style={tw`flex-1 max-w-2xl`}>{children}</View>
     </SafeAreaView>
