@@ -5,10 +5,6 @@
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "APP_ENV=local expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "eject": "expo eject",
     "check-types": "tsc --pretty --noEmit",
     "prepare": "husky install",
     "test": "jest --watch --coverage=false --changedSince=origin/main",
