@@ -27,7 +27,7 @@ export default function Dashboard({ programs }: Props) {
         </LinkButton>
       </HeaderLeftContainer>
       <SectionList
-        contentContainerStyle={tw`pt-9 pb-12`}
+        contentContainerStyle={tw`px-3 pt-9 pb-12`}
         keyExtractor={program => program.programId}
         bounces={false}
         sections={[{ title: 'Workout Programs', data: programs }]}

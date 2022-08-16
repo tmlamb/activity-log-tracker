@@ -32,7 +32,7 @@ export default function Settings() {
   ]
 
   return (
-    <View style={tw`flex-1 py-9 justify-between`}>
+    <View style={tw`flex-1 px-3 py-9 justify-between`}>
       <FlatList
         style={tw``}
         data={data}

@@ -199,7 +199,7 @@ export default function WorkoutSetDetail({
   }, [handleSubmit, onSubmit, watch])
 
   return (
-    <ScrollView style={tw`flex-1`} contentContainerStyle={tw`pt-9 pb-12`}>
+    <ScrollView style={tw`flex-1`} contentContainerStyle={tw`px-3 pt-9 pb-12`}>
       {(isStartable && (
         <ButtonContainer
           style={tw`mb-9`}
