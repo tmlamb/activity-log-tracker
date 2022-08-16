@@ -21,17 +21,22 @@ export default function ExerciseSearchInput({ onChange }: Props) {
   const [searchComponentWidth, setSearchComponentWidth] = React.useState<number>(0)
   const [cancelButtonWidth, setCancelButtonWidth] = React.useState<number>(0)
   const searchFilterWidth = useSharedValue(searchComponentWidth)
-  const searchFilterStyle = useAnimatedStyle(() => ({
-    width: searchFilterWidth.value
-  }))
+  const searchFilterStyle = useAnimatedStyle(
+    () => ({
+      width: searchFilterWidth.value
+    }),
+    [searchFilterWidth.value]
+  )
 
   return (
     <View
       style={tw`flex-row items-center justify-between w-full mb-9`}
       onLayout={event => {
         const roundedWidth = Math.round(event.nativeEvent.layout.width)
-        setSearchComponentWidth(roundedWidth)
-        searchFilterWidth.value = withTiming(roundedWidth - cancelButtonWidth, { duration: 500 })
+        if (roundedWidth !== searchComponentWidth) {
+          setSearchComponentWidth(roundedWidth)
+          searchFilterWidth.value = withTiming(roundedWidth - cancelButtonWidth, { duration: 500 })
+        }
       }}
     >
       <Animated.View style={searchFilterStyle}>
