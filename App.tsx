@@ -18,7 +18,7 @@ export default function App() {
 
   return (
     <View style={tw`flex-1 web:flex-row web:justify-center web:bg-slate-500`}>
-      <View style={tw`flex-1 web:max-w-xl bg-slate-50 dark:bg-black`}>
+      <View style={tw`flex-1 web:max-w-2xl bg-slate-50 dark:bg-black`}>
         <StatusBar />
         <Navigation />
       </View>

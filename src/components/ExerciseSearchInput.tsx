@@ -1,21 +1,22 @@
 import React from 'react'
-import { View, Keyboard } from 'react-native'
+import { Keyboard, View } from 'react-native'
 import Animated, {
-  withTiming,
   FadeInRight,
   FadeOutRight,
   useAnimatedStyle,
-  useSharedValue
+  useSharedValue,
+  withTiming
 } from 'react-native-reanimated'
 import tw from '../tailwind'
 import ButtonContainer from './ButtonContainer'
-import { ThemedTextInput, SpecialText } from './Themed'
+import { SpecialText, ThemedTextInput } from './Themed'
 
 type Props = {
   onChange: (text?: string) => void
 }
 
 export default function ExerciseSearchInput({ onChange }: Props) {
+  const [searchText, setSearchText] = React.useState<string>()
   const [showCancelButton, setShowCancelButton] = React.useState(false)
   const [searchComponentWidth, setSearchComponentWidth] = React.useState<number>(0)
   const [cancelButtonWidth, setCancelButtonWidth] = React.useState<number>(0)
@@ -30,7 +31,7 @@ export default function ExerciseSearchInput({ onChange }: Props) {
       onLayout={event => {
         const roundedWidth = Math.round(event.nativeEvent.layout.width)
         setSearchComponentWidth(roundedWidth)
-        searchFilterWidth.value = withTiming(roundedWidth, { duration: 500 })
+        searchFilterWidth.value = withTiming(roundedWidth - cancelButtonWidth, { duration: 500 })
       }}
     >
       <Animated.View style={searchFilterStyle}>
@@ -42,8 +43,9 @@ export default function ExerciseSearchInput({ onChange }: Props) {
             )
             setShowCancelButton(text?.length > 0)
             onChange(text)
+            setSearchText(text)
           }}
-          //   value={searchFilter}
+          value={searchText}
           style={tw.style('rounded-xl')}
           label="Search"
           accessibilityLabel="Filter list of exercises by name"
@@ -71,6 +73,7 @@ export default function ExerciseSearchInput({ onChange }: Props) {
                 duration: 500
               })
               onChange(undefined)
+              setSearchText(undefined)
               setShowCancelButton(false)
               Keyboard.dismiss()
             }}
