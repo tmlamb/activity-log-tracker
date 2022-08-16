@@ -43,7 +43,7 @@ export default function ProgramDetail({ program }: Props) {
   return (
     <SectionList
       style={tw`flex-1`}
-      contentContainerStyle={tw`pt-9 pb-12`}
+      contentContainerStyle={tw`px-3 pt-9 pb-12`}
       scrollEnabled={program.sessions.length > 4}
       sections={sections}
       keyExtractor={(session, index) => (session ? (session as Session).sessionId : String(index))}

@@ -27,7 +27,7 @@ export default function ProgramSettings({ programs }: Props) {
         </LinkButton>
       </HeaderRightContainer>
       <FlatList
-        style={tw`pt-9 pb-12`}
+        style={tw`px-3 pt-9 pb-12`}
         data={programs}
         renderItem={({ index, item }) => (
           <LinkButton

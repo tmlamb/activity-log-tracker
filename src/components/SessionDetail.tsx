@@ -138,7 +138,7 @@ export default function SessionDetail({ program, session, exercises, changeHandl
       </HeaderRightContainer>
       {completable && (
         <ButtonContainer
-          style={tw`pt-9 pb-[18px]`}
+          style={tw`px-3 pt-9 pb-[18px]`}
           onPress={() => {
             changeHandler(program.programId, {
               ...session,
@@ -157,7 +157,7 @@ export default function SessionDetail({ program, session, exercises, changeHandl
           style={tw`flex-1`}
           sections={sections}
           contentContainerStyle={tw.style(
-            'flex-grow',
+            'px-3 flex-grow',
             completable ? 'pt-[18px] pb-36' : 'pt-9 pb-12'
           )}
           keyExtractor={item => `${item.workoutSet.workoutSetId}`}

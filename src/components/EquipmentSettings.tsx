@@ -64,7 +64,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
         behavior="padding"
         style={tw`flex-1`}
       >
-        <ScrollView bounces={false} style={tw`flex-1`} contentContainerStyle={tw`pt-9 pb-12`}>
+        <ScrollView bounces={false} style={tw`flex-1`} contentContainerStyle={tw`px-3 pt-9 pb-12`}>
           <SecondaryText style={tw`text-xs mx-3 mb-9`}>
             These settings will be used to calculate which plates to place on the barbell when
             performing sets.
