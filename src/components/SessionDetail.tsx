@@ -138,7 +138,7 @@ export default function SessionDetail({ program, session, exercises, changeHandl
       </HeaderRightContainer>
       {completable && (
         <ButtonContainer
-          style={tw`px-3 pt-9 pb-[18px]`}
+          style={tw`pt-9 pb-[18px]`}
           onPress={() => {
             changeHandler(program.programId, {
               ...session,
@@ -152,13 +152,13 @@ export default function SessionDetail({ program, session, exercises, changeHandl
           </ThemedView>
         </ButtonContainer>
       )}
-      <Animated.View layout={Layout.duration(500)}>
+      <Animated.View style={tw`flex-1`} layout={Layout.duration(500)}>
         <SectionList
-          style={tw`flex-grow`}
+          style={tw`flex-1`}
           sections={sections}
           contentContainerStyle={tw.style(
-            'flex-grow px-3',
-            completable ? 'pt-[18px] pb-72' : 'pt-9 pb-48'
+            'flex-grow',
+            completable ? 'pt-[18px] pb-36' : 'pt-9 pb-12'
           )}
           keyExtractor={item => `${item.workoutSet.workoutSetId}`}
           ListHeaderComponent={

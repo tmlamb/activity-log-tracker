@@ -1,7 +1,7 @@
+import { useHeaderHeight } from '@react-navigation/elements'
 import { useNavigation } from '@react-navigation/native'
 import React from 'react'
-import { Platform, StatusBar, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Platform, View } from 'react-native'
 import tw from '../../tailwind'
 import { primaryTextColor } from '../Themed'
 
@@ -18,15 +18,13 @@ export default function ScreenLayout({ children }: { children: React.ReactNode }
     })
   }, [navigation])
 
-  const insets = useSafeAreaInsets()
+  const headerHeight = useHeaderHeight()
 
   return (
     <View
       style={tw.style(
-        'flex-1 bg-slate-50 dark:bg-black justify-between',
-        `mt-[${
-          Platform.OS === 'android' ? Number(StatusBar.currentHeight) + insets.top + 24 : 0
-        }px]`
+        'flex-1 px-3 bg-slate-50 dark:bg-black',
+        `mt-[${Platform.OS === 'android' ? headerHeight : 0}px]`
       )}
     >
       {children}

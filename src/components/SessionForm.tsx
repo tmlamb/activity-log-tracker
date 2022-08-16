@@ -158,7 +158,7 @@ export default function SessionForm({
         keyboardVerticalOffset={Platform.OS === 'ios' ? 114 : -225}
         behavior="padding"
       >
-        <ScrollView style={tw`flex-1`} contentContainerStyle={tw`pb-48 pt-9`}>
+        <ScrollView style={tw`flex-grow`} contentContainerStyle={tw`pt-9 pb-12`}>
           {!session && sessions && sessions.length > 0 && (
             <ThemedView style={tw`justify-between p-0 mb-9`}>
               <ButtonContainer

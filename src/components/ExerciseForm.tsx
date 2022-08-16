@@ -95,7 +95,7 @@ export default function ExerciseForm({
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
-      <ScrollView style={tw`py-9`} scrollEnabled={false}>
+      <ScrollView scrollEnabled={false} contentContainerStyle={tw`pt-9 pb-12`}>
         <Controller
           name="name"
           control={control}

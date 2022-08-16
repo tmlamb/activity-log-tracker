@@ -74,13 +74,11 @@ export type RootStackParamList = {
   ProgramSettingsScreen: undefined
   EquipmentSettingsScreen: undefined
   ProgramDetailScreen: ProgramNavParams
-  ProgramFiguresScreen: ProgramNavParams
   ProgramFormModal: ProgramFormNavParams
   SessionDetailScreen: SessionNavParams
   SessionFormModal:
     | SessionFormNavParams
     | ModalSelectResponseParams<Exercise | Load | Partial<Session>>
-  ActivityDetailScreen: ActivityNavParams
   ActivityFormModal: ActivityFormNavParams
   LoadFormModal: LoadFormNavParams
   ExerciseSelectModal: ExerciseSelectNavParams

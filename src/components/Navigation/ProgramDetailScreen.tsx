@@ -10,5 +10,14 @@ export default function ProgramDetailScreen({
 }: RootStackScreenProps<'ProgramDetailScreen'>) {
   const programs = useWorkoutStore(state => state.programs)
   const program = _.find(programs, { programId: params.programId })
-  return <ScreenLayout>{program && <ProgramDetail program={program} />}</ScreenLayout>
+
+  if (!program) {
+    throw Error(`Possible data corruption: unable to find program ${params.programId}`)
+  }
+
+  return (
+    <ScreenLayout>
+      <ProgramDetail program={program} />
+    </ScreenLayout>
+  )
 }

@@ -11,10 +11,10 @@ import ButtonContainer from './ButtonContainer'
 import ElapsedTime from './ElapsedTime'
 import PlateChart from './PlateChart'
 import {
+  AlertText,
   PrimaryText,
   SecondaryText,
   SpecialText,
-  AlertText,
   ThemedTextInput,
   ThemedView
 } from './Themed'
@@ -199,7 +199,7 @@ export default function WorkoutSetDetail({
   }, [handleSubmit, onSubmit, watch])
 
   return (
-    <ScrollView style={tw`flex-grow px-3 pt-9`} contentContainerStyle={tw`pb-48`}>
+    <ScrollView style={tw`flex-1`} contentContainerStyle={tw`pt-9 pb-12`}>
       {(isStartable && (
         <ButtonContainer
           style={tw`mb-9`}

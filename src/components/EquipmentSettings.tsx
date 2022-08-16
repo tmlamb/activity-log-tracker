@@ -62,8 +62,9 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
       <KeyboardAvoidingView
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : -225}
         behavior="padding"
+        style={tw`flex-1`}
       >
-        <ScrollView contentContainerStyle={tw`pt-9 pb-48 px-3`} bounces={false}>
+        <ScrollView bounces={false} style={tw`flex-1`} contentContainerStyle={tw`pt-9 pb-12`}>
           <SecondaryText style={tw`text-xs mx-3 mb-9`}>
             These settings will be used to calculate which plates to place on the barbell when
             performing sets.
