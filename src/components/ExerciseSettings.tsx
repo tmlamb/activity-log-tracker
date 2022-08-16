@@ -60,8 +60,8 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
         </LinkButton>
       </HeaderRightContainer>
       <FlatList
-        contentContainerStyle={tw`px-3 pb-48 pt-9`}
         keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
+        contentContainerStyle={tw`px-3 pt-9 pb-12`}
         data={exercisesSortedAndDedupedAndFiltered}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item, index }) => (

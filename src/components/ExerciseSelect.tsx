@@ -107,7 +107,7 @@ export default function ExerciseSelect({
       </HeaderLeftContainer>
       <SelectList
         style={tw`flex-1`}
-        contentContainerStyle="pt-9 px-3 pb-48"
+        contentContainerStyle={tw`px-3 pt-9 pb-12`}
         keyExtractor={(item, index) => `${item.name}.${index}`}
         items={exercisesSortedAndDedupedAndFiltered}
         keyboardShouldPersistTaps="handled"

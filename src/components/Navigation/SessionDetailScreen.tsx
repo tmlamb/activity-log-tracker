@@ -1,6 +1,5 @@
 import _ from 'lodash'
 import React from 'react'
-import { View } from 'react-native'
 import useWorkoutStore from '../../hooks/use-workout-store'
 import SessionDetail from '../SessionDetail'
 import ScreenLayout from './ScreenLayout'
@@ -18,18 +17,18 @@ export default function SessionDetailScreen({
 
   const session = _.find(program.sessions, { sessionId: params.sessionId })
 
+  if (!session) {
+    throw Error(`Possible data corruption: unable to find session ${params.sessionId}`)
+  }
+
   return (
     <ScreenLayout>
-      <View>
-        {session && (
-          <SessionDetail
-            session={session}
-            program={program}
-            exercises={exercises}
-            changeHandler={updateSession}
-          />
-        )}
-      </View>
+      <SessionDetail
+        session={session}
+        program={program}
+        exercises={exercises}
+        changeHandler={updateSession}
+      />
     </ScreenLayout>
   )
 }

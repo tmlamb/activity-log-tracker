@@ -64,7 +64,7 @@ export default function SessionSelect({
       {sessions && (
         <SelectList
           style={tw`flex-1`}
-          contentContainerStyle={tw`px-3 pb-48 pt-9`}
+          contentContainerStyle={tw`px-3 pt-9 pb-12`}
           keyExtractor={(item, index) => `${item.name}.${index}`}
           items={sessionsSorted}
           onSelect={item => {

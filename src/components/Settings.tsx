@@ -32,9 +32,8 @@ export default function Settings() {
   ]
 
   return (
-    <View style={tw`flex-grow justify-between pb-9`}>
+    <View style={tw`flex-1 py-9 justify-between`}>
       <FlatList
-        contentContainerStyle={tw`mx-3 mt-9`}
         style={tw``}
         data={data}
         bounces={false}

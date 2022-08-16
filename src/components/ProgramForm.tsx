@@ -60,7 +60,7 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
           <SpecialText>Cancel</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
-      <View style={tw`pt-9`}>
+      <View style={tw`flex-1 pt-9 pb-12`}>
         <Controller
           name="name"
           control={control}

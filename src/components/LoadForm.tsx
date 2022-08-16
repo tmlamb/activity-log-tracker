@@ -145,7 +145,7 @@ export default function LoadForm({
         keyboardVerticalOffset={Platform.OS === 'ios' ? 114 : -225}
         behavior="padding"
       >
-        <ScrollView style={tw`flex-1`} contentContainerStyle={tw`pt-9 pb-48`}>
+        <ScrollView style={tw`flex-1`} contentContainerStyle={tw`pt-9 pb-12`}>
           <Controller
             name="type"
             control={control}

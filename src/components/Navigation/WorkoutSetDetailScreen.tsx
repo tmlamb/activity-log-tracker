@@ -1,6 +1,5 @@
 import _ from 'lodash'
 import React from 'react'
-import { View } from 'react-native'
 import useWorkoutStore from '../../hooks/use-workout-store'
 import WorkoutSetDetail from '../WorkoutSetDetail'
 import ScreenLayout from './ScreenLayout'
@@ -45,20 +44,16 @@ function WorkoutSetDetailScreen({
 
   return (
     <ScreenLayout>
-      <View>
-        {session && (
-          <WorkoutSetDetail
-            session={session}
-            program={program}
-            activity={activity}
-            workoutSet={workoutSet}
-            exercise={exercise}
-            updateWorkoutSet={updateWorkoutSet}
-            startSession={startSession}
-            goBack={goBack}
-          />
-        )}
-      </View>
+      <WorkoutSetDetail
+        session={session}
+        program={program}
+        activity={activity}
+        workoutSet={workoutSet}
+        exercise={exercise}
+        updateWorkoutSet={updateWorkoutSet}
+        startSession={startSession}
+        goBack={goBack}
+      />
     </ScreenLayout>
   )
 }
