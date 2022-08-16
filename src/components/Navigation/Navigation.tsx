@@ -30,8 +30,7 @@ export default function Navigation() {
           // Modals are too easy to dismiss by gesture - We will force users to use a
           // "Cancel" button to avoid unintended data loss.
           gestureEnabled: false,
-          headerTitleAlign: 'center',
-          headerBackVisible: Platform.OS !== 'android'
+          headerBackTitleVisible: Platform.OS !== 'android'
         }}
         initialRouteName="DashboardScreen"
       >
