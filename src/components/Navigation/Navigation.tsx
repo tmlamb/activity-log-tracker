@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React from 'react'
-import { Platform } from 'react-native'
+import { Linking, Platform } from 'react-native'
 import tw from '../../tailwind'
 import DashboardScreen from './DashboardScreen'
 import EquipmentSettingsScreen from './EquipmentSettingsScreen'
@@ -33,10 +33,11 @@ export default function Navigation() {
   React.useEffect(() => {
     const restoreState = async () => {
       try {
+        const initialUrl = new URL((await Linking.getInitialURL()) || '/')
         const savedStateString = await AsyncStorage.getItem(PERSISTENCE_KEY)
         const state = savedStateString ? JSON.parse(savedStateString) : undefined
 
-        if (state !== undefined) {
+        if (state !== undefined && initialUrl.pathname !== '/') {
           setInitialState(state)
         }
       } finally {
