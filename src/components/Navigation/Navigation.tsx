@@ -45,7 +45,7 @@ export default function Navigation() {
   }
 
   const linking = {
-    prefixes: ['https://walt.website/', 'https://*.walt.website/'],
+    prefixes: ['https://walt.website', 'https://*.walt.website'],
     config
   }
 
