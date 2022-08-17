@@ -37,14 +37,10 @@ export default function Navigation() {
   const config = {
     screens: {
       DashboardScreen: {
-        path: '',
-        screens: {
-          DashboardScreen: {
-            path: '*'
-          }
-        }
+        path: ''
       },
-      PrivacyScreen: 'privacy'
+      PrivacyScreen: 'privacy',
+      ProgramDetailScreen: 'program/:programId'
     }
   }
 
