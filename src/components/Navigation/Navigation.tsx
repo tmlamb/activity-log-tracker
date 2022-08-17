@@ -11,6 +11,7 @@ import ExerciseSelectModal from './ExerciseSelectModal'
 import ExerciseSettingsModal from './ExerciseSettingsModal'
 import ExerciseSettingsScreen from './ExerciseSettingsScreen'
 import LoadFormModal from './LoadFormModal'
+import PrivacyScreen from './PrivacyScreen'
 import ProgramDetailScreen from './ProgramDetailScreen'
 import ProgramFormModal from './ProgramFormModal'
 import ProgramSettingsScreen from './ProgramSettingsScreen'
@@ -24,7 +25,8 @@ import WorkoutSetDetailScreen from './WorkoutSetDetailScreen'
 const AppStack = createNativeStackNavigator<RootStackParamList>()
 
 export default function Navigation() {
-  // React Native Web / React Navigation have a bug with header back button tint on dark mode, so forcing light mode for now
+  // React Native Web / React Navigation have a bug with header back button tint on
+  // dark mode, so forcing light mode for now
   const [, , setColorScheme] = useAppColorScheme(tw)
   React.useEffect(() => {
     if (Platform.OS === 'web') {
@@ -32,8 +34,22 @@ export default function Navigation() {
     }
   })
 
+  const config = {
+    screens: {
+      DashboardScreen: {
+        path: ''
+      },
+      PrivacyScreen: 'privacy'
+    }
+  }
+
+  const linking = {
+    prefixes: ['https://walt.website'],
+    config
+  }
+
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <AppStack.Navigator
         screenOptions={{
           // Modals are too easy to dismiss by gesture - We will force users to use a
@@ -124,6 +140,13 @@ export default function Navigation() {
                 ? 'Edit Session'
                 : 'Add Session',
             presentation: 'modal'
+          })}
+        />
+        <AppStack.Screen
+          name="PrivacyScreen"
+          component={PrivacyScreen}
+          options={() => ({
+            title: 'Privacy Policy'
           })}
         />
         <AppStack.Group screenOptions={{ presentation: 'modal' }}>
