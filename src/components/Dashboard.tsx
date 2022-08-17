@@ -18,7 +18,7 @@ export default function Dashboard({ programs }: Props) {
       <HeaderLeftContainer>
         <LinkButton
           to={{ screen: 'SettingsScreen' }}
-          style={tw`py-6 pl-2.5 pr-8 -my-6 -ml-4`}
+          style={tw`py-6 pl-2.5 pr-8 -my-6 -ml-4 web:-ml-3`}
           accessibilityLabel="Navigate to Application Settings"
         >
           <SpecialText>
