@@ -2,6 +2,7 @@ import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React from 'react'
 import { Platform } from 'react-native'
+import { useAppColorScheme } from 'twrnc'
 import tw from '../../tailwind'
 import DashboardScreen from './DashboardScreen'
 import EquipmentSettingsScreen from './EquipmentSettingsScreen'
@@ -23,6 +24,14 @@ import WorkoutSetDetailScreen from './WorkoutSetDetailScreen'
 const AppStack = createNativeStackNavigator<RootStackParamList>()
 
 export default function Navigation() {
+  // React Native Web / React Navigation have a bug with header back button tint on dark mode, so forcing light mode for now
+  const [, , setColorScheme] = useAppColorScheme(tw)
+  React.useEffect(() => {
+    if (Platform.OS === 'web') {
+      setColorScheme('light')
+    }
+  })
+
   return (
     <NavigationContainer>
       <AppStack.Navigator
@@ -30,7 +39,8 @@ export default function Navigation() {
           // Modals are too easy to dismiss by gesture - We will force users to use a
           // "Cancel" button to avoid unintended data loss.
           gestureEnabled: false,
-          headerBackTitleVisible: Platform.OS !== 'android'
+          headerBackTitleVisible: Platform.OS !== 'android',
+          headerTitleAlign: 'center'
         }}
         initialRouteName="DashboardScreen"
       >
