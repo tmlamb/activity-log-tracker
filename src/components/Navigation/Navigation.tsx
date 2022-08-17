@@ -36,10 +36,22 @@ export default function Navigation() {
 
   const config = {
     screens: {
-      DashboardScreen: {
-        path: ''
-      },
+      DashboardScreen: '',
       PrivacyScreen: 'privacy',
+      EquipmentSettingsScreen: 'equipment/settings',
+      ExerciseFormModal: 'exercise/form/:exerciseId?',
+      ExerciseSelectModal: 'exercise/select',
+      ExerciseSettingsModal: 'exercise/settings/modal',
+      ExerciseSettingsScreen: 'exercise/settings',
+      LoadFormModal: 'load',
+      ProgramDetailScreen: 'program/:programId',
+      ProgramFormModal: 'program/form/:programId?',
+      ProgramSettingsScreen: 'program/settings',
+      SessionDetailScreen: 'program/:programId/session/:sessionId',
+      SessionFormModal: 'program/:programId/session/form/:sessionId?',
+      SessionSelectModal: 'session/select',
+      SettingsScreen: 'settings',
+      WorkoutSetDetailScreen: 'program/:programId/session/:sessionId/set/:workoutSetId',
       NotFound: '*'
     }
   }
@@ -48,7 +60,6 @@ export default function Navigation() {
     prefixes: ['https://walt.website', 'https://*.walt.website'],
     config
   }
-  console.log('navigator rendered')
 
   return (
     <NavigationContainer linking={linking}>

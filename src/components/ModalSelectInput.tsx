@@ -118,7 +118,13 @@ export default function ModalSelectInput<
             <SecondaryText style={tw.style(textStyle)}>{label}</SecondaryText>
           )}
           {value && (
-            <SecondaryText style={tw.style('web:w-0 web:flex-grow web:flex-1', textStyle)}>
+            <SecondaryText
+              style={tw.style(
+                'web:w-0 web:flex-grow web:flex-1',
+                label ? 'text-right' : '',
+                textStyle
+              )}
+            >
               {value}
             </SecondaryText>
           )}
