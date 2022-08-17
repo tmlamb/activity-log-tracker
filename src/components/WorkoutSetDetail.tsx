@@ -2,13 +2,14 @@ import { add, subMinutes } from 'date-fns'
 import _ from 'lodash'
 import React from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { ScrollView, View } from 'react-native'
+import { Platform, ScrollView, View } from 'react-native'
 import Animated, { FadeInUp, FadeOutDown, Layout } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import { recentActivityByExercise, round5, stringifyLoad } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import ElapsedTime from './ElapsedTime'
+import HeaderLeftContainer from './HeaderLeftContainer'
 import PlateChart from './PlateChart'
 import {
   AlertText,
@@ -199,221 +200,230 @@ export default function WorkoutSetDetail({
   }, [handleSubmit, onSubmit, watch])
 
   return (
-    <ScrollView style={tw`flex-1`} contentContainerStyle={tw`px-3 pt-9 pb-12`}>
-      {(isStartable && (
-        <ButtonContainer
-          style={tw`mb-9`}
-          onPress={() => {
-            setValue('start', new Date())
-            setValue('status', 'Ready')
-            handleSubmit(onSubmit)
+    <>
+      {Platform.OS === 'web' && (
+        <HeaderLeftContainer>
+          <ButtonContainer onPress={goBack}>
+            <SpecialText>Back</SpecialText>
+          </ButtonContainer>
+        </HeaderLeftContainer>
+      )}
+      <ScrollView style={tw`flex-1`} contentContainerStyle={tw`px-3 pt-9 pb-12`}>
+        {(isStartable && (
+          <ButtonContainer
+            style={tw`mb-9`}
+            onPress={() => {
+              setValue('start', new Date())
+              setValue('status', 'Ready')
+              handleSubmit(onSubmit)
 
-            if (session.status === 'Planned') {
-              startSession(program.programId, session.sessionId)
-            }
-          }}
-        >
-          <ThemedView rounded>
-            <SpecialText>{`Start ${workoutSet.type} Set`}</SpecialText>
-          </ThemedView>
-        </ButtonContainer>
-      )) ||
-        (workoutSet.status === 'Ready' && !!actualRepsWatcher && actualRepsWatcher > 0 && (
-          <Animated.View
-            entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-            exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-            style={tw``}
+              if (session.status === 'Planned') {
+                startSession(program.programId, session.sessionId)
+              }
+            }}
           >
-            <ButtonContainer
-              style={tw`mb-9`}
-              onPress={() => {
-                const now = new Date()
-                setValue('end', now)
-                setValue('status', 'Done')
-                handleSubmit(onSubmit)
-
-                const nextWorkoutSet = [...activity.warmupSets, ...activity.mainSets].find(
-                  (ws, index, obj) =>
-                    obj[index - 1] && obj[index - 1].workoutSetId === workoutSet.workoutSetId
-                )
-                if (nextWorkoutSet && nextWorkoutSet.status === 'Planned') {
-                  updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
-                    ...nextWorkoutSet,
-                    start: now,
-                    status: 'Ready'
-                  })
-                }
-
-                goBack()
-              }}
+            <ThemedView rounded>
+              <SpecialText>{`Start ${workoutSet.type} Set`}</SpecialText>
+            </ThemedView>
+          </ButtonContainer>
+        )) ||
+          (workoutSet.status === 'Ready' && !!actualRepsWatcher && actualRepsWatcher > 0 && (
+            <Animated.View
+              entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+              exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+              style={tw``}
             >
-              <ThemedView rounded>
-                <SpecialText>{`Complete ${workoutSet.type} Set`}</SpecialText>
-              </ThemedView>
-            </ButtonContainer>
-          </Animated.View>
-        ))}
-      <Animated.View layout={Layout}>
-        <ThemedView
-          style={tw.style(
-            workoutSet.type === 'Main' || exercise.oneRepMax
-              ? 'border-b-2 rounded-t-xl'
-              : 'rounded-xl'
-          )}
-        >
-          <PrimaryText style={tw`pr-3`}>Exercise</PrimaryText>
-          <SecondaryText style={tw`flex-1 text-right`} numberOfLines={3}>
-            {exercise.name}
-          </SecondaryText>
-        </ThemedView>
-        {workoutSet.type === 'Warmup' && exercise.oneRepMax && (
-          <ThemedView style={tw`rounded-b-xl`}>
-            <PrimaryText>Warmup Load</PrimaryText>
-            <SecondaryText>{`${String(warmupPercent * 100)}%${
-              targetWeight && workoutSet.status !== 'Done' ? ` / ${targetWeight}lbs` : ''
-            }`}</SecondaryText>
+              <ButtonContainer
+                style={tw`mb-9`}
+                onPress={() => {
+                  const now = new Date()
+                  setValue('end', now)
+                  setValue('status', 'Done')
+                  handleSubmit(onSubmit)
+
+                  const nextWorkoutSet = [...activity.warmupSets, ...activity.mainSets].find(
+                    (ws, index, obj) =>
+                      obj[index - 1] && obj[index - 1].workoutSetId === workoutSet.workoutSetId
+                  )
+                  if (nextWorkoutSet && nextWorkoutSet.status === 'Planned') {
+                    updateWorkoutSet(program.programId, session.sessionId, activity.activityId, {
+                      ...nextWorkoutSet,
+                      start: now,
+                      status: 'Ready'
+                    })
+                  }
+
+                  goBack()
+                }}
+              >
+                <ThemedView rounded>
+                  <SpecialText>{`Complete ${workoutSet.type} Set`}</SpecialText>
+                </ThemedView>
+              </ButtonContainer>
+            </Animated.View>
+          ))}
+        <Animated.View layout={Layout}>
+          <ThemedView
+            style={tw.style(
+              workoutSet.type === 'Main' || exercise.oneRepMax
+                ? 'border-b-2 rounded-t-xl'
+                : 'rounded-xl'
+            )}
+          >
+            <PrimaryText style={tw`pr-3`}>Exercise</PrimaryText>
+            <SecondaryText style={tw`flex-1 text-right`} numberOfLines={3}>
+              {exercise.name}
+            </SecondaryText>
           </ThemedView>
-        )}
-        {workoutSet.type === 'Main' && (
-          <>
-            <ThemedView style={tw`border-b-2`}>
-              <PrimaryText>Target Load</PrimaryText>
-              <SecondaryText>{`${stringifyLoad(activity.load)}${
-                activity.load.type === 'PERCENT' && targetWeight && workoutSet.status !== 'Done'
-                  ? ` / ${targetWeight}lbs`
-                  : ''
+          {workoutSet.type === 'Warmup' && exercise.oneRepMax && (
+            <ThemedView style={tw`rounded-b-xl`}>
+              <PrimaryText>Warmup Load</PrimaryText>
+              <SecondaryText>{`${String(warmupPercent * 100)}%${
+                targetWeight && workoutSet.status !== 'Done' ? ` / ${targetWeight}lbs` : ''
               }`}</SecondaryText>
             </ThemedView>
-            <ThemedView style={tw`border-b-2`}>
-              <PrimaryText>Target Reps</PrimaryText>
-              <SecondaryText>{String(activity.reps)}</SecondaryText>
-            </ThemedView>
-            <ThemedView style={tw`rounded-b-xl`}>
-              <PrimaryText>Target Rest</PrimaryText>
-              <SecondaryText>
-                {activity.rest > 0 ? `${String(activity.rest)} minutes` : 'No rest'}
-              </SecondaryText>
-            </ThemedView>
-          </>
-        )}
-
-        {activity.load.type === 'PERCENT' &&
-          (!exercise.oneRepMax || exercise.oneRepMax.value <= 0) && (
-            <AlertText style={tw`text-xs px-3 pt-1.5`}>
-              Setup a One Rep Max for this exercise before using the percent load type.
-            </AlertText>
+          )}
+          {workoutSet.type === 'Main' && (
+            <>
+              <ThemedView style={tw`border-b-2`}>
+                <PrimaryText>Target Load</PrimaryText>
+                <SecondaryText>{`${stringifyLoad(activity.load)}${
+                  activity.load.type === 'PERCENT' && targetWeight && workoutSet.status !== 'Done'
+                    ? ` / ${targetWeight}lbs`
+                    : ''
+                }`}</SecondaryText>
+              </ThemedView>
+              <ThemedView style={tw`border-b-2`}>
+                <PrimaryText>Target Reps</PrimaryText>
+                <SecondaryText>{String(activity.reps)}</SecondaryText>
+              </ThemedView>
+              <ThemedView style={tw`rounded-b-xl`}>
+                <PrimaryText>Target Rest</PrimaryText>
+                <SecondaryText>
+                  {activity.rest > 0 ? `${String(activity.rest)} minutes` : 'No rest'}
+                </SecondaryText>
+              </ThemedView>
+            </>
           )}
 
-        {workoutSet.status !== 'Planned' && (
-          <Animated.View
-            entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-            exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
-            style={tw`mt-9`}
-          >
-            {workoutSet.type === 'Main' &&
-              activity.load.type === 'RPE' &&
-              program.sessions.length < 4 && (
-                <SecondaryText style={tw`text-xs mx-3 mb-1.5`}>
-                  Find a weight that will meet the target RPE.
-                </SecondaryText>
-              )}
-            <Controller
-              control={control}
-              rules={{
-                required: true,
-                min: 1
-              }}
-              render={({ field: { onChange, onBlur, value } }) => (
-                <ThemedTextInput
-                  label="Actual Weight (lbs)"
-                  onChangeText={newValue => {
-                    onChange({
-                      value: Number(newValue),
-                      unit: 'lbs'
-                    })
-                  }}
-                  onBlur={() => {
-                    handleSubmit(onSubmit)
-                    onBlur()
-                  }}
-                  value={value ? String(value.value) : undefined}
-                  placeholder="0"
-                  maxLength={4}
-                  style={tw`border-b-2 rounded-t-xl`}
-                  keyboardType="number-pad"
-                  numeric
-                  selectTextOnFocus
-                />
-              )}
-              name="actualWeight"
-            />
-
-            <Controller
-              control={control}
-              rules={{
-                required: true,
-                min: 1
-              }}
-              render={({ field: { onChange, onBlur, value } }) => (
-                <ThemedTextInput
-                  label="Actual Reps"
-                  onChangeText={onChange}
-                  onBlur={() => {
-                    handleSubmit(onSubmit)
-                    onBlur()
-                  }}
-                  value={value ? String(value) : undefined}
-                  placeholder="0"
-                  maxLength={2}
-                  style={tw`border-b-2`}
-                  keyboardType="number-pad"
-                  numeric
-                  selectTextOnFocus
-                />
-              )}
-              name="actualReps"
-            />
-            <ElapsedTime
-              start={workoutSet.start || new Date()}
-              end={workoutSet.end}
-              status={workoutSet.status}
-            />
-            {targetWeight === 0 && workoutSet.type === 'Warmup' && (
-              <SecondaryText style={tw`text-xs mx-3 mt-1.5`}>
-                Future warmups for this exercise will pre-populate the Actual Weight with the values
-                from previous similar sets, if available.
-              </SecondaryText>
+          {activity.load.type === 'PERCENT' &&
+            (!exercise.oneRepMax || exercise.oneRepMax.value <= 0) && (
+              <AlertText style={tw`text-xs px-3 pt-1.5`}>
+                Setup a One Rep Max for this exercise before using the percent load type.
+              </AlertText>
             )}
 
-            {workoutSet.type === 'Main' && (
+          {workoutSet.status !== 'Planned' && (
+            <Animated.View
+              entering={FadeInUp.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+              exiting={FadeOutDown.duration(1000).springify().stiffness(50).damping(6).mass(0.3)}
+              style={tw`mt-9`}
+            >
+              {workoutSet.type === 'Main' &&
+                activity.load.type === 'RPE' &&
+                program.sessions.length < 4 && (
+                  <SecondaryText style={tw`text-xs mx-3 mb-1.5`}>
+                    Find a weight that will meet the target RPE.
+                  </SecondaryText>
+                )}
               <Controller
-                name="feedback"
                 control={control}
                 rules={{
-                  required: true
+                  required: true,
+                  min: 1
                 }}
-                render={({ field: { value } }) => (
-                  <FeedbackSelectInput
-                    value={value}
-                    onSelect={feedback => {
-                      setValue('feedback', feedback)
-                      handleSubmit(onSubmit)
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <ThemedTextInput
+                    label="Actual Weight (lbs)"
+                    onChangeText={newValue => {
+                      onChange({
+                        value: Number(newValue),
+                        unit: 'lbs'
+                      })
                     }}
+                    onBlur={() => {
+                      handleSubmit(onSubmit)
+                      onBlur()
+                    }}
+                    value={value ? String(value.value) : undefined}
+                    placeholder="0"
+                    maxLength={4}
+                    style={tw`border-b-2 rounded-t-xl`}
+                    keyboardType="number-pad"
+                    numeric
+                    selectTextOnFocus
                   />
                 )}
+                name="actualWeight"
               />
-            )}
-          </Animated.View>
-        )}
-        {workoutSet.status === 'Planned' && !isNextWorkoutSet(workoutSet, activity) && (
-          <SecondaryText style={tw`ml-3 text-xs mt-9`}>
-            Complete the previous workout sets for this exercise before continuing.
-          </SecondaryText>
-        )}
-        {actualWeightWatcher && actualWeightWatcher.value > 0 && (
-          <PlateChart style={tw`mx-3 mt-9`} totalWeight={actualWeightWatcher} />
-        )}
-      </Animated.View>
-    </ScrollView>
+
+              <Controller
+                control={control}
+                rules={{
+                  required: true,
+                  min: 1
+                }}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <ThemedTextInput
+                    label="Actual Reps"
+                    onChangeText={onChange}
+                    onBlur={() => {
+                      handleSubmit(onSubmit)
+                      onBlur()
+                    }}
+                    value={value ? String(value) : undefined}
+                    placeholder="0"
+                    maxLength={2}
+                    style={tw`border-b-2`}
+                    keyboardType="number-pad"
+                    numeric
+                    selectTextOnFocus
+                  />
+                )}
+                name="actualReps"
+              />
+              <ElapsedTime
+                start={workoutSet.start || new Date()}
+                end={workoutSet.end}
+                status={workoutSet.status}
+              />
+              {targetWeight === 0 && workoutSet.type === 'Warmup' && (
+                <SecondaryText style={tw`text-xs mx-3 mt-1.5`}>
+                  Future warmups for this exercise will pre-populate the Actual Weight with the
+                  values from previous similar sets, if available.
+                </SecondaryText>
+              )}
+
+              {workoutSet.type === 'Main' && (
+                <Controller
+                  name="feedback"
+                  control={control}
+                  rules={{
+                    required: true
+                  }}
+                  render={({ field: { value } }) => (
+                    <FeedbackSelectInput
+                      value={value}
+                      onSelect={feedback => {
+                        setValue('feedback', feedback)
+                        handleSubmit(onSubmit)
+                      }}
+                    />
+                  )}
+                />
+              )}
+            </Animated.View>
+          )}
+          {workoutSet.status === 'Planned' && !isNextWorkoutSet(workoutSet, activity) && (
+            <SecondaryText style={tw`ml-3 text-xs mt-9`}>
+              Complete the previous workout sets for this exercise before continuing.
+            </SecondaryText>
+          )}
+          {actualWeightWatcher && actualWeightWatcher.value > 0 && (
+            <PlateChart style={tw`mx-3 mt-9`} totalWeight={actualWeightWatcher} />
+          )}
+        </Animated.View>
+      </ScrollView>
+    </>
   )
 }

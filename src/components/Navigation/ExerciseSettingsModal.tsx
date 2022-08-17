@@ -21,7 +21,11 @@ function ExerciseSettingsModal({
           <SpecialText>Close</SpecialText>
         </ButtonContainer>
       </HeaderLeftContainer>
-      <ExerciseSettings availableExercises={availableExercises} usedExercises={usedExercises} />
+      <ExerciseSettings
+        availableExercises={availableExercises}
+        usedExercises={usedExercises}
+        goBack={goBack}
+      />
     </ModalLayout>
   )
 }

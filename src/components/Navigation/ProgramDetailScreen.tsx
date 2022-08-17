@@ -6,7 +6,8 @@ import ScreenLayout from './ScreenLayout'
 import { RootStackScreenProps } from './types'
 
 export default function ProgramDetailScreen({
-  route: { params }
+  route: { params },
+  navigation: { goBack }
 }: RootStackScreenProps<'ProgramDetailScreen'>) {
   const programs = useWorkoutStore(state => state.programs)
   const program = _.find(programs, { programId: params.programId })
@@ -17,7 +18,7 @@ export default function ProgramDetailScreen({
 
   return (
     <ScreenLayout>
-      <ProgramDetail program={program} />
+      <ProgramDetail program={program} goBack={goBack} />
     </ScreenLayout>
   )
 }

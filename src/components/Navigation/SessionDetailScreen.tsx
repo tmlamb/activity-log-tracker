@@ -6,7 +6,8 @@ import ScreenLayout from './ScreenLayout'
 import { RootStackScreenProps } from './types'
 
 export default function SessionDetailScreen({
-  route: { params }
+  route: { params },
+  navigation: { goBack }
 }: RootStackScreenProps<'SessionDetailScreen'>) {
   const { programs, exercises, updateSession } = useWorkoutStore(store => store)
   const program = _.find(programs, { programId: params.programId })
@@ -28,6 +29,7 @@ export default function SessionDetailScreen({
         program={program}
         exercises={exercises}
         changeHandler={updateSession}
+        goBack={goBack}
       />
     </ScreenLayout>
   )

@@ -1,17 +1,20 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
-import { FlatList } from 'react-native'
+import { FlatList, Platform } from 'react-native'
 import tw from '../tailwind'
 import { Program } from '../types'
+import ButtonContainer from './ButtonContainer'
+import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type Props = {
   programs: Program[]
+  goBack: () => void
 }
 
-export default function ProgramSettings({ programs }: Props) {
+export default function ProgramSettings({ programs, goBack }: Props) {
   return (
     <>
       <HeaderRightContainer>
@@ -26,6 +29,13 @@ export default function ProgramSettings({ programs }: Props) {
           </SpecialText>
         </LinkButton>
       </HeaderRightContainer>
+      {Platform.OS === 'web' && (
+        <HeaderLeftContainer>
+          <ButtonContainer onPress={goBack}>
+            <SpecialText>Back</SpecialText>
+          </ButtonContainer>
+        </HeaderLeftContainer>
+      )}
       <FlatList
         style={tw`px-3 pt-9 pb-12`}
         data={programs}

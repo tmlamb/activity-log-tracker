@@ -2,12 +2,13 @@ import { AntDesign } from '@expo/vector-icons'
 import { format } from 'date-fns'
 import _ from 'lodash'
 import React from 'react'
-import { SectionList, View } from 'react-native'
+import { Platform, SectionList, View } from 'react-native'
 import Animated, { Layout } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Activity, Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import ButtonContainer from './ButtonContainer'
 import ElapsedTime from './ElapsedTime'
+import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
@@ -79,9 +80,16 @@ type Props = {
   session: Session
   exercises: Exercise[]
   changeHandler: (programId: string, session: Session) => void
+  goBack: () => void
 }
 
-export default function SessionDetail({ program, session, exercises, changeHandler }: Props) {
+export default function SessionDetail({
+  program,
+  session,
+  exercises,
+  changeHandler,
+  goBack
+}: Props) {
   const workoutSetsPending = _.reduce(
     session.activities,
     (result, activity) =>
@@ -136,6 +144,13 @@ export default function SessionDetail({ program, session, exercises, changeHandl
           <SpecialText>Edit</SpecialText>
         </LinkButton>
       </HeaderRightContainer>
+      {Platform.OS === 'web' && (
+        <HeaderLeftContainer>
+          <ButtonContainer onPress={goBack}>
+            <SpecialText>Back</SpecialText>
+          </ButtonContainer>
+        </HeaderLeftContainer>
+      )}
       {completable && (
         <ButtonContainer
           style={tw`px-3 pt-9 pb-[18px]`}

@@ -1,11 +1,13 @@
 import { AntDesign } from '@expo/vector-icons'
 import React from 'react'
-import { FlatList } from 'react-native'
+import { FlatList, Platform } from 'react-native'
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import tw from '../tailwind'
 import { Exercise } from '../types'
 import { sortRecordsByName } from '../utils'
+import ButtonContainer from './ButtonContainer'
 import ExerciseSearchInput from './ExerciseSearchInput'
+import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
@@ -13,9 +15,10 @@ import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 type Props = {
   availableExercises: Pick<Exercise, 'name'>[]
   usedExercises?: Exercise[]
+  goBack: () => void
 }
 
-export default function ExerciseSettings({ availableExercises, usedExercises }: Props) {
+export default function ExerciseSettings({ availableExercises, usedExercises, goBack }: Props) {
   const [searchFilter, setSearchFilter] = React.useState<string>()
 
   const filteredUsedExercises = usedExercises?.filter(ue =>
@@ -59,6 +62,13 @@ export default function ExerciseSettings({ availableExercises, usedExercises }: 
           </SpecialText>
         </LinkButton>
       </HeaderRightContainer>
+      {Platform.OS === 'web' && (
+        <HeaderLeftContainer>
+          <ButtonContainer onPress={goBack}>
+            <SpecialText>Back</SpecialText>
+          </ButtonContainer>
+        </HeaderLeftContainer>
+      )}
       <FlatList
         keyExtractor={(item, index) => `${(item as Exercise).name}.${index}`}
         contentContainerStyle={tw`px-3 pt-9 pb-12`}
