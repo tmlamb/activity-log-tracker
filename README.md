@@ -2,4 +2,4 @@
 
 [Android Play Store Link](https://play.google.com/store/apps/details?id=com.triplesight.activitylogtracker)
 
-[Web Demo](www.walt.website)
+[Web Demo](https://walt.website)
