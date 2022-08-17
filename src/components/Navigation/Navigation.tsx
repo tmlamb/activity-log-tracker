@@ -48,6 +48,7 @@ export default function Navigation() {
     prefixes: ['https://walt.website', 'https://*.walt.website'],
     config
   }
+  console.log('navigator rendered')
 
   return (
     <NavigationContainer linking={linking}>
