@@ -3,7 +3,7 @@ module.exports = api => {
   api.cache(true)
   const plugins = []
   if (babelEnv === 'production') {
-    plugins.push(['transform-remove-console'])
+    // plugins.push(['transform-remove-console'])
   }
   return {
     presets: ['babel-preset-expo'],
