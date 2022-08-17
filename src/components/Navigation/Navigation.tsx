@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React from 'react'
@@ -23,37 +24,68 @@ import WorkoutSetDetailScreen from './WorkoutSetDetailScreen'
 
 const AppStack = createNativeStackNavigator<RootStackParamList>()
 
-export default function Navigation() {
-  // const config = {
-  //   screens: {
-  //     DashboardScreen: '',
-  //     PrivacyScreen: 'privacy',
-  //     EquipmentSettingsScreen: 'equipment/settings',
-  //     ExerciseFormModal: 'exercise/form/:exerciseId?',
-  //     ExerciseSelectModal: 'exercise/select',
-  //     ExerciseSettingsModal: 'exercise/settings/modal',
-  //     ExerciseSettingsScreen: 'exercise/settings',
-  //     LoadFormModal: 'load',
-  //     ProgramDetailScreen: 'program/:programId',
-  //     ProgramFormModal: 'program/form/:programId?',
-  //     ProgramSettingsScreen: 'program/settings',
-  //     SessionDetailScreen: 'program/:programId/session/:sessionId',
-  //     SessionFormModal: 'program/:programId/session/form/:sessionId?',
-  //     SessionSelectModal: 'session/select',
-  //     SettingsScreen: 'settings',
-  //     WorkoutSetDetailScreen: 'program/:programId/session/:sessionId/set/:workoutSetId',
-  //     NotFound: '*'
-  //   }
-  // }
+const PERSISTENCE_KEY = 'NAVIGATION_STATE_V1'
 
-  // const linking = {
-  //   prefixes: ['https://walt.website', 'https://*.walt.website'],
-  //   config
-  // }
+export default function Navigation() {
+  const [isReady, setIsReady] = React.useState(false)
+  const [initialState, setInitialState] = React.useState()
+
+  React.useEffect(() => {
+    const restoreState = async () => {
+      try {
+        const savedStateString = await AsyncStorage.getItem(PERSISTENCE_KEY)
+        const state = savedStateString ? JSON.parse(savedStateString) : undefined
+
+        if (state !== undefined) {
+          setInitialState(state)
+        }
+      } finally {
+        setIsReady(true)
+      }
+    }
+
+    if (!isReady) {
+      restoreState()
+    }
+  }, [isReady])
+
+  if (!isReady) {
+    return null
+  }
+
+  const config = {
+    screens: {
+      DashboardScreen: '',
+      PrivacyScreen: 'privacy',
+      EquipmentSettingsScreen: 'equipment/settings',
+      ExerciseFormModal: 'exercise/form/:exerciseId?',
+      ExerciseSelectModal: 'exercise/select',
+      ExerciseSettingsModal: 'exercise/settings/modal',
+      ExerciseSettingsScreen: 'exercise/settings',
+      LoadFormModal: 'load',
+      ProgramDetailScreen: 'program/:programId',
+      ProgramFormModal: 'program/form/:programId?',
+      ProgramSettingsScreen: 'program/settings',
+      SessionDetailScreen: 'program/:programId/session/:sessionId',
+      SessionFormModal: 'program/:programId/session/form/:sessionId?',
+      SessionSelectModal: 'session/select',
+      SettingsScreen: 'settings',
+      WorkoutSetDetailScreen: 'program/:programId/session/:sessionId/set/:workoutSetId',
+      NotFound: '*'
+    }
+  }
+
+  const linking = {
+    prefixes: ['https://walt.website', 'https://*.walt.website'],
+    config
+  }
 
   return (
-    // <NavigationContainer linking={linking}>
-    <NavigationContainer>
+    <NavigationContainer
+      linking={linking}
+      initialState={initialState}
+      onStateChange={state => AsyncStorage.setItem(PERSISTENCE_KEY, JSON.stringify(state))}
+    >
       <AppStack.Navigator
         screenOptions={{
           // Modals are too easy to dismiss by gesture - We will force users to use a
