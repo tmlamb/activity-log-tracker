@@ -35,7 +35,10 @@ export default function ExerciseSearchInput({ onChange }: Props) {
         const roundedWidth = Math.round(event.nativeEvent.layout.width)
         if (roundedWidth !== searchComponentWidth) {
           setSearchComponentWidth(roundedWidth)
-          searchFilterWidth.value = withTiming(roundedWidth - cancelButtonWidth, { duration: 500 })
+          searchFilterWidth.value = withTiming(
+            roundedWidth - (searchText ? cancelButtonWidth : 0),
+            { duration: 500 }
+          )
         }
       }}
     >
@@ -54,7 +57,7 @@ export default function ExerciseSearchInput({ onChange }: Props) {
           style={tw.style('rounded-xl')}
           label="Search"
           accessibilityLabel="Filter list of exercises by name"
-          textInputStyle={tw`pl-16 web:pl-0`}
+          textInputStyle={tw`pl-16`}
           maxLength={25}
         />
       </Animated.View>

@@ -170,7 +170,7 @@ export default function LoadForm({
                   >
                     <View
                       style={tw.style(
-                        'px-3 py-2 web:pt-2 web:pb-1 w-full items-center justify-center dark:border-slate-700 border-slate-400',
+                        'px-3 py-2 w-full items-center justify-center dark:border-slate-700 border-slate-400',
                         selectedType === 'RPE'
                           ? 'border-0 opacity-100'
                           : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40',
@@ -196,7 +196,7 @@ export default function LoadForm({
                   >
                     <View
                       style={tw.style(
-                        'px-3 py-2 web:pt-2 web:pb-1 w-full items-center justify-center dark:border-slate-700 border-slate-400',
+                        'px-3 py-2 w-full items-center justify-center dark:border-slate-700 border-slate-400',
                         selectedType === 'PERCENT'
                           ? 'border-0 opacity-100'
                           : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40'

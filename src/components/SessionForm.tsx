@@ -171,7 +171,7 @@ export default function SessionForm({
               >
                 <View
                   style={tw.style(
-                    'px-3 web:pt-2 web:pb-1 w-full items-center justify-center dark:border-slate-700 border-slate-400',
+                    'px-3 w-full items-center justify-center dark:border-slate-700 border-slate-400',
                     fromType === 'Scratch'
                       ? 'border-0 opacity-100'
                       : 'border-0 border-r-0 bg-slate-300 dark:bg-slate-600 opacity-40',
@@ -190,8 +190,8 @@ export default function SessionForm({
                 )}
               >
                 <ModalSelectInput
-                  style={tw`justify-center bg-transparent web:pt-2 web:pb-1`}
-                  value="From Template"
+                  style={tw`justify-center bg-transparent`}
+                  label="From Template"
                   textStyle={tw.style(primaryTextColor)}
                   accessibilityLabel="Navigate to template selection form to create new session from template"
                   modalScreen="SessionSelectModal"
@@ -238,7 +238,7 @@ export default function SessionForm({
                     label="Session Name"
                     innerRef={ref}
                     maxLength={25}
-                    textInputStyle={tw`pl-32 web:pl-0`}
+                    textInputStyle={tw`pl-32`}
                     error={errors.name ? 'Session Name is required' : undefined}
                   />
                 )}

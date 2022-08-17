@@ -74,7 +74,7 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
               innerRef={ref}
               value={value}
               label="Program Name"
-              textInputStyle={tw`pl-32 web:pl-0`}
+              textInputStyle={tw`pl-32`}
               maxLength={25}
               error={errors.name ? 'Program Name is required' : undefined}
               accessibilityLabel="Enter Workout Program Name"

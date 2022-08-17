@@ -41,7 +41,7 @@ export default function Settings() {
           <LinkButton to={item.to} accessibilityLabel={item.accessibilityLabel}>
             <ThemedView
               style={tw.style(
-                'web:pt-[7px] web:pb-[3px] relative',
+                'relative',
                 index !== data.length - 1 ? 'border-b-2' : 'border-b-0 rounded-b-xl',
                 index === 0 ? 'rounded-t-xl' : undefined
               )}

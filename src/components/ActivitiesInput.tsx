@@ -432,7 +432,7 @@ export default function ActivitiesInput({
           }}
           disabled={fields.length > 100}
         >
-          <ThemedView style={tw`justify-start web:py-[7.25px] web:pb-[3.25px]`}>
+          <ThemedView style={tw`justify-start`}>
             <SpecialText>
               <AntDesign name="pluscircle" size={16} />
             </SpecialText>

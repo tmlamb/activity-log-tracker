@@ -261,8 +261,10 @@ export default function WorkoutSetDetail({
               : 'rounded-xl'
           )}
         >
-          <PrimaryText>Exercise</PrimaryText>
-          <SecondaryText>{exercise.name}</SecondaryText>
+          <PrimaryText style={tw`pr-3`}>Exercise</PrimaryText>
+          <SecondaryText style={tw`flex-1 text-right`} numberOfLines={3}>
+            {exercise.name}
+          </SecondaryText>
         </ThemedView>
         {workoutSet.type === 'Warmup' && exercise.oneRepMax && (
           <ThemedView style={tw`rounded-b-xl`}>

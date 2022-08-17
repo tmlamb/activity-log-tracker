@@ -29,7 +29,7 @@ export default function DoubleConfirm({ style, first, second, accessibilityLabel
         <Animated.View
           entering={RollInRight.springify().stiffness(50).damping(6).mass(0.3)}
           exiting={RollOutRight.springify().stiffness(50).damping(6).mass(0.3)}
-          style={[tw.style('absolute items-center justify-center h-full right-0 web:mt-0.5')]}
+          style={[tw.style('absolute items-center justify-center h-full right-0')]}
           accessible
           accessibilityLabel={`${accessibilityLabel}`}
           accessibilityRole="button"

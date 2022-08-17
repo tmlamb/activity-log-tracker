@@ -89,7 +89,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                 placeholder="0"
                 maxLength={3}
                 style={tw`rounded-xl mb-6`}
-                textInputStyle={tw`pl-40 web:pl-0`}
+                textInputStyle={tw`pl-40`}
                 keyboardType="number-pad"
                 numeric
                 selectTextOnFocus
@@ -103,7 +103,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
               <Animated.View key={item.platePairId} entering={FadeInUp} exiting={FadeOutUp}>
                 <View style={tw`relative items-center flex-row justify-between`}>
                   <ButtonContainer
-                    style={tw`absolute z-1 p-2`}
+                    style={tw`absolute z-1 p-3 web:-mt-0.5`}
                     onPress={() => remove(index)}
                     accessibilityLabel={`Remove plate pair with weight ${item.value}`}
                   >
@@ -135,8 +135,8 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                           'py-0 border-b-2 w-full',
                           index === 0 ? 'rounded-t-xl' : undefined
                         )}
-                        textInputStyle={tw`web:ml-6`}
-                        labelStyle={tw`pl-7`}
+                        textInputStyle={tw`web:ml-8`}
+                        labelStyle={tw`pl-7 web:pl-10`}
                         selectTextOnFocus
                         keyboardType="numeric"
                         numeric
@@ -170,7 +170,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
             >
               <ThemedView
                 style={tw.style(
-                  'justify-start web:py-[7.25px] web:pb-[3.25px]',
+                  'justify-start',
                   fields.length === 0 ? 'rounded-xl' : 'rounded-b-xl'
                 )}
               >

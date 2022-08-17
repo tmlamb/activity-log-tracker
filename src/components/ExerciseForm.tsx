@@ -110,7 +110,7 @@ export default function ExerciseForm({
               onBlur={onBlur}
               value={value}
               maxLength={25}
-              textInputStyle={tw`pl-40 web:pl-0`}
+              textInputStyle={tw`pl-32`}
               error={errors.name ? 'Exercise Name is required' : undefined}
             />
           )}
@@ -137,7 +137,7 @@ export default function ExerciseForm({
               value={String((value && value.value) || '')}
               maxLength={4}
               style={tw`mt-9`}
-              textInputStyle={tw`pl-40 web:pl-0`}
+              textInputStyle={tw`pl-40`}
               keyboardType="number-pad"
               numeric
               accessibilityLabel="One Rep Max in pounds"

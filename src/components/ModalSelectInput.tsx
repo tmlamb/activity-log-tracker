@@ -117,7 +117,11 @@ export default function ModalSelectInput<
           {labelPosition === 'center' && (
             <SecondaryText style={tw.style(textStyle)}>{label}</SecondaryText>
           )}
-          {value && <SecondaryText style={tw.style(textStyle)}>{value}</SecondaryText>}
+          {value && (
+            <SecondaryText style={tw.style('web:w-0 web:flex-grow web:flex-1', textStyle)}>
+              {value}
+            </SecondaryText>
+          )}
           {!value && placeholder && (
             <SpecialText style={tw.style(textStyle)}>{placeholder}</SpecialText>
           )}
