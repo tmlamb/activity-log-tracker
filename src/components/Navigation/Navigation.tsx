@@ -24,35 +24,36 @@ import WorkoutSetDetailScreen from './WorkoutSetDetailScreen'
 const AppStack = createNativeStackNavigator<RootStackParamList>()
 
 export default function Navigation() {
-  const config = {
-    screens: {
-      DashboardScreen: '',
-      PrivacyScreen: 'privacy',
-      EquipmentSettingsScreen: 'equipment/settings',
-      ExerciseFormModal: 'exercise/form/:exerciseId?',
-      ExerciseSelectModal: 'exercise/select',
-      ExerciseSettingsModal: 'exercise/settings/modal',
-      ExerciseSettingsScreen: 'exercise/settings',
-      LoadFormModal: 'load',
-      ProgramDetailScreen: 'program/:programId',
-      ProgramFormModal: 'program/form/:programId?',
-      ProgramSettingsScreen: 'program/settings',
-      SessionDetailScreen: 'program/:programId/session/:sessionId',
-      SessionFormModal: 'program/:programId/session/form/:sessionId?',
-      SessionSelectModal: 'session/select',
-      SettingsScreen: 'settings',
-      WorkoutSetDetailScreen: 'program/:programId/session/:sessionId/set/:workoutSetId',
-      NotFound: '*'
-    }
-  }
+  // const config = {
+  //   screens: {
+  //     DashboardScreen: '',
+  //     PrivacyScreen: 'privacy',
+  //     EquipmentSettingsScreen: 'equipment/settings',
+  //     ExerciseFormModal: 'exercise/form/:exerciseId?',
+  //     ExerciseSelectModal: 'exercise/select',
+  //     ExerciseSettingsModal: 'exercise/settings/modal',
+  //     ExerciseSettingsScreen: 'exercise/settings',
+  //     LoadFormModal: 'load',
+  //     ProgramDetailScreen: 'program/:programId',
+  //     ProgramFormModal: 'program/form/:programId?',
+  //     ProgramSettingsScreen: 'program/settings',
+  //     SessionDetailScreen: 'program/:programId/session/:sessionId',
+  //     SessionFormModal: 'program/:programId/session/form/:sessionId?',
+  //     SessionSelectModal: 'session/select',
+  //     SettingsScreen: 'settings',
+  //     WorkoutSetDetailScreen: 'program/:programId/session/:sessionId/set/:workoutSetId',
+  //     NotFound: '*'
+  //   }
+  // }
 
-  const linking = {
-    prefixes: ['https://walt.website', 'https://*.walt.website'],
-    config
-  }
+  // const linking = {
+  //   prefixes: ['https://walt.website', 'https://*.walt.website'],
+  //   config
+  // }
 
   return (
-    <NavigationContainer linking={linking}>
+    // <NavigationContainer linking={linking}>
+    <NavigationContainer>
       <AppStack.Navigator
         screenOptions={{
           // Modals are too easy to dismiss by gesture - We will force users to use a
