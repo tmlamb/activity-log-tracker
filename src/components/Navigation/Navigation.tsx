@@ -40,12 +40,12 @@ export default function Navigation() {
         path: ''
       },
       PrivacyScreen: 'privacy',
-      ProgramDetailScreen: 'program/:programId'
+      NotFound: '*'
     }
   }
 
   const linking = {
-    prefixes: ['https://walt.website', 'https://*.walt.website'],
+    prefixes: ['https://walt.website/', 'https://*.walt.website/'],
     config
   }
 
@@ -150,6 +150,15 @@ export default function Navigation() {
             title: 'Privacy Policy'
           })}
         />
+        <AppStack.Screen
+          name="NotFound"
+          component={DashboardScreen}
+          options={{
+            headerTitle: '',
+            title: 'Activity Log Tracker'
+          }}
+        />
+
         <AppStack.Group screenOptions={{ presentation: 'modal' }}>
           <AppStack.Screen
             name="ProgramFormModal"

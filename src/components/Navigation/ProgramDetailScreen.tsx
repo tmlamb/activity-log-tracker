@@ -11,6 +11,9 @@ export default function ProgramDetailScreen({
   const programs = useWorkoutStore(state => state.programs)
   const program = _.find(programs, { programId: params.programId })
 
+  console.log(params)
+  console.log(programs)
+
   if (!program) {
     throw Error(`Possible data corruption: unable to find program ${params.programId}`)
   }

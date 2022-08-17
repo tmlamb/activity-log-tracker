@@ -86,6 +86,7 @@ export type RootStackParamList = {
   WorkoutSetDetailScreen: WorkoutSetNavParams
   SessionSelectModal: SessionSelectNavParams
   PrivacyScreen: undefined
+  NotFound: undefined
 }
 
 export type RootStackScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<
