@@ -105,6 +105,7 @@ export default function SessionForm({
   const didTemplateUpdate = useRef(false)
 
   React.useEffect(() => {
+    // Process the session template if it has changed, populating the form with it's data
     if (sessionTemplate && !watchedName && !didTemplateUpdate.current) {
       didTemplateUpdate.current = true
       setValue('name', sessionTemplate.name, { shouldDirty: true })
@@ -192,7 +193,7 @@ export default function SessionForm({
                   style={tw`justify-center bg-transparent`}
                   label="From Template"
                   textStyle={tw.style(primaryTextColor)}
-                  accessibilityLabel="Navigate to template selection form to create new session from template"
+                  accessibilityLabel="Navigate to template selection form to create new session from a template"
                   modalScreen="SessionSelectModal"
                   modalParams={{
                     modalSelectId: `${program.programId}.addSession`,
