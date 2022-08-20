@@ -7,11 +7,16 @@ import { RootStackScreenProps } from './types'
 
 export default function LoadFormModal({
   route: { params },
-  navigation: { goBack }
+  navigation: { goBack, navigate }
 }: RootStackScreenProps<'LoadFormModal'>) {
   const { value, exerciseId, parentScreen, parentParams, modalSelectId } = params
   const { exercises, updateExercise } = useWorkoutStore(store => store)
   const exercise = _.find(exercises, { exerciseId })
+
+  if (!exercise && exerciseId) {
+    navigate('NotFoundScreen')
+    return null
+  }
 
   return (
     <ModalLayout>

@@ -7,7 +7,7 @@ import { RootStackScreenProps, SessionFormNavParams } from './types'
 
 export default function SessionFormModal({
   route,
-  navigation: { goBack }
+  navigation: { goBack, navigate }
 }: RootStackScreenProps<'SessionFormModal'>) {
   const { programs, exercises, addSession, updateSession, deleteSession } = useWorkoutStore(
     store => store
@@ -19,11 +19,17 @@ export default function SessionFormModal({
   const program = _.find(programs, { programId: params.programId })
 
   if (!program) {
-    throw Error(`Possible data corruption: unable to find program ${params.programId}`)
+    navigate('NotFoundScreen')
+    return null
   }
 
   const { sessions } = program
   const session = _.find(sessions, { sessionId: params.sessionId })
+
+  if (!session && params?.sessionId) {
+    navigate('NotFoundScreen')
+    return null
+  }
 
   return (
     <ModalLayout>

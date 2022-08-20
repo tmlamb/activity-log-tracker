@@ -79,7 +79,7 @@ export default function ExerciseSettings({ availableExercises, usedExercises, go
             <LinkButton
               to={{
                 screen: 'ExerciseFormModal',
-                params: { exerciseId: item.exerciseId, name: item.name }
+                params: item.exerciseId ? { exerciseId: item.exerciseId } : { name: item.name }
               }}
               accessibilityLabel={`Navigate to Edit Exercise with name ${item.name}`}
             >

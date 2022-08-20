@@ -7,19 +7,21 @@ import { RootStackScreenProps } from './types'
 
 export default function SessionDetailScreen({
   route: { params },
-  navigation: { goBack }
+  navigation: { goBack, navigate }
 }: RootStackScreenProps<'SessionDetailScreen'>) {
   const { programs, exercises, updateSession } = useWorkoutStore(store => store)
   const program = _.find(programs, { programId: params.programId })
 
   if (!program) {
-    throw Error(`Possible data corruption: unable to find program ${params.programId}`)
+    navigate('NotFoundScreen')
+    return null
   }
 
   const session = _.find(program.sessions, { sessionId: params.sessionId })
 
   if (!session) {
-    throw Error(`Possible data corruption: unable to find session ${params.sessionId}`)
+    navigate('NotFoundScreen')
+    return null
   }
 
   return (

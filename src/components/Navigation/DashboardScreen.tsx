@@ -17,6 +17,7 @@ export default function DashboardScreen() {
   )
 
   const programs = useWorkoutStore(state => state.programs)
+
   return (
     <ScreenLayout key={forceRenderKey}>
       <Dashboard programs={programs} />

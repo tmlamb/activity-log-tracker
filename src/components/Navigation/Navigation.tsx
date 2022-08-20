@@ -11,7 +11,7 @@ import ExerciseSelectModal from './ExerciseSelectModal'
 import ExerciseSettingsModal from './ExerciseSettingsModal'
 import ExerciseSettingsScreen from './ExerciseSettingsScreen'
 import LoadFormModal from './LoadFormModal'
-import PrivacyScreen from './PrivacyScreen'
+import NotFoundScreen from './NotFoundScreen'
 import ProgramDetailScreen from './ProgramDetailScreen'
 import ProgramFormModal from './ProgramFormModal'
 import ProgramSettingsScreen from './ProgramSettingsScreen'
@@ -31,38 +31,11 @@ const PERSISTENCE_KEY = 'NAVIGATION_STATE_V1'
 // brings the user back to the same page they were on if they force closed the app.
 const shouldPersist = Platform.OS === 'web'
 
-export default function Navigation() {
-  const [isNavStateReady, setIsNavStateReady] = React.useState(!shouldPersist)
-  const [initialState, setInitialState] = React.useState()
-
-  React.useEffect(() => {
-    const restoreState = async () => {
-      try {
-        const initialUrl = new URL((await Linking.getInitialURL()) || '/')
-        const savedStateString = await AsyncStorage.getItem(PERSISTENCE_KEY)
-        const state = savedStateString ? JSON.parse(savedStateString) : undefined
-
-        if (state !== undefined && initialUrl.pathname !== '/') {
-          setInitialState(state)
-        }
-      } finally {
-        setIsNavStateReady(true)
-      }
-    }
-
-    if (!isNavStateReady) {
-      restoreState()
-    }
-  }, [isNavStateReady])
-
-  if (!isNavStateReady) {
-    return null
-  }
-
-  const config = {
+const linking = {
+  prefixes: ['https://walt.website', 'https://*.walt.website'],
+  config: {
     screens: {
       DashboardScreen: '',
-      PrivacyScreen: 'privacy',
       EquipmentSettingsScreen: 'equipment/settings',
       ExerciseFormModal: 'exercise/form/:exerciseId?',
       ExerciseSelectModal: 'exercise/select',
@@ -77,13 +50,59 @@ export default function Navigation() {
       SessionSelectModal: 'session/select',
       SettingsScreen: 'settings',
       WorkoutSetDetailScreen: 'program/:programId/session/:sessionId/set/:workoutSetId',
-      NotFound: '*'
+      NotFoundScreen: '*'
     }
   }
+}
 
-  const linking = {
-    prefixes: ['https://walt.website', 'https://*.walt.website'],
-    config
+export default function Navigation() {
+  const [isNavStateReady, setIsNavStateReady] = React.useState(!shouldPersist)
+  const [initialState, setInitialState] = React.useState()
+
+  React.useEffect(() => {
+    const restoreState = async () => {
+      try {
+        const visitedPath = new URL((await Linking.getInitialURL()) || '/').pathname.substring(1)
+        const savedStateString = await AsyncStorage.getItem(PERSISTENCE_KEY)
+        const state = savedStateString ? JSON.parse(savedStateString) : undefined
+
+        const visitedPathParts = visitedPath.split('/')
+
+        // Check if the visited path is a valid path for the app.
+        const foundPath = Object.values(linking.config.screens).find(knownPath => {
+          const knownPathParts = knownPath.split('/')
+          // If the number of parts to the path are different, no match
+          if (knownPathParts.length !== visitedPathParts?.length) {
+            return false
+          }
+
+          // Check each part to see if there is a non-matching section
+          return (
+            knownPathParts.findIndex((knownPathPart, index) => {
+              // Dynamic parts can be ignored
+              if (knownPathPart.startsWith(':')) {
+                return false
+              }
+              return knownPathPart !== visitedPathParts[index]
+            }) === -1
+          )
+        })
+
+        if (state && foundPath && visitedPath !== '') {
+          setInitialState(state)
+        }
+      } finally {
+        setIsNavStateReady(true)
+      }
+    }
+
+    if (!isNavStateReady) {
+      restoreState()
+    }
+  }, [isNavStateReady])
+
+  if (!isNavStateReady) {
+    return null
   }
 
   return (
@@ -187,51 +206,44 @@ export default function Navigation() {
           })}
         />
         <AppStack.Screen
-          name="PrivacyScreen"
-          component={PrivacyScreen}
-          options={() => ({
-            title: 'Privacy Policy'
+          name="NotFoundScreen"
+          component={NotFoundScreen}
+          options={{
+            title: 'Oops...'
+          }}
+        />
+        <AppStack.Screen
+          name="ProgramFormModal"
+          component={ProgramFormModal}
+          options={({ route }) => ({
+            title: route.params && route.params.programId ? 'Edit Program' : 'Add Program',
+            presentation: 'modal'
           })}
         />
         <AppStack.Screen
-          name="NotFound"
-          component={DashboardScreen}
-          options={{
-            headerTitle: '',
-            title: 'Activity Log Tracker'
-          }}
+          name="LoadFormModal"
+          component={LoadFormModal}
+          options={() => ({
+            title: 'Select Load',
+            presentation: 'modal'
+          })}
         />
-
-        <AppStack.Group screenOptions={{ presentation: 'modal' }}>
-          <AppStack.Screen
-            name="ProgramFormModal"
-            component={ProgramFormModal}
-            options={({ route }) => ({
-              title: route.params && route.params.programId ? 'Edit Program' : 'Add Program'
-            })}
-          />
-          <AppStack.Screen
-            name="LoadFormModal"
-            component={LoadFormModal}
-            options={() => ({
-              title: 'Select Load'
-            })}
-          />
-          <AppStack.Screen
-            name="SessionSelectModal"
-            component={SessionSelectModal}
-            options={() => ({
-              title: 'Select Template'
-            })}
-          />
-          <AppStack.Screen
-            name="ExerciseFormModal"
-            component={ExerciseFormModal}
-            options={({ route }) => ({
-              title: route.params && route.params.exerciseId ? 'Edit Exercise' : 'Add Exercise'
-            })}
-          />
-        </AppStack.Group>
+        <AppStack.Screen
+          name="SessionSelectModal"
+          component={SessionSelectModal}
+          options={() => ({
+            title: 'Select Template',
+            presentation: 'modal'
+          })}
+        />
+        <AppStack.Screen
+          name="ExerciseFormModal"
+          component={ExerciseFormModal}
+          options={({ route }) => ({
+            title: route.params && route.params.exerciseId ? 'Edit Exercise' : 'Add Exercise',
+            presentation: 'modal'
+          })}
+        />
       </AppStack.Navigator>
     </NavigationContainer>
   )

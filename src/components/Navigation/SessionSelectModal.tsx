@@ -8,13 +8,15 @@ import { RootStackScreenProps } from './types'
 
 export default function SessionSelectModal({
   route: { params },
-  navigation: { goBack }
+  navigation: { goBack, navigate }
 }: RootStackScreenProps<'SessionSelectModal'>) {
   const { programs } = useWorkoutStore(state => state)
   const { value, programId, parentScreen, parentParams, modalSelectId } = params
   const program = _.find(programs, { programId })
+
   if (!program) {
-    throw Error(`Possible data corruption: unable to find program ${params.programId}`)
+    navigate('NotFoundScreen')
+    return null
   }
   const sessions = program?.sessions
 

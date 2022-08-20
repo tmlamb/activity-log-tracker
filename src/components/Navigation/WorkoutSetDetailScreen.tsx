@@ -7,31 +7,35 @@ import { RootStackScreenProps } from './types'
 
 function WorkoutSetDetailScreen({
   route: { params },
-  navigation: { goBack }
+  navigation: { goBack, navigate }
 }: RootStackScreenProps<'WorkoutSetDetailScreen'>) {
   const { programs, exercises, updateWorkoutSet, startSession } = useWorkoutStore(store => store)
   const program = _.find(programs, { programId: params.programId })
 
   if (!program) {
-    throw Error(`Possible data corruption: unable to find program ${params.programId}`)
+    navigate('NotFoundScreen')
+    return null
   }
 
   const session = _.find(program.sessions, { sessionId: params.sessionId })
 
   if (!session) {
-    throw Error(`Possible data corruption: unable to find session ${params.sessionId}`)
+    navigate('NotFoundScreen')
+    return null
   }
 
   const activity = _.find(session.activities, { activityId: params.activityId })
 
   if (!activity) {
-    throw Error(`Possible data corruption: unable to find activity ${params.activityId}`)
+    navigate('NotFoundScreen')
+    return null
   }
 
   const exercise = _.find(exercises, { exerciseId: activity.exerciseId })
 
   if (!exercise) {
-    throw Error(`Possible data corruption: unable to find exercise ${activity.exerciseId}`)
+    navigate('NotFoundScreen')
+    return null
   }
 
   const workoutSet =
@@ -39,7 +43,8 @@ function WorkoutSetDetailScreen({
     _.find(activity.warmupSets, { workoutSetId: params.workoutSetId })
 
   if (!workoutSet) {
-    throw Error(`Possible data corruption: unable to find workoutSet ${params.workoutSetId}`)
+    navigate('NotFoundScreen')
+    return null
   }
 
   return (
