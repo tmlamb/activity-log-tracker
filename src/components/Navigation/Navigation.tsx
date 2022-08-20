@@ -71,8 +71,13 @@ export default function Navigation() {
         // Check if the visited path is a valid path for the app.
         const foundPath = Object.values(linking.config.screens).find(knownPath => {
           const knownPathParts = knownPath.split('/')
-          // If the number of parts to the path are different, no match
-          if (knownPathParts.length !== visitedPathParts?.length) {
+          const lastKnownPathPart = knownPathParts[knownPathParts.length - 1]
+          // If the number of parts to the path are different, no match (but ignore optional id field)
+          if (
+            knownPathParts.length -
+              (lastKnownPathPart.startsWith(':') && lastKnownPathPart.endsWith('?') ? 1 : 0) !==
+            visitedPathParts?.length
+          ) {
             return false
           }
 
