@@ -8,6 +8,8 @@ export interface WorkoutStore {
   programs: Program[]
   exercises: Exercise[]
   equipment: Equipment
+  hasHydrated: boolean
+  setHasHydrated: (hasHydrated: boolean) => void
   addProgram: (program: Program) => void
   updateProgram: (program: Program) => void
   deleteProgram: (programId: string) => void
@@ -48,6 +50,10 @@ const useWorkoutStore = create<WorkoutStore>()(
           { value: 45, unit: 'lbs', platePairId: '8' },
           { value: 45, unit: 'lbs', platePairId: '9' }
         ]
+      },
+      hasHydrated: false,
+      setHasHydrated: (hasHydrated: boolean) => {
+        set({ hasHydrated })
       },
       addProgram: (program: Program) => {
         set(
@@ -295,6 +301,9 @@ const useWorkoutStore = create<WorkoutStore>()(
     }),
     {
       name: 'workout-storage',
+      onRehydrateStorage: () => (state?: WorkoutStore) => {
+        state?.setHasHydrated(true)
+      },
       getStorage: () => AsyncStorage,
       // AsyncStorage serializes Dates as strings, so this is necessary to convert back to Date when deserializing
       deserialize: (serializedState: string) => {

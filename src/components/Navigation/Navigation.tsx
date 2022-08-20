@@ -27,7 +27,7 @@ const AppStack = createNativeStackNavigator<RootStackParamList>()
 const PERSISTENCE_KEY = 'NAVIGATION_STATE_V1'
 
 export default function Navigation() {
-  const [isReady, setIsReady] = React.useState(false)
+  const [isReady, setIsReady] = React.useState(true)
   const [initialState, setInitialState] = React.useState()
 
   React.useEffect(() => {
