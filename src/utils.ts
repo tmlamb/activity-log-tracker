@@ -18,8 +18,6 @@ export const stringifyLoad = ({ type, value }: Load) =>
 
 export const stringifyWeight = (weight: Weight) => `${weight.value} ${weight.unit}`
 
-export const spaceReplace = (str: string) => str.replace(/\u00a0/, '\u0020')
-
 export const round5 = (value: number) => Math.round(value / 5) * 5
 
 export const sortRecordsByName = (rows: { name: string }[]) =>

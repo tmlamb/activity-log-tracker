@@ -39,19 +39,17 @@ type Props = {
   accessibilityLabel?: string
 }
 
-// TODO: fix issues with entering leading zeroes in various places
-
 // Why is this necessary? Because when we right justify the text in
 // our TextInput, any trailing whitespace in the field gets treated
 // as space to be removed so that the text is right aligned. This
 // causes our users spaces to be ignored visually until they enter
 // a non-whitespace character. Luckily &nbsp; (\u00a0) does not
 // behave this way.
-const nbspReplace = (str: string) => str.replace(/\u0020/, '\u00a0')
-// TODO: unify nbsp replacement here
+const nbspReplace = (str: string) => str.replace(/\u0020/g, '\u00a0')
+const spaceReplace = (str: string) => str.replace(/\u00a0/g, '\u0020')
 
-// Removes non-numeric values from numeric fields
-const numericReplace = (str: string) => str.replace(/[^0-9|\\.]/g, '').replace(/\b0+/g, '')
+// Prevents non-numeric values in numeric fields and trims leading zeros.
+const numericReplace = (str: string) => str.replace(/[^0-9|\\.]/g, '').replace(/^0+/g, '')
 
 interface PropsFilled extends Props {
   onChangeText: (text: string) => void
@@ -83,7 +81,7 @@ export default function TextInput({
   accessibilityLabel
 }: PropsFilled) {
   const handleChange = (text: string) => {
-    const normalizedText = nbspReplace(numeric ? numericReplace(text) : text)
+    const normalizedText = spaceReplace(numeric ? numericReplace(text) : text)
     onChangeText(normalizedText)
   }
 
@@ -105,7 +103,7 @@ export default function TextInput({
           onChangeText={handleChange}
           onChange={onChange}
           onBlur={onBlur}
-          value={value}
+          value={value ? nbspReplace(value) : value}
           style={tw.style(
             primaryTextColor,
             'w-full pb-[2.8px] pt-[2.5px] android:py-[.15px] z-20 pr-0 text-lg web:text-right web:pr-3 web:pt-[10.75px] web:pb-[10.75px] leading-tight tracking-tight',

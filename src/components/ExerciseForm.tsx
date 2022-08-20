@@ -25,7 +25,6 @@ type Props = {
 function compareStrings(a: string, b: string) {
   return a.split(/\s/).join('') === b.split(/\s/).join('')
 }
-const spaceReplace = (str: string) => str.replace(/\u00a0/, '\u0020')
 
 export default function ExerciseForm({
   changeHandler,
@@ -69,14 +68,14 @@ export default function ExerciseForm({
       exercise
         ? {
             ...exercise,
-            name: spaceReplace(data.name),
+            name: data.name,
             oneRepMax: data.oneRepMax,
-            primaryMuscle: data.primaryMuscle && spaceReplace(data.primaryMuscle)
+            primaryMuscle: data.primaryMuscle && data.primaryMuscle
           }
         : {
-            name: spaceReplace(data.name),
+            name: data.name,
             oneRepMax: data.oneRepMax,
-            primaryMuscle: data.primaryMuscle && spaceReplace(data.primaryMuscle),
+            primaryMuscle: data.primaryMuscle && data.primaryMuscle,
             exerciseId: uuidv4()
           }
     )
