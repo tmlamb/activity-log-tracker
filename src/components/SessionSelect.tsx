@@ -30,7 +30,7 @@ export default function SessionSelect({
   modalSelectId,
   goBack
 }: Props) {
-  const [selected, setSelected] = React.useState<Partial<Session> | undefined>(initialValue)
+  const [selected, setSelected] = React.useState<Session | undefined>(initialValue)
 
   const sessionsSorted = _(sessions).filter('end').orderBy(['start'], ['desc']).value()
 
@@ -73,14 +73,14 @@ export default function SessionSelect({
                 ...item,
                 start: undefined,
                 end: undefined,
-                activities: item?.activities?.map(actvy => ({
+                activities: item.activities.map(actvy => ({
                   ...actvy,
-                  warmupSets: actvy.warmupSets?.map(ws => ({
+                  warmupSets: actvy.warmupSets.map(ws => ({
                     ...ws,
                     start: undefined,
                     end: undefined
                   })),
-                  mainSets: actvy.mainSets?.map(ms => ({
+                  mainSets: actvy.mainSets.map(ms => ({
                     ...ms,
                     start: undefined,
                     end: undefined

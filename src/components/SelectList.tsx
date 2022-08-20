@@ -5,14 +5,14 @@ import tw from '../tailwind'
 import ButtonContainer from './ButtonContainer'
 
 type Props<T> = {
-  items: Partial<T>[]
+  items: T[]
   style?: ClassInput
-  keyExtractor: (value: Partial<T>, index: number) => string
+  keyExtractor: (value: T, index: number) => string
   scrollEnabled?: boolean
   ListHeaderComponent?: JSX.Element
   contentContainerStyle?: ClassInput
-  renderItem?: ListRenderItem<Partial<T>> | null
-  onSelect: (value: Partial<T>) => void
+  renderItem?: ListRenderItem<T> | null
+  onSelect: (value: T) => void
   keyboardShouldPersistTaps?: 'always' | 'handled' | 'never'
 }
 
