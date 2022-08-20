@@ -180,7 +180,7 @@ export default function Navigation() {
           component={SessionFormModal}
           options={({ route }) => ({
             title:
-              route.params && (route.params as Readonly<SessionFormNavParams>).sessionId
+              route.params && (route.params as SessionFormNavParams).sessionId
                 ? 'Edit Session'
                 : 'Add Session',
             presentation: 'modal'
