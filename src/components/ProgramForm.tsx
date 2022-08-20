@@ -33,7 +33,6 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
   })
 
   const onSubmit = (data: FormData) => {
-    data.name.indexOf('\u00a0')
     changeHandler(
       program
         ? { ...program, name: data.name }
