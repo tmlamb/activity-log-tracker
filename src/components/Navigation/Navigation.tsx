@@ -26,8 +26,13 @@ const AppStack = createNativeStackNavigator<RootStackParamList>()
 
 const PERSISTENCE_KEY = 'NAVIGATION_STATE_V1'
 
+// Nav state persistence is nice on web, because it allows React Navigation's 'goBack'
+// to work across page refreshes. However, it's not so nice on native, because it
+// brings the user back to the same page they were on if they force closed the app.
+const shouldPersist = Platform.OS === 'web'
+
 export default function Navigation() {
-  const [isReady, setIsReady] = React.useState(true)
+  const [isNavStateReady, setIsNavStateReady] = React.useState(!shouldPersist)
   const [initialState, setInitialState] = React.useState()
 
   React.useEffect(() => {
@@ -41,16 +46,16 @@ export default function Navigation() {
           setInitialState(state)
         }
       } finally {
-        setIsReady(true)
+        setIsNavStateReady(true)
       }
     }
 
-    if (!isReady) {
+    if (!isNavStateReady) {
       restoreState()
     }
-  }, [isReady])
+  }, [isNavStateReady])
 
-  if (!isReady) {
+  if (!isNavStateReady) {
     return null
   }
 
@@ -85,7 +90,9 @@ export default function Navigation() {
     <NavigationContainer
       linking={linking}
       initialState={initialState}
-      onStateChange={state => AsyncStorage.setItem(PERSISTENCE_KEY, JSON.stringify(state))}
+      onStateChange={state =>
+        shouldPersist && AsyncStorage.setItem(PERSISTENCE_KEY, JSON.stringify(state))
+      }
     >
       <AppStack.Navigator
         screenOptions={{
