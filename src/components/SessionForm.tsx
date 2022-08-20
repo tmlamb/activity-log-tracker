@@ -9,7 +9,6 @@ import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Activity, Exercise, Program, Session } from '../types'
-import { spaceReplace } from '../utils'
 import ActivitiesInput from './ActivitiesInput'
 import ButtonContainer from './ButtonContainer'
 import DoubleConfirm from './DoubleConfirm'
@@ -82,7 +81,7 @@ export default function SessionForm({
       program.programId,
       session
         ? {
-            name: spaceReplace(data.name),
+            name: data.name,
             sessionId: session.sessionId,
             activities: data.activities as Activity[],
             start: session.start,
@@ -90,7 +89,7 @@ export default function SessionForm({
             status: session.status
           }
         : {
-            name: spaceReplace(data.name),
+            name: data.name,
             sessionId: uuidv4(),
             activities: data.activities as Activity[],
             start: undefined,

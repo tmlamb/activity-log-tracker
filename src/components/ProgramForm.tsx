@@ -6,7 +6,6 @@ import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Program } from '../types'
-import { spaceReplace } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import DoubleConfirm from './DoubleConfirm'
 import HeaderLeftContainer from './HeaderLeftContainer'
@@ -34,11 +33,12 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
   })
 
   const onSubmit = (data: FormData) => {
+    data.name.indexOf('\u00a0')
     changeHandler(
       program
-        ? { ...program, name: spaceReplace(data.name) }
+        ? { ...program, name: data.name }
         : {
-            name: spaceReplace(data.name),
+            name: data.name,
             programId: uuidv4(),
             sessions: []
           }
