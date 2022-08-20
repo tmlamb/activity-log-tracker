@@ -3,6 +3,7 @@ import produce from 'immer'
 import create from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Activity, Equipment, Exercise, Program, Session, WorkoutSet } from '../types'
+import { dateRegex } from '../utils'
 
 export interface WorkoutStore {
   programs: Program[]
@@ -305,30 +306,12 @@ const useWorkoutStore = create<WorkoutStore>()(
         state?.setHasHydrated(true)
       },
       getStorage: () => AsyncStorage,
-      // AsyncStorage serializes Dates as strings, so this is necessary to convert back to Date when deserializing
       deserialize: (serializedState: string) => {
-        const storage = JSON.parse(serializedState)
-        storage.state.programs = storage.state.programs.map((program: Program) => ({
-          ...program,
-          sessions: program.sessions.map(session => ({
-            ...session,
-            start: session.start ? new Date(String(session.start)) : undefined,
-            end: session.end ? new Date(String(session.end)) : undefined,
-            activities: session.activities.map(activity => ({
-              ...activity,
-              warmupSets: activity.warmupSets.map(warmupSet => ({
-                ...warmupSet,
-                start: warmupSet.start ? new Date(String(warmupSet.start)) : undefined,
-                end: warmupSet.end ? new Date(String(warmupSet.end)) : undefined
-              })),
-              mainSets: activity.mainSets.map(mainSet => ({
-                ...mainSet,
-                start: mainSet.start ? new Date(String(mainSet.start)) : undefined,
-                end: mainSet.end ? new Date(String(mainSet.end)) : undefined
-              }))
-            }))
-          }))
-        }))
+        const storage = JSON.parse(serializedState, (_key, value) =>
+          // Dates don't serialize well
+          typeof value === 'string' && dateRegex.exec(value) ? new Date(value) : value
+        )
+
         return storage
       }
     }

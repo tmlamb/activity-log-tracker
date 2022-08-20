@@ -5,6 +5,7 @@ import { immer } from 'zustand/middleware/immer'
 import { Exercise } from '../types'
 import { sortRecordsByName } from '../utils'
 
+// These are presets that will be available in the app by default.
 const exerciseData = `name
 Back Squat
 Dumbbell Incline Press
