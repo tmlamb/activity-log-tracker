@@ -17,16 +17,25 @@ type Props = {
 }
 
 export default function ProgramDetail({ program, goBack }: Props) {
-  // Grouping sessions by date in 'Week x Day y' format for the section list.
+  // First order the sessions by start date, with most recent first:
   const orderedByStart = _.orderBy(program.sessions, ['start'], ['asc'])
-  const programStart = orderedByStart[0]?.start || new Date() // The first session is considered the program start
+
+  // The first session's start date is considered the program start date
+  const programStart = orderedByStart[0]?.start || new Date()
+
   const sections: { title: string; data: (Session | undefined)[] }[] = _(orderedByStart)
+    // Group by the session start date, using the 'Week # Day #' format as the key
     .groupBy(session => {
       const sessionStart = session.start || new Date()
       return weekAndDayFromStart(programStart, sessionStart)
     })
+    // Map each grouping to the format required by the SectionList
     .map((data, title) => ({ title, data }))
     .value()
+
+  // If the last (most recent) section falls on today's date, add 'Today' to the title
+  // Otherwise, create an empty section for today's date where the 'Plan Workout Session'
+  // button can be placed.
   if (
     sections.length > 0 &&
     differenceInCalendarDays(
@@ -41,7 +50,9 @@ export default function ProgramDetail({ program, goBack }: Props) {
       data: [undefined]
     })
   }
-  sections.reverse() // Reverse to show most recent at the top.
+
+  // Reverse to show most recent at the top.
+  sections.reverse()
 
   return (
     <>
