@@ -1,14 +1,11 @@
 import React from 'react'
-import {
-  AccessibilityRole,
-  AccessibilityState,
-  AccessibilityValue,
-  NativeSyntheticEvent,
-  NativeTouchEvent,
-  Pressable
-} from 'react-native'
+import { Pressable, PressableProps } from 'react-native'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
+
+type Props = {
+  style?: ClassInput
+} & PressableProps
 
 export default function ButtonContainer({
   children,
@@ -20,26 +17,16 @@ export default function ButtonContainer({
   accessibilityRole,
   accessibilityState,
   accessibilityValue
-}: {
-  children: React.ReactNode
-  onPress: (ev: NativeSyntheticEvent<NativeTouchEvent>) => void
-  style?: ClassInput
-  disabled?: boolean
-  accessibilityHint?: string
-  accessibilityLabel?: string
-  accessibilityRole?: AccessibilityRole
-  accessibilityState?: AccessibilityState
-  accessibilityValue?: AccessibilityValue
-}) {
+}: Props) {
   return (
     <Pressable
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => tw.style(style, pressed ? 'opacity-60' : 'opacity-100')}
-      accessibilityRole={accessibilityRole}
+      accessibilityRole={accessibilityRole || 'button'}
       accessibilityHint={accessibilityHint}
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={accessibilityState || { disabled }}
+      accessibilityState={accessibilityState || (disabled && { disabled }) || undefined}
       accessibilityValue={accessibilityValue}
     >
       {children}
@@ -48,11 +35,5 @@ export default function ButtonContainer({
 }
 
 ButtonContainer.defaultProps = {
-  style: undefined,
-  disabled: false,
-  accessibilityHint: undefined,
-  accessibilityLabel: undefined,
-  accessibilityRole: 'button',
-  accessibilityState: undefined,
-  accessibilityValue: undefined
+  style: undefined
 }
