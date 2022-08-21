@@ -26,11 +26,6 @@ const AppStack = createNativeStackNavigator<RootStackParamList>()
 
 const PERSISTENCE_KEY = 'NAVIGATION_STATE_V1'
 
-// Nav state persistence is nice on web, because it allows React Navigation's 'goBack'
-// to work across page refreshes. However, it's not so nice on native, because it
-// brings the user back to the same page they were on if they force closed the app.
-const shouldPersist = Platform.OS === 'web'
-
 const linking = {
   prefixes: ['https://walt.website', 'https://*.walt.website'],
   config: {
@@ -56,7 +51,9 @@ const linking = {
 }
 
 export default function Navigation() {
-  const [isNavStateReady, setIsNavStateReady] = React.useState(!shouldPersist)
+  // Using nav state persistence on web to allow users to refresh the browser while
+  // staying on the same page and retaining ability to use goBack.
+  const [isNavStateReady, setIsNavStateReady] = React.useState(Platform.OS !== 'web')
   const [initialState, setInitialState] = React.useState()
 
   React.useEffect(() => {
@@ -72,11 +69,11 @@ export default function Navigation() {
         const foundPath = Object.values(linking.config.screens).find(knownPath => {
           const knownPathParts = knownPath.split('/')
           const lastKnownPathPart = knownPathParts[knownPathParts.length - 1]
-          // If the number of parts to the path are different, no match (but ignore optional id field)
+          // If the number of parts to the path are different, no match (with path params optional)
           if (
-            knownPathParts.length -
-              (lastKnownPathPart.startsWith(':') && lastKnownPathPart.endsWith('?') ? 1 : 0) !==
-            visitedPathParts?.length
+            knownPathParts.length - (lastKnownPathPart.startsWith(':') ? 1 : 0) !==
+              visitedPathParts?.length &&
+            knownPathParts.length !== visitedPathParts?.length
           ) {
             return false
           }
@@ -93,6 +90,8 @@ export default function Navigation() {
           )
         })
 
+        // Only load the persisted state if the user is visiting a valid path, and if the path is not
+        // the home dashboard screen
         if (state && foundPath && visitedPath !== '') {
           setInitialState(state)
         }
@@ -114,9 +113,7 @@ export default function Navigation() {
     <NavigationContainer
       linking={linking}
       initialState={initialState}
-      onStateChange={state =>
-        shouldPersist && AsyncStorage.setItem(PERSISTENCE_KEY, JSON.stringify(state))
-      }
+      onStateChange={state => AsyncStorage.setItem(PERSISTENCE_KEY, JSON.stringify(state))}
     >
       <AppStack.Navigator
         screenOptions={{
