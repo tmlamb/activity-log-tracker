@@ -302,7 +302,7 @@ export default function ActivitiesInput({
                         ? 'Required'
                         : undefined
                     }
-                    errorStyle={tw`right-3 top-3.5 text-xs`}
+                    errorStyle={tw`right-3 top-3.5 text-sm`}
                   />
                 )}
               />
@@ -335,7 +335,7 @@ export default function ActivitiesInput({
                         ? 'Required'
                         : undefined
                     }
-                    errorStyle={tw`right-3 top-3.5 text-xs`}
+                    errorStyle={tw`right-3 top-3.5 text-sm`}
                   />
                 )}
               />

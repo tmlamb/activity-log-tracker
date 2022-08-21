@@ -151,7 +151,7 @@ export default function ModalSelectInput<
           exiting={FadeOut.springify().stiffness(50).damping(6).mass(0.3)}
           style={[tw.style('left-3 top-8 absolute', errorStyle)]}
         >
-          <AlertText style={tw.style('text-xs', errorStyle)}>{error}</AlertText>
+          <AlertText style={tw.style('text-sm', errorStyle)}>{error}</AlertText>
         </Animated.View>
       )}
     </View>

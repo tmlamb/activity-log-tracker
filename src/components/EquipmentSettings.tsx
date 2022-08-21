@@ -65,7 +65,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
         style={tw`flex-1`}
       >
         <ScrollView bounces={false} style={tw`flex-1`} contentContainerStyle={tw`px-3 pt-9 pb-12`}>
-          <SecondaryText style={tw`text-xs mx-3 mb-9`}>
+          <SecondaryText style={tw`text-sm mx-3 mb-9`}>
             These settings will be used to calculate which plates to place on the barbell when
             performing sets.
           </SecondaryText>
@@ -97,7 +97,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
               />
             )}
           />
-          <SecondaryText style={tw`text-xs mx-3 mb-1.5`}>Plate Pairs (2x each)</SecondaryText>
+          <SecondaryText style={tw`text-sm mx-3 mb-1.5`}>Plate Pairs (2x each)</SecondaryText>
           <View>
             {fields.map((item, index) => (
               <Animated.View key={item.platePairId} entering={FadeInUp} exiting={FadeOutUp}>

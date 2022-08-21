@@ -223,7 +223,7 @@ export default function SessionDetail({
             />
           )}
           ListFooterComponent={
-            <SecondaryText style={tw`ml-3 mt-1 text-xs`}>
+            <SecondaryText style={tw`ml-3 mt-1 text-sm`}>
               {session.activities.length < 1
                 ? "Before continuing with this workout session, use the 'Edit' button to add activities."
                 : session.activities?.length > 1 ||

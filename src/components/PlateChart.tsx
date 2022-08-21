@@ -17,7 +17,7 @@ function Plate({ weight }: { weight: Weight }) {
   return (
     <Animated.View entering={FadeIn.duration(500)} exiting={FadeOut.duration(500)}>
       <SecondaryText
-        style={tw`px-3 text-xs`}
+        style={tw`px-3 text-sm`}
       >{`1x ${weight.value} ${weight.unit} plate`}</SecondaryText>
     </Animated.View>
   )

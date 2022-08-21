@@ -213,7 +213,7 @@ export default function LoadForm({
                     pointerEvents="none"
                     style={tw`absolute items-center w-full justify-center -top-4`}
                   >
-                    <AlertText style={tw`text-xs`}>Select a type</AlertText>
+                    <AlertText style={tw`text-sm`}>Select a type</AlertText>
                   </Animated.View>
                 )}
               </View>
@@ -254,28 +254,28 @@ export default function LoadForm({
                   <SecondaryText style={tw`text-sm font-bold mb-1.5`}>
                     Rate of Perceived Exertion scale (RPE)
                   </SecondaryText>
-                  <SecondaryText style={tw`text-xs`}>
+                  <SecondaryText style={tw`text-sm`}>
                     Measures intensity of a given weight and number of reps. Values are on a 1 to 10
                     scale:
                   </SecondaryText>
                 </View>
                 <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
-                  <SecondaryText style={tw`text-xs mb-1`}>
+                  <SecondaryText style={tw`text-sm mb-1`}>
                     10 - another rep would have been impossible
                   </SecondaryText>
                 </View>
                 <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
-                  <SecondaryText style={tw`text-xs mb-1`}>
+                  <SecondaryText style={tw`text-sm mb-1`}>
                     9 - you left one in the tank
                   </SecondaryText>
                 </View>
                 <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
-                  <SecondaryText style={tw`text-xs mb-1`}>
+                  <SecondaryText style={tw`text-sm mb-1`}>
                     8 - you could have done a couple more
                   </SecondaryText>
                 </View>
                 <View style={tw`flex-wrap flex-row items-center justify-start ml-7`}>
-                  <SecondaryText style={tw`text-xs mb-1`}>etc...</SecondaryText>
+                  <SecondaryText style={tw`text-sm mb-1`}>etc...</SecondaryText>
                 </View>
               </View>
             </Animated.View>
@@ -353,7 +353,7 @@ export default function LoadForm({
                     name="oneRepMaxVal"
                   />
                   {(!exercise.oneRepMax || exercise.oneRepMax.value <= 0) && (
-                    <SecondaryText style={tw`mx-3 my-1.5 text-xs`}>
+                    <SecondaryText style={tw`mx-3 my-1.5 text-sm`}>
                       Enter a One Rep Max for this exercise in order to use the %1RM load type.
                     </SecondaryText>
                   )}
@@ -363,13 +363,13 @@ export default function LoadForm({
                 <SecondaryText style={tw`text-sm mb-1.5 font-bold`}>
                   One Rep Max (1RM)
                 </SecondaryText>
-                <SecondaryText style={tw`text-xs`}>
+                <SecondaryText style={tw`text-sm`}>
                   Heaviest weight that can be lifted for one rep.
                 </SecondaryText>
                 <SecondaryText style={tw`text-sm mb-1.5 mt-9 font-bold`}>
                   % of One Rep Max (%1RM)
                 </SecondaryText>
-                <SecondaryText style={tw`text-xs`}>
+                <SecondaryText style={tw`text-sm`}>
                   A way to quantify the amount to be lifted in a set, proportional to the 1RM.
                 </SecondaryText>
               </View>

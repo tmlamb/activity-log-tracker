@@ -162,7 +162,7 @@ export default function ExerciseSelect({
                 style={tw`flex-row items-center`}
                 accessibilityLabel="Navigate to Exercise Settings in order to add, remove, or edit exercise list"
               >
-                <SpecialText style={tw`text-xs`}>Manage</SpecialText>
+                <SpecialText style={tw`text-sm`}>Manage</SpecialText>
                 <SpecialText style={tw`pl-0.5 pt-0.5 -pb-0.5 text-xs`}>
                   <AntDesign name="plus" size={14} />
                 </SpecialText>

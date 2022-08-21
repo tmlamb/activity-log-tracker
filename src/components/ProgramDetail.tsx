@@ -101,7 +101,7 @@ export default function ProgramDetail({ program, goBack }: Props) {
                   </ThemedView>
                 </LinkButton>
                 {program.sessions.length < 1 && (
-                  <SecondaryText style={tw`ml-3 -mt-[18px] text-xs`}>
+                  <SecondaryText style={tw`ml-3 -mt-[18px] text-sm`}>
                     Start tracking your exercises by planning a session.
                   </SecondaryText>
                 )}

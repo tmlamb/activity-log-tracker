@@ -81,7 +81,7 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
           )}
         />
         {!isEdit && (
-          <SecondaryText style={tw`text-xs mx-3 mt-1.5`}>
+          <SecondaryText style={tw`text-sm mx-3 mt-1.5`}>
             {`Give your workout program a name, like 'Strength Training', 'Weightlifting', or 'Beach Bod 🏖️'`}
           </SecondaryText>
         )}

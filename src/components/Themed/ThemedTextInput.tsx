@@ -39,12 +39,10 @@ type Props = {
   accessibilityLabel?: string
 }
 
-// Why is this necessary? Because when we right justify the text in
-// our TextInput, any trailing whitespace in the field gets treated
-// as space to be removed so that the text is right aligned. This
-// causes our users spaces to be ignored visually until they enter
-// a non-whitespace character. Luckily &nbsp; (\u00a0) does not
-// behave this way.
+// When text in an input is right justifed, any trailing whitespace in the field gets treated
+// as space to be removed so that the text is right aligned. This causes spaces to be ignored
+// visually until a non-whitespace character is entered. &nbsp; (\u00a0) does not behave this
+// way, so swapping them in for the input's value fixes the issue.
 const nbspReplace = (str: string) => str.replace(/\u0020/g, '\u00a0')
 const spaceReplace = (str: string) => str.replace(/\u00a0/g, '\u0020')
 
@@ -134,11 +132,11 @@ export default function TextInput({
           exiting={FadeOutDown.springify().stiffness(40).damping(6).mass(0.3)}
           pointerEvents="none"
           style={tw.style(
-            'absolute items-center justify-center h-full z-0 -top-[30px] right-3',
+            'absolute items-center justify-center h-full z-0 -top-[32px] right-3',
             errorStyle
           )}
         >
-          <AlertText accessibilityRole="alert" style={tw`text-xs`}>
+          <AlertText accessibilityRole="alert" style={tw`text-sm`}>
             {error}
           </AlertText>
         </Animated.View>

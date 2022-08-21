@@ -76,7 +76,7 @@ export default function Dashboard({ programs }: Props) {
           <>
             {programs.length < 1 && (
               <>
-                <SecondaryText style={tw`mb-9 mx-3 text-xs`} accessibilityRole="summary">
+                <SecondaryText style={tw`mb-9 mx-3 text-sm`} accessibilityRole="summary">
                   To get started, first create a new workout program, which will be used to track
                   your workout sessions.
                 </SecondaryText>
@@ -91,7 +91,7 @@ export default function Dashboard({ programs }: Props) {
               </>
             )}
             {programs.length > 0 && _.sumBy(programs, o => o.sessions.length) < 4 && (
-              <SecondaryText style={tw`ml-3 mt-1.5 text-xs`} accessibilityRole="summary">
+              <SecondaryText style={tw`ml-3 mt-1.5 text-sm`} accessibilityRole="summary">
                 Select a program to start planning workout sessions.
               </SecondaryText>
             )}

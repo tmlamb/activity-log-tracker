@@ -115,7 +115,7 @@ export default function ExerciseForm({
           )}
         />
         {exercise && usedInWorkout && (
-          <SecondaryText style={tw`px-3 pt-1.5 text-xs`}>
+          <SecondaryText style={tw`px-3 pt-1.5 text-sm`}>
             Warning: Modifying exercise name reflects in existing workouts where it&apos;s been
             used. Take care to avoid corrupting existing workout data with inaccurate exercise
             details.
@@ -167,7 +167,7 @@ export default function ExerciseForm({
           />
         )}
         {usedInWorkout && (
-          <SecondaryText style={tw`px-3 pt-9 text-xs`}>
+          <SecondaryText style={tw`px-3 pt-9 text-sm`}>
             Exercises used in a workout cannot be deleted.
           </SecondaryText>
         )}

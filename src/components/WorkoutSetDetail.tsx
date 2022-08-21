@@ -308,7 +308,7 @@ export default function WorkoutSetDetail({
 
           {activity.load.type === 'PERCENT' &&
             (!exercise.oneRepMax || exercise.oneRepMax.value <= 0) && (
-              <AlertText style={tw`text-xs px-3 pt-1.5`}>
+              <AlertText style={tw`text-sm px-3 pt-1.5`}>
                 Setup a One Rep Max for this exercise before using the percent load type.
               </AlertText>
             )}
@@ -322,7 +322,7 @@ export default function WorkoutSetDetail({
               {workoutSet.type === 'Main' &&
                 activity.load.type === 'RPE' &&
                 program.sessions.length < 4 && (
-                  <SecondaryText style={tw`text-xs mx-3 mb-1.5`}>
+                  <SecondaryText style={tw`text-sm mx-3 mb-1.5`}>
                     Find a weight that will meet the target RPE.
                   </SecondaryText>
                 )}
@@ -388,7 +388,7 @@ export default function WorkoutSetDetail({
                 status={workoutSet.status}
               />
               {targetWeight === 0 && workoutSet.type === 'Warmup' && (
-                <SecondaryText style={tw`text-xs mx-3 mt-1.5`}>
+                <SecondaryText style={tw`text-sm mx-3 mt-1.5`}>
                   Future warmups for this exercise will pre-populate the Actual Weight with the
                   values from previous similar sets, if available.
                 </SecondaryText>
@@ -415,7 +415,7 @@ export default function WorkoutSetDetail({
             </Animated.View>
           )}
           {workoutSet.status === 'Planned' && !isNextWorkoutSet(workoutSet, activity) && (
-            <SecondaryText style={tw`ml-3 text-xs mt-9`}>
+            <SecondaryText style={tw`ml-3 text-sm mt-9`}>
               Complete the previous workout sets for this exercise before continuing.
             </SecondaryText>
           )}
