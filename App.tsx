@@ -13,7 +13,7 @@ export default function App() {
 
   // https://github.com/react-navigation/react-navigation/issues/10531
   // This fixes a layout issue on Android, where the content is hidden behind the header
-  if (Platform.OS === 'android') {
+  if (Platform.OS === 'android' || Platform.OS === 'web') {
     enableLayoutAnimations(false)
   }
 

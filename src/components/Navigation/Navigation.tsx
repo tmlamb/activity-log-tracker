@@ -121,7 +121,10 @@ export default function Navigation() {
           // "Cancel" button to avoid unintended data loss.
           gestureEnabled: false,
           headerBackTitleVisible: Platform.OS !== 'android',
-          headerTitleAlign: 'center'
+          headerTitleAlign: 'center',
+          // The following two settings fix background flashing issues when changes screens on web
+          headerStyle: tw`web:bg-slate-50 web:dark:bg-black`,
+          headerShadowVisible: Platform.OS !== 'web'
         }}
         initialRouteName="DashboardScreen"
       >
