@@ -133,7 +133,7 @@ export default function Navigation() {
           component={DashboardScreen}
           options={{
             headerTitle: '',
-            title: 'Activity Log Tracker'
+            title: 'Workout Activity Log Tracker'
           }}
         />
         <AppStack.Screen
