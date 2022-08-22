@@ -1,4 +1,4 @@
-name: update-preview
+name: EAS Update Preview
 on:
   push:
     branches:
