@@ -1,7 +1,5 @@
 name: End To End Web Tests
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 jobs:
