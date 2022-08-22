@@ -6,7 +6,7 @@ test('homepage has Workout Activity Log Tracker in title and links to the settin
   await page.goto('https://www.walt.website/')
 
   // Expect the title to match the app name
-  await expect(page).toHaveTitle(/Workout Activity Log Tracker/)
+  await expect(page).toHaveTitle('Activity Log Tracker')
 
   // Expect the settings button to be present
   const settingsLink = page.locator('role=button[name="Navigate to Application Settings"]')
