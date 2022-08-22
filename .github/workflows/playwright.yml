@@ -22,7 +22,7 @@ jobs:
           site_name: 'walt-website'
           max_timeout: 60
       - name: Run Playwright tests
-        run: yarn playwright test
+        run: PREVIEW_URL=${{ steps.waitFor200.output.url }} yarn playwright test
       - uses: actions/upload-artifact@v2
         if: always()
         with:
