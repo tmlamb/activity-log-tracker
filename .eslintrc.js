@@ -30,7 +30,16 @@ module.exports = {
     '@typescript-eslint/no-shadow': ['error'],
     'import/no-extraneous-dependencies': [
       'error',
-      { devDependencies: ['**/*.test.ts', '**/*.test.tsx', '**/__mocks__/*'] }
+      {
+        devDependencies: [
+          '**/*.test.ts',
+          '**/*.test.tsx',
+          '**/__mocks__/*',
+          'playwright.config.ts',
+          '**/tests/*',
+          '**/e2e/*'
+        ]
+      }
     ],
     'prettier/prettier': 'error'
   }
