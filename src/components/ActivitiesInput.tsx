@@ -31,6 +31,8 @@ type Props = {
   errors?: FieldErrorsImpl<DeepRequired<SessionFormData>>
 }
 
+// Produces an array of sets to either add or remove items based on the
+// number entered by the user.
 const numberToWorkoutSetArray = <T extends WorkoutSet>(
   length: number,
   current: T[],
@@ -70,6 +72,51 @@ export default function ActivitiesInput({
 }: Props) {
   const { fields, append, remove, swap } = fieldArray
   const watchActivities = watch('activities')
+
+  // Updates the activity at the given index with data from a a similar recently completed activity.
+  const handleExerciseSelect = (selectedExercise: Exercise, index: number) => {
+    const recentActivity = recentActivityByExercise(program, selectedExercise.exerciseId)
+    if (recentActivity?.load) {
+      setValue(`activities.${index}.load`, recentActivity.load)
+    } else if (selectedExercise.oneRepMax && selectedExercise.oneRepMax.value > 0) {
+      setValue(`activities.${index}.load`, { type: 'PERCENT', value: 0.75 })
+    } else {
+      setValue(`activities.${index}.load`, { type: 'RPE', value: 5 })
+    }
+
+    if (recentActivity?.warmupSets) {
+      setValue(
+        `activities.${index}.warmupSets`,
+        numberToWorkoutSetArray<WarmupSet>(
+          recentActivity.warmupSets.length,
+          watchActivities && watchActivities[index] ? watchActivities[index].warmupSets : [],
+          'Warmup',
+          session
+        )
+      )
+    }
+
+    if (recentActivity?.mainSets) {
+      setValue(
+        `activities.${index}.mainSets`,
+        numberToWorkoutSetArray<MainSet>(
+          recentActivity.mainSets.length,
+          watchActivities && watchActivities[index] ? watchActivities[index].mainSets : [],
+          'Main',
+          session
+        )
+      )
+    }
+
+    if (recentActivity?.reps) {
+      setValue(`activities.${index}.reps`, recentActivity.reps)
+    }
+
+    if (recentActivity?.rest) {
+      setValue(`activities.${index}.rest`, recentActivity.rest)
+    }
+  }
+
   return (
     <View style={tw`my-9`}>
       {fields.map((item, index) => (
@@ -102,62 +149,9 @@ export default function ActivitiesInput({
                       text: exercises?.find(exercise => exercise.exerciseId === value)?.name
                     }}
                     onChangeSelect={(selectedExercise: Exercise) => {
-                      const recentActivity = recentActivityByExercise(
-                        program,
-                        selectedExercise.exerciseId
-                      )
-                      if (recentActivity?.load) {
-                        setValue(`activities.${index}.load`, recentActivity.load)
-                      } else if (
-                        selectedExercise.oneRepMax &&
-                        selectedExercise.oneRepMax.value > 0
-                      ) {
-                        setValue(`activities.${index}.load`, { type: 'PERCENT', value: 0.75 })
-                      } else {
-                        setValue(`activities.${index}.load`, { type: 'RPE', value: 5 })
-                      }
+                      handleExerciseSelect(selectedExercise, index)
 
-                      if (recentActivity?.warmupSets) {
-                        setValue(
-                          `activities.${index}.warmupSets`,
-                          numberToWorkoutSetArray<WarmupSet>(
-                            recentActivity.warmupSets.length,
-                            watchActivities && watchActivities[index]
-                              ? watchActivities[index].warmupSets
-                              : [],
-                            'Warmup',
-                            session
-                          )
-                        )
-                      }
-
-                      if (recentActivity?.mainSets) {
-                        setValue(
-                          `activities.${index}.mainSets`,
-                          numberToWorkoutSetArray<MainSet>(
-                            recentActivity.mainSets.length,
-                            watchActivities && watchActivities[index]
-                              ? watchActivities[index].mainSets
-                              : [],
-                            'Main',
-                            session
-                          )
-                        )
-                      }
-
-                      if (recentActivity?.reps) {
-                        setValue(`activities.${index}.reps`, recentActivity.reps)
-                      }
-
-                      if (recentActivity?.rest) {
-                        setValue(`activities.${index}.rest`, recentActivity.rest)
-                      }
-
-                      if (
-                        selectedExercise &&
-                        selectedExercise.exerciseId &&
-                        selectedExercise.exerciseId !== value
-                      ) {
+                      if (selectedExercise.exerciseId !== value) {
                         onChange(selectedExercise.exerciseId)
                       }
                     }}
