@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 test('homepage has Workout Activity Log Tracker in title and links to the settings and create program screens', async ({
   page
 }) => {
-  await page.goto('https://www.walt.website/')
+  await page.goto('/')
 
   // Expect the title to match the app name
   await expect(page).toHaveTitle(/Activity Log Tracker/)

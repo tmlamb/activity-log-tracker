@@ -1,4 +1,4 @@
-name: update-production
+name: EAS Update Production
 on:
   push:
     branches:
@@ -6,7 +6,6 @@ on:
 
 jobs:
   update-production:
-    name: EAS Update Production
     runs-on: ubuntu-latest
     steps:
       - name: Check for EXPO_TOKEN
