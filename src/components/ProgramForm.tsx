@@ -77,6 +77,7 @@ export default function ProgramForm({ program, changeHandler, deleteHandler, goB
               maxLength={25}
               error={errors.name ? 'Program Name is required' : undefined}
               accessibilityLabel="Enter Workout Program Name"
+              testID="program-name-input"
             />
           )}
         />

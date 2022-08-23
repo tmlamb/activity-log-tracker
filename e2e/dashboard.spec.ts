@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('homepage has Workout Activity Log Tracker in title and links to the settings and create program screens', async ({
-  page
-}) => {
+test('Dashboard', async ({ page }) => {
   await page.goto('/')
 
   // Expect the title to match the app name
@@ -31,11 +29,4 @@ test('homepage has Workout Activity Log Tracker in title and links to the settin
     'role=button[name="Navigate to Create Workout Program Form"]'
   )
   await expect(await createProgramLink.innerText()).toMatch(/Create Workout Program/)
-  // .to(/Create Workout Program/)
-
-  // Click the create Program Link
-  await createProgramLink.click()
-
-  // Expects the URL to contain the program form path
-  await expect(page).toHaveURL(/.*program\/form/)
 })

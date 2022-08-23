@@ -37,6 +37,7 @@ type Props = {
   error?: string
   errorStyle?: ClassInput
   accessibilityLabel?: string
+  testID?: string
 }
 
 // When text in an input is right justifed, any trailing whitespace in the field gets treated
@@ -76,7 +77,8 @@ export default function TextInput({
   innerRef,
   error,
   errorStyle,
-  accessibilityLabel
+  accessibilityLabel,
+  testID
 }: PropsFilled) {
   const handleChange = (text: string) => {
     const normalizedText = spaceReplace(numeric ? numericReplace(text) : text)
@@ -124,6 +126,7 @@ export default function TextInput({
           ref={innerRef}
           blurOnSubmit
           accessibilityLabel={accessibilityLabel || label}
+          testID={testID}
         />
       </ThemedView>
       {error && (
@@ -167,5 +170,6 @@ TextInput.defaultProps = {
   innerRef: undefined,
   error: undefined,
   errorStyle: undefined,
-  accessibilityLabel: undefined
+  accessibilityLabel: undefined,
+  testID: undefined
 }
