@@ -1,9 +1,10 @@
+name: Continuous Integration
 on:
   pull_request:
     branches: [main]
+
 jobs:
-  ci:
-    name: Continuous Integration
+  ci-checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
