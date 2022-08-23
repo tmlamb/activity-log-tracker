@@ -1,9 +1,10 @@
 import { StatusBar } from 'expo-status-bar'
 import React from 'react'
-import { Platform, View } from 'react-native'
+import { Platform } from 'react-native'
 import { enableLayoutAnimations } from 'react-native-reanimated'
 import { useDeviceContext } from 'twrnc'
 import { Navigation } from './src/components/Navigation'
+import WebWrapper from './src/components/WebWrapper'
 import useWorkoutStore from './src/hooks/use-workout-store'
 import tw from './src/tailwind'
 
@@ -28,11 +29,11 @@ export default function App() {
   }
 
   return (
-    <View style={tw`flex-1 web:flex-row web:justify-center web:bg-slate-500`}>
-      <View style={tw`flex-1 web:max-w-2xl bg-slate-50 dark:bg-black`}>
+    <WebWrapper>
+      <>
         <StatusBar />
         <Navigation />
-      </View>
-    </View>
+      </>
+    </WebWrapper>
   )
 }
