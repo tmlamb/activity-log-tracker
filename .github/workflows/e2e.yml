@@ -1,9 +1,10 @@
-name: End To End Web Tests
+name: End to End Tests (Web)
 on:
   pull_request:
     branches: [main]
 jobs:
   test:
+    name: End to End Tests (Web)
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
