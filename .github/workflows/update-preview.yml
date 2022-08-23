@@ -1,8 +1,7 @@
 name: EAS Update Preview
 on:
   push:
-    branches:
-      - 'preview'
+    branches: [preview]
 
 jobs:
   update-preview:

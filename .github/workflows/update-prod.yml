@@ -1,8 +1,7 @@
 name: EAS Update Production
 on:
   push:
-    branches:
-      - 'production'
+    branches: [production]
 
 jobs:
   update-production:
