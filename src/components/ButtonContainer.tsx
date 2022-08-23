@@ -4,7 +4,7 @@ import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
 
 type Props = {
-  style?: ClassInput
+  style?: any
 } & PressableProps
 
 export default function ButtonContainer({
