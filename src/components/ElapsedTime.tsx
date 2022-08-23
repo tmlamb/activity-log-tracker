@@ -32,7 +32,7 @@ export default function ElapsedTime({
     setElapsedTimeSeconds(differenceInSeconds(end ? end.getTime() : Date.now(), start.getTime()))
 
     return undefined
-  }, [elapsedTimeSeconds, start, end, status])
+  }, [end, status])
 
   const formattedTime = showHours
     ? `${String(Math.floor(elapsedTimeSeconds / 60 / 60)).padStart(2, '0')}:${String(
