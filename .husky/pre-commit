@@ -7,7 +7,7 @@ echo 'Checking all the things before committing'
 npm run check-types ||
 (
     echo 'Type Check Failed. Make the changes listed above and try commit again.'
-    false;
+    false;;
 )
 
 npm run test:ci ||
