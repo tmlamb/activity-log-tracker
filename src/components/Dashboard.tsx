@@ -9,7 +9,7 @@ import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
 type Props = {
-  programs: Program[]
+  programs: Date[]
 }
 
 export default function Dashboard({ programs }: Props) {
