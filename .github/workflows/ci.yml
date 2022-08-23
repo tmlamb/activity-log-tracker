@@ -1,0 +1,39 @@
+name: Continuous Integration
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+
+      - name: Get yarn cache dir path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
+
+      - uses: actions/cache@v3
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install project dependencies
+        run: yarn --prefer-offline
+
+      - name: Run code style check
+        run: yarn style:ci
+
+      - name: Run code linter
+        run: yarn lint:ci
+
+      - name: Run unit tests
+        run: yarn test:ci
+
+      - name: Run type check
+        run: yarn check-types
