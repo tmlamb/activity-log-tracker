@@ -8,7 +8,10 @@
     "check-types": "tsc --pretty --noEmit",
     "prepare": "husky install",
     "test": "jest --watch --coverage=false --changedSince=origin/main",
-    "test:ci": "jest"
+    "e2e": "playwright test",
+    "test:ci": "jest",
+    "lint:ci": "eslint **/*.{js,ts,tsx}",
+    "style:ci": "prettier --check '**/*.{js,ts,tsx}'"
   },
   "dependencies": {
     "@babel/preset-env": "^7.1.6",

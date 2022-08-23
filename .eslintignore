@@ -3,3 +3,7 @@
 node_modules
 yarn.lock
 package-lock.json
+dist
+playwright-report
+web-build
+.eslintrc.js
