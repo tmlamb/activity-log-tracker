@@ -7,6 +7,7 @@ import Animated, { FadeInUp, FadeOutUp, Layout } from 'react-native-reanimated'
 import { v4 as uuidv4 } from 'uuid'
 import tw from '../tailwind'
 import { Equipment } from '../types'
+import { plateWeights } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import HeaderLeftContainer from './HeaderLeftContainer'
 import HeaderRightContainer from './HeaderRightContainer'
@@ -118,10 +119,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                     rules={{
                       required: true,
                       validate: (value: number) =>
-                        !!_.find(
-                          ['1.25', '2.5', '5', '10', '15', '25', '35', '45', '55', '65'],
-                          v => v === String(value)
-                        )
+                        !!_.find(plateWeights, v => v.weight === String(value))
                     }}
                     render={({ field: { onChange, onBlur, value } }) => (
                       <ThemedTextInput

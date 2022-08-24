@@ -49,3 +49,15 @@ export const recentActivityByExercise = (
 
   return undefined
 }
+
+export const plateWeights = [
+  { weight: '2.5', svgProps: { height: 30, width: 6, fill: '#38bdf8', rx: 1.5 } },
+  { weight: '5', svgProps: { height: 40, width: 7, fill: '#f60', rx: 2 } },
+  { weight: '10', svgProps: { height: 50, width: 8, fill: '#fbbc04', rx: 2 } },
+  { weight: '15', svgProps: { height: 65, width: 9, fill: '#f87171', rx: 2 } },
+  { weight: '25', svgProps: { height: 80, width: 10, fill: '#38bdf8', rx: 2.5 } },
+  { weight: '35', svgProps: { height: 95, width: 10, fill: '#f60', rx: 2.5 } },
+  { weight: '45', svgProps: { height: 145, width: 12, fill: '#fbbc04', rx: 3 } },
+  { weight: '55', svgProps: { height: 160, width: 13, fill: '#f87171', rx: 3 } },
+  { weight: '65', svgProps: { height: 175, width: 13, fill: '#38bdf8', rx: 3 } }
+]
