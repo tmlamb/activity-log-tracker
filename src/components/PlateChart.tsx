@@ -1,60 +1,59 @@
 import _ from 'lodash'
 import React from 'react'
-import { View } from 'react-native'
+import { Platform, View } from 'react-native'
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
-import Svg, { Rect } from 'react-native-svg'
+import Svg, { Rect, Text } from 'react-native-svg'
 import { ClassInput } from 'twrnc/dist/esm/types'
-import useWorkoutStore from '../hooks/use-workout-store'
 import tw from '../tailwind'
-import { Weight } from '../types'
-import { plateWeights, sumPlateWeights } from '../utils'
-import { SecondaryText } from './Themed'
+import { Equipment, PlatePair, Weight } from '../types'
+import { sumPlateWeights } from '../utils'
 
 type Props = {
   style?: ClassInput
   totalWeight: Weight
+  equipment: Equipment
 }
 
-/**
- * Estimate the logarithm base 10 of a small integer.
- *
- * @param {number} x - The integer to estimate the logarithm of.
- * @return {number} - The estimated logarithm of the integer.
- */
-function Plate({ weight, index }: { weight: Weight; index: number }) {
-  const { svgProps } = _.find(plateWeights, v => v.weight === String(weight.value))!
+const plateColors = ['#38bdf8', '#f60', '#fbbc04', '#f87171']
 
+function Plate({
+  weight,
+  index,
+  width,
+  fill
+}: {
+  weight: number
+  index: number
+  width?: number
+  fill?: string
+}) {
   return (
-    <Animated.View entering={FadeIn.duration(500)} exiting={FadeOut.duration(500)}>
-      <SecondaryText
-        style={tw`px-3 text-sm`}
-      >{`1x ${weight.value} ${weight.unit} plate`}</SecondaryText>
-      <Svg style={tw`mt-9 ml-[${index * 15}}px] absolute`}>
-        {/* <Line
-          x1={0}
-          y1={0}
-          x2={100}
-          y2={100}
-          strokeWidth={2}
-          stroke="#B5B6B7"
-          strokeDasharray="6 6"
-        /> */}
-        <Rect
-          height={svgProps.height}
-          width={svgProps.width}
-          fill={svgProps.fill}
-          rx={svgProps.rx}
-        />
-      </Svg>
-    </Animated.View>
+    <Svg style={tw`mb-[1px]`} width={width || Math.log(weight) * 50} height={20}>
+      <Rect width="100%" height="100%" fill={fill || plateColors[index % 4]} rx={3} />
+      <Text
+        fill="#1c1c1c"
+        fontSize="14"
+        fontWeight="bold"
+        x="50%"
+        y={Platform.OS === 'web' ? '80%' : '55%'}
+        alignmentBaseline="middle"
+        textAnchor="middle"
+      >
+        {weight}
+      </Text>
+    </Svg>
   )
+}
+Plate.defaultProps = {
+  width: undefined,
+  fill: undefined
 }
 
 const calcPlateConfig = (
   remainingWeight: number,
-  availPlates: Weight[] = [],
-  usedPlates: Weight[] = []
-): Weight[] => {
+  availPlates: PlatePair[] = [],
+  usedPlates: PlatePair[] = []
+): PlatePair[] => {
   let nextPlate = availPlates.pop()
   let reducedWeight = remainingWeight
   if (remainingWeight === 0 || !nextPlate) {
@@ -73,26 +72,39 @@ const calcPlateConfig = (
   return calcPlateConfig(reducedWeight, availPlates, usedPlates)
 }
 
-export default function PlateChart({ style, totalWeight }: Props) {
-  const equipment = useWorkoutStore(store => store.equipment)
-  const platesPerSide = calcPlateConfig(totalWeight.value - equipment.barbellWeight.value, [
+export default function PlateChart({ style, totalWeight, equipment }: Props) {
+  const plates = calcPlateConfig(totalWeight.value - equipment.barbellWeight.value, [
     ...equipment.platePairs
   ])
-
+  plates.reverse()
+  const marginTop = Math.max(60 / plates.length, 36)
   return (
-    <View>
-      {platesPerSide.length > 0 &&
-        sumPlateWeights(platesPerSide) * 2 + equipment.barbellWeight.value ===
+    <View style={tw.style(style, 'items-center')}>
+      {plates.length > 0 &&
+        sumPlateWeights(_.map(plates, weight => weight.value)) * 2 +
+          equipment.barbellWeight.value ===
           totalWeight.value && (
-          <View style={tw.style(style)}>
-            <Animated.View entering={FadeIn.duration(500)} exiting={FadeOut.duration(500)}>
-              <SecondaryText style={tw`text-sm font-bold`}>Barbell Configuration:</SecondaryText>
-            </Animated.View>
-            {platesPerSide.map((plate, index) => (
-              // eslint-disable-next-line react/no-array-index-key
-              <Plate key={`${plate.value}.${index}`} weight={plate} index={index} />
-            ))}
-          </View>
+          <Animated.View entering={FadeIn.duration(500)} exiting={FadeOut.duration(500)}>
+            <View style={tw`absolute self-center`}>
+              <Svg width={18} height={marginTop - 1}>
+                <Rect height="100%" width="100%" fill="#91a0b6" rx={1.5} />
+              </Svg>
+            </View>
+            <View style={tw`items-center justify-start mt-[${marginTop}px]`}>
+              {plates.map(
+                (plate, index) =>
+                  plate && <Plate key={plate.platePairId} weight={plate.value} index={index} />
+              )}
+            </View>
+            <View style={tw`items-center`}>
+              <Plate
+                weight={equipment.barbellWeight.value}
+                width={35}
+                fill="#91a0b6"
+                index={plates.length}
+              />
+            </View>
+          </Animated.View>
         )}
     </View>
   )

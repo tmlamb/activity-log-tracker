@@ -3,6 +3,8 @@ import { Activity, Load, Program, Session, Weight } from './types'
 
 export const dateRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/ // startswith: 2022-08-19T21:54:55
 
+export const validWeights = [1.25, 2.5, 5, 10, 25, 35, 45, 55, 65]
+
 export const normalizedLocalDate = (date: Date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
@@ -23,7 +25,8 @@ export const round5 = (value: number) => Math.round(value / 5) * 5
 export const sortRecordsByName = (rows: { name: string }[]) =>
   rows.sort((a, b) => a.name.localeCompare(b.name))
 
-export const sumPlateWeights = (plates: Weight[]) => plates.reduce((total, p) => total + p.value, 0)
+export const sumPlateWeights = (plateWeights: number[]) =>
+  plateWeights.reduce((total, p) => total + p, 0)
 
 export const recentActivityByExercise = (
   program: Program,
@@ -49,15 +52,3 @@ export const recentActivityByExercise = (
 
   return undefined
 }
-
-export const plateWeights = [
-  { weight: '2.5', svgProps: { height: 30, width: 6, fill: '#38bdf8', rx: 1.5 } },
-  { weight: '5', svgProps: { height: 40, width: 7, fill: '#f60', rx: 2 } },
-  { weight: '10', svgProps: { height: 50, width: 8, fill: '#fbbc04', rx: 2 } },
-  { weight: '15', svgProps: { height: 65, width: 9, fill: '#f87171', rx: 2 } },
-  { weight: '25', svgProps: { height: 80, width: 10, fill: '#38bdf8', rx: 2.5 } },
-  { weight: '35', svgProps: { height: 95, width: 10, fill: '#f60', rx: 2.5 } },
-  { weight: '45', svgProps: { height: 145, width: 12, fill: '#fbbc04', rx: 3 } },
-  { weight: '55', svgProps: { height: 160, width: 13, fill: '#f87171', rx: 3 } },
-  { weight: '65', svgProps: { height: 175, width: 13, fill: '#38bdf8', rx: 3 } }
-]
