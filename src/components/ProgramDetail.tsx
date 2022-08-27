@@ -8,6 +8,7 @@ import { Program, Session } from '../types'
 import { normalizedLocalDate, weekAndDayFromStart } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import HeaderLeftContainer from './HeaderLeftContainer'
+import HeaderRightContainer from './HeaderRightContainer'
 import LinkButton from './LinkButton'
 import { PrimaryText, SecondaryText, SpecialText, ThemedView } from './Themed'
 
@@ -63,6 +64,17 @@ export default function ProgramDetail({ program, goBack }: Props) {
           </ButtonContainer>
         </HeaderLeftContainer>
       )}
+      <HeaderRightContainer>
+        <LinkButton
+          to={{ screen: 'ProgramDataScreen', params: { programId: program.programId } }}
+          style={tw`py-6 pr-2.5 pl-8 -my-6 -mr-4 web:-mr-3`}
+          accessibilityLabel="Navigate to Program Data screen"
+        >
+          <SpecialText>
+            <AntDesign name="linechart" size={24} />
+          </SpecialText>
+        </LinkButton>
+      </HeaderRightContainer>
       <SectionList
         style={tw`flex-1`}
         contentContainerStyle={tw`px-3 pt-9 pb-12`}
