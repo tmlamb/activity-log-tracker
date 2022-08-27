@@ -16,20 +16,10 @@ type Props = {
 
 const plateColors = ['#38bdf8', '#f60', '#fbbc04', '#f87171']
 
-function Plate({
-  weight,
-  index,
-  width,
-  fill
-}: {
-  weight: number
-  index: number
-  width?: number
-  fill?: string
-}) {
+function Plate({ weight, width, fill }: { weight: number; width?: number; fill?: string }) {
   return (
     <Svg style={tw`mb-[1px]`} width={width || Math.log(weight) * 50} height={20}>
-      <Rect width="100%" height="100%" fill={fill || plateColors[index % 4]} rx={3} />
+      <Rect width="100%" height="100%" fill={fill} rx={3} />
       <Text
         fill="#1c1c1c"
         fontSize="14"
@@ -93,16 +83,23 @@ export default function PlateChart({ style, totalWeight, equipment }: Props) {
             <View style={tw`items-center justify-start mt-[${marginTop}px]`}>
               {plates.map(
                 (plate, index) =>
-                  plate && <Plate key={plate.platePairId} weight={plate.value} index={index} />
+                  plate && (
+                    <Plate
+                      key={plate.platePairId}
+                      weight={plate.value}
+                      fill={
+                        plateColors[
+                          (index > 0 && plates[index - 1].value === plate.value
+                            ? plates.findIndex(p => p.value === plate.value)
+                            : index) % 4
+                        ]
+                      }
+                    />
+                  )
               )}
             </View>
             <View style={tw`items-center`}>
-              <Plate
-                weight={equipment.barbellWeight.value}
-                width={35}
-                fill="#91a0b6"
-                index={plates.length}
-              />
+              <Plate weight={equipment.barbellWeight.value} width={35} fill="#91a0b6" />
             </View>
           </Animated.View>
         )}
