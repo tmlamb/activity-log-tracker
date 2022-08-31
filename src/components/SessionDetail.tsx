@@ -4,7 +4,6 @@ import _ from 'lodash'
 import React from 'react'
 import { Platform, SectionList, View } from 'react-native'
 import Animated, { Layout } from 'react-native-reanimated'
-import * as Sentry from 'sentry-expo'
 import tw from '../tailwind'
 import { Activity, Exercise, MainSet, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import ButtonContainer from './ButtonContainer'
@@ -131,7 +130,7 @@ export default function SessionDetail({
 
   const completable =
     !workoutSetsPending.length && session.status === 'Ready' && session.activities.length > 0
-  Sentry.Native.captureException('testing sentry with capture')
+
   return (
     <>
       <HeaderRightContainer>

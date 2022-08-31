@@ -1,6 +1,6 @@
 {
   "name": "activity-log-tracker",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -93,6 +93,9 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/e2e/"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|@sentry/react-native)"
     ]
   }
 }
