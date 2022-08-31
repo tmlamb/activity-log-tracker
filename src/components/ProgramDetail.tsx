@@ -82,7 +82,7 @@ export default function ProgramDetail({ program, goBack }: Props) {
               </SecondaryText>
             </ThemedView>
             <PrimaryText style={tw`font-semibold text-xl mt-9 ml-1.5 mb-2.5`}>
-              {sentryPublicDsn}
+              {sentryPublicDsn} - {process.env.APP_ENV}
             </PrimaryText>
           </>
         }
