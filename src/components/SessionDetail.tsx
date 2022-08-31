@@ -132,7 +132,6 @@ export default function SessionDetail({
   const completable =
     !workoutSetsPending.length && session.status === 'Ready' && session.activities.length > 0
   Sentry.Native.captureException('testing sentry with capture')
-  throw Error('testing sentry with throw')
   return (
     <>
       <HeaderRightContainer>

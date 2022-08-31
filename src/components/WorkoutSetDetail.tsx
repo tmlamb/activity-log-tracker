@@ -60,6 +60,7 @@ export function FeedbackSelectInput({
   value: 'Easy' | 'Neutral' | 'Hard'
   onSelect: (value: 'Easy' | 'Neutral' | 'Hard') => void
 }) {
+  throw Error('testing sentry with throw')
   return (
     <ThemedView style={tw`p-0 justify-evenly mt-9`} rounded>
       <View
