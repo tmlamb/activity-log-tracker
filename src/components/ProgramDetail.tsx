@@ -1,5 +1,6 @@
 import { AntDesign } from '@expo/vector-icons'
 import { differenceInCalendarDays } from 'date-fns'
+import Constants from 'expo-constants'
 import _ from 'lodash'
 import React from 'react'
 import { Platform, SectionList } from 'react-native'
@@ -15,6 +16,7 @@ type Props = {
   program: Program
   goBack: () => void
 }
+const { sentryPublicDsn } = Constants.expoConfig?.extra || {}
 
 export default function ProgramDetail({ program, goBack }: Props) {
   // First order the sessions by start date, with most recent first:
@@ -54,7 +56,6 @@ export default function ProgramDetail({ program, goBack }: Props) {
   // Reverse to show most recent at the top.
   sections.reverse()
 
-  throw Error('testing telemetry')
   return (
     <>
       {Platform.OS === 'web' && (
@@ -81,7 +82,7 @@ export default function ProgramDetail({ program, goBack }: Props) {
               </SecondaryText>
             </ThemedView>
             <PrimaryText style={tw`font-semibold text-xl mt-9 ml-1.5 mb-2.5`}>
-              Workout Sessions
+              {sentryPublicDsn}
             </PrimaryText>
           </>
         }
