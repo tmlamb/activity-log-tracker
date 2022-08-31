@@ -1,14 +1,27 @@
+import Constants from 'expo-constants'
 import { StatusBar } from 'expo-status-bar'
 import React from 'react'
 import { Platform } from 'react-native'
 import { enableLayoutAnimations } from 'react-native-reanimated'
+import * as Sentry from 'sentry-expo'
 import { useDeviceContext } from 'twrnc'
 import { Navigation } from './src/components/Navigation'
 import WebWrapper from './src/components/WebWrapper'
 import useWorkoutStore from './src/hooks/use-workout-store'
 import tw from './src/tailwind'
 
-export default function App() {
+const { APP_ENV } = process.env
+const { sentryPublicDsn } = Constants.expoConfig?.extra || {}
+
+if (sentryPublicDsn) {
+  Sentry.init({
+    dsn: sentryPublicDsn,
+    enableInExpoDevelopment: true,
+    debug: APP_ENV !== 'production'
+  })
+}
+
+function App() {
   // https://github.com/jaredh159/tailwind-react-native-classnames#enabling-device-context-prefixes
   useDeviceContext(tw)
 
@@ -37,3 +50,5 @@ export default function App() {
     </WebWrapper>
   )
 }
+
+export default Sentry.Native.wrap(App)

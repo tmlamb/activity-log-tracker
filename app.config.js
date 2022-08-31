@@ -1,4 +1,4 @@
-const { APP_ENV } = process.env
+const { APP_ENV, SENTRY_PUBLIC_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKEN } = process.env
 
 export default ({ config }) => {
   const appConfig = {
@@ -13,6 +13,23 @@ export default ({ config }) => {
     android: {
       ...config.android,
       package: `${config.android.package}${APP_ENV !== 'production' ? `.${APP_ENV}` : ''}`
+    },
+    extra: {
+      ...config.extra,
+      sentryPublicDsn: SENTRY_PUBLIC_DSN
+    },
+    hooks: {
+      ...config.hooks,
+      postPublish: [
+        {
+          file: 'sentry-expo/upload-sourcemaps',
+          config: {
+            organization: SENTRY_ORG,
+            project: SENTRY_PROJECT,
+            authToken: SENTRY_AUTH_TOKEN
+          }
+        }
+      ]
     }
   }
   return appConfig
