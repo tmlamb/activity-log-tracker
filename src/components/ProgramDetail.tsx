@@ -16,7 +16,7 @@ type Props = {
   program: Program
   goBack: () => void
 }
-const { sentryPublicDsn } = Constants.expoConfig?.extra || {}
+const { sentryPublicDsn, appEnv } = Constants.expoConfig?.extra || {}
 
 export default function ProgramDetail({ program, goBack }: Props) {
   // First order the sessions by start date, with most recent first:
@@ -82,7 +82,7 @@ export default function ProgramDetail({ program, goBack }: Props) {
               </SecondaryText>
             </ThemedView>
             <PrimaryText style={tw`font-semibold text-xl mt-9 ml-1.5 mb-2.5`}>
-              {sentryPublicDsn} - {process.env.APP_ENV}
+              {sentryPublicDsn} - {appEnv}
             </PrimaryText>
           </>
         }
