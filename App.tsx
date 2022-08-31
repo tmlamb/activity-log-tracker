@@ -10,14 +10,13 @@ import WebWrapper from './src/components/WebWrapper'
 import useWorkoutStore from './src/hooks/use-workout-store'
 import tw from './src/tailwind'
 
-const { APP_ENV } = process.env
-const { sentryPublicDsn } = Constants.expoConfig?.extra || {}
+const { sentryPublicDsn, appEnv } = Constants.expoConfig?.extra || {}
 
 if (sentryPublicDsn) {
   Sentry.init({
     dsn: sentryPublicDsn,
     enableInExpoDevelopment: true,
-    debug: APP_ENV !== 'production'
+    debug: appEnv !== 'production'
   })
 }
 

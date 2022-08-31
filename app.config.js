@@ -16,7 +16,8 @@ export default ({ config }) => {
     },
     extra: {
       ...config.extra,
-      sentryPublicDsn: SENTRY_PUBLIC_DSN
+      sentryPublicDsn: SENTRY_PUBLIC_DSN,
+      appEnv: APP_ENV
     },
     hooks: {
       ...config.hooks,
