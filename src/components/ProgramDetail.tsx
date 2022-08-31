@@ -54,6 +54,7 @@ export default function ProgramDetail({ program, goBack }: Props) {
   // Reverse to show most recent at the top.
   sections.reverse()
 
+  throw Error('testing telemetry')
   return (
     <>
       {Platform.OS === 'web' && (
