@@ -20,7 +20,7 @@ if (sentryPublicDsn) {
   })
 }
 
-function App() {
+export default function App() {
   // https://github.com/jaredh159/tailwind-react-native-classnames#enabling-device-context-prefixes
   useDeviceContext(tw)
 
@@ -49,5 +49,3 @@ function App() {
     </WebWrapper>
   )
 }
-
-export default Sentry.Native.wrap(App)

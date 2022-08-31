@@ -7,9 +7,9 @@ import { PrimaryText, SecondaryText, SpecialText } from '../Themed'
 import ScreenLayout from './ScreenLayout'
 import { RootStackScreenProps } from './types'
 
-export default function SettingsScreen({
+export default function NotFoundScreen({
   navigation: { navigate }
-}: RootStackScreenProps<'SettingsScreen'>) {
+}: RootStackScreenProps<'NotFoundScreen'>) {
   return (
     <ScreenLayout>
       <View style={tw`flex-1 px-3 py-9 justify-start items-stretch`}>
