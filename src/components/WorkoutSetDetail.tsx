@@ -5,7 +5,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { Platform, ScrollView, View } from 'react-native'
 import Animated, { FadeInUp, FadeOutDown, Layout } from 'react-native-reanimated'
 import tw from '../tailwind'
-import { Activity, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
+import { Activity, Equipment, Exercise, Program, Session, WarmupSet, WorkoutSet } from '../types'
 import { recentActivityByExercise, round5, stringifyLoad } from '../utils'
 import ButtonContainer from './ButtonContainer'
 import ElapsedTime from './ElapsedTime'
@@ -26,6 +26,7 @@ type Props = {
   activity: Activity
   workoutSet: WorkoutSet
   exercise: Exercise
+  equipment: Equipment
   updateWorkoutSet: (
     programId: string,
     sessionId: string,
@@ -114,6 +115,7 @@ export default function WorkoutSetDetail({
   activity,
   workoutSet,
   exercise,
+  equipment,
   updateWorkoutSet,
   startSession,
   goBack
@@ -420,7 +422,11 @@ export default function WorkoutSetDetail({
             </SecondaryText>
           )}
           {actualWeightWatcher && actualWeightWatcher.value > 0 && (
-            <PlateChart style={tw`mx-3 mt-9`} totalWeight={actualWeightWatcher} />
+            <PlateChart
+              style={tw`mx-3 mt-9`}
+              totalWeight={actualWeightWatcher}
+              equipment={equipment}
+            />
           )}
         </Animated.View>
       </ScrollView>
