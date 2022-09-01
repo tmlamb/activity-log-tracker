@@ -12,7 +12,6 @@ import ExerciseSettingsModal from './ExerciseSettingsModal'
 import ExerciseSettingsScreen from './ExerciseSettingsScreen'
 import LoadFormModal from './LoadFormModal'
 import NotFoundScreen from './NotFoundScreen'
-import ProgramDataScreen from './ProgramDataScreen'
 import ProgramDetailScreen from './ProgramDetailScreen'
 import ProgramFormModal from './ProgramFormModal'
 import ProgramSettingsScreen from './ProgramSettingsScreen'
@@ -142,15 +141,6 @@ export default function Navigation() {
           component={ProgramDetailScreen}
           options={{
             title: 'Workout Program',
-            headerBackTitle: 'Back',
-            headerBackTitleStyle: tw.style('self-center')
-          }}
-        />
-        <AppStack.Screen
-          name="ProgramDataScreen"
-          component={ProgramDataScreen}
-          options={{
-            title: 'Program Data',
             headerBackTitle: 'Back',
             headerBackTitleStyle: tw.style('self-center')
           }}

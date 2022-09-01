@@ -3,8 +3,6 @@ import { Activity, Load, Program, Session, Weight } from './types'
 
 export const dateRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/ // startswith: 2022-08-19T21:54:55
 
-export const validWeights = [1.25, 2.5, 5, 10, 25, 35, 45, 55, 65]
-
 export const normalizedLocalDate = (date: Date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
@@ -25,8 +23,7 @@ export const round5 = (value: number) => Math.round(value / 5) * 5
 export const sortRecordsByName = (rows: { name: string }[]) =>
   rows.sort((a, b) => a.name.localeCompare(b.name))
 
-export const sumPlateWeights = (plateWeights: number[]) =>
-  plateWeights.reduce((total, p) => total + p, 0)
+export const sumPlateWeights = (plates: Weight[]) => plates.reduce((total, p) => total + p.value, 0)
 
 export const recentActivityByExercise = (
   program: Program,
