@@ -45,4 +45,4 @@ jobs:
         run: yarn install --immutable
 
       - name: Publish update
-        run: eas update --auto
+        run: SENTRY_PUBLIC_DSN=${{ secrets.SENTRY_PUBLIC_DSN }} APP_ENV=preview eas update --auto

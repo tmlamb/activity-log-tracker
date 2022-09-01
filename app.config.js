@@ -1,4 +1,4 @@
-const { APP_ENV } = process.env
+const { APP_ENV, SENTRY_PUBLIC_DSN } = process.env
 
 export default ({ config }) => {
   const appConfig = {
@@ -13,6 +13,11 @@ export default ({ config }) => {
     android: {
       ...config.android,
       package: `${config.android.package}${APP_ENV !== 'production' ? `.${APP_ENV}` : ''}`
+    },
+    extra: {
+      ...config.extra,
+      sentryPublicDsn: SENTRY_PUBLIC_DSN,
+      appEnv: APP_ENV
     }
   }
   return appConfig
