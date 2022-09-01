@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import React from 'react'
-import { Platform, View } from 'react-native'
+import { View } from 'react-native'
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import Svg, { Rect, Text } from 'react-native-svg'
 import { ClassInput } from 'twrnc/dist/esm/types'
@@ -25,7 +25,7 @@ function Plate({ weight, width, fill }: { weight: number; width?: number; fill?:
         fontSize="14"
         fontWeight="bold"
         x="50%"
-        y={Platform.OS === 'web' ? '80%' : '55%'}
+        y="57.5%"
         alignmentBaseline="middle"
         textAnchor="middle"
       >
