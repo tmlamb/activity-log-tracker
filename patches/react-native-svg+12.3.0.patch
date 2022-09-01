@@ -1,0 +1,20 @@
+diff --git a/node_modules/react-native-svg/src/index.d.ts b/node_modules/react-native-svg/src/index.d.ts
+index 891a99d..727eb95 100644
+--- a/node_modules/react-native-svg/src/index.d.ts
++++ b/node_modules/react-native-svg/src/index.d.ts
+@@ -1,6 +1,6 @@
+ import * as React from 'react';
+ import * as ReactNative from 'react-native';
+-import { GestureResponderEvent, TransformsStyle, OpaqueColorValue } from 'react-native';
++import { GestureResponderEvent, OpaqueColorValue, TransformsStyle } from 'react-native';
+ 
+ // Common props
+ export type NumberProp = string | number;
+@@ -441,6 +441,7 @@ export interface TextProps extends TextSpecificProps {
+   rotate?: NumberArray;
+   opacity?: NumberProp;
+   inlineSize?: NumberProp;
++  children?: React.ReactNode;
+ }
+ export const Text: React.ComponentClass<TextProps>;
+ export type Text = React.ComponentClass<TextProps>;
