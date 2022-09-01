@@ -148,12 +148,12 @@ export default function Navigation() {
         <AppStack.Screen
           name="SessionDetailScreen"
           component={SessionDetailScreen}
-          options={{ title: 'Workout Session' }}
+          options={{ title: 'Workout Session', headerBackTitle: 'Program' }}
         />
         <AppStack.Screen
           name="WorkoutSetDetailScreen"
           component={WorkoutSetDetailScreen}
-          options={({ route }) => ({ title: route.params.title })}
+          options={({ route }) => ({ title: route.params.title, headerBackTitle: 'Session' })}
         />
         <AppStack.Screen
           name="SettingsScreen"
