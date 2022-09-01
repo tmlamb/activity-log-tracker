@@ -3,7 +3,7 @@
     "name": "Activity Log",
     "slug": "activity-log-tracker",
     "owner": "tmlamb",
-    "version": "1.6.2",
+    "version": "1.6.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.triplesight.activitylogtracker",
-      "buildNumber": "1"
+      "buildNumber": "5"
     },
     "android": {
       "softwareKeyboardLayoutMode": "pan",
@@ -29,7 +29,7 @@
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.triplesight.activitylogtracker",
-      "versionCode": 3
+      "versionCode": 5
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -41,6 +41,7 @@
       "eas": {
         "projectId": "bf8483a0-b4f2-4316-812f-1ab9b8f0e00b"
       }
-    }
+    },
+    "plugins": ["sentry-expo"]
   }
 }
