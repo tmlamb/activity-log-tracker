@@ -42,10 +42,8 @@ export default function App() {
 
   return (
     <WebWrapper>
-      <>
-        <StatusBar />
-        <Navigation />
-      </>
+      <StatusBar />
+      <Navigation />
     </WebWrapper>
   )
 }
