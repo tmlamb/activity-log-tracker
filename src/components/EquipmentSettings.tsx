@@ -119,7 +119,7 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
                     rules={{
                       required: true,
                       validate: (value: number) =>
-                        !!_.find(validWeights, weight => weight === value)
+                        !!_.find(validWeights, weight => Number(weight) === Number(value))
                     }}
                     render={({ field: { onChange, onBlur, value } }) => (
                       <ThemedTextInput
@@ -179,6 +179,9 @@ export default function EquipmentSettings({ equipment, updateEquipment, goBack }
               </ThemedView>
             </ButtonContainer>
           </Animated.View>
+          <SecondaryText style={tw`text-sm mx-3 mt-1.5`}>
+            Valid plate weights: {validWeights.join(', ')}
+          </SecondaryText>
         </ScrollView>
       </KeyboardAvoidingView>
     </>

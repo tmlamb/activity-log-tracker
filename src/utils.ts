@@ -1,7 +1,7 @@
 import { daysToWeeks, differenceInCalendarDays } from 'date-fns'
 import { Activity, Load, Program, Session, Weight } from './types'
 
-export const dateRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/ // startswith: 2022-08-19T21:54:55
+export const dateRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/ // starts with: 2022-08-19T21:54:55
 
 export const validWeights = [1.25, 2.5, 5, 10, 25, 35, 45, 55, 65]
 
