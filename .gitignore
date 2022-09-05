@@ -13,6 +13,9 @@ web-build/
 
 # macOS
 .DS_Store
+
+.yarn
+
 /test-results/
 /playwright-report/
 /playwright/.cache/
