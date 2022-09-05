@@ -53,7 +53,7 @@ export default function ExerciseSearchInput({ onChange }: Props) {
             onChange(text)
             setSearchText(text)
           }}
-          value={searchText}
+          value={searchText || ''}
           style={tw.style('rounded-xl')}
           label="Search"
           accessibilityLabel="Filter list of exercises by name"
