@@ -77,7 +77,7 @@ export default function ModalSelectInput<
 
   // Processes the "output" sent back to the originating screen by the modal select screen.
   React.useEffect(() => {
-    // We need to avoid unecessary renders (or infinite loops) by only processing the
+    // We need to avoid unnecessary renders (or infinite loops) by only processing the
     // modalSelectValue under specific circumstances:
     if (
       modalSelectValue && // there is a modal selection value passed in the route
