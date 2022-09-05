@@ -1,7 +1,7 @@
 import { weekAndDayFromStart } from './utils'
 
 describe('weekAndDayFromStart', () => {
-  it('should consder two equal dates to be day 1', () => {
+  it('should consider two equal dates to be day 1', () => {
     const startDate = new Date(2022, 6, 7, 5, 5, 5)
     const endDate = new Date(2022, 6, 7, 5, 5, 5)
     const result = weekAndDayFromStart(startDate, endDate)
@@ -58,5 +58,3 @@ describe('weekAndDayFromStart', () => {
     expect(result).toBe('Week 15, Day 6')
   })
 })
-
-// "node_modules/(?!(jest-)?react-native|react-clone-referenced-element|@react-native-community|expo(nent)?|@expo(nent)?/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|@sentry/.*)"
