@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import produce from 'immer'
-import create from 'zustand'
+import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Activity, Equipment, Exercise, Program, Session, WorkoutSet } from '../types'
 import { dateRegex } from '../utils'
@@ -305,14 +305,18 @@ const useWorkoutStore = create<WorkoutStore>()(
       onRehydrateStorage: () => (state?: WorkoutStore) => {
         state?.setHasHydrated(true)
       },
-      getStorage: () => AsyncStorage,
-      deserialize: (serializedState: string) => {
-        const storage = JSON.parse(serializedState, (_key, value) =>
-          // Dates don't serialize well
-          typeof value === 'string' && dateRegex.exec(value) ? new Date(value) : value
-        )
-
-        return storage
+      storage: {
+        getItem: async name =>
+          JSON.parse((await AsyncStorage.getItem(name)) || '', (_key, value) =>
+            // Dates don't serialize well
+            typeof value === 'string' && dateRegex.exec(value) ? new Date(value) : value
+          ),
+        setItem: (name, newValue) => {
+          AsyncStorage.setItem(name, JSON.stringify(newValue))
+        },
+        removeItem: name => {
+          AsyncStorage.removeItem(name)
+        }
       }
     }
   )
