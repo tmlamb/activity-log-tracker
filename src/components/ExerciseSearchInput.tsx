@@ -1,5 +1,7 @@
+import { AntDesign } from '@expo/vector-icons'
+import { useNavigation } from '@react-navigation/native'
 import React from 'react'
-import { Keyboard, View } from 'react-native'
+import { Dimensions, Keyboard, View } from 'react-native'
 import Animated, {
   FadeInRight,
   FadeOutRight,
@@ -7,20 +9,27 @@ import Animated, {
   useSharedValue,
   withTiming
 } from 'react-native-reanimated'
+import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../tailwind'
 import ButtonContainer from './ButtonContainer'
-import { SpecialText, ThemedTextInput } from './Themed'
+import { SecondaryText, SpecialText, ThemedTextInput } from './Themed'
 
 type Props = {
   onChange: (text?: string) => void
+  onActive?: () => void
+  onCancel?: () => void
+  style?: ClassInput
 }
 
-export default function ExerciseSearchInput({ onChange }: Props) {
+export default function ExerciseSearchInput({ onChange, onActive, onCancel, style }: Props) {
+  const navigation = useNavigation()
   const [searchText, setSearchText] = React.useState<string>()
   const [showCancelButton, setShowCancelButton] = React.useState(false)
-  const [searchComponentWidth, setSearchComponentWidth] = React.useState<number>(0)
+  const [searchComponentWidth, setSearchComponentWidth] = React.useState<number>(
+    Dimensions.get('window').width
+  )
   const [cancelButtonWidth, setCancelButtonWidth] = React.useState<number>(0)
-  const searchFilterWidth = useSharedValue(searchComponentWidth)
+  const searchFilterWidth = useSharedValue(searchComponentWidth - 24)
   const searchFilterStyle = useAnimatedStyle(
     () => ({
       width: searchFilterWidth.value
@@ -28,37 +37,77 @@ export default function ExerciseSearchInput({ onChange }: Props) {
     [searchFilterWidth.value]
   )
 
+  const searchComponentMarginTop = useSharedValue(0)
+  const searchComponentStyle = useAnimatedStyle(
+    () => ({
+      marginTop: searchComponentMarginTop.value,
+      marginBottom: 12,
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    }),
+    [searchComponentMarginTop.value]
+  )
+
   return (
-    <View
-      style={tw`flex-row items-center justify-between w-full mb-9`}
+    <Animated.View
+      style={tw`mb-9`}
       onLayout={event => {
         const roundedWidth = Math.round(event.nativeEvent.layout.width)
         if (roundedWidth !== searchComponentWidth) {
           setSearchComponentWidth(roundedWidth)
           searchFilterWidth.value = withTiming(
             roundedWidth - (searchText ? cancelButtonWidth : 0),
-            { duration: 500 }
+            { duration: 250 }
           )
         }
       }}
     >
       <Animated.View style={searchFilterStyle}>
         <ThemedTextInput
+          onFocus={() => {
+            searchFilterWidth.value = withTiming(searchComponentWidth - cancelButtonWidth, {
+              duration: 250
+            })
+            searchComponentMarginTop.value = withTiming(-24, {
+              duration: 250
+            })
+            setShowCancelButton(true)
+            navigation.setOptions({
+              headerShown: false
+            })
+            onActive?.()
+          }}
+          onBlur={() => {
+            if (!searchText) {
+              searchFilterWidth.value = withTiming(searchComponentWidth, {
+                duration: 250
+              })
+              searchComponentMarginTop.value = withTiming(0, {
+                duration: 250
+              })
+              setShowCancelButton(false)
+              navigation.setOptions({
+                headerShown: true
+              })
+              onCancel?.()
+            }
+          }}
           onChangeText={text => {
-            searchFilterWidth.value = withTiming(
-              text?.length > 0 ? searchComponentWidth - cancelButtonWidth : searchComponentWidth,
-              { duration: 500 }
-            )
-            setShowCancelButton(text?.length > 0)
             onChange(text)
             setSearchText(text)
           }}
           value={searchText || ''}
-          style={tw.style('rounded-xl')}
-          label="Search"
+          style={tw.style('rounded-xl px-3')}
+          leftIcon={
+            <SecondaryText style={tw`-ml-1.5 mr-1.5`}>
+              <AntDesign name="search1" size={18} />
+            </SecondaryText>
+          }
           accessibilityLabel="Filter list of exercises by name"
-          textInputStyle={tw`pl-16`}
-          maxLength={25}
+          maxLength={40}
         />
       </Animated.View>
       {showCancelButton && (
@@ -70,7 +119,7 @@ export default function ExerciseSearchInput({ onChange }: Props) {
             if (cancelButtonWidth !== roundedWidth) {
               setCancelButtonWidth(roundedWidth)
               searchFilterWidth.value = withTiming(searchComponentWidth - roundedWidth, {
-                duration: 500
+                duration: 250
               })
             }
           }}
@@ -78,19 +127,32 @@ export default function ExerciseSearchInput({ onChange }: Props) {
           <ButtonContainer
             onPress={() => {
               searchFilterWidth.value = withTiming(searchComponentWidth, {
-                duration: 500
+                duration: 250
+              })
+              searchComponentMarginTop.value = withTiming(0, {
+                duration: 250
               })
               onChange(undefined)
               setSearchText(undefined)
               setShowCancelButton(false)
+              navigation.setOptions({
+                headerShown: true
+              })
+              onCancel?.()
               Keyboard.dismiss()
             }}
-            accessibilityLabel="Clear exercise filter"
+            accessibilityLabel="Clear search filter"
           >
-            <SpecialText style={tw`pl-2.5 text-lg tracking-tight`}>Cancel</SpecialText>
+            <SpecialText style={tw`pl-3 font-bold text-lg tracking-tight`}>Done</SpecialText>
           </ButtonContainer>
         </Animated.View>
       )}
-    </View>
+    </Animated.View>
   )
+}
+
+ExerciseSearchInput.defaultProps = {
+  style: undefined,
+  onActive: undefined,
+  onCancel: undefined
 }

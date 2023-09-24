@@ -169,7 +169,7 @@ export default function Navigation() {
           name="ExerciseSettingsModal"
           component={ExerciseSettingsModal}
           options={{
-            title: 'Manage Exercises',
+            title: 'Exercises',
             presentation: 'modal',
             gestureEnabled: true
           }}
@@ -178,18 +178,18 @@ export default function Navigation() {
           name="ExerciseSettingsScreen"
           component={ExerciseSettingsScreen}
           options={{
-            title: 'Manage Exercises'
+            title: 'Exercises'
           }}
         />
         <AppStack.Screen
           name="ProgramSettingsScreen"
           component={ProgramSettingsScreen}
-          options={{ title: 'Manage Programs' }}
+          options={{ title: 'Programs' }}
         />
         <AppStack.Screen
           name="EquipmentSettingsScreen"
           component={EquipmentSettingsScreen}
-          options={{ title: 'Manage Equipment', headerBackVisible: false }}
+          options={{ title: 'Equipment', headerBackVisible: false }}
         />
         <AppStack.Screen
           name="ExerciseSelectModal"

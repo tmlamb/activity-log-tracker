@@ -18,17 +18,17 @@ export default function Settings({ goBack }: { goBack: () => void }) {
     {
       to: { screen: 'ProgramSettingsScreen' },
       label: 'Workout Programs',
-      accessibilityLabel: 'Navigate To Manage Workout Programs'
+      accessibilityLabel: 'Workout Program Settings'
     },
     {
       to: { screen: 'ExerciseSettingsScreen' },
       label: 'Exercises',
-      accessibilityLabel: 'Navigate To Manage Exercises'
+      accessibilityLabel: 'Exercise Settings'
     },
     {
       to: { screen: 'EquipmentSettingsScreen' },
       label: 'Equipment',
-      accessibilityLabel: 'Navigate To Manage Equipment'
+      accessibilityLabel: 'Equipment Settings'
     }
   ]
 

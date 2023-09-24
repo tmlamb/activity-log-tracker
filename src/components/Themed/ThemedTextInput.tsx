@@ -8,7 +8,7 @@ import {
   TextInputKeyPressEventData,
   ViewStyle
 } from 'react-native'
-import Animated, { FadeInRight, FadeOutDown } from 'react-native-reanimated'
+import Animated, { FadeIn, FadeInRight, FadeOut, FadeOutDown } from 'react-native-reanimated'
 import { ClassInput } from 'twrnc/dist/esm/types'
 import tw from '../../tailwind'
 import { AlertText, primaryTextColor, SecondaryText, secondaryTextColor } from './ThemedText'
@@ -18,11 +18,13 @@ type Props = {
   onChangeText?: (text: string) => void
   onChange?: (e: NativeSyntheticEvent<TextInputChangeEventData>) => void
   onBlur?: (e: unknown) => void
+  onFocus?: (e: unknown) => void;
   value?: string
   style?: ViewStyle
   textInputStyle?: ClassInput
   labelStyle?: ClassInput
   label?: string
+  leftIcon?: React.ReactNode;
   placeholder?: string
   placeholderTextColor?: ColorValue
   maxLength?: number
@@ -59,11 +61,13 @@ export default function TextInput({
   onChangeText,
   onChange,
   onBlur,
+  onFocus,
   value,
   style,
   textInputStyle,
   labelStyle,
   label,
+  leftIcon,
   placeholder,
   placeholderTextColor,
   maxLength,
@@ -87,26 +91,35 @@ export default function TextInput({
 
   return (
     <ThemedView style={tw.style('relative py-0 web:px-0', style)}>
-      <ThemedView style={tw`px-0 py-2 web:py-0 relative w-full bg-transparent`}>
-        {label && (
-          <SecondaryText
-            style={tw.style(
-              'absolute leading-tight text-lg tracking-tight pl-0 web:pl-3',
-              labelStyle
-            )}
-            accessible={false}
-          >
-            {label}
-          </SecondaryText>
-        )}
+      <ThemedView style={tw`px-0 py-1.5 web:py-0 relative w-full bg-transparent`}>
+        {leftIcon ||
+          (label && (
+            <Animated.View entering={FadeIn} exiting={FadeOut} style={tw`absolute`}>
+              <>
+                {leftIcon && { leftIcon }}
+                {label && (
+                  <SecondaryText
+                    style={tw.style(
+                      'leading-tight text-lg tracking-tight pl-0 web:pl-3',
+                      labelStyle
+                    )}
+                    accessible={false}
+                  >
+                    {label}
+                  </SecondaryText>
+                )}
+              </>
+            </Animated.View>
+          ))}
         <NativeTextInput
           onChangeText={handleChange}
           onChange={onChange}
+          onFocus={onFocus}
           onBlur={onBlur}
           value={value ? nbspReplace(value) : value}
           style={tw.style(
             primaryTextColor,
-            'w-full pb-[2.8px] pt-[2.5px] android:py-[.15px] z-20 pr-0 text-lg web:text-right web:pr-3 web:pt-[10.75px] web:pb-[10.75px] leading-tight tracking-tight',
+            'w-full pb-[2.8px] pt-[2.5px] android:py-[.15px] z-20 pr-0 text-lg web:text-right web:pr-3 web:pt-[10.75px] web:pb-[10.75px] leading-tight tracking-normal',
             textInputStyle
           )}
           placeholder={placeholder}
