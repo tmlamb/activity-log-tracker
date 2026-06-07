@@ -1,0 +1,32 @@
+{
+  "name": "activity-log-tracker",
+  "private": true,
+  "engines": {
+    "node": "^22.21.1",
+    "pnpm": "^10.20.0"
+  },
+  "packageManager": "pnpm@10.20.0",
+  "scripts": {
+    "build": "turbo run build",
+    "clean": "git clean -xdf node_modules out",
+    "clean:workspaces": "turbo run clean",
+    "dev": "turbo dev --continue",
+    "dev:expo": "turbo dev -F @activity-log/expo...",
+    "format": "turbo run format --continue -- --cache --cache-location .cache/.prettiercache",
+    "format:fix": "turbo run format --continue -- --write --cache --cache-location .cache/.prettiercache",
+    "lint": "turbo run lint --continue -- --cache --cache-location .cache/.eslintcache",
+    "lint:fix": "turbo run lint --continue -- --fix --cache --cache-location .cache/.eslintcache",
+    "lint:ws": "pnpm dlx sherif@latest",
+    "postinstall": "pnpm lint:ws",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "@activity-log/prettier-config": "workspace:*",
+    "@turbo/gen": "2.5.8",
+    "prettier": "catalog:",
+    "turbo": "2.5.8",
+    "typescript": "catalog:"
+  },
+  "prettier": "@activity-log/prettier-config"
+}

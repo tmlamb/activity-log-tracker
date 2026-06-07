@@ -1,0 +1,22 @@
+{
+  "extends": ["@activity-log/tsconfig/base.json"],
+  "compilerOptions": {
+    "paths": {
+      "~/*": ["./src/*"]
+    },
+    "jsx": "react-native",
+    "checkJs": false,
+    "moduleSuffixes": [".ios", ".android", ".native", ""]
+  },
+  "include": [
+    "src",
+    "*.ts",
+    "*.js",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts",
+    "postcss.config.mjs",
+    "metro.config.cjs"
+  ],
+  "exclude": ["node_modules"]
+}

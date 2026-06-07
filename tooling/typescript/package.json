@@ -1,0 +1,7 @@
+{
+  "name": "@activity-log/tsconfig",
+  "private": true,
+  "files": [
+    "*.json"
+  ]
+}

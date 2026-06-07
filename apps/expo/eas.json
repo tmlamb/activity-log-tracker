@@ -1,0 +1,44 @@
+{
+  "cli": {
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "base": {
+      "node": "22.20.0",
+      "pnpm": "10.20.0",
+      "ios": {
+        "resourceClass": "m-medium"
+      }
+    },
+    "development": {
+      "environment": "development",
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "development"
+      }
+    },
+    "preview": {
+      "environment": "preview",
+      "channel": "preview",
+      "extends": "base",
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "preview"
+      }
+    },
+    "production": {
+      "environment": "production",
+      "channel": "production",
+      "autoIncrement": true,
+      "extends": "base",
+      "env": {
+        "APP_ENV": "production"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

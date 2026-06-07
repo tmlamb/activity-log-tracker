@@ -1,0 +1,5 @@
+{
+  "extends": "@activity-log/tsconfig/base.json",
+  "include": ["."],
+  "exclude": ["node_modules"]
+}
