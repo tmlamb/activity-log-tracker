@@ -1,0 +1,1 @@
+{"version":3,"file":"variations.d.ts","sourceRoot":"","sources":["../../src/variations.js"],"names":[],"mappings":"AAIA,4DAA4D;AAC5D,wEAAwE;AACxE,8CAA8C;AAE9C;;;;GAIG;AACH,+BAJW,UAAU,WACV,MAAM,GACJ,gBAAgB,CAM5B;AAED;;;;GAIG;AACH,8BAJW,UAAU,WACV,MAAM,GACJ,gBAAgB,CAM5B;yBAxBa,OAAO,YAAY,EAAE,UAAU;+BAC/B,OAAO,YAAY,EAAE,gBAAgB;kBACrC,OAAO,YAAY,EAAE,GAAG"}

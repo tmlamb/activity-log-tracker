@@ -1,0 +1,1 @@
+{"version":3,"file":"attributes.d.ts","sourceRoot":"","sources":["../../../../../../src/native/conditions/attributes.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,cAAc,EAAE,MAAM,2BAA2B,CAAC;AAEhE,OAAO,KAAK,EAAE,WAAW,EAAE,MAAM,UAAU,CAAC;AAE5C,wBAAgB,cAAc,CAC5B,OAAO,EAAE,cAAc,EAAE,EACzB,KAAK,EAAE,MAAM,CAAC,MAAM,EAAE,OAAO,CAAC,GAAG,SAAS,GAAG,IAAI,EACjD,MAAM,EAAE,WAAW,EAAE,WAGtB"}

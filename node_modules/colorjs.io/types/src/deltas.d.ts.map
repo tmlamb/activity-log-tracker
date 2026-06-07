@@ -1,0 +1,1 @@
+{"version":3,"file":"deltas.d.ts","sourceRoot":"","sources":["../../src/deltas.js"],"names":[],"mappings":"AAOA,4DAA4D;AAC5D,gEAAgE;AAEhE;;;;;;;;GAQG;AACH,mCAPW,UAAU,MACV,UAAU;IAEoB,KAAK,GAAnC,MAAM,GAAG,UAAU;IACoB,GAAG,GAA1C,4FAA0B,CAAC,CAAC;IAC1B,YAAY,CAyBxB;yBAnCa,OAAO,YAAY,EAAE,UAAU;2BAC/B,OAAO,YAAY,EAAE,YAAY;uBAPxB,iBAAiB"}

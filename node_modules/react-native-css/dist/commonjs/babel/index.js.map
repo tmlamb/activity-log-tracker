@@ -1,0 +1,1 @@
+{"version":3,"names":["_default","plugins","require","default"],"sourceRoot":"../../../src","sources":["babel/index.ts"],"mappings":";;;;;;AAAA;AACe,SAAAA,SAAA,EAAY;EACzB,OAAO;IACLC,OAAO,EAAE,CACPC,OAAO,CAAC,iBAAiB,CAAC,CAACC,OAAO,EAClC,8BAA8B;EAElC,CAAC;AACH","ignoreList":[]}

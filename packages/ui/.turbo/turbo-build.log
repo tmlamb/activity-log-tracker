@@ -1,0 +1,7 @@
+
+> @activity-log/ui@ build /home/tom/personal/tmp/activity-log-tracker-new/packages/ui
+> tsc
+
+src/index.ts(1,15): error TS2459: Module '"class-variance-authority"' declares 'ClassValue' locally, but it is not exported.
+src/index.ts(1,27): error TS2459: Module '"class-variance-authority"' declares 'clsx' locally, but it is not exported.
+ ELIFECYCLE  Command failed with exit code 2.

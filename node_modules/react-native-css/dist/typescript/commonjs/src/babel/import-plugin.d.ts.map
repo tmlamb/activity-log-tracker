@@ -1,0 +1,1 @@
+{"version":3,"file":"import-plugin.d.ts","sourceRoot":"","sources":["../../../../../src/babel/import-plugin.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,KAAK,SAAS,EAAE,MAAM,aAAa,CAAC;AAG7C,OAAO,EAEL,KAAK,UAAU,EACf,KAAK,WAAW,EACjB,MAAM,WAAW,CAAC;AAYnB,MAAM,CAAC,OAAO,WAAW,EACvB,KAAK,EAAE,CAAC,GACT,EAAE;IACD,KAAK,EAAE,UAAU,CAAC;CACnB,GAAG,SAAS,CAAC,WAAW,CAAC,CAsJzB"}

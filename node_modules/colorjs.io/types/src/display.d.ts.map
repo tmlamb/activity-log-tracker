@@ -1,0 +1,1 @@
+{"version":3,"file":"display.d.ts","sourceRoot":"","sources":["../../src/display.js"],"names":[],"mappings":"AAoCA;;;;;;;;;;GAUG;AACH,uCANW,UAAU,0BACV;IAAE,KAAK,CAAC,EAAE,MAAM,GAAG,UAAU,GAAG,SAAS,CAAA;CAAE,GAAG,OAAO,MAAM,EAAE,GAAG,CAAC,GAE/D,OAAO,CA+CnB;yBA/Ea,OAAO,YAAY,EAAE,UAAU;+BAC/B,OAAO,YAAY,EAAE,gBAAgB;sBACrC,OAAO,YAAY,EAAE,OAAO;yBAC5B,OAAO,iBAAiB,EAAE,OAAO"}

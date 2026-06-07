@@ -1,0 +1,1 @@
+{"version":3,"file":"pseudo-elements.d.ts","sourceRoot":"","sources":["../../../../../src/compiler/pseudo-elements.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAoB,SAAS,EAAE,MAAM,kBAAkB,CAAC;AAEpE,wBAAgB,sBAAsB,CAAC,IAAI,EAAE,SAAS,GAAG,SAAS,GAAG,SAAS,CAU7E;AAED,wBAAgB,wBAAwB,CACtC,IAAI,EAAE,SAAS,GACd,SAAS,GAAG,SAAS,CAUvB"}

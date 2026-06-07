@@ -1,0 +1,7 @@
+
+
+> @activity-log/ui@ format /home/tom/personal/tmp/activity-log-tracker-new/packages/ui
+> prettier --check . --ignore-path ../../.gitignore --cache --cache-location .cache/.prettiercache
+
+Checking formatting...
+eslint.config.ts[2K[1Gpackage.json[2K[1Gsrc/index.ts[2K[1Gsrc/utils.test.ts[2K[1Gsrc/utils.ts[2K[1Gtsconfig.json[2K[1Gvitest.config.ts[2K[1GAll matched files use Prettier code style!

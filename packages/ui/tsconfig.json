@@ -1,0 +1,10 @@
+{
+  "extends": "@activity-log/tsconfig/compiled-package.json",
+  "compilerOptions": {
+    "paths": {
+      "~/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}

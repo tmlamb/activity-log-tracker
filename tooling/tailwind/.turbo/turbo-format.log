@@ -1,0 +1,7 @@
+
+
+> @activity-log/tailwind-config@ format /home/tom/personal/tmp/activity-log-tracker-new/tooling/tailwind
+> prettier --check . --ignore-path ../../.gitignore --cache --cache-location .cache/.prettiercache
+
+Checking formatting...
+eslint.config.ts[2K[1Gpackage.json[2K[1Gpostcss-config.js[2K[1Gtheme.css[2K[1Gtsconfig.json[2K[1GAll matched files use Prettier code style!
