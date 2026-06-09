@@ -36,6 +36,12 @@
       "interactive": false
     }
   },
-  "globalEnv": ["IOS_BUNDLE_ID", "ANDROID_PACKAGE_NAME", "EXPO_OWNER"],
+  "globalEnv": [
+    "IOS_BUNDLE_ID",
+    "ANDROID_PACKAGE_NAME",
+    "EXPO_OWNER",
+    "POSTHOG_API_KEY",
+    "POSTHOG_HOST"
+  ],
   "globalPassThroughEnv": ["NODE_ENV", "CI", "npm_lifecycle_event"]
 }

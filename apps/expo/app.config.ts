@@ -3,7 +3,14 @@ import * as dotenv from "dotenv";
 
 dotenv.config({ path: "../../.env" });
 
-const { APP_ENV, IOS_BUNDLE_ID, ANDROID_PACKAGE_NAME, EXPO_OWNER } = process.env;
+const {
+  APP_ENV,
+  IOS_BUNDLE_ID,
+  ANDROID_PACKAGE_NAME,
+  EXPO_OWNER,
+  POSTHOG_API_KEY,
+  POSTHOG_HOST,
+} = process.env;
 const appIdSuffix = APP_ENV !== "production" ? `.${APP_ENV}` : "";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
@@ -52,6 +59,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       eas: {
         projectId: "bf8483a0-b4f2-4316-812f-1ab9b8f0e00b",
       },
+      posthogApiKey: POSTHOG_API_KEY,
+      posthogHost: POSTHOG_HOST,
       appEnv: APP_ENV,
     },
     plugins: [

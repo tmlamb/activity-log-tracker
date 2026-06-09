@@ -1,0 +1,196 @@
+name: Integrate and Deploy Main to Preview
+on:
+  push:
+    branches:
+      - main
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+jobs:
+  changeset:
+    name: Changeset
+    runs-on: ubuntu-latest
+    outputs:
+      changed-expo: ${{ steps.changed-expo.outputs.result }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Create Changeset
+        id: changeset
+        run: |
+          if git rev-parse --verify --quiet refs/tags/preview > /dev/null; then
+            content=`pnpm run --silent build --filter=...\[preview\] --dry-run=json`
+          else
+            content='{"packages":["@activity-log/expo"]}'
+          fi
+          content="${content//$'\n'/''}"
+          content="${content//$'\r'/''}"
+          echo "result=$content" >> "$GITHUB_OUTPUT"
+
+      - name: Changed expo?
+        id: changed-expo
+        run: |
+          echo "result=${{ contains(fromJSON(steps.changeset.outputs.result).packages, '@activity-log/expo') }}" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Run Unit Tests
+        run: pnpm test
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Run Lint Checker
+        run: pnpm lint
+
+      - name: Run Type Checker
+        run: pnpm typecheck
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Run Format Checker
+        run: pnpm format
+
+  update-preview:
+    name: Update Preview Mobile App
+    needs: [test, format, lint, changeset]
+    if: |
+      always() &&
+      needs.changeset.result == 'success' &&
+      needs.test.result == 'success' &&
+      needs.format.result == 'success' &&
+      needs.lint.result == 'success' &&
+      needs.changeset.outputs.changed-expo == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for EXPO_TOKEN
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets. Learn more: https://docs.expo.dev/eas-update/github-actions"
+            exit 1
+          fi
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Publish Preview App Update
+        run: cd apps/expo && APP_ENV=preview eas update --environment preview --branch preview --message "${{ github.sha }}"
+
+  tag-git:
+    name: Preview Tag Git
+    needs: update-preview
+    if: always() && needs.update-preview.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Push preview tag
+        uses: EndBug/latest-tag@latest
+        with:
+          ref: preview
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
