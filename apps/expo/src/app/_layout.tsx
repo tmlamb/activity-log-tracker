@@ -6,6 +6,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
+import * as Updates from "expo-updates";
 import { PostHogProvider } from "posthog-react-native";
 
 import useWorkoutStore from "~/hooks/use-workout-store";
@@ -20,6 +21,38 @@ export default function RootLayout() {
       posthog.captureException(e),
     );
   }, [backgroundColor]);
+
+  useEffect(() => {
+    if (!Updates.isEnabled) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadUpdate() {
+      try {
+        const update = await Updates.checkForUpdateAsync();
+
+        if (!update.isAvailable) {
+          return;
+        }
+
+        const fetchedUpdate = await Updates.fetchUpdateAsync();
+
+        if (isMounted && fetchedUpdate.isNew) {
+          await Updates.reloadAsync();
+        }
+      } catch (e) {
+        posthog.captureException(e);
+      }
+    }
+
+    void loadUpdate();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Wait for Zustand store hydration before rendering
   if (!hasHydrated) {
