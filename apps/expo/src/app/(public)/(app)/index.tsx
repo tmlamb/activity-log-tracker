@@ -81,20 +81,23 @@ export default function DashboardScreen() {
           <>
             {programs.length < 1 && (
               <>
+                <Link
+                  href="/(public)/(app)/program/form"
+                  asChild
+                  className="mt-2"
+                >
+                  <PrimaryCardAction
+                    label="Create Workout Program"
+                    accessibilityLabel="Navigate to Create Workout Program Form"
+                  />
+                </Link>
                 <HelperText
-                  placement="listHeader"
                   className="leading-tight"
                   accessibilityRole="summary"
                 >
                   To get started, create a new workout program to track your
                   sessions.
                 </HelperText>
-                <Link href="/(public)/(app)/program/form" asChild>
-                  <PrimaryCardAction
-                    label="Create Workout Program"
-                    accessibilityLabel="Navigate to Create Workout Program Form"
-                  />
-                </Link>
               </>
             )}
             {programs.length > 0 &&

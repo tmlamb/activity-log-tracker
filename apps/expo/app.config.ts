@@ -11,6 +11,8 @@ const {
   POSTHOG_API_KEY,
   POSTHOG_HOST,
 } = process.env;
+const appVersion = "2.1.0";
+const runtimeVersion = appVersion.split(".").slice(0, 2).join(".");
 const appIdSuffix = APP_ENV !== "production" ? `.${APP_ENV}` : "";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
@@ -20,7 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     slug: "activity-log-tracker",
     scheme: "activitylog",
     owner: EXPO_OWNER,
-    version: "2.0.0",
+    version: appVersion,
     orientation: "portrait",
     userInterfaceStyle: "automatic",
     experiments: {
@@ -32,9 +34,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       fallbackToCacheTimeout: 10000,
       url: "https://u.expo.dev/bf8483a0-b4f2-4316-812f-1ab9b8f0e00b",
     },
-    runtimeVersion: {
-      policy: "appVersion",
-    },
+    runtimeVersion,
     assetBundlePatterns: ["**/*"],
     ios: {
       bundleIdentifier: `${IOS_BUNDLE_ID}${appIdSuffix}`,
