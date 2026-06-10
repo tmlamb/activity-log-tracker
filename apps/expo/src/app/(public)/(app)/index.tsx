@@ -1,5 +1,7 @@
 import { SectionList } from "react-native";
+import * as Application from "expo-application";
 import { Link, Stack, useRouter } from "expo-router";
+import * as Updates from "expo-updates";
 import {
   Feather,
   FontAwesome6,
@@ -15,6 +17,7 @@ import useWorkoutStore from "~/hooks/use-workout-store";
 export default function DashboardScreen() {
   const router = useRouter();
   const programs = useWorkoutStore((state) => state.programs);
+  const updateId = Updates.updateId?.slice(0, 8) ?? "embedded";
 
   return (
     <>
@@ -109,6 +112,12 @@ export default function DashboardScreen() {
                   Select a program to start planning workout sessions.
                 </HelperText>
               )}
+            <HelperText className="mt-8 text-center text-xs leading-tight">
+              v{Application.nativeApplicationVersion ?? "unknown"} b
+              {Application.nativeBuildVersion ?? "unknown"} channel{" "}
+              {Updates.channel ?? "unknown"} runtime{" "}
+              {Updates.runtimeVersion ?? "unknown"} update {updateId}
+            </HelperText>
           </>
         }
       />
