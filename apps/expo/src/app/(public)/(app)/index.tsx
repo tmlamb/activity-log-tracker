@@ -98,8 +98,7 @@ export default function DashboardScreen() {
                   className="leading-tight"
                   accessibilityRole="summary"
                 >
-                  To get started, create a new workout program to track your
-                  sessions.
+                  Create a new program to start tracking your workout sessions.
                 </HelperText>
               </>
             )}
