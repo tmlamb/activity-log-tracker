@@ -1,23 +1,23 @@
-import{SectionList} from "react-native";
-import *as Application from "expo-application";
-import{Link, Stack, useRouter} from "expo-router";
-import *as Updates from "expo-updates";
-import{
-    Feather,
-    FontAwesome6,
-    MaterialCommunityIcons,
+import { SectionList } from "react-native";
+import * as Application from "expo-application";
+import { Link, Stack, useRouter } from "expo-router";
+import * as Updates from "expo-updates";
+import {
+  Feather,
+  FontAwesome6,
+  MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import _ from "lodash";
 
-import{NavigationCardRow, PrimaryCardAction} from "~/components/CardRow";
+import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
 import GlassOverflowMenu from "~/components/GlassOverflowMenu";
-import{HelperText, SectionHeading} from "~/components/Typography";
+import { HelperText, SectionHeading } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const programs = useWorkoutStore((state) = > state.programs);
-  const updateId = Updates.updateId ?.slice(0, 8) ? ? "embedded";
+  const programs = useWorkoutStore((state) => state.programs);
+  const updateId = Updates.updateId?.slice(0, 8) ?? "embedded";
 
   return (
     <>
@@ -75,10 +75,7 @@ export default function DashboardScreen() {
           <Link href={`/(public)/(app)/program/${item.programId}`} asChild>
             <NavigationCardRow
               title={item.name}
-              stack={
-    {
-      index, size : section.data.length
-    }}
+              stack={{ index, size: section.data.length }}
               accessibilityLabel={`Navigate to Workout Program ${item.name}`}
             />
           </Link>
@@ -101,7 +98,7 @@ export default function DashboardScreen() {
                   className="leading-tight"
                   accessibilityRole="summary"
                 >
-                  Create a program to start tracking workout sessions.
+                  Create a new program to start tracking your workout sessions.
                 </HelperText>
               </>
             )}
