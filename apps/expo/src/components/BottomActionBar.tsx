@@ -6,7 +6,6 @@ import {
   useDerivedValue,
   withTiming,
 } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { twMerge } from "tailwind-merge";
 
@@ -62,6 +61,11 @@ export default function BottomActionBar({
       0: { color: "transparent" },
     },
   });
+  const maskGradientStyle = {
+    experimental_backgroundImage: `linear-gradient(to bottom, ${colors
+      .map((color, index) => `${color} ${(locations[index] ?? 0) * 100}%`)
+      .join(", ")})`,
+  };
 
   useEffect(() => {
     if (renderTimeoutRef.current) {
@@ -114,11 +118,7 @@ export default function BottomActionBar({
         style={StyleSheet.absoluteFill}
         maskElement={
           <View className="flex-1">
-            <LinearGradient
-              colors={colors as [string, string, ...string[]]}
-              locations={locations as [number, number, ...number[]]}
-              style={StyleSheet.absoluteFill}
-            />
+            <View style={[StyleSheet.absoluteFill, maskGradientStyle]} />
           </View>
         }
       >

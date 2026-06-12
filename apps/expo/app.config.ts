@@ -85,6 +85,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           assets: ["./assets/adaptive-icon.png"],
         },
       ],
+      "expo-status-bar",
+      "expo-sqlite",
     ],
   };
 };

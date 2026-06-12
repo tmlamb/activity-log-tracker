@@ -176,13 +176,14 @@ function WorkoutSetDetailScreenContent({
     },
   });
 
+  const activitySets: WorkoutSet[] = [
+    ...activity.warmupSets,
+    ...activity.mainSets,
+  ];
   const isStartable =
     workoutSet.status === "Planned" &&
-    _.concat(
-      activity.warmupSets as WorkoutSet[],
-      activity.mainSets as WorkoutSet[],
-    ).find((ws) => ["Planned", "Ready"].includes(ws.status))?.workoutSetId ===
-      workoutSet.workoutSetId;
+    activitySets.find((ws) => ["Planned", "Ready"].includes(ws.status))
+      ?.workoutSetId === workoutSet.workoutSetId;
 
   const onSubmit = useCallback(
     (data: WorkoutSet) => {
@@ -269,11 +270,7 @@ function WorkoutSetDetailScreenContent({
     setValue("end", now);
     setValue("status", "Done");
     submitCurrentValues();
-    const allSets = _.concat(
-      activity.warmupSets as WorkoutSet[],
-      activity.mainSets as WorkoutSet[],
-    );
-    const nextWorkoutSet = allSets.find(
+    const nextWorkoutSet = activitySets.find(
       (_, index, obj) =>
         obj[index - 1] &&
         obj[index - 1]?.workoutSetId === workoutSet.workoutSetId,

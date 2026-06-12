@@ -1,6 +1,7 @@
 {
   "extends": "@activity-log/tsconfig/compiled-package.json",
   "compilerOptions": {
+    "rootDir": "src",
     "paths": {
       "~/*": ["./src/*"]
     }

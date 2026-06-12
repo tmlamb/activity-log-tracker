@@ -6,7 +6,7 @@ import type {
 } from "react-native";
 import {
   createContext,
-  useContext,
+  use,
   useEffect,
   useMemo,
   useRef,
@@ -52,6 +52,8 @@ interface TextInputThemedLabelSpacing {
   setLabelWidth: (width: number) => void;
 }
 
+type FeatherIconName = keyof typeof Feather.glyphMap;
+
 interface Props {
   onChangeText?: (text: string) => void;
   onChange?: (e: TextInputChangeEvent) => void;
@@ -62,7 +64,7 @@ interface Props {
   textInputClassName?: string;
   labelClassName?: string;
   label?: string;
-  leftIconName?: React.ComponentProps<typeof Feather>["name"];
+  leftIconName?: FeatherIconName;
   placeholder?: string;
   maxLength?: number;
   selectTextOnFocus?: boolean;
@@ -95,7 +97,7 @@ let nextTextInputThemedFieldId = 0;
 export function useTextInputThemedLabelSpacing(
   enabled: boolean,
 ): TextInputThemedLabelSpacing {
-  const group = useContext(TextInputThemedGroupContext);
+  const group = use(TextInputThemedGroupContext);
   const inputIdRef = useRef(
     `text-input-themed-${nextTextInputThemedFieldId++}`,
   );
@@ -172,9 +174,9 @@ export function TextInputThemedGroup({
   );
 
   return (
-    <TextInputThemedGroupContext.Provider value={value}>
+    <TextInputThemedGroupContext value={value}>
       {children}
-    </TextInputThemedGroupContext.Provider>
+    </TextInputThemedGroupContext>
   );
 }
 

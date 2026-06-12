@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { StateStorage } from "zustand/middleware";
 import { produce } from "immer";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -59,6 +59,30 @@ const reviveDates = (key: string, value: unknown): unknown =>
   dateRegex.exec(value)
     ? new Date(value)
     : value;
+
+interface LocalStorageLike {
+  getItem: (name: string) => string | null;
+  setItem: (name: string, value: string) => void;
+  removeItem: (name: string) => void;
+}
+
+const getLocalStorage = (): LocalStorageLike =>
+  (globalThis as typeof globalThis & { localStorage: LocalStorageLike })
+    .localStorage;
+
+const createWorkoutStorage = (): StateStorage<void> => {
+  const storage = getLocalStorage();
+
+  return {
+    getItem: (name) => storage.getItem(name),
+    setItem: (name, value) => {
+      storage.setItem(name, value);
+    },
+    removeItem: (name) => {
+      storage.removeItem(name);
+    },
+  };
+};
 
 const useWorkoutStore = create<WorkoutStore>()(
   persist(
@@ -348,7 +372,9 @@ const useWorkoutStore = create<WorkoutStore>()(
       onRehydrateStorage: () => (state?: WorkoutStore) => {
         state?.setHasHydrated(true);
       },
-      storage: createJSONStorage(() => AsyncStorage, { reviver: reviveDates }),
+      storage: createJSONStorage(createWorkoutStorage, {
+        reviver: reviveDates,
+      }),
     },
   ),
 );

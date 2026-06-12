@@ -16,8 +16,8 @@ import {
   useLocalSearchParams,
   useRouter,
 } from "expo-router";
+import { useIsFocused } from "expo-router/react-navigation";
 import { AntDesign, Entypo } from "@expo/vector-icons";
-import { useIsFocused } from "@react-navigation/native";
 import { add, differenceInMinutes } from "date-fns";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 

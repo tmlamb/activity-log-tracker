@@ -9,16 +9,14 @@ import * as SystemUI from "expo-system-ui";
 import { PostHogProvider } from "posthog-react-native";
 
 import useWorkoutStore from "~/hooks/use-workout-store";
-import { posthog } from "~/utils/posthog";
+import { captureException, posthog } from "~/utils/posthog";
 
 export default function RootLayout() {
   const hasHydrated = useWorkoutStore((state) => state.hasHydrated);
   const backgroundColor = useNativeVariable("--background") as string;
 
   useEffect(() => {
-    SystemUI.setBackgroundColorAsync(backgroundColor).catch((e) =>
-      posthog.captureException(e),
-    );
+    SystemUI.setBackgroundColorAsync(backgroundColor).catch(captureException);
   }, [backgroundColor]);
 
   // Wait for Zustand store hydration before rendering
@@ -26,19 +24,23 @@ export default function RootLayout() {
     return null;
   }
 
-  return (
-    <PostHogProvider client={posthog}>
-      <KeyboardProvider preload={false}>
-        <StatusBar style="auto" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor },
-          }}
-        >
-          <Stack.Screen name="(public)" />
-        </Stack>
-      </KeyboardProvider>
-    </PostHogProvider>
+  const app = (
+    <KeyboardProvider preload={false}>
+      <StatusBar style="auto" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor },
+        }}
+      >
+        <Stack.Screen name="(public)" />
+      </Stack>
+    </KeyboardProvider>
+  );
+
+  return posthog ? (
+    <PostHogProvider client={posthog}>{app}</PostHogProvider>
+  ) : (
+    app
   );
 }

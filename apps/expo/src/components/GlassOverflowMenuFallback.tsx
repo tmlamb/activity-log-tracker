@@ -1,11 +1,10 @@
-import type { LayoutChangeEvent } from "react-native";
+import type { LayoutChangeEvent, ViewStyle } from "react-native";
 import { useEffect, useState } from "react";
 import {
   Animated,
   Modal,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   useColorScheme,
   View,
@@ -25,6 +24,13 @@ const menuWidth = 236;
 const menuButtonSize = 40;
 const glassBorderRadius = 32;
 const closeDrift = 40;
+const absoluteFillStyle = {
+  position: "absolute",
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+} satisfies ViewStyle;
 
 export interface GlassOverflowMenuItem {
   key: string;
@@ -137,7 +143,7 @@ export default function GlassOverflowMenuFallback({
         <View className="flex-1">
           <AnimatedPressable
             onPress={closeMenu}
-            style={[StyleSheet.absoluteFillObject, { opacity: progress }]}
+            style={[absoluteFillStyle, { opacity: progress }]}
             accessibilityRole="button"
             accessibilityLabel="Close quick settings menu"
           />
@@ -186,10 +192,10 @@ export default function GlassOverflowMenuFallback({
                       animate: true,
                       animationDuration: 0.16,
                     }}
-                    style={{
-                      ...StyleSheet.absoluteFillObject,
-                      borderRadius: glassBorderRadius,
-                    }}
+                    style={[
+                      absoluteFillStyle,
+                      { borderRadius: glassBorderRadius },
+                    ]}
                   />
                 ) : (
                   <BlurView
@@ -198,10 +204,10 @@ export default function GlassOverflowMenuFallback({
                     experimentalBlurMethod={
                       Platform.OS === "android" ? "dimezisBlurView" : undefined
                     }
-                    style={{
-                      ...StyleSheet.absoluteFillObject,
-                      borderRadius: glassBorderRadius,
-                    }}
+                    style={[
+                      absoluteFillStyle,
+                      { borderRadius: glassBorderRadius },
+                    ]}
                   />
                 )}
                 <Animated.View style={{ opacity: contentOpacity }}>

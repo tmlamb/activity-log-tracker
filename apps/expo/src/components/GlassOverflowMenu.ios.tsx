@@ -1,11 +1,10 @@
-import type { LayoutChangeEvent } from "react-native";
+import type { LayoutChangeEvent, ViewStyle } from "react-native";
 import { useEffect, useState } from "react";
 import {
   Animated,
   Modal,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   useColorScheme,
   View,
@@ -28,6 +27,13 @@ const menuButtonSize = 40;
 const glassBorderRadius = 32;
 const closeDrift = 60;
 const liquidGlassMinimumIosVersion = 26;
+const absoluteFillStyle = {
+  position: "absolute",
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+} satisfies ViewStyle;
 
 export default function GlassOverflowMenu({
   items,
@@ -145,7 +151,7 @@ function NativeGlassOverflowMenu({
         <View className="flex-1">
           <AnimatedPressable
             onPress={closeMenu}
-            style={[StyleSheet.absoluteFillObject, { opacity: progress }]}
+            style={[absoluteFillStyle, { opacity: progress }]}
             accessibilityRole="button"
             accessibilityLabel="Close quick settings menu"
           />
@@ -178,15 +184,12 @@ function NativeGlassOverflowMenu({
               >
                 <View
                   pointerEvents="none"
-                  style={{
-                    ...StyleSheet.absoluteFillObject,
-                    borderRadius: glassBorderRadius,
-                  }}
+                  style={[
+                    absoluteFillStyle,
+                    { borderRadius: glassBorderRadius },
+                  ]}
                 >
-                  <Host
-                    colorScheme={hostColorScheme}
-                    style={StyleSheet.absoluteFillObject}
-                  >
+                  <Host colorScheme={hostColorScheme} style={absoluteFillStyle}>
                     <VStack
                       modifiers={[
                         frame({ width: menuWidth, height: menuHeight }),

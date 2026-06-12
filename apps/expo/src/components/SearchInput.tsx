@@ -40,7 +40,7 @@ export default function SearchInput({ onChange, onActive, onCancel }: Props) {
         const roundedWidth = Math.round(event.nativeEvent.layout.width);
         if (roundedWidth !== searchComponentWidth) {
           setSearchComponentWidth(roundedWidth);
-          searchFilterWidth.set(() =>
+          searchFilterWidth.set(
             withTiming(roundedWidth - (searchText ? cancelButtonWidth : 0), {
               duration: 400,
             }),
@@ -52,17 +52,17 @@ export default function SearchInput({ onChange, onActive, onCancel }: Props) {
         <Animated.View style={searchFilterStyle}>
           <TextInputThemed
             onFocus={() => {
-              searchFilterWidth.set(() => {
-                return withTiming(searchComponentWidth - cancelButtonWidth, {
+              searchFilterWidth.set(
+                withTiming(searchComponentWidth - cancelButtonWidth, {
                   duration: 300,
-                });
-              });
+                }),
+              );
               setShowCancelButton(true);
               onActive?.();
             }}
             onBlur={() => {
               if (!searchText) {
-                searchFilterWidth.set(() =>
+                searchFilterWidth.set(
                   withTiming(searchComponentWidth, {
                     duration: 300,
                   }),
@@ -90,7 +90,7 @@ export default function SearchInput({ onChange, onActive, onCancel }: Props) {
               const roundedWidth = Math.round(event.nativeEvent.layout.width);
               if (cancelButtonWidth !== roundedWidth) {
                 setCancelButtonWidth(roundedWidth);
-                searchFilterWidth.set(() =>
+                searchFilterWidth.set(
                   withTiming(searchComponentWidth - roundedWidth, {
                     duration: 100,
                   }),
@@ -101,7 +101,7 @@ export default function SearchInput({ onChange, onActive, onCancel }: Props) {
             <PressableThemed
               className="py-4"
               onPress={() => {
-                searchFilterWidth.set(() =>
+                searchFilterWidth.set(
                   withTiming(searchComponentWidth, {
                     duration: 300,
                   }),

@@ -63,7 +63,7 @@ export default function LoadScreen() {
   });
   const selected =
     selectedType != null && selectedValue != null
-      ? ({ type: selectedType, value: selectedValue } as Load)
+      ? { type: selectedType, value: selectedValue }
       : undefined;
 
   const onSubmit = async () => {
