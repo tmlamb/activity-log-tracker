@@ -1,61 +1,56 @@
-import { SectionList } from "react-native";
+import { Platform, SectionList } from "react-native";
 import { Link, Stack, useRouter } from "expo-router";
-import {
-  Feather,
-  FontAwesome6,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
 import _ from "lodash";
 
 import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
-import GlassOverflowMenu from "~/components/GlassOverflowMenu";
 import { HelperText, SectionHeading } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
 export default function DashboardScreen() {
   const router = useRouter();
   const programs = useWorkoutStore((state) => state.programs);
+  const managementMenuItems = [
+    {
+      key: "programs",
+      label: "Workout Programs",
+      systemImage: "square.stack.3d.up" as const,
+      onPress: () => router.push("/(public)/(app)/program/settings"),
+    },
+    {
+      key: "exercises",
+      label: "Exercises",
+      systemImage: "figure.strengthtraining.traditional" as const,
+      onPress: () => router.push("/(public)/(app)/exercise/settings"),
+    },
+    {
+      key: "equipment",
+      label: "Equipment",
+      systemImage: "scalemass" as const,
+      onPress: () => router.push("/(public)/(app)/equipment"),
+    },
+  ];
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <GlassOverflowMenu
-              items={[
-                {
-                  key: "programs",
-                  label: "Workout Programs",
-                  icon: <Feather name="layers" size={20} />,
-                  systemImage: "square.stack.3d.up",
-                  accessibilityLabel: "Manage workout programs",
-                  onPress: () =>
-                    router.push("/(public)/(app)/program/settings"),
-                },
-                {
-                  key: "exercises",
-                  label: "Exercises",
-                  icon: (
-                    <MaterialCommunityIcons name="weight-lifter" size={20} />
-                  ),
-                  systemImage: "figure.strengthtraining.traditional",
-                  accessibilityLabel: "Manage exercises",
-                  onPress: () =>
-                    router.push("/(public)/(app)/exercise/settings"),
-                },
-                {
-                  key: "equipment",
-                  label: "Equipment",
-                  icon: <FontAwesome6 name="weight-hanging" size={20} />,
-                  systemImage: "scalemass",
-                  accessibilityLabel: "Manage equipment",
-                  onPress: () => router.push("/(public)/(app)/equipment"),
-                },
-              ]}
-            />
-          ),
-        }}
-      />
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Menu
+          accessibilityLabel="Open quick settings menu"
+          icon={Platform.OS === "ios" ? "ellipsis.circle" : undefined}
+        >
+          {Platform.OS === "android" && (
+            <Stack.Toolbar.Label>More</Stack.Toolbar.Label>
+          )}
+          {managementMenuItems.map((item) => (
+            <Stack.Toolbar.MenuAction
+              key={item.key}
+              icon={item.systemImage}
+              onPress={item.onPress}
+            >
+              {item.label}
+            </Stack.Toolbar.MenuAction>
+          ))}
+        </Stack.Toolbar.Menu>
+      </Stack.Toolbar>
       <SectionList
         keyExtractor={(program) => program.programId}
         bounces={true}
