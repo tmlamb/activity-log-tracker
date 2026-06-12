@@ -35,7 +35,7 @@ export default function DashboardScreen() {
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Menu
           accessibilityLabel="Open quick settings menu"
-          icon={Platform.OS === "ios" ? "ellipsis.circle" : undefined}
+          icon={Platform.OS === "ios" ? "ellipsis" : undefined}
         >
           {Platform.OS === "android" && (
             <Stack.Toolbar.Label>More</Stack.Toolbar.Label>
