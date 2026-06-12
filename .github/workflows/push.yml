@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       changed-expo: ${{ steps.changed-expo.outputs.result }}
+      version-change: ${{ steps.version-change.outputs.result }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -34,6 +35,40 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm install
+
+      - name: Read app version
+        id: app-version
+        run: |
+          app_version=$(node -p "require('./apps/expo/package.json').version")
+
+          if [[ ! "$app_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "apps/expo/package.json version must be plain semver, for example 2.0.1. Received: $app_version"
+            exit 1
+          fi
+
+          echo "APP_VERSION=$app_version" >> "$GITHUB_ENV"
+
+      - name: Classify app version change
+        id: version-change
+        run: |
+          if git rev-parse --verify --quiet refs/tags/preview > /dev/null; then
+            preview_version=$(git show preview:apps/expo/package.json | node -e "let data = ''; process.stdin.on('data', (chunk) => data += chunk); process.stdin.on('end', () => process.stdout.write(JSON.parse(data).version ?? ''));")
+
+            if [ "$preview_version" = "$APP_VERSION" ]; then
+              echo "App version $APP_VERSION already published to preview, skipping preview deployment"
+              echo "result=none" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            version_change=$(PREVIOUS_VERSION="$preview_version" CURRENT_VERSION="$APP_VERSION" node -e "const previous = process.env.PREVIOUS_VERSION.split('.').map(Number); const current = process.env.CURRENT_VERSION.split('.').map(Number); if (current[0] > previous[0]) process.stdout.write('major'); else if (current[0] === previous[0] && current[1] > previous[1]) process.stdout.write('minor'); else if (current[0] === previous[0] && current[1] === previous[1] && current[2] > previous[2]) process.stdout.write('patch'); else process.stdout.write('none');")
+
+            echo "App version changed from $preview_version to $APP_VERSION: $version_change"
+            echo "result=$version_change" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "No preview tag found, running native preview build"
+          echo "result=minor" >> "$GITHUB_OUTPUT"
 
       - name: Create Changeset
         id: changeset
@@ -139,7 +174,8 @@ jobs:
       needs.test.result == 'success' &&
       needs.format.result == 'success' &&
       needs.lint.result == 'success' &&
-      needs.changeset.outputs.changed-expo == 'true'
+      needs.changeset.outputs.changed-expo == 'true' &&
+      needs.changeset.outputs.version-change == 'patch'
     runs-on: ubuntu-latest
     steps:
       - name: Check for EXPO_TOKEN
@@ -177,10 +213,58 @@ jobs:
       - name: Publish Preview App Update
         run: cd apps/expo && APP_ENV=preview eas update --environment preview --branch preview --message "${{ github.sha }}"
 
+  build-preview:
+    name: Build Preview Mobile App
+    needs: [test, format, lint, changeset]
+    if: |
+      always() &&
+      needs.changeset.result == 'success' &&
+      needs.test.result == 'success' &&
+      needs.format.result == 'success' &&
+      needs.lint.result == 'success' &&
+      needs.changeset.outputs.changed-expo == 'true' &&
+      (needs.changeset.outputs.version-change == 'minor' || needs.changeset.outputs.version-change == 'major')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for EXPO_TOKEN
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets. Learn more: https://docs.expo.dev/eas-update/github-actions"
+            exit 1
+          fi
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Build Preview App
+        run: cd apps/expo && APP_ENV=preview eas build --platform ios --profile preview
+
   tag-git:
     name: Preview Tag Git
-    needs: update-preview
-    if: always() && needs.update-preview.result == 'success'
+    needs: [update-preview, build-preview]
+    if: always() && (needs.update-preview.result == 'success' || needs.build-preview.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write

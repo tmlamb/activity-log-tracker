@@ -90,6 +90,110 @@ jobs:
     name: Update Production Mobile App
     needs: [test, format, lint]
     runs-on: ubuntu-latest
+    outputs:
+      app-version: ${{ steps.app-version.outputs.value }}
+      skip-update: ${{ steps.version-tag.outputs.skip-update }}
+      version-change: ${{ steps.version-change.outputs.result }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Read app version
+        id: app-version
+        run: |
+          app_version=$(node -p "require('./apps/expo/package.json').version")
+
+          if [[ ! "$app_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "apps/expo/package.json version must be plain semver, for example 2.0.1. Received: $app_version"
+            exit 1
+          fi
+
+          echo "value=$app_version" >> "$GITHUB_OUTPUT"
+          echo "APP_VERSION=$app_version" >> "$GITHUB_ENV"
+
+      - name: Check app version tag
+        id: version-tag
+        run: |
+          existing_commit=$(git rev-list -n 1 "$APP_VERSION" 2>/dev/null || true)
+          current_commit=$(git rev-parse HEAD)
+
+          if [ -n "$existing_commit" ] && [ "$existing_commit" != "$current_commit" ]; then
+            echo "Tag $APP_VERSION already exists on $existing_commit, skipping production EAS update for $current_commit"
+            echo "skip-update=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "skip-update=false" >> "$GITHUB_OUTPUT"
+
+      - name: Classify app version change
+        id: version-change
+        run: |
+          if git rev-parse --verify --quiet refs/tags/production > /dev/null; then
+            production_version=$(git show production:apps/expo/package.json | node -e "let data = ''; process.stdin.on('data', (chunk) => data += chunk); process.stdin.on('end', () => process.stdout.write(JSON.parse(data).version ?? ''));")
+
+            if [ "$production_version" = "$APP_VERSION" ]; then
+              echo "App version $APP_VERSION already published to production, skipping production deployment"
+              echo "result=none" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            version_change=$(PREVIOUS_VERSION="$production_version" CURRENT_VERSION="$APP_VERSION" node -e "const previous = process.env.PREVIOUS_VERSION.split('.').map(Number); const current = process.env.CURRENT_VERSION.split('.').map(Number); if (current[0] > previous[0]) process.stdout.write('major'); else if (current[0] === previous[0] && current[1] > previous[1]) process.stdout.write('minor'); else if (current[0] === previous[0] && current[1] === previous[1] && current[2] > previous[2]) process.stdout.write('patch'); else process.stdout.write('none');")
+
+            echo "App version changed from $production_version to $APP_VERSION: $version_change"
+            echo "result=$version_change" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "No production tag found, running native production build"
+          echo "result=minor" >> "$GITHUB_OUTPUT"
+
+      - name: Check for EXPO_TOKEN
+        if: steps.version-tag.outputs.skip-update != 'true' && steps.version-change.outputs.result == 'patch'
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets. Learn more: https://docs.expo.dev/eas-update/github-actions"
+            exit 1
+          fi
+
+      - name: Setup Expo
+        if: steps.version-tag.outputs.skip-update != 'true' && steps.version-change.outputs.result == 'patch'
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install Dependencies
+        if: steps.version-tag.outputs.skip-update != 'true' && steps.version-change.outputs.result == 'patch'
+        run: pnpm install
+
+      - name: Publish Production App Update
+        if: steps.version-tag.outputs.skip-update != 'true' && steps.version-change.outputs.result == 'patch'
+        run: cd apps/expo && APP_ENV=production eas update --environment production --branch production --message "$APP_VERSION"
+
+  build-production:
+    name: Build Production Mobile App
+    needs: update-production
+    if: |
+      always() &&
+      needs.update-production.result == 'success' &&
+      needs.update-production.outputs.skip-update != 'true' &&
+      (needs.update-production.outputs.version-change == 'minor' || needs.update-production.outputs.version-change == 'major')
+    runs-on: ubuntu-latest
     steps:
       - name: Check for EXPO_TOKEN
         run: |
@@ -123,5 +227,47 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
 
-      - name: Publish Production App Update
-        run: cd apps/expo && APP_ENV=production eas update --environment production --branch production --message "${{ github.ref_name }}"
+      - name: Build Production App
+        run: cd apps/expo && APP_ENV=production eas build --platform ios --profile production
+
+  tag-git:
+    name: Production Tag Git
+    needs: [update-production, build-production]
+    if: |
+      always() &&
+      needs.update-production.result == 'success' &&
+      needs.update-production.outputs.skip-update != 'true' &&
+      needs.update-production.outputs.version-change != 'none' &&
+      (needs.update-production.outputs.version-change == 'patch' || needs.build-production.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      APP_VERSION: ${{ needs.update-production.outputs.app-version }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push production tag
+        uses: EndBug/latest-tag@latest
+        with:
+          ref: production
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push app version tag
+        run: |
+          existing_commit=$(git rev-list -n 1 "$APP_VERSION" 2>/dev/null || true)
+          current_commit=$(git rev-parse HEAD)
+
+          if [ -n "$existing_commit" ] && [ "$existing_commit" != "$current_commit" ]; then
+            echo "Tag $APP_VERSION already exists on $existing_commit, not $current_commit"
+            exit 1
+          fi
+
+          if [ -z "$existing_commit" ]; then
+            git tag "$APP_VERSION"
+            git push origin "$APP_VERSION"
+          fi

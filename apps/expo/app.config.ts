@@ -1,6 +1,8 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 import * as dotenv from "dotenv";
 
+import packageJson from "./package.json";
+
 dotenv.config({ path: "../../.env" });
 
 const {
@@ -11,7 +13,7 @@ const {
   POSTHOG_API_KEY,
   POSTHOG_HOST,
 } = process.env;
-const appVersion = "2.0.0";
+const appVersion = packageJson.version;
 const runtimeVersion = appVersion.split(".").slice(0, 2).join(".");
 const appIdSuffix = APP_ENV !== "production" ? `.${APP_ENV}` : "";
 
