@@ -168,7 +168,7 @@ function WorkoutSetDetailScreenContent({
   const { control, handleSubmit, setValue } = useForm<WorkoutSet>({
     defaultValues: {
       actualWeight: defaultActualWeight,
-      actualReps: workoutSet.actualReps ?? activity.reps,
+      actualReps: workoutSet.actualReps ?? 0,
       start: workoutSet.start,
       end: workoutSet.end,
       status: workoutSet.status,
