@@ -74,6 +74,7 @@ const numberToWorkoutSetArray = <
     status: string;
     start?: Date;
     end?: Date;
+    actualReps?: number;
     feedback: string;
   },
 >(
@@ -95,6 +96,7 @@ const numberToWorkoutSetArray = <
             status: session?.status === "Done" ? "Done" : "Planned",
             start: session?.status === "Done" ? session.end : undefined,
             end: session?.status === "Done" ? session.end : undefined,
+            actualReps: 0,
             feedback: "Neutral",
           }) as T,
       ),
@@ -240,6 +242,7 @@ function SessionFormScreenContent({
         status: "Planned" as const,
         start: undefined,
         end: undefined,
+        actualReps: 0,
         feedback: "Neutral" as const,
       })),
       mainSets: Array.from(Array(activity.mainSets.length)).map(() => ({
@@ -248,6 +251,7 @@ function SessionFormScreenContent({
         status: "Planned" as const,
         start: undefined,
         end: undefined,
+        actualReps: 0,
         feedback: "Neutral" as const,
       })),
     })),
@@ -653,6 +657,7 @@ function SessionFormScreenContent({
                             status: "Planned" as const,
                             start: undefined,
                             end: undefined,
+                            actualReps: 0,
                             feedback: "Neutral" as const,
                           }))}
                           render={({ field: { onChange, onBlur, value } }) => (
@@ -691,6 +696,7 @@ function SessionFormScreenContent({
                             status: "Planned" as const,
                             start: undefined,
                             end: undefined,
+                            actualReps: 0,
                             feedback: "Neutral" as const,
                           }))}
                           rules={{ required: true }}
@@ -818,6 +824,7 @@ function SessionFormScreenContent({
                           status: "Planned" as const,
                           start: undefined,
                           end: undefined,
+                          actualReps: 0,
                           feedback: "Neutral" as const,
                         })),
                         mainSets: Array.from(Array(3)).map(() => ({
@@ -826,6 +833,7 @@ function SessionFormScreenContent({
                           status: "Planned" as const,
                           start: undefined,
                           end: undefined,
+                          actualReps: 0,
                           feedback: "Neutral" as const,
                         })),
                       },

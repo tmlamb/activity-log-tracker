@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { useNativeVariable } from "react-native-css";
 import { easeGradient } from "react-native-easing-gradient";
-import {
+import Animated, {
   useAnimatedStyle,
   useDerivedValue,
   withTiming,
@@ -11,7 +12,7 @@ import { twMerge } from "tailwind-merge";
 
 import Card from "./Card";
 import PressableThemed from "./PressableThemed";
-import { AnimatedTextStyled, AnimatedViewStyled } from "./Styled";
+import { AnimatedTextStyled } from "./Styled";
 
 const defaultAnimationDuration = 250;
 const hiddenTranslateY = 24;
@@ -41,6 +42,7 @@ export default function BottomActionBar({
   visible = true,
   animationDuration = defaultAnimationDuration,
 }: BottomActionBarProps) {
+  const backgroundColor = useNativeVariable("--background") as string;
   const [shouldRender, setShouldRender] = useState(visible);
   const renderTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
   const progress = useDerivedValue(() =>
@@ -100,10 +102,9 @@ export default function BottomActionBar({
   }
 
   const coverOverlay = (
-    <AnimatedViewStyled
+    <Animated.View
       pointerEvents="none"
-      className="bg-background absolute top-0 right-0 bottom-0 left-0 rounded-4xl"
-      style={coverAnimatedStyle}
+      style={[styles.coverOverlay, { backgroundColor }, coverAnimatedStyle]}
     />
   );
 
@@ -124,7 +125,7 @@ export default function BottomActionBar({
       >
         <View className="bg-background flex-1 overflow-hidden" />
       </MaskedView>
-      <AnimatedViewStyled style={actionAnimatedStyle}>
+      <Animated.View style={actionAnimatedStyle}>
         <PressableThemed
           onPress={onPress}
           disabled={disabled || !visible}
@@ -156,7 +157,18 @@ export default function BottomActionBar({
             </AnimatedTextStyled>
           </Card>
         </PressableThemed>
-      </AnimatedViewStyled>
+      </Animated.View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  coverOverlay: {
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+    borderRadius: 32,
+  },
+});
