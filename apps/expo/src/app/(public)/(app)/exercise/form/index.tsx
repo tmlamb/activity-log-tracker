@@ -8,6 +8,8 @@ import { exerciseNamesMatch } from "@activity-log/ui/utils";
 
 import "react-native-get-random-values";
 
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { twMerge } from "tailwind-merge";
 import { v4 as uuidv4 } from "uuid";
 
 import ConfirmButton from "~/components/ConfirmButton";
@@ -107,7 +109,7 @@ export default function ExerciseFormScreen() {
   };
 
   return (
-    <View className="flex-1 gap-10 pt-26">
+    <>
       <Stack.Screen
         options={{
           title: exercise ? "Edit Exercise" : "Add Exercise",
@@ -128,94 +130,100 @@ export default function ExerciseFormScreen() {
           ),
         }}
       />
-      <TextInputThemedGroup>
-        <View>
+      <KeyboardAwareScrollView
+        bottomOffset={40}
+        className="flex-1"
+        contentContainerClassName={twMerge("pt-26 pb-18 gap-10")}
+      >
+        <TextInputThemedGroup>
+          <View>
+            <Controller
+              name="name"
+              control={control}
+              rules={{
+                required: "Required",
+                validate: (value) =>
+                  !hasDuplicateExerciseName(value) ||
+                  "Exercise name already exists",
+              }}
+              render={({
+                field: { ref, onChange, onBlur, value },
+                fieldState: { error },
+              }) => (
+                <TextInputThemed
+                  label="Exercise Name"
+                  innerRef={ref}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                  maxLength={25}
+                  error={error?.message}
+                  cardVariants={["square"]}
+                />
+              )}
+            />
+            {exercise && usedInWorkout && (
+              <HelperText placement="formInset" className="pt-2">
+                Warning: Modifying the exercise name reflects in existing
+                workouts where it&apos;s been used.
+              </HelperText>
+            )}
+          </View>
           <Controller
-            name="name"
+            name="oneRepMax"
             control={control}
-            rules={{
-              required: "Required",
-              validate: (value) =>
-                !hasDuplicateExerciseName(value) ||
-                "Exercise name already exists",
-            }}
-            render={({
-              field: { ref, onChange, onBlur, value },
-              fieldState: { error },
-            }) => (
+            rules={{ required: false, min: 5 }}
+            render={({ field: { onChange, onBlur, value } }) => (
               <TextInputThemed
-                label="Exercise Name"
-                innerRef={ref}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                value={value}
-                maxLength={25}
-                error={error?.message}
+                label="One Rep Max (lbs)"
+                onChangeText={(text) => {
+                  const numericValue = decimalTextToNumber(text);
+                  setOneRepMaxInput(text);
+                  onChange(
+                    numericValue != null
+                      ? { unit: value?.unit ?? "lbs", value: numericValue }
+                      : undefined,
+                  );
+                }}
+                onBlur={() => {
+                  const numericValue = decimalTextToNumber(oneRepMaxInput);
+                  setOneRepMaxInput(
+                    numericValue != null ? String(numericValue) : "",
+                  );
+                  onBlur();
+                }}
+                value={oneRepMaxInput}
+                maxLength={7}
+                keyboardType="decimal-pad"
+                numeric
+                decimalPlaces={2}
+                accessibilityLabel="One Rep Max in pounds"
                 cardVariants={["square"]}
               />
             )}
           />
-          {exercise && usedInWorkout && (
-            <HelperText placement="formInset" className="pt-2">
-              Warning: Modifying the exercise name reflects in existing workouts
-              where it&apos;s been used.
+          {exercise && !usedInWorkout && (
+            <ConfirmButton
+              accessibilityLabel={`Delete Exercise with name ${exercise.name}`}
+              title="Delete Exercise?"
+              message="This will permanently delete this exercise."
+              confirmText="Delete Exercise"
+              onConfirm={() => {
+                deleteExercise(exercise.exerciseId);
+                router.back();
+              }}
+              cardVariants={["square"]}
+            >
+              Delete This Exercise
+            </ConfirmButton>
+          )}
+          {usedInWorkout && (
+            <HelperText placement="formInset">
+              Exercises used in a workout cannot be deleted.
             </HelperText>
           )}
-        </View>
-        <Controller
-          name="oneRepMax"
-          control={control}
-          rules={{ required: false, min: 5 }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInputThemed
-              label="One Rep Max (lbs)"
-              onChangeText={(text) => {
-                const numericValue = decimalTextToNumber(text);
-                setOneRepMaxInput(text);
-                onChange(
-                  numericValue != null
-                    ? { unit: value?.unit ?? "lbs", value: numericValue }
-                    : undefined,
-                );
-              }}
-              onBlur={() => {
-                const numericValue = decimalTextToNumber(oneRepMaxInput);
-                setOneRepMaxInput(
-                  numericValue != null ? String(numericValue) : "",
-                );
-                onBlur();
-              }}
-              value={oneRepMaxInput}
-              maxLength={7}
-              keyboardType="decimal-pad"
-              numeric
-              decimalPlaces={2}
-              accessibilityLabel="One Rep Max in pounds"
-              cardVariants={["square"]}
-            />
-          )}
-        />
-        {exercise && !usedInWorkout && (
-          <ConfirmButton
-            accessibilityLabel={`Delete Exercise with name ${exercise.name}`}
-            title="Delete Exercise?"
-            message="This will permanently delete this exercise."
-            confirmText="Delete Exercise"
-            onConfirm={() => {
-              deleteExercise(exercise.exerciseId);
-              router.back();
-            }}
-            cardVariants={["square"]}
-          >
-            Delete This Exercise
-          </ConfirmButton>
-        )}
-        {usedInWorkout && (
-          <HelperText placement="formInset">
-            Exercises used in a workout cannot be deleted.
-          </HelperText>
-        )}
-      </TextInputThemedGroup>
-    </View>
+        </TextInputThemedGroup>
+      </KeyboardAwareScrollView>
+    </>
   );
 }
