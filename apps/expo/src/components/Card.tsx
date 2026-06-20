@@ -1,9 +1,11 @@
 import type { AccessibilityState } from "react-native";
 import { View } from "react-native";
+import { LinearTransition } from "react-native-reanimated";
 import { twMerge } from "tailwind-merge";
 
 import type { CardGlassEffectStyle } from "./CardGlassBackground";
 import CardGlassBackground from "./CardGlassBackground";
+import { AnimatedViewStyled } from "./Styled";
 
 export const variantClasses = {
   glass: "",
@@ -11,6 +13,8 @@ export const variantClasses = {
   square: "rounded-none",
   small: "h-[45px] py-2.5",
 };
+
+const cardLayoutTransition = LinearTransition.duration(80);
 
 interface CardProps {
   children: React.ReactNode;
@@ -67,7 +71,8 @@ export default function Card({
   );
 
   return (
-    <View
+    <AnimatedViewStyled
+      layout={cardLayoutTransition}
       className={cardClassName}
       accessible={accessible}
       accessibilityLabel={accessibilityLabel}
@@ -93,6 +98,6 @@ export default function Card({
           )}
         />
       ) : null}
-    </View>
+    </AnimatedViewStyled>
   );
 }

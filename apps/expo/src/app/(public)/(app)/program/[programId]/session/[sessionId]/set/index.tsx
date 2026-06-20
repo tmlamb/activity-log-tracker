@@ -27,6 +27,7 @@ import type { WorkoutStore } from "~/hooks/use-workout-store";
 import BottomActionBar from "~/components/BottomActionBar";
 import { DetailCardRow } from "~/components/CardRow";
 import ElapsedTime from "~/components/ElapsedTime";
+import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PlateChart from "~/components/PlateChart";
 import PressableThemed from "~/components/PressableThemed";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
@@ -61,8 +62,14 @@ export default function WorkoutSetDetailScreen() {
       activityId: string;
       title: string;
     }>();
-  const { programs, exercises, equipment, updateWorkoutSet, startSession } =
-    useWorkoutStore((store) => store);
+  const {
+    programs,
+    exercises,
+    equipment,
+    updateWorkoutSet,
+    updateExercise,
+    startSession,
+  } = useWorkoutStore((store) => store);
 
   const program = programs.find((p) => p.programId === programId);
   const session = program?.sessions.find((s) => s.sessionId === sessionId);
@@ -86,6 +93,7 @@ export default function WorkoutSetDetailScreen() {
       workoutSet={workoutSet}
       equipment={equipment}
       updateWorkoutSet={updateWorkoutSet}
+      updateExercise={updateExercise}
       startSession={startSession}
     />
   );
@@ -100,6 +108,7 @@ function WorkoutSetDetailScreenContent({
   workoutSet,
   equipment,
   updateWorkoutSet,
+  updateExercise,
   startSession,
 }: {
   title: string;
@@ -110,6 +119,7 @@ function WorkoutSetDetailScreenContent({
   workoutSet: WorkoutSet;
   equipment: WorkoutStore["equipment"];
   updateWorkoutSet: WorkoutStore["updateWorkoutSet"];
+  updateExercise: WorkoutStore["updateExercise"];
   startSession: WorkoutStore["startSession"];
 }) {
   const router = useRouter();
@@ -600,6 +610,16 @@ function WorkoutSetDetailScreenContent({
               )}
             />
           )}
+          <MultilineTextInputThemed
+            label="Notes"
+            value={exercise.notes}
+            onChangeText={(notes) => {
+              updateExercise({
+                ...exercise,
+                notes: notes.trim() ? notes : undefined,
+              });
+            }}
+          />
           {actualWeightWatcher?.value ? (
             <PlateChart
               className="mx-5"

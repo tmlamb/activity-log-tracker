@@ -12,7 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput } from "react-native";
 import { FadeInRight, FadeOutRight } from "react-native-reanimated";
 import Feather from "@expo/vector-icons/Feather";
 import { twMerge } from "tailwind-merge";
@@ -39,6 +39,17 @@ const numericReplace = (str: string, decimalPlaces?: number) => {
 
   return `${integer}.${normalizedFraction}`;
 };
+
+function assignRef<T>(ref: React.Ref<T> | undefined, value: T | null) {
+  if (typeof ref === "function") {
+    ref(value);
+    return;
+  }
+
+  if (ref) {
+    (ref as { current: T | null }).current = value;
+  }
+}
 
 interface TextInputThemedGroupContextValue {
   registerLabelWidth: (id: string, width: number) => void;
@@ -209,6 +220,7 @@ export default function TextInputThemed({
   stack,
   cardVariants,
 }: Props) {
+  const inputRef = useRef<TextInput | null>(null);
   const { isGrouped, paddingLeft, setLabelWidth } =
     useTextInputThemedLabelSpacing(label != null || leftIconName != null);
 
@@ -220,8 +232,19 @@ export default function TextInputThemed({
   };
   const textAlign = isGrouped && numeric ? "left" : numeric ? "right" : "left";
 
+  const setInputRef = (node: TextInput | null) => {
+    inputRef.current = node;
+    assignRef(innerRef, node);
+  };
+
   return (
-    <View className={twMerge("relative flex-row items-center")}>
+    <Pressable
+      accessible={false}
+      onPress={() => {
+        if (editable) inputRef.current?.focus();
+      }}
+      className={twMerge("relative flex-row items-center")}
+    >
       {(!!label || !!leftIconName) && (
         <Text
           onLayout={(event: LayoutChangeEvent) => {
@@ -254,7 +277,6 @@ export default function TextInputThemed({
         variants={cardVariants}
         className={twMerge(
           error ? "border-destructive border" : null,
-          "px-0 py-0",
           className,
         )}
       >
@@ -265,7 +287,7 @@ export default function TextInputThemed({
           onBlur={onBlur}
           value={value}
           className={twMerge(
-            "text-foreground placeholder:text-muted z-20 flex-1 flex-row items-center justify-center px-5 py-4 text-xl leading-loose tracking-normal",
+            "text-foreground placeholder:text-muted z-20 flex-1 flex-row items-center justify-center text-xl leading-loose tracking-normal",
             textInputClassName,
           )}
           style={{ paddingLeft }}
@@ -282,7 +304,7 @@ export default function TextInputThemed({
           numberOfLines={1}
           scrollEnabled={false}
           submitBehavior="blurAndSubmit"
-          ref={innerRef}
+          ref={setInputRef}
           accessibilityLabel={accessibilityLabel ?? label}
           testID={testID}
           maxFontSizeMultiplier={2}
@@ -313,6 +335,6 @@ export default function TextInputThemed({
           </Text>
         </AnimatedViewStyled>
       )}
-    </View>
+    </Pressable>
   );
 }

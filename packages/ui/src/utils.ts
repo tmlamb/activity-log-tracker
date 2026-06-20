@@ -48,6 +48,7 @@ export interface Exercise {
   exerciseId: string;
   oneRepMax?: Weight;
   primaryMuscle?: string;
+  notes?: string;
 }
 
 export interface Session {

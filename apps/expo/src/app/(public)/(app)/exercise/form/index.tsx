@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
+import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import TextInputThemed, {
   TextInputThemedGroup,
 } from "~/components/TextInputThemed";
@@ -48,6 +49,7 @@ export default function ExerciseFormScreen() {
       name: exercise?.name ?? presetName ?? "",
       oneRepMax: exercise?.oneRepMax ?? undefined,
       primaryMuscle: exercise?.primaryMuscle ?? undefined,
+      notes: exercise?.notes ?? undefined,
     },
   });
 
@@ -67,6 +69,8 @@ export default function ExerciseFormScreen() {
     );
 
   const onSubmit = (data: Exercise) => {
+    const notes = data.notes?.trim() ? data.notes : undefined;
+
     if (hasDuplicateExerciseName(data.name)) {
       setError("name", {
         type: "validate",
@@ -82,12 +86,14 @@ export default function ExerciseFormScreen() {
           name: data.name,
           oneRepMax: data.oneRepMax,
           primaryMuscle: data.primaryMuscle,
+          notes,
         });
       } else {
         addExercise({
           name: data.name,
           oneRepMax: data.oneRepMax,
           primaryMuscle: data.primaryMuscle,
+          notes,
           exerciseId: uuidv4(),
         });
       }
@@ -198,6 +204,20 @@ export default function ExerciseFormScreen() {
                 numeric
                 decimalPlaces={2}
                 accessibilityLabel="One Rep Max in pounds"
+                cardVariants={["square"]}
+              />
+            )}
+          />
+          <Controller
+            name="notes"
+            control={control}
+            render={({ field: { ref, onChange, onBlur, value } }) => (
+              <MultilineTextInputThemed
+                label="Notes"
+                innerRef={ref}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                value={value}
                 cardVariants={["square"]}
               />
             )}
