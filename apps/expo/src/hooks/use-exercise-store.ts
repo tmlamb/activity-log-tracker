@@ -64,7 +64,7 @@ Reverse Dumbbell Fly
 Skull Crusher
 Lateral Band Walk`;
 
-function getData() {
+function createDefaultExercises() {
   const results = Papa.parse<Pick<Exercise, "name">>(exerciseData, {
     header: true,
   });
@@ -75,12 +75,16 @@ function getData() {
 
 interface ExerciseStore {
   exercises: Pick<Exercise, "name">[];
+  resetExercises: () => void;
 }
 
 const useExerciseStore = create<ExerciseStore>()(
   persist(
-    () => ({
-      exercises: getData(),
+    (set) => ({
+      exercises: createDefaultExercises(),
+      resetExercises: () => {
+        set({ exercises: createDefaultExercises() });
+      },
     }),
     {
       name: "exercise-storage",

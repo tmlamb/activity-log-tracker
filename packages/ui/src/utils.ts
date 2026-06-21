@@ -10,8 +10,23 @@ export interface Load {
   type: "PERCENT" | "RPE";
 }
 
-export type PlatePair = Weight & {
-  platePairId: string;
+export type EquipmentPlate = Weight & {
+  plateId: string;
+  quantity: number;
+};
+
+export type EquipmentDumbbell = Weight & {
+  dumbbellId: string;
+  quantity: number;
+};
+
+export type EquipmentKettlebell = Weight & {
+  kettlebellId: string;
+  quantity: number;
+};
+
+export type EquipmentBarbell = Weight & {
+  barbellId: string;
 };
 
 export interface WorkoutSet {
@@ -67,13 +82,13 @@ export interface Program {
 }
 
 export interface Equipment {
-  barbellWeight: Weight;
-  platePairs: PlatePair[];
+  barbells: EquipmentBarbell[];
+  plates: EquipmentPlate[];
+  dumbbells: EquipmentDumbbell[];
+  kettlebells: EquipmentKettlebell[];
 }
 
 export const dateRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/;
-
-export const validWeights = [1.25, 2.5, 5, 10, 25, 35, 45, 55, 65];
 
 export const normalizedLocalDate = (date: Date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate());

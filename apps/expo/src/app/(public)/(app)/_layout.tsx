@@ -45,6 +45,7 @@ export default function AppLayout() {
         name="equipment/index"
         options={{ title: "Manage Equipment" }}
       />
+      <Stack.Screen name="support/index" options={{ title: "Support" }} />
       <Stack.Screen
         name="exercise/settings/index"
         options={{

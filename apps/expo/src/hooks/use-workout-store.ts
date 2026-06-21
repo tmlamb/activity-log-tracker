@@ -51,7 +51,32 @@ export interface WorkoutStore {
     workoutSet: WorkoutSet,
   ) => void;
   updateEquipment: (equipment: Equipment) => void;
+  resetWorkoutStore: () => void;
 }
+
+type WorkoutStoreData = Pick<
+  WorkoutStore,
+  "programs" | "exercises" | "equipment"
+>;
+
+const createDefaultEquipment = (): Equipment => ({
+  barbells: [{ value: 45, unit: "lbs", barbellId: "1" }],
+  plates: [
+    { value: 2.5, unit: "lbs", plateId: "1", quantity: 2 },
+    { value: 5, unit: "lbs", plateId: "2", quantity: 2 },
+    { value: 10, unit: "lbs", plateId: "3", quantity: 4 },
+    { value: 25, unit: "lbs", plateId: "4", quantity: 2 },
+    { value: 45, unit: "lbs", plateId: "5", quantity: 8 },
+  ],
+  dumbbells: [],
+  kettlebells: [],
+});
+
+const createDefaultWorkoutStoreData = (): WorkoutStoreData => ({
+  programs: [],
+  exercises: [],
+  equipment: createDefaultEquipment(),
+});
 
 const reviveDates = (key: string, value: unknown): unknown =>
   (key === "start" || key === "end") &&
@@ -87,22 +112,7 @@ const createWorkoutStorage = (): StateStorage<void> => {
 const useWorkoutStore = create<WorkoutStore>()(
   persist(
     (set) => ({
-      programs: [],
-      exercises: [],
-      equipment: {
-        barbellWeight: { value: 45, unit: "lbs" },
-        platePairs: [
-          { value: 2.5, unit: "lbs", platePairId: "1" },
-          { value: 5, unit: "lbs", platePairId: "2" },
-          { value: 10, unit: "lbs", platePairId: "3" },
-          { value: 10, unit: "lbs", platePairId: "4" },
-          { value: 25, unit: "lbs", platePairId: "5" },
-          { value: 45, unit: "lbs", platePairId: "6" },
-          { value: 45, unit: "lbs", platePairId: "7" },
-          { value: 45, unit: "lbs", platePairId: "8" },
-          { value: 45, unit: "lbs", platePairId: "9" },
-        ],
-      },
+      ...createDefaultWorkoutStoreData(),
       hasHydrated: false,
       setHasHydrated: (hasHydrated: boolean) => {
         set({ hasHydrated });
@@ -362,8 +372,14 @@ const useWorkoutStore = create<WorkoutStore>()(
       updateEquipment: (equipment: Equipment) => {
         set(
           produce((state: WorkoutStore) => {
-            state.equipment.barbellWeight = equipment.barbellWeight;
-            state.equipment.platePairs = equipment.platePairs;
+            state.equipment = equipment;
+          }),
+        );
+      },
+      resetWorkoutStore: () => {
+        set(
+          produce((state: WorkoutStore) => {
+            Object.assign(state, createDefaultWorkoutStoreData());
           }),
         );
       },

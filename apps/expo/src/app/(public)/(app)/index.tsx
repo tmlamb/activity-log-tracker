@@ -28,6 +28,12 @@ export default function DashboardScreen() {
       systemImage: "scalemass" as const,
       onPress: () => router.push("/(public)/(app)/equipment"),
     },
+    {
+      key: "support",
+      label: "Support",
+      systemImage: "questionmark.circle" as const,
+      onPress: () => router.push("/(public)/(app)/support"),
+    },
   ];
 
   return (
