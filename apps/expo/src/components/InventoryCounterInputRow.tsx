@@ -236,7 +236,7 @@ export default function InventoryCounterInputRow({
         <Text
           accessibilityRole="alert"
           maxFontSizeMultiplier={2}
-          className="text-destructive absolute bottom-0 left-5 z-10 text-xs font-medium"
+          className="text-destructive absolute bottom-1 left-5 z-10 text-sm font-medium"
         >
           {error}
         </Text>

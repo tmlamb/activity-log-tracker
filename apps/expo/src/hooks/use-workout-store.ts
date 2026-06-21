@@ -59,17 +59,29 @@ type WorkoutStoreData = Pick<
   "programs" | "exercises" | "equipment"
 >;
 
-const createDefaultEquipment = (): Equipment => ({
-  barbells: [{ value: 45, unit: "lbs", barbellId: "1" }],
+export const createDefaultEquipment = (): Equipment => ({
+  barbells: [
+    { value: 25, unit: "lbs", barbellId: "1" },
+    { value: 35, unit: "lbs", barbellId: "2" },
+    { value: 45, unit: "lbs", barbellId: "3" },
+  ],
   plates: [
     { value: 2.5, unit: "lbs", plateId: "1", quantity: 2 },
     { value: 5, unit: "lbs", plateId: "2", quantity: 2 },
     { value: 10, unit: "lbs", plateId: "3", quantity: 4 },
     { value: 25, unit: "lbs", plateId: "4", quantity: 2 },
-    { value: 45, unit: "lbs", plateId: "5", quantity: 8 },
+    { value: 35, unit: "lbs", plateId: "5", quantity: 2 },
+    { value: 45, unit: "lbs", plateId: "6", quantity: 8 },
   ],
-  dumbbells: [],
-  kettlebells: [],
+  dumbbells: [
+    1, 2, 3, 5, 10, 12.5, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75,
+    80, 85, 90, 95, 100,
+  ].map((value) => ({
+    value,
+    unit: "lbs",
+    dumbbellId: String(value),
+    quantity: 2,
+  })),
 });
 
 const createDefaultWorkoutStoreData = (): WorkoutStoreData => ({

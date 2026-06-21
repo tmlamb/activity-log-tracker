@@ -15,12 +15,23 @@ import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 
 import { PrimaryCardAction } from "~/components/CardRow";
+import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import InventoryCounterInputRow from "~/components/InventoryCounterInputRow";
 import { HelperText, SectionHeading } from "~/components/Typography";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import useWorkoutStore, {
+  createDefaultEquipment,
+} from "~/hooks/use-workout-store";
 
 type FormData = Equipment;
+
+const normalizeEquipmentFormData = (
+  equipment: Partial<Equipment>,
+): Equipment => ({
+  barbells: equipment.barbells ?? [],
+  plates: equipment.plates ?? [],
+  dumbbells: equipment.dumbbells ?? [],
+});
 
 const formatCountLabel = (count: number, singular: string) =>
   `${count} ${count === 1 ? singular : `${singular}s`}`;
@@ -65,10 +76,12 @@ const validateUniqueWeight = <T extends { value: number | string }>(
 export default function EquipmentScreen() {
   const router = useRouter();
   const { equipment, updateEquipment } = useWorkoutStore((state) => state);
+  const defaultValues = normalizeEquipmentFormData(equipment);
 
-  const { control, getValues, handleSubmit, setValue } = useForm<FormData>({
-    defaultValues: equipment,
-  });
+  const { control, getValues, handleSubmit, reset, setValue } =
+    useForm<FormData>({
+      defaultValues,
+    });
 
   const {
     fields: barbellFields,
@@ -97,18 +110,8 @@ export default function EquipmentScreen() {
     name: "dumbbells",
   });
 
-  const {
-    fields: kettlebellFields,
-    append: appendKettlebell,
-    remove: removeKettlebell,
-  } = useFieldArray({
-    control,
-    name: "kettlebells",
-  });
-
   const plates = useWatch({ control, name: "plates" });
   const dumbbells = useWatch({ control, name: "dumbbells" });
-  const kettlebells = useWatch({ control, name: "kettlebells" });
 
   const onSubmit = (data: FormData) => {
     updateEquipment({
@@ -134,14 +137,6 @@ export default function EquipmentScreen() {
           unit: dumbbell.unit,
           dumbbellId: dumbbell.dumbbellId,
           quantity: Number(dumbbell.quantity),
-        }))
-        .sort((a, b) => a.value - b.value),
-      kettlebells: data.kettlebells
-        .map((kettlebell) => ({
-          value: Number(kettlebell.value),
-          unit: kettlebell.unit,
-          kettlebellId: kettlebell.kettlebellId,
-          quantity: Number(kettlebell.quantity),
         }))
         .sort((a, b) => a.value - b.value),
     });
@@ -184,13 +179,11 @@ export default function EquipmentScreen() {
     });
   };
 
-  const addKettlebell = () => {
-    appendKettlebell({
-      value: 0,
-      unit: "lbs",
-      kettlebellId: uuidv4(),
-      quantity: 1,
-    });
+  const restoreEquipmentDefaults = () => {
+    const defaultEquipment = createDefaultEquipment();
+
+    updateEquipment(defaultEquipment);
+    reset(defaultEquipment);
   };
 
   return (
@@ -453,80 +446,16 @@ export default function EquipmentScreen() {
             </Animated.View>
           </View>
 
-          <View>
-            <SectionHeading>Kettlebell Inventory</SectionHeading>
-            {kettlebellFields.map((item, index) => {
-              const quantity = Number(
-                kettlebells[index]?.quantity ?? item.quantity,
-              );
-              const stack = { index, size: kettlebellFields.length + 1 };
-
-              return (
-                <Animated.View
-                  key={item.kettlebellId}
-                  entering={FadeInUp}
-                  exiting={FadeOutUp}
-                >
-                  <Controller
-                    name={`kettlebells.${index}.value`}
-                    control={control}
-                    rules={{
-                      required: "Required",
-                      validate: (value) => {
-                        return validateUniqueWeight(
-                          value,
-                          getValues("kettlebells"),
-                        );
-                      },
-                    }}
-                    render={({
-                      field: { onChange, onBlur, value },
-                      fieldState: { error },
-                    }) => (
-                      <InventoryCounterInputRow
-                        value={String(value)}
-                        onChangeText={(newValue) => {
-                          onChange(normalizeWeightInput(newValue));
-                        }}
-                        onBlur={onBlur}
-                        unit="lbs"
-                        inputAccessibilityLabel="Kettlebell weight in pounds"
-                        maxLength={7}
-                        error={error?.message}
-                        stack={stack}
-                        trailing={{
-                          type: "remove",
-                          label: formatCountLabel(quantity, "kettlebell"),
-                          onRemove: () => removeKettlebell(index),
-                          removeAccessibilityLabel: `Remove ${value} pound kettlebells from inventory`,
-                          removeAccessibilityHint:
-                            "Removes this kettlebell weight from the inventory.",
-                        }}
-                      />
-                    )}
-                  />
-                </Animated.View>
-              );
-            })}
-            <Animated.View layout={LinearTransition}>
-              <PrimaryCardAction
-                label="Add Kettlebell"
-                icon={<Entypo name="circle-with-plus" size={20} />}
-                onPress={addKettlebell}
-                disabled={kettlebellFields.length > 100}
-                stack={
-                  kettlebellFields.length > 0
-                    ? {
-                        index: kettlebellFields.length,
-                        size: kettlebellFields.length + 1,
-                      }
-                    : undefined
-                }
-              />
-            </Animated.View>
-            <HelperText>
-              Add kettlebells or any weights meant to be used individually.
-            </HelperText>
+          <View className="pt-4">
+            <ConfirmButton
+              accessibilityLabel="Restore default equipment inventory"
+              title="Restore Equipment Defaults?"
+              message="This will permanently replace your equipment settings with the default barbell, plate, and dumbbell inventory."
+              confirmText="Restore Defaults"
+              onConfirm={restoreEquipmentDefaults}
+            >
+              Restore Defaults
+            </ConfirmButton>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
