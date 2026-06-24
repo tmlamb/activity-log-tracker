@@ -163,7 +163,10 @@ export default function InventoryCounterInputRow({
               >
                 <Text
                   maxFontSizeMultiplier={2.5}
-                  className="text-destructive text-xl font-semibold"
+                  className={twMerge(
+                    "text-xl font-semibold",
+                    trailing.count <= 0 ? "text-destructive" : "text-muted",
+                  )}
                 >
                   <Entypo name="circle-with-minus" size={20} />
                 </Text>

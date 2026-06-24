@@ -73,15 +73,11 @@ export const createDefaultEquipment = (): Equipment => ({
     { value: 35, unit: "lbs", plateId: "5", quantity: 2 },
     { value: 45, unit: "lbs", plateId: "6", quantity: 8 },
   ],
-  dumbbells: [
-    1, 2, 3, 5, 10, 12.5, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75,
-    80, 85, 90, 95, 100,
-  ].map((value) => ({
-    value,
-    unit: "lbs",
-    dumbbellId: String(value),
-    quantity: 2,
-  })),
+});
+
+const normalizeEquipment = (equipment: Partial<Equipment> = {}): Equipment => ({
+  barbells: equipment.barbells ?? [],
+  plates: equipment.plates ?? [],
 });
 
 const createDefaultWorkoutStoreData = (): WorkoutStoreData => ({
@@ -384,7 +380,7 @@ const useWorkoutStore = create<WorkoutStore>()(
       updateEquipment: (equipment: Equipment) => {
         set(
           produce((state: WorkoutStore) => {
-            state.equipment = equipment;
+            state.equipment = normalizeEquipment(equipment);
           }),
         );
       },
@@ -400,6 +396,17 @@ const useWorkoutStore = create<WorkoutStore>()(
       name: "workout-storage",
       onRehydrateStorage: () => (state?: WorkoutStore) => {
         state?.setHasHydrated(true);
+      },
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState ?? {}) as Partial<WorkoutStoreData>;
+
+        return {
+          ...currentState,
+          ...persisted,
+          equipment: normalizeEquipment(
+            persisted.equipment ?? currentState.equipment,
+          ),
+        };
       },
       storage: createJSONStorage(createWorkoutStorage, {
         reviver: reviveDates,

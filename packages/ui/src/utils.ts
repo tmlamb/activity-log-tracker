@@ -15,11 +15,6 @@ export type EquipmentPlate = Weight & {
   quantity: number;
 };
 
-export type EquipmentDumbbell = Weight & {
-  dumbbellId: string;
-  quantity: number;
-};
-
 export type EquipmentBarbell = Weight & {
   barbellId: string;
 };
@@ -79,7 +74,6 @@ export interface Program {
 export interface Equipment {
   barbells: EquipmentBarbell[];
   plates: EquipmentPlate[];
-  dumbbells: EquipmentDumbbell[];
 }
 
 export const dateRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/;
