@@ -490,7 +490,7 @@ function WorkoutSetDetailScreenContent({
                 )}
               <Controller
                 control={control}
-                rules={{ required: true, min: 1 }}
+                rules={{ required: true, min: 1, max: 9999 }}
                 render={({ field: { onChange, onBlur } }) => {
                   return (
                     <TextInputThemed
@@ -556,7 +556,7 @@ function WorkoutSetDetailScreenContent({
                             : undefined
                       }
                       placeholder="0"
-                      maxLength={2}
+                      maxLength={4}
                       keyboardType="number-pad"
                       numeric
                       selectTextOnFocus
