@@ -61,38 +61,40 @@ interface Props {
   cardVariants?: MultilineCardVariant[];
 }
 
-export default function MultilineTextInputThemed({
-  onChangeText,
-  onChange,
-  onBlur,
-  onFocus,
-  value,
-  className,
-  textInputClassName,
-  labelClassName,
-  label,
-  placeholder,
-  maxLength,
-  selectTextOnFocus = false,
-  clearTextOnFocus = false,
-  keyboardType = "default",
-  editable = true,
-  selection,
-  onKeyPress,
-  innerRef,
-  error,
-  errorClassName,
-  accessibilityLabel,
-  testID,
-  stack,
-  cardVariants,
-}: Props) {
+export default function MultilineTextInputThemed(props: Props) {
+  const isControlled = "value" in props;
+  const {
+    onChangeText,
+    onChange,
+    onBlur,
+    onFocus,
+    value,
+    className,
+    textInputClassName,
+    labelClassName,
+    label,
+    placeholder,
+    maxLength,
+    selectTextOnFocus = false,
+    clearTextOnFocus = false,
+    keyboardType = "default",
+    editable = true,
+    selection,
+    onKeyPress,
+    innerRef,
+    error,
+    errorClassName,
+    accessibilityLabel,
+    testID,
+    stack,
+    cardVariants,
+  } = props;
   const inputRef = useRef<TextInput | null>(null);
   const [internalValue, setInternalValue] = useState(value ?? "");
   const [inputWidth, setInputWidth] = useState(0);
   const [contentHeight, setContentHeight] = useState(minInputHeight);
 
-  const inputValue = value ?? internalValue;
+  const inputValue = isControlled ? (value ?? "") : internalValue;
   const newlineHeight = Math.max(
     minInputHeight,
     inputValue.split("\n").length * inputLineHeight,
@@ -111,7 +113,7 @@ export default function MultilineTextInputThemed({
   const handleChangeText = (text: string) => {
     const normalizedText = normalizeText(text);
 
-    if (value == null) {
+    if (!isControlled) {
       setInternalValue(normalizedText);
     }
     onChangeText?.(normalizedText);
