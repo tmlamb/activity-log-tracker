@@ -470,16 +470,8 @@ function WorkoutSetDetailScreenContent({
           </View>
           {workoutSet.status !== "Planned" && (
             <Animated.View
-              entering={FadeInUp.duration(1000)
-                .springify()
-                .stiffness(50)
-                .damping(6)
-                .mass(0.3)}
-              exiting={FadeOutDown.duration(1000)
-                .springify()
-                .stiffness(50)
-                .damping(6)
-                .mass(0.3)}
+              entering={FadeInUp.duration(250)}
+              exiting={FadeOutDown.duration(250)}
             >
               {workoutSet.type === "Main" &&
                 activity.load.type === "RPE" &&
@@ -574,43 +566,57 @@ function WorkoutSetDetailScreenContent({
             </Animated.View>
           )}
           {workoutSet.type === "Main" && (
-            <Controller
-              name="feedback"
-              control={control}
-              rules={{ required: true }}
-              render={({ field: { value } }) => (
-                <SegmentedInputThemed
-                  label="Difficulty"
-                  value={value}
-                  accessibilityLabel="Workout set difficulty"
-                  options={[
-                    {
-                      label: "Easy",
-                      value: "Easy",
-                      accessibilityLabel: "Set workout set feedback: Easy",
-                    },
-                    {
-                      label: "Neutral",
-                      value: "Neutral",
-                      accessibilityLabel: "Set workout set feedback: Neutral",
-                      tone: "muted",
-                    },
-                    {
-                      label: "Hard",
-                      value: "Hard",
-                      accessibilityLabel: "Set workout set feedback: Hard",
-                      tone: "destructive",
-                    },
-                  ]}
-                  onChange={(feedback) => {
-                    setValue("feedback", feedback);
-                    submitCurrentValues();
-                  }}
-                />
-              )}
-            />
+            <Animated.View
+              layout={LinearTransition.duration(250)
+                .springify()
+                .stiffness(50)
+                .damping(6)
+                .mass(0.3)}
+            >
+              <Controller
+                name="feedback"
+                control={control}
+                rules={{ required: true }}
+                render={({ field: { value } }) => (
+                  <SegmentedInputThemed
+                    label="Difficulty"
+                    value={value}
+                    accessibilityLabel="Workout set difficulty"
+                    options={[
+                      {
+                        label: "Easy",
+                        value: "Easy",
+                        accessibilityLabel: "Set workout set feedback: Easy",
+                      },
+                      {
+                        label: "Neutral",
+                        value: "Neutral",
+                        accessibilityLabel: "Set workout set feedback: Neutral",
+                        tone: "muted",
+                      },
+                      {
+                        label: "Hard",
+                        value: "Hard",
+                        accessibilityLabel: "Set workout set feedback: Hard",
+                        tone: "destructive",
+                      },
+                    ]}
+                    onChange={(feedback) => {
+                      setValue("feedback", feedback);
+                      submitCurrentValues();
+                    }}
+                  />
+                )}
+              />
+            </Animated.View>
           )}
-          <Animated.View layout={LinearTransition}>
+          <Animated.View
+            layout={LinearTransition.duration(250)
+              .springify()
+              .stiffness(50)
+              .damping(6)
+              .mass(0.3)}
+          >
             <MultilineTextInputThemed
               label="Notes"
               value={exercise.notes}

@@ -186,7 +186,7 @@ function SessionDetailScreenContent({
         <SectionList
           className="flex-1"
           sections={sections}
-          contentContainerClassName="pt-36 px-5 pb-18"
+          contentContainerClassName="pt-36 px-5 pb-24"
           keyExtractor={(item) => `${item.workoutSet.workoutSetId}`}
           stickySectionHeadersEnabled={false}
           ListHeaderComponent={
