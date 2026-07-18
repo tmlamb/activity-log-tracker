@@ -490,7 +490,7 @@ function WorkoutSetDetailScreenContent({
                 )}
               <Controller
                 control={control}
-                rules={{ required: true, min: 1, max: 9999 }}
+                rules={{ required: true, min: 1 }}
                 render={({ field: { onChange, onBlur } }) => {
                   return (
                     <TextInputThemed
@@ -528,7 +528,7 @@ function WorkoutSetDetailScreenContent({
               />
               <Controller
                 control={control}
-                rules={{ required: true, min: 1 }}
+                rules={{ required: true, min: 1, max: 9999 }}
                 render={({
                   field: { onChange, onBlur, value },
                   fieldState,
@@ -610,16 +610,18 @@ function WorkoutSetDetailScreenContent({
               )}
             />
           )}
-          <MultilineTextInputThemed
-            label="Notes"
-            value={exercise.notes}
-            onChangeText={(notes) => {
-              updateExercise({
-                ...exercise,
-                notes: notes.trim() ? notes : undefined,
-              });
-            }}
-          />
+          <Animated.View layout={LinearTransition}>
+            <MultilineTextInputThemed
+              label="Notes"
+              value={exercise.notes}
+              onChangeText={(notes) => {
+                updateExercise({
+                  ...exercise,
+                  notes: notes.trim() ? notes : undefined,
+                });
+              }}
+            />
+          </Animated.View>
           {actualWeightWatcher?.value ? (
             <PlateChart
               className="mx-5"

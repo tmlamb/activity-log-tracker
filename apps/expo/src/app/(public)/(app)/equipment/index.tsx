@@ -180,13 +180,13 @@ export default function EquipmentScreen() {
 
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView contentContainerClassName="px-5 pt-34 pb-18">
-          <View className="gap-6">
+          <Animated.View layout={LinearTransition} className="gap-6">
             <HelperText placement="blockStart">
               These settings will be used to calculate which barbell and plates
               to use for each workout set.
             </HelperText>
 
-            <View>
+            <Animated.View layout={LinearTransition}>
               <SectionHeading>Barbell Inventory</SectionHeading>
               {barbellFields.map((item, index) => {
                 const stack = { index, size: barbellFields.length + 1 };
@@ -196,6 +196,7 @@ export default function EquipmentScreen() {
                     key={item.barbellId}
                     entering={FadeInUp}
                     exiting={FadeOutUp}
+                    layout={LinearTransition}
                   >
                     <Controller
                       name={`barbells.${index}.value`}
@@ -263,9 +264,9 @@ export default function EquipmentScreen() {
                   }
                 />
               </Animated.View>
-            </View>
+            </Animated.View>
 
-            <View>
+            <Animated.View layout={LinearTransition}>
               <SectionHeading>Plate Inventory</SectionHeading>
               {plateFields.map((item, index) => {
                 const quantity = Number(
@@ -278,6 +279,7 @@ export default function EquipmentScreen() {
                     key={item.plateId}
                     entering={FadeInUp}
                     exiting={FadeOutUp}
+                    layout={LinearTransition}
                   >
                     <Controller
                       name={`plates.${index}.value`}
@@ -346,10 +348,10 @@ export default function EquipmentScreen() {
                   }
                 />
               </Animated.View>
-            </View>
-          </View>
+            </Animated.View>
+          </Animated.View>
 
-          <View className="mt-10">
+          <Animated.View layout={LinearTransition} className="mt-10">
             <ConfirmButton
               accessibilityLabel="Restore default equipment inventory"
               title="Restore Equipment Defaults?"
@@ -359,7 +361,7 @@ export default function EquipmentScreen() {
             >
               Restore Defaults
             </ConfirmButton>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </>
