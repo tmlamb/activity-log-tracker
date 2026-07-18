@@ -1,4 +1,4 @@
-import { KeyboardAvoidingView, ScrollView, View } from "react-native";
+import { KeyboardAvoidingView, ScrollView } from "react-native";
 import Animated, {
   FadeInUp,
   FadeOutUp,
