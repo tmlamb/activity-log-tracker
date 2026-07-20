@@ -25,7 +25,6 @@ export interface WorkoutSet {
   end?: Date;
   status: "Planned" | "Ready" | "Done";
   type: "Warmup" | "Main";
-  expectedWeight?: Weight;
   actualWeight?: Weight;
   actualReps?: number;
   feedback: "Easy" | "Neutral" | "Hard";
@@ -114,31 +113,3 @@ export const exerciseNamesMatch = (a: string, b: string) =>
 
 export const sumPlateWeights = (plateWeights: number[]) =>
   plateWeights.reduce((total, p) => total + p, 0);
-
-export const recentActivityByExercise = (
-  program?: Program,
-  exerciseId?: string,
-  session?: Session,
-  activity?: Activity,
-): Activity | undefined => {
-  for (let i = (program?.sessions.length ?? 0) - 1; i >= 0; i -= 1) {
-    const s = program?.sessions[i];
-    if (!s) continue;
-    for (let j = s.activities.length - 1; j >= 0; j -= 1) {
-      const a = s.activities[j];
-      if (!a) continue;
-      if (
-        a.exerciseId === exerciseId &&
-        s.sessionId !== session?.sessionId &&
-        (!activity ||
-          (Math.abs(activity.mainSets.length - a.mainSets.length) < 2 &&
-            Math.abs(activity.reps - a.reps) < 3 &&
-            Math.abs(activity.load.value - a.load.value) < 1))
-      ) {
-        return a;
-      }
-    }
-  }
-
-  return undefined;
-};

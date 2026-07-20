@@ -33,10 +33,7 @@ import "react-native-get-random-values";
 
 import { v4 as uuidv4 } from "uuid";
 
-import {
-  recentActivityByExercise,
-  stringifyLoad,
-} from "@activity-log/ui/utils";
+import { stringifyLoad } from "@activity-log/ui/utils";
 
 import type { WorkoutStore } from "~/hooks/use-workout-store";
 import Card from "~/components/Card";
@@ -185,46 +182,11 @@ function SessionFormScreenContent({
   } = usePendingSelection();
 
   const handleExerciseSelect = (selectedExercise: Exercise, index: number) => {
-    const recentActivity = recentActivityByExercise(
-      program,
-      selectedExercise.exerciseId,
-    );
-    if (recentActivity?.load) {
-      setValue(`activities.${index}.load`, recentActivity.load);
-    } else if (
-      selectedExercise.oneRepMax &&
-      selectedExercise.oneRepMax.value > 0
-    ) {
+    if (selectedExercise.oneRepMax && selectedExercise.oneRepMax.value > 0) {
       setValue(`activities.${index}.load`, { type: "PERCENT", value: 0.75 });
     } else {
       setValue(`activities.${index}.load`, { type: "RPE", value: 5 });
     }
-    if (recentActivity?.warmupSets) {
-      setValue(
-        `activities.${index}.warmupSets`,
-        numberToWorkoutSetArray<WarmupSet>(
-          recentActivity.warmupSets.length,
-          watchActivities[index]?.warmupSets ?? [],
-          "Warmup",
-          session,
-        ),
-      );
-    }
-    if (recentActivity?.mainSets) {
-      setValue(
-        `activities.${index}.mainSets`,
-        numberToWorkoutSetArray<MainSet>(
-          recentActivity.mainSets.length,
-          watchActivities[index]?.mainSets ?? [],
-          "Main",
-          session,
-        ),
-      );
-    }
-    if (recentActivity?.reps)
-      setValue(`activities.${index}.reps`, recentActivity.reps);
-    if (recentActivity?.rest)
-      setValue(`activities.${index}.rest`, recentActivity.rest);
   };
 
   const buildTemplateFormData = (template: Session): SessionFormData => ({
@@ -236,14 +198,16 @@ function SessionFormScreenContent({
     activities: template.activities.map((activity) => ({
       ...activity,
       activityId: uuidv4(),
-      warmupSets: Array.from(Array(activity.warmupSets.length)).map(() => ({
+      warmupSets: activity.warmupSets.map((warmupSet) => ({
         workoutSetId: uuidv4(),
         type: "Warmup" as const,
         status: "Planned" as const,
         start: undefined,
         end: undefined,
+        actualWeight:
+          activity.load.type === "RPE" ? warmupSet.actualWeight : undefined,
         actualReps: 0,
-        feedback: "Neutral" as const,
+        feedback: warmupSet.feedback,
       })),
       mainSets: activity.mainSets.map((mainSet) => ({
         workoutSetId: uuidv4(),
@@ -251,10 +215,10 @@ function SessionFormScreenContent({
         status: "Planned" as const,
         start: undefined,
         end: undefined,
-        expectedWeight:
+        actualWeight:
           activity.load.type === "RPE" ? mainSet.actualWeight : undefined,
         actualReps: 0,
-        feedback: "Neutral" as const,
+        feedback: mainSet.feedback,
       })),
     })),
   });
@@ -332,6 +296,26 @@ function SessionFormScreenContent({
     setValue(`activities.${index}.load`, pendingLoad.load, {
       shouldDirty: true,
     });
+    if (pendingLoad.load.type === "PERCENT") {
+      setValue(
+        `activities.${index}.warmupSets`,
+        (watchActivities[index]?.warmupSets ?? []).map((warmupSet) => ({
+          ...warmupSet,
+          actualWeight:
+            warmupSet.status === "Planned" ? undefined : warmupSet.actualWeight,
+        })),
+        { shouldDirty: true },
+      );
+      setValue(
+        `activities.${index}.mainSets`,
+        (watchActivities[index]?.mainSets ?? []).map((mainSet) => ({
+          ...mainSet,
+          actualWeight:
+            mainSet.status === "Planned" ? undefined : mainSet.actualWeight,
+        })),
+        { shouldDirty: true },
+      );
+    }
     clearPendingLoad();
   }, [pendingLoad]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -737,7 +721,7 @@ function SessionFormScreenContent({
                         <Controller
                           name={`activities.${index}.reps`}
                           control={control}
-                          defaultValue={3}
+                          defaultValue={10}
                           rules={{ required: true, min: 1 }}
                           render={({
                             field: { onChange, ref, onBlur, value },
@@ -817,7 +801,7 @@ function SessionFormScreenContent({
                       {
                         activityId: uuidv4(),
                         exerciseId: "",
-                        reps: 3,
+                        reps: 10,
                         rest: 3,
                         load: { type: "RPE", value: 5 },
                         warmupSets: Array.from(Array(3)).map(() => ({
@@ -915,19 +899,15 @@ function SessionFormScreenContent({
                       ...ws,
                       start: undefined,
                       end: undefined,
-                      actualWeight: undefined,
                       actualReps: 0,
                       status: "Planned" as const,
-                      feedback: "Neutral" as const,
                     })),
                     mainSets: actvy.mainSets.map((ms) => ({
                       ...ms,
                       start: undefined,
                       end: undefined,
-                      actualWeight: undefined,
                       actualReps: 0,
                       status: "Planned" as const,
-                      feedback: "Neutral" as const,
                     })),
                   })),
                 });

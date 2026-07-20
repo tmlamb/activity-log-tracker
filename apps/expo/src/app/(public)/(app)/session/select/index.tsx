@@ -90,7 +90,8 @@ export default function SessionSelectScreen() {
               item.start ?? new Date(),
             )}
             onPress={() => {
-              // Strip timing data so it can be used as a fresh template
+              // Strip timing data so it can be used as a fresh template.
+              // Set weights are retained so RPE templates can prefill them.
               setSelected({
                 ...item,
                 sessionId: item.sessionId,
@@ -107,7 +108,6 @@ export default function SessionSelectScreen() {
                     end: undefined,
                     actualReps: 0,
                     status: "Planned" as const,
-                    feedback: "Neutral" as const,
                   })),
                   mainSets: actvy.mainSets.map((ms) => ({
                     ...ms,
@@ -116,7 +116,6 @@ export default function SessionSelectScreen() {
                     end: undefined,
                     actualReps: 0,
                     status: "Planned" as const,
-                    feedback: "Neutral" as const,
                   })),
                 })),
               });

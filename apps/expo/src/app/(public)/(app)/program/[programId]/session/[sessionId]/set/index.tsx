@@ -18,7 +18,6 @@ import { twMerge } from "tailwind-merge";
 
 import type { Activity, WarmupSet, WorkoutSet } from "@activity-log/ui/utils";
 import {
-  recentActivityByExercise,
   round5,
   stringifyLoad,
   stringifyPercent,
@@ -130,7 +129,7 @@ function WorkoutSetDetailScreenContent({
     warmupPercentageMap[5] ??
     [];
   const warmupPercent =
-    workoutSet.type === "Warmup"
+    workoutSet.type === "Warmup" && activity.load.type === "PERCENT"
       ? (warmupPercentages[
           activity.warmupSets.indexOf(workoutSet as WarmupSet)
         ] ??
@@ -142,34 +141,32 @@ function WorkoutSetDetailScreenContent({
       ? activity.load.value
       : 0;
 
-  const workoutSetIndex =
-    workoutSet.type === "Warmup"
-      ? activity.warmupSets.findIndex(
-          (ws) => ws.workoutSetId === workoutSet.workoutSetId,
-        )
-      : activity.mainSets.findIndex(
-          (ms) => ms.workoutSetId === workoutSet.workoutSetId,
-        );
-
-  const recentActivity = recentActivityByExercise(
-    program,
-    exercise.exerciseId,
-    session,
-    activity,
-  );
-  const setArray =
-    recentActivity?.[workoutSet.type === "Warmup" ? "warmupSets" : "mainSets"];
-  const similarSet =
-    setArray?.[workoutSetIndex] ?? _.last<WorkoutSet>(setArray);
-  const weight = similarSet?.actualWeight?.value ?? 0;
-  const targetWeight = exercise.oneRepMax
-    ? round5(exercise.oneRepMax.value * (warmupPercent || workPercent))
-    : weight;
+  const targetPercent = warmupPercent || workPercent;
+  const targetWeight =
+    exercise.oneRepMax && targetPercent
+      ? round5(exercise.oneRepMax.value * targetPercent)
+      : undefined;
+  const warmupTargetLoadValue =
+    workoutSet.type === "Warmup" &&
+    activity.load.type === "PERCENT" &&
+    exercise.oneRepMax
+      ? `${stringifyPercent(warmupPercent * 100)}${targetWeight && workoutSet.status !== "Done" ? ` / ${targetWeight}lbs` : ""}`
+      : workoutSet.type === "Warmup" &&
+          activity.load.type === "RPE" &&
+          workoutSet.actualWeight
+        ? `${workoutSet.actualWeight.value}${workoutSet.actualWeight.unit}`
+        : undefined;
+  const targetLoadValue =
+    workoutSet.type === "Main"
+      ? `${stringifyLoad(activity.load)}${activity.load.type === "PERCENT" && targetWeight && workoutSet.status !== "Done" ? ` / ${targetWeight}lbs` : ""}${activity.load.type === "RPE" && workoutSet.actualWeight ? ` / ${workoutSet.actualWeight.value}${workoutSet.actualWeight.unit}` : ""}`
+      : warmupTargetLoadValue;
   const defaultActualWeight =
     (workoutSet.actualWeight && workoutSet.actualWeight.value > 0) ||
     workoutSet.status === "Done"
       ? workoutSet.actualWeight
-      : { value: targetWeight, unit: "lbs" as const };
+      : targetWeight
+        ? { value: targetWeight, unit: "lbs" as const }
+        : undefined;
   const [actualWeightInput, setActualWeightInput] = useState(
     defaultActualWeight?.value && defaultActualWeight.value > 0
       ? String(defaultActualWeight.value)
@@ -423,25 +420,20 @@ function WorkoutSetDetailScreenContent({
               stack={
                 workoutSet.type === "Main"
                   ? { index: 0, size: 4 }
-                  : exercise.oneRepMax
+                  : targetLoadValue
                     ? { index: 0, size: 2 }
                     : undefined
               }
             />
-            {workoutSet.type === "Warmup" && exercise.oneRepMax && (
+            {targetLoadValue && (
               <DetailCardRow
-                label="Warmup Load"
-                value={`${stringifyPercent(warmupPercent * 100)}${targetWeight && workoutSet.status !== "Done" ? ` / ${targetWeight}lbs` : ""}`}
-                stack={{ index: 1, size: 2 }}
+                label="Target Load"
+                value={targetLoadValue}
+                stack={{ index: 1, size: workoutSet.type === "Main" ? 4 : 2 }}
               />
             )}
             {workoutSet.type === "Main" && (
               <>
-                <DetailCardRow
-                  label="Target Load"
-                  value={`${stringifyLoad(activity.load)}${activity.load.type === "PERCENT" && targetWeight && workoutSet.status !== "Done" ? ` / ${targetWeight}lbs` : ""}`}
-                  stack={{ index: 1, size: 4 }}
-                />
                 <DetailCardRow
                   label="Target Reps"
                   value={String(activity.reps)}
