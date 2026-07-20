@@ -1,6 +1,6 @@
 import type { LayoutChangeEvent } from "react-native";
-import { useEffect, useState } from "react";
-import { SectionList, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { SectionList, View } from "react-native";
 import Animated, {
   Easing,
   LinearTransition,
@@ -37,6 +37,18 @@ import useWorkoutStore from "~/hooks/use-workout-store";
 
 const collapseAnimationDuration = 320;
 const collapseAnimationEasing = Easing.bezier(0.22, 0, 0, 1);
+
+const getActivityWorkoutSets = (activity: Activity): WorkoutSet[] => [
+  ...activity.warmupSets,
+  ...activity.mainSets,
+];
+
+const areAllActivitySetsDone = (activity: Activity) => {
+  const workoutSets = getActivityWorkoutSets(activity);
+  return (
+    workoutSets.length > 0 && workoutSets.every((ws) => ws.status === "Done")
+  );
+};
 
 interface WorkoutSetCardProps {
   workoutSet: WarmupSet | MainSet;
@@ -97,10 +109,12 @@ function WorkoutSetCard({
 function ExerciseSectionHeader({
   title,
   collapsed,
+  allSetsDone,
   onPress,
 }: {
   title: string;
   collapsed: boolean;
+  allSetsDone: boolean;
   onPress: () => void;
 }) {
   const chevronRotation = useSharedValue(collapsed ? 0 : 90);
@@ -127,7 +141,7 @@ function ExerciseSectionHeader({
       </SectionHeading>
       <Animated.Text
         maxFontSizeMultiplier={2.5}
-        className="text-primary"
+        className={collapsed && !allSetsDone ? "text-primary" : "text-muted"}
         style={chevronStyle}
       >
         <AntDesign name="right" size={15} />
@@ -232,6 +246,7 @@ function SessionDetailScreenContent({
   const [collapsedActivityIds, setCollapsedActivityIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const autoCollapsedActivityIdsRef = useRef<Set<string>>(new Set());
 
   const toggleActivityCollapsed = (activityId: string) => {
     setCollapsedActivityIds((current) => {
@@ -245,16 +260,44 @@ function SessionDetailScreenContent({
     });
   };
 
+  useEffect(() => {
+    const completedActivityIds = new Set(
+      session.activities
+        .filter(areAllActivitySetsDone)
+        .map((activity) => activity.activityId),
+    );
+    const autoCollapsedActivityIds = autoCollapsedActivityIdsRef.current;
+    const newlyCompletedActivityIds = [...completedActivityIds].filter(
+      (activityId) => !autoCollapsedActivityIds.has(activityId),
+    );
+
+    autoCollapsedActivityIdsRef.current = new Set(
+      [...autoCollapsedActivityIds].filter((activityId) =>
+        completedActivityIds.has(activityId),
+      ),
+    );
+    newlyCompletedActivityIds.forEach((activityId) => {
+      autoCollapsedActivityIdsRef.current.add(activityId);
+    });
+
+    if (!newlyCompletedActivityIds.length) return;
+
+    setCollapsedActivityIds((current) => {
+      const next = new Set(current);
+      newlyCompletedActivityIds.forEach((activityId) => {
+        next.add(activityId);
+      });
+      return next;
+    });
+  }, [session.activities]);
+
   const workoutSetsPending = _.reduce(
     session.activities,
     (result, activity) =>
       _.concat(
         result,
         _.filter(
-          _.concat(
-            activity.warmupSets as WorkoutSet[],
-            activity.mainSets as WorkoutSet[],
-          ),
+          getActivityWorkoutSets(activity),
           (ws) => ws.status !== "Done",
         ),
       ),
@@ -264,6 +307,7 @@ function SessionDetailScreenContent({
   const sections = session.activities.map<{
     title: string;
     activityId: string;
+    allSetsDone: boolean;
     collapsed: boolean;
     data: {
       activityId: string;
@@ -271,6 +315,7 @@ function SessionDetailScreenContent({
       workoutSets: WorkoutSetCardProps[];
     }[];
   }>((activity, actIndex) => {
+    const allSetsDone = areAllActivitySetsDone(activity);
     const collapsed = collapsedActivityIds.has(activity.activityId);
     const workoutSets = _.concat<WorkoutSetCardProps>(
       activity.warmupSets.map((ws, i) => ({
@@ -296,6 +341,7 @@ function SessionDetailScreenContent({
         exercises.find((e) => e.exerciseId === activity.exerciseId)?.name ??
         `Activity ${actIndex + 1}`,
       activityId: activity.activityId,
+      allSetsDone,
       collapsed,
       data: [{ activityId: activity.activityId, collapsed, workoutSets }],
     };
@@ -359,11 +405,12 @@ function SessionDetailScreenContent({
           }
           extraData={collapsedActivityIds}
           renderSectionHeader={({
-            section: { activityId, collapsed, title },
+            section: { activityId, allSetsDone, collapsed, title },
           }) => (
             <ExerciseSectionHeader
               title={title}
               collapsed={collapsed}
+              allSetsDone={allSetsDone}
               onPress={() => toggleActivityCollapsed(activityId)}
             />
           )}

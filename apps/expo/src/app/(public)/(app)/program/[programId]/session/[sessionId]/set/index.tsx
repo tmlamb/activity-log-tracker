@@ -21,6 +21,7 @@ import {
   recentActivityByExercise,
   round5,
   stringifyLoad,
+  stringifyPercent,
 } from "@activity-log/ui/utils";
 
 import type { WorkoutStore } from "~/hooks/use-workout-store";
@@ -430,7 +431,7 @@ function WorkoutSetDetailScreenContent({
             {workoutSet.type === "Warmup" && exercise.oneRepMax && (
               <DetailCardRow
                 label="Warmup Load"
-                value={`${String(warmupPercent * 100)}%${targetWeight && workoutSet.status !== "Done" ? ` / ${targetWeight}lbs` : ""}`}
+                value={`${stringifyPercent(warmupPercent * 100)}${targetWeight && workoutSet.status !== "Done" ? ` / ${targetWeight}lbs` : ""}`}
                 stack={{ index: 1, size: 2 }}
               />
             )}

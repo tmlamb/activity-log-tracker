@@ -245,12 +245,14 @@ function SessionFormScreenContent({
         actualReps: 0,
         feedback: "Neutral" as const,
       })),
-      mainSets: Array.from(Array(activity.mainSets.length)).map(() => ({
+      mainSets: activity.mainSets.map((mainSet) => ({
         workoutSetId: uuidv4(),
         type: "Main" as const,
         status: "Planned" as const,
         start: undefined,
         end: undefined,
+        expectedWeight:
+          activity.load.type === "RPE" ? mainSet.actualWeight : undefined,
         actualReps: 0,
         feedback: "Neutral" as const,
       })),

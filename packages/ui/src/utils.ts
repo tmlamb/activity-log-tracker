@@ -25,6 +25,7 @@ export interface WorkoutSet {
   end?: Date;
   status: "Planned" | "Ready" | "Done";
   type: "Warmup" | "Main";
+  expectedWeight?: Weight;
   actualWeight?: Weight;
   actualReps?: number;
   feedback: "Easy" | "Neutral" | "Hard";
@@ -91,8 +92,11 @@ export const weekAndDayFromStart = (start: Date, end: Date) => {
   return `${week > 1 ? `Week ${week}, ` : ""}Day ${day}`;
 };
 
+export const stringifyPercent = (value: number) =>
+  `${Number(value.toFixed(2))}%`;
+
 export const stringifyLoad = ({ type, value }: Load) =>
-  type === "PERCENT" ? `${(value * 100).toFixed(2)}%` : `RPE ${value}`;
+  type === "PERCENT" ? stringifyPercent(value * 100) : `RPE ${value}`;
 
 export const stringifyWeight = (weight: Weight) =>
   `${weight.value} ${weight.unit}`;

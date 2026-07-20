@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   exerciseNamesMatch,
   normalizeExerciseName,
+  stringifyLoad,
+  stringifyPercent,
   weekAndDayFromStart,
 } from "./utils";
 
@@ -20,6 +22,21 @@ describe("exerciseNamesMatch", () => {
 
   it("should not match different exercise names", () => {
     expect(exerciseNamesMatch("Bench Press", "Squat")).toBe(false);
+  });
+});
+
+describe("stringifyPercent", () => {
+  it("should trim trailing zeroes", () => {
+    expect(stringifyPercent(75)).toBe("75%");
+    expect(stringifyPercent(75.5)).toBe("75.5%");
+    expect(stringifyPercent(75.25)).toBe("75.25%");
+  });
+});
+
+describe("stringifyLoad", () => {
+  it("should trim trailing zeroes from percent loads", () => {
+    expect(stringifyLoad({ type: "PERCENT", value: 0.75 })).toBe("75%");
+    expect(stringifyLoad({ type: "PERCENT", value: 0.755 })).toBe("75.5%");
   });
 });
 
