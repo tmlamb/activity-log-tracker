@@ -204,8 +204,7 @@ function SessionFormScreenContent({
         status: "Planned" as const,
         start: undefined,
         end: undefined,
-        actualWeight:
-          activity.load.type === "RPE" ? warmupSet.actualWeight : undefined,
+        weight: activity.load.type === "RPE" ? warmupSet.weight : undefined,
         actualReps: 0,
         feedback: warmupSet.feedback,
       })),
@@ -215,8 +214,7 @@ function SessionFormScreenContent({
         status: "Planned" as const,
         start: undefined,
         end: undefined,
-        actualWeight:
-          activity.load.type === "RPE" ? mainSet.actualWeight : undefined,
+        weight: activity.load.type === "RPE" ? mainSet.weight : undefined,
         actualReps: 0,
         feedback: mainSet.feedback,
       })),
@@ -301,8 +299,7 @@ function SessionFormScreenContent({
         `activities.${index}.warmupSets`,
         (watchActivities[index]?.warmupSets ?? []).map((warmupSet) => ({
           ...warmupSet,
-          actualWeight:
-            warmupSet.status === "Planned" ? undefined : warmupSet.actualWeight,
+          weight: warmupSet.status === "Planned" ? undefined : warmupSet.weight,
         })),
         { shouldDirty: true },
       );
@@ -310,8 +307,7 @@ function SessionFormScreenContent({
         `activities.${index}.mainSets`,
         (watchActivities[index]?.mainSets ?? []).map((mainSet) => ({
           ...mainSet,
-          actualWeight:
-            mainSet.status === "Planned" ? undefined : mainSet.actualWeight,
+          weight: mainSet.status === "Planned" ? undefined : mainSet.weight,
         })),
         { shouldDirty: true },
       );

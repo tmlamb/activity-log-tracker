@@ -120,6 +120,7 @@ interface SelectableCardRowProps extends PressableProps {
   title: React.ReactNode;
   selected: boolean;
   stack?: CardRowStack;
+  cardVariants?: (keyof typeof variantClasses)[];
   className?: string;
   cardClassName?: string;
   titleClassName?: string;
@@ -184,6 +185,7 @@ export function SelectableCardRow({
   title,
   selected,
   stack,
+  cardVariants,
   className,
   cardClassName,
   titleClassName,
@@ -194,7 +196,7 @@ export function SelectableCardRow({
 }: SelectableCardRowProps) {
   return (
     <PressableThemed className={className} {...pressableProps}>
-      <Card stack={stack} className={cardClassName}>
+      <Card stack={stack} variants={cardVariants} className={cardClassName}>
         <Text
           maxFontSizeMultiplier={2.5}
           className={twMerge(

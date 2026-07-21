@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 
 import type { Exercise } from "@activity-log/ui/utils";
 import { exerciseNamesMatch } from "@activity-log/ui/utils";
@@ -9,12 +9,15 @@ import { exerciseNamesMatch } from "@activity-log/ui/utils";
 import "react-native-get-random-values";
 
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import _ from "lodash";
 import { twMerge } from "tailwind-merge";
 import { v4 as uuidv4 } from "uuid";
 
+import { SelectableCardRow } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
+import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import TextInputThemed, {
   TextInputThemedGroup,
 } from "~/components/TextInputThemed";
@@ -28,30 +31,85 @@ const decimalTextToNumber = (text: string) => {
   return Number.isFinite(value) ? value : undefined;
 };
 
+const inferLoadKindFromName = (
+  name: string,
+): Exercise["loadKind"] | undefined => {
+  if (/\bdumbbells?\b/i.test(name)) return "WEIGHT_PAIR";
+  if (/\bbarbells?\b/i.test(name)) return "BARBELL";
+  return undefined;
+};
+
 export default function ExerciseFormScreen() {
   const { exerciseId, name: presetName } = useLocalSearchParams<{
     exerciseId?: string;
     name?: string;
   }>();
   const router = useRouter();
-  const { exercises, programs, addExercise, updateExercise, deleteExercise } =
-    useWorkoutStore((state) => state);
+  const {
+    exercises,
+    programs,
+    equipment,
+    addExercise,
+    updateExercise,
+    deleteExercise,
+  } = useWorkoutStore((state) => state);
 
   const exercise = exercises.find((e) => e.exerciseId === exerciseId);
+  const heaviestBarbell = _.maxBy(equipment.barbells, "value");
+  const defaultLoadKind =
+    exercise?.loadKind ?? inferLoadKindFromName(presetName ?? "") ?? "BARBELL";
   const [oneRepMaxInput, setOneRepMaxInput] = useState(
     exercise?.oneRepMax?.value && exercise.oneRepMax.value > 0
       ? String(exercise.oneRepMax.value)
       : "",
   );
 
-  const { control, handleSubmit, setError } = useForm<Exercise>({
+  const { control, handleSubmit, setError, setValue } = useForm<Exercise>({
     defaultValues: {
       name: exercise?.name ?? presetName ?? "",
+      loadKind: defaultLoadKind,
+      barbellId: exercise?.barbellId ?? heaviestBarbell?.barbellId,
       oneRepMax: exercise?.oneRepMax ?? undefined,
       primaryMuscle: exercise?.primaryMuscle ?? undefined,
       notes: exercise?.notes ?? undefined,
     },
   });
+  const selectedLoadKind = useWatch({ control, name: "loadKind" });
+  const selectedBarbellId = useWatch({ control, name: "barbellId" });
+  const selectedName = useWatch({ control, name: "name" });
+  const hasManuallySelectedLoadKindRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      selectedLoadKind === "BARBELL" &&
+      heaviestBarbell &&
+      !equipment.barbells.some(
+        (barbell) => barbell.barbellId === selectedBarbellId,
+      )
+    ) {
+      setValue("barbellId", heaviestBarbell.barbellId);
+    }
+  }, [
+    equipment.barbells,
+    heaviestBarbell,
+    selectedBarbellId,
+    selectedLoadKind,
+    setValue,
+  ]);
+
+  useEffect(() => {
+    const inferredLoadKind = inferLoadKindFromName(selectedName);
+    if (
+      exercise ||
+      hasManuallySelectedLoadKindRef.current ||
+      !inferredLoadKind ||
+      selectedLoadKind === inferredLoadKind
+    ) {
+      return;
+    }
+
+    setValue("loadKind", inferredLoadKind, { shouldDirty: true });
+  }, [exercise, selectedLoadKind, selectedName, setValue]);
 
   const usedInWorkout = programs.find((program) =>
     program.sessions.find((session) =>
@@ -84,6 +142,8 @@ export default function ExerciseFormScreen() {
         updateExercise({
           ...exercise,
           name: data.name,
+          loadKind: data.loadKind,
+          barbellId: data.loadKind === "BARBELL" ? data.barbellId : undefined,
           oneRepMax: data.oneRepMax,
           primaryMuscle: data.primaryMuscle,
           notes,
@@ -91,6 +151,8 @@ export default function ExerciseFormScreen() {
       } else {
         addExercise({
           name: data.name,
+          loadKind: data.loadKind,
+          barbellId: data.loadKind === "BARBELL" ? data.barbellId : undefined,
           oneRepMax: data.oneRepMax,
           primaryMuscle: data.primaryMuscle,
           notes,
@@ -175,6 +237,79 @@ export default function ExerciseFormScreen() {
               </HelperText>
             )}
           </View>
+          <Controller
+            name="loadKind"
+            control={control}
+            rules={{ required: "Required" }}
+            render={({ field: { onChange, value }, fieldState: { error } }) => (
+              <View>
+                <SegmentedInputThemed
+                  label="Equipment"
+                  value={value}
+                  error={error?.message}
+                  accessibilityLabel="Exercise equipment style"
+                  options={[
+                    {
+                      label: "Barbell",
+                      value: "BARBELL",
+                      accessibilityLabel: "Exercise uses a barbell",
+                    },
+                    {
+                      label: "Pair",
+                      value: "WEIGHT_PAIR",
+                      accessibilityLabel: "Exercise uses a pair of weights",
+                    },
+                    {
+                      label: "Single",
+                      value: "SINGLE_WEIGHT",
+                      accessibilityLabel: "Exercise uses a single weight",
+                    },
+                  ]}
+                  onChange={(nextLoadKind) => {
+                    hasManuallySelectedLoadKindRef.current = true;
+                    onChange(nextLoadKind);
+                  }}
+                  cardVariants={["square"]}
+                />
+                <HelperText placement="formInset" className="pt-2">
+                  Sets how weight is counted. Pair means one weight per side
+                  (e.g. dumbbells); Single means one weight (e.g. kettlebells or
+                  machines).
+                </HelperText>
+              </View>
+            )}
+          />
+          {selectedLoadKind === "BARBELL" && (
+            <View>
+              {equipment.barbells.length > 0 ? (
+                <Controller
+                  name="barbellId"
+                  control={control}
+                  rules={{ required: "Required" }}
+                  render={({ field: { onChange, value } }) => (
+                    <>
+                      {equipment.barbells.map((barbell, index) => (
+                        <SelectableCardRow
+                          key={barbell.barbellId}
+                          title={`${barbell.value}${barbell.unit}`}
+                          selected={barbell.barbellId === value}
+                          onPress={() => onChange(barbell.barbellId)}
+                          accessibilityLabel={`Use ${barbell.value} pound barbell for this exercise`}
+                          cardVariants={["square"]}
+                          stack={{ index, size: equipment.barbells.length }}
+                        />
+                      ))}
+                    </>
+                  )}
+                />
+              ) : (
+                <HelperText placement="formInset">
+                  Add a barbell in Equipment before selecting one for this
+                  exercise.
+                </HelperText>
+              )}
+            </View>
+          )}
           <Controller
             name="oneRepMax"
             control={control}

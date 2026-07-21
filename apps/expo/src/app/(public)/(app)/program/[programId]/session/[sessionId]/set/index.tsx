@@ -26,11 +26,13 @@ import {
 import type { WorkoutStore } from "~/hooks/use-workout-store";
 import BottomActionBar from "~/components/BottomActionBar";
 import { DetailCardRow } from "~/components/CardRow";
+import DumbbellChart from "~/components/DumbbellChart";
 import ElapsedTime from "~/components/ElapsedTime";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PlateChart from "~/components/PlateChart";
 import PressableThemed from "~/components/PressableThemed";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
+import SingleWeightChart from "~/components/SingleWeightChart";
 import { AnimatedViewStyled } from "~/components/Styled";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText } from "~/components/Typography";
@@ -123,6 +125,7 @@ function WorkoutSetDetailScreenContent({
   startSession: WorkoutStore["startSession"];
 }) {
   const router = useRouter();
+  const [initialWeight] = useState(workoutSet.weight);
 
   const warmupPercentages =
     warmupPercentageMap[activity.warmupSets.length] ??
@@ -153,29 +156,34 @@ function WorkoutSetDetailScreenContent({
       ? `${stringifyPercent(warmupPercent * 100)}${targetWeight && workoutSet.status !== "Done" ? ` / ${targetWeight}lbs` : ""}`
       : workoutSet.type === "Warmup" &&
           activity.load.type === "RPE" &&
-          workoutSet.actualWeight
-        ? `${workoutSet.actualWeight.value}${workoutSet.actualWeight.unit}`
+          initialWeight
+        ? `${initialWeight.value}${initialWeight.unit}`
         : undefined;
   const targetLoadValue =
     workoutSet.type === "Main"
-      ? `${stringifyLoad(activity.load)}${activity.load.type === "PERCENT" && targetWeight && workoutSet.status !== "Done" ? ` / ${targetWeight}lbs` : ""}${activity.load.type === "RPE" && workoutSet.actualWeight ? ` / ${workoutSet.actualWeight.value}${workoutSet.actualWeight.unit}` : ""}`
+      ? `${stringifyLoad(activity.load)}${activity.load.type === "PERCENT" && targetWeight && workoutSet.status !== "Done" ? ` / ${targetWeight}lbs` : ""}${activity.load.type === "RPE" && initialWeight ? ` / ${initialWeight.value}${initialWeight.unit}` : ""}`
       : warmupTargetLoadValue;
-  const defaultActualWeight =
-    (workoutSet.actualWeight && workoutSet.actualWeight.value > 0) ||
+  const selectedBarbell = equipment.barbells.find(
+    (barbell) => barbell.barbellId === exercise.barbellId,
+  );
+  const weightInputLabel =
+    exercise.loadKind === "WEIGHT_PAIR" ? "Weight Each (lbs)" : "Weight (lbs)";
+  const defaultWeight =
+    (workoutSet.weight && workoutSet.weight.value > 0) ||
     workoutSet.status === "Done"
-      ? workoutSet.actualWeight
+      ? workoutSet.weight
       : targetWeight
         ? { value: targetWeight, unit: "lbs" as const }
         : undefined;
-  const [actualWeightInput, setActualWeightInput] = useState(
-    defaultActualWeight?.value && defaultActualWeight.value > 0
-      ? String(defaultActualWeight.value)
+  const [weightInput, setWeightInput] = useState(
+    defaultWeight?.value && defaultWeight.value > 0
+      ? String(defaultWeight.value)
       : "",
   );
 
   const { control, handleSubmit, setValue } = useForm<WorkoutSet>({
     defaultValues: {
-      actualWeight: defaultActualWeight,
+      weight: defaultWeight,
       actualReps: workoutSet.actualReps ?? 0,
       start: workoutSet.start,
       end: workoutSet.end,
@@ -201,7 +209,7 @@ function WorkoutSetDetailScreenContent({
         activity.activityId,
         {
           ...workoutSet,
-          actualWeight: data.actualWeight,
+          weight: data.weight,
           actualReps: data.actualReps,
           start: data.start,
           end:
@@ -228,7 +236,7 @@ function WorkoutSetDetailScreenContent({
     void handleSubmit(onSubmit)();
   }, [handleSubmit, onSubmit]);
 
-  const actualWeightWatcher = useWatch({ control, name: "actualWeight" });
+  const weightWatcher = useWatch({ control, name: "weight" });
   const actualRepsWatcher = useWatch({ control, name: "actualReps" });
   const canComplete =
     workoutSet.status === "Ready" && (actualRepsWatcher ?? 0) > 0;
@@ -480,10 +488,10 @@ function WorkoutSetDetailScreenContent({
                   return (
                     <TextInputThemed
                       stack={{ index: 0, size: 3 }}
-                      label="Actual Weight (lbs)"
+                      label={weightInputLabel}
                       onChangeText={(text) => {
                         const numericValue = decimalTextToNumber(text);
-                        setActualWeightInput(text);
+                        setWeightInput(text);
                         onChange(
                           numericValue != null
                             ? { value: numericValue, unit: "lbs" }
@@ -491,15 +499,14 @@ function WorkoutSetDetailScreenContent({
                         );
                       }}
                       onBlur={() => {
-                        const numericValue =
-                          decimalTextToNumber(actualWeightInput);
-                        setActualWeightInput(
+                        const numericValue = decimalTextToNumber(weightInput);
+                        setWeightInput(
                           numericValue != null ? String(numericValue) : "",
                         );
                         onBlur();
                         submitCurrentValues();
                       }}
-                      value={actualWeightInput || undefined}
+                      value={weightInput || undefined}
                       placeholder="0"
                       maxLength={7}
                       keyboardType="decimal-pad"
@@ -509,7 +516,7 @@ function WorkoutSetDetailScreenContent({
                     />
                   );
                 }}
-                name="actualWeight"
+                name="weight"
               />
               <Controller
                 control={control}
@@ -621,12 +628,27 @@ function WorkoutSetDetailScreenContent({
               }}
             />
           </Animated.View>
-          {actualWeightWatcher?.value ? (
-            <PlateChart
-              className="mx-5"
-              totalWeight={actualWeightWatcher.value}
-              equipment={equipment}
-            />
+          {weightWatcher?.value ? (
+            exercise.loadKind === "BARBELL" && selectedBarbell ? (
+              <PlateChart
+                className="mx-5"
+                totalWeight={weightWatcher.value}
+                equipment={equipment}
+                barbell={selectedBarbell}
+              />
+            ) : exercise.loadKind === "WEIGHT_PAIR" ? (
+              <DumbbellChart
+                className="mx-5"
+                weight={weightWatcher.value}
+                unit={weightWatcher.unit}
+              />
+            ) : exercise.loadKind === "SINGLE_WEIGHT" ? (
+              <SingleWeightChart
+                className="mx-5"
+                weight={weightWatcher.value}
+                unit={weightWatcher.unit}
+              />
+            ) : null
           ) : null}
         </AnimatedViewStyled>
       </KeyboardAwareScrollView>

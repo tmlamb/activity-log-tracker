@@ -63,8 +63,12 @@ export default function Card({
     stack
       ? [
           "rounded-none",
-          stack.index === 0 ? "rounded-t-4xl" : "",
-          stack.index === stack.size - 1 ? "rounded-b-4xl border-b-0" : "",
+          stack.index === 0 && !variants.includes("square")
+            ? "rounded-t-4xl"
+            : "",
+          stack.index === stack.size - 1
+            ? [variants.includes("square") ? "" : "rounded-b-4xl", "border-b-0"]
+            : "",
         ]
       : [],
     className,

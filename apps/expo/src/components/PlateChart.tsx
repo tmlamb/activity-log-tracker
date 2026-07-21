@@ -17,6 +17,7 @@ interface Props {
   className?: string;
   totalWeight: number;
   equipment: Equipment;
+  barbell?: EquipmentBarbell;
 }
 
 type LoadablePlatePair = Weight & {
@@ -112,6 +113,7 @@ export default function PlateChart({
   className,
   totalWeight,
   equipment,
+  barbell,
 }: Props) {
   const primaryColor = useNativeVariable("--primary") as string;
   const accentColor = useNativeVariable("--info") as string;
@@ -135,7 +137,7 @@ export default function PlateChart({
     );
   const loadConfig = calcLoadConfig(
     totalWeight,
-    equipment.barbells,
+    barbell ? [barbell] : equipment.barbells,
     availablePlatePairs,
   );
   const plates = loadConfig?.plates ?? [];

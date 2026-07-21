@@ -8,6 +8,7 @@ import type { Exercise } from "@activity-log/ui/utils";
 
 import "react-native-get-random-values";
 
+import _ from "lodash";
 import { twMerge } from "tailwind-merge";
 import { v4 as uuidv4 } from "uuid";
 
@@ -33,9 +34,11 @@ export default function ExerciseSelectScreen() {
   const router = useRouter();
 
   const availableExercises = useExerciseStore((state) => state.exercises);
-  const { exercises: usedExercises, addExercise } = useWorkoutStore(
-    (state) => state,
-  );
+  const {
+    exercises: usedExercises,
+    equipment,
+    addExercise,
+  } = useWorkoutStore((state) => state);
   const { setPendingExercise } = usePendingSelection();
 
   const initialExercise = usedExercises.find(
@@ -77,9 +80,17 @@ export default function ExerciseSelectScreen() {
     const existingExercise = usedExercises.find((e) =>
       exerciseNamesMatch(e.name, selected.name),
     );
+    const heaviestBarbell = _.maxBy(equipment.barbells, "value");
     const normalizedSelection = selected.exerciseId
       ? selected
-      : (existingExercise ?? { ...selected, exerciseId: uuidv4() });
+      : (existingExercise ?? {
+          ...selected,
+          exerciseId: uuidv4(),
+          barbellId:
+            selected.loadKind === "BARBELL"
+              ? heaviestBarbell?.barbellId
+              : undefined,
+        });
 
     // Add to workout store if it's a preset (not yet in usedExercises)
     if (

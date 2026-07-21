@@ -323,6 +323,8 @@ const useWorkoutStore = create<WorkoutStore>()(
               throw new Error("Exercise name already exists");
             }
             current.name = exercise.name.trim();
+            current.loadKind = exercise.loadKind;
+            current.barbellId = exercise.barbellId;
             current.oneRepMax = exercise.oneRepMax;
             current.primaryMuscle = exercise.primaryMuscle?.trim();
             current.notes = exercise.notes;
@@ -369,7 +371,7 @@ const useWorkoutStore = create<WorkoutStore>()(
               );
             if (!current) throw new Error("WorkoutSet not found");
             current.actualReps = workoutSet.actualReps;
-            current.actualWeight = workoutSet.actualWeight;
+            current.weight = workoutSet.weight;
             current.end = workoutSet.end;
             current.start = workoutSet.start;
             current.status = workoutSet.status;

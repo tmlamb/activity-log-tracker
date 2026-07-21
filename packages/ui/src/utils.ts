@@ -25,7 +25,7 @@ export interface WorkoutSet {
   end?: Date;
   status: "Planned" | "Ready" | "Done";
   type: "Warmup" | "Main";
-  actualWeight?: Weight;
+  weight?: Weight;
   actualReps?: number;
   feedback: "Easy" | "Neutral" | "Hard";
 }
@@ -51,6 +51,8 @@ export interface Activity {
 export interface Exercise {
   name: string;
   exerciseId: string;
+  loadKind: "BARBELL" | "WEIGHT_PAIR" | "SINGLE_WEIGHT";
+  barbellId?: string;
   oneRepMax?: Weight;
   primaryMuscle?: string;
   notes?: string;
