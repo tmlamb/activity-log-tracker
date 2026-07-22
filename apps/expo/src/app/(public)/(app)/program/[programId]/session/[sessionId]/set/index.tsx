@@ -232,8 +232,20 @@ function WorkoutSetDetailScreenContent({
     ],
   );
 
-  const submitCurrentValues = useCallback(() => {
-    void handleSubmit(onSubmit)();
+  const submitCurrentValues = useCallback(async () => {
+    let submitted = false;
+
+    await handleSubmit(
+      (data) => {
+        onSubmit(data);
+        submitted = true;
+      },
+      () => {
+        submitted = false;
+      },
+    )();
+
+    return submitted;
   }, [handleSubmit, onSubmit]);
 
   const weightWatcher = useWatch({ control, name: "weight" });
@@ -268,13 +280,14 @@ function WorkoutSetDetailScreenContent({
       ? `Start ${workoutSet.type.toLowerCase()} set`
       : `Complete ${workoutSet.type.toLowerCase()} set`;
 
-  const onActionPress = () => {
+  const onActionPress = async () => {
     if (isStartable) {
       setLastAction("start");
       setIsStartingSet(true);
       setValue("start", new Date());
       setValue("status", "Ready");
-      submitCurrentValues();
+      const submitted = await submitCurrentValues();
+      if (!submitted) return;
       if (session.status === "Planned") {
         startSession(program.programId, session.sessionId);
       }
@@ -285,7 +298,9 @@ function WorkoutSetDetailScreenContent({
     setLastAction("complete");
     setValue("end", now);
     setValue("status", "Done");
-    submitCurrentValues();
+    const submitted = await submitCurrentValues();
+    if (!submitted) return;
+
     const nextWorkoutSet = activitySets.find(
       (_, index, obj) =>
         obj[index - 1] &&
@@ -337,6 +352,43 @@ function WorkoutSetDetailScreenContent({
         </Text>
       </PressableThemed>
     );
+  };
+
+  const renderWeightChart = () => {
+    if (!weightWatcher?.value) return null;
+
+    if (exercise.loadKind === "BARBELL" && selectedBarbell) {
+      return (
+        <PlateChart
+          className="mx-5"
+          totalWeight={weightWatcher.value}
+          equipment={equipment}
+          barbell={selectedBarbell}
+        />
+      );
+    }
+
+    if (exercise.loadKind === "WEIGHT_PAIR") {
+      return (
+        <DumbbellChart
+          className="mx-5"
+          weight={weightWatcher.value}
+          unit={weightWatcher.unit}
+        />
+      );
+    }
+
+    if (exercise.loadKind === "SINGLE_WEIGHT") {
+      return (
+        <SingleWeightChart
+          className="mx-5"
+          weight={weightWatcher.value}
+          unit={weightWatcher.unit}
+        />
+      );
+    }
+
+    return null;
   };
 
   useEffect(() => {
@@ -483,7 +535,6 @@ function WorkoutSetDetailScreenContent({
                 )}
               <Controller
                 control={control}
-                rules={{ required: true, min: 1 }}
                 render={({ field: { onChange, onBlur } }) => {
                   return (
                     <TextInputThemed
@@ -504,7 +555,7 @@ function WorkoutSetDetailScreenContent({
                           numericValue != null ? String(numericValue) : "",
                         );
                         onBlur();
-                        submitCurrentValues();
+                        void submitCurrentValues();
                       }}
                       value={weightInput || undefined}
                       placeholder="0"
@@ -538,7 +589,7 @@ function WorkoutSetDetailScreenContent({
                       }}
                       onBlur={() => {
                         onBlur();
-                        submitCurrentValues();
+                        void submitCurrentValues();
                       }}
                       value={
                         shouldShowPlaceholder
@@ -603,7 +654,7 @@ function WorkoutSetDetailScreenContent({
                     ]}
                     onChange={(feedback) => {
                       setValue("feedback", feedback);
-                      submitCurrentValues();
+                      void submitCurrentValues();
                     }}
                   />
                 )}
@@ -628,28 +679,15 @@ function WorkoutSetDetailScreenContent({
               }}
             />
           </Animated.View>
-          {weightWatcher?.value ? (
-            exercise.loadKind === "BARBELL" && selectedBarbell ? (
-              <PlateChart
-                className="mx-5"
-                totalWeight={weightWatcher.value}
-                equipment={equipment}
-                barbell={selectedBarbell}
-              />
-            ) : exercise.loadKind === "WEIGHT_PAIR" ? (
-              <DumbbellChart
-                className="mx-5"
-                weight={weightWatcher.value}
-                unit={weightWatcher.unit}
-              />
-            ) : exercise.loadKind === "SINGLE_WEIGHT" ? (
-              <SingleWeightChart
-                className="mx-5"
-                weight={weightWatcher.value}
-                unit={weightWatcher.unit}
-              />
-            ) : null
-          ) : null}
+          <Animated.View
+            layout={LinearTransition.duration(250)
+              .springify()
+              .stiffness(50)
+              .damping(6)
+              .mass(0.3)}
+          >
+            {renderWeightChart()}
+          </Animated.View>
         </AnimatedViewStyled>
       </KeyboardAwareScrollView>
       {shouldRenderAction && !isKeyboardOverlayVisible ? (

@@ -102,6 +102,25 @@ const numberToWorkoutSetArray = <
   return newArray;
 };
 
+const plannedRepsFromTemplateActivity = (activity: Activity) => {
+  const repCounts = activity.mainSets.reduce<Record<number, number>>(
+    (counts, mainSet) => {
+      const reps = mainSet.actualReps;
+      if (mainSet.status === "Done" && reps && reps > 0) {
+        counts[reps] = (counts[reps] ?? 0) + 1;
+      }
+      return counts;
+    },
+    {},
+  );
+  const [plannedReps] = Object.entries(repCounts).sort(
+    ([aReps, aCount], [bReps, bCount]) =>
+      bCount - aCount || Number(bReps) - Number(aReps),
+  )[0] ?? [activity.reps];
+
+  return Number(plannedReps);
+};
+
 export default function SessionFormScreen() {
   const { programId, sessionId } = useLocalSearchParams<{
     programId: string;
@@ -198,6 +217,7 @@ function SessionFormScreenContent({
     activities: template.activities.map((activity) => ({
       ...activity,
       activityId: uuidv4(),
+      reps: plannedRepsFromTemplateActivity(activity),
       warmupSets: activity.warmupSets.map((warmupSet) => ({
         workoutSetId: uuidv4(),
         type: "Warmup" as const,

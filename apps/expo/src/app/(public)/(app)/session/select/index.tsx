@@ -12,10 +12,6 @@ import { HelperText } from "~/components/Typography";
 import usePendingSelection from "~/hooks/use-pending-selection";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
-import "react-native-get-random-values";
-
-import { v4 as uuidv4 } from "uuid";
-
 export default function SessionSelectScreen() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
   const router = useRouter();
@@ -90,35 +86,7 @@ export default function SessionSelectScreen() {
               item.start ?? new Date(),
             )}
             onPress={() => {
-              // Strip timing data so it can be used as a fresh template.
-              // Set weights are retained so RPE templates can prefill them.
-              setSelected({
-                ...item,
-                sessionId: item.sessionId,
-                start: undefined,
-                end: undefined,
-                status: "Planned",
-                activities: item.activities.map((actvy) => ({
-                  ...actvy,
-                  activityId: uuidv4(),
-                  warmupSets: actvy.warmupSets.map((ws) => ({
-                    ...ws,
-                    workoutSetId: uuidv4(),
-                    start: undefined,
-                    end: undefined,
-                    actualReps: 0,
-                    status: "Planned" as const,
-                  })),
-                  mainSets: actvy.mainSets.map((ms) => ({
-                    ...ms,
-                    workoutSetId: uuidv4(),
-                    start: undefined,
-                    end: undefined,
-                    actualReps: 0,
-                    status: "Planned" as const,
-                  })),
-                })),
-              });
+              setSelected(item);
             }}
           />
         )}
