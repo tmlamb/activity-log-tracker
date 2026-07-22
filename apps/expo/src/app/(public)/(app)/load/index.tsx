@@ -82,21 +82,13 @@ export default function LoadScreen() {
   };
 
   const percentNumToString = (value?: number) => {
-    const decimalString = String(value);
-    const decimalDigits = Number(decimalString.split(".")[1]);
-    const normalizedValue =
-      decimalDigits > 9
-        ? `${decimalString.slice(2, 4)}.${decimalString.slice(4)}`
-        : decimalString.slice(2);
-    return normalizedValue.replace(/^0+/, "");
+    if (value == null) return "";
+    return String(Number((value * 100).toFixed(2)));
   };
 
-  const percentStringToNum = (value: string, oldValue: string) => {
-    const decimalValue = `0.${value.length === 1 ? "0" : ""}${value.replace(".", "")}`;
-    if (decimalValue === oldValue && oldValue.length < 5) {
-      return decimalValue.slice(0, -1);
-    }
-    return decimalValue;
+  const percentStringToNum = (value: string) => {
+    const percentValue = decimalTextToNumber(value);
+    return percentValue == null ? undefined : percentValue / 100;
   };
 
   return (
@@ -289,16 +281,17 @@ export default function LoadScreen() {
                   <TextInputThemed
                     label="% of One Rep Max"
                     onChangeText={(newValue) => {
-                      onChange(percentStringToNum(newValue, String(value)));
+                      onChange(percentStringToNum(newValue));
                     }}
                     onBlur={onBlur}
                     innerRef={ref}
                     value={value ? percentNumToString(value) : undefined}
                     placeholder="00.00"
                     maxLength={5}
-                    keyboardType="number-pad"
+                    keyboardType="decimal-pad"
                     selectTextOnFocus
                     numeric
+                    decimalPlaces={2}
                     error={error ? "Required" : undefined}
                     cardVariants={["square"]}
                   />

@@ -66,7 +66,7 @@ export default function SessionSelectScreen() {
         className="flex-1"
         contentContainerClassName="pt-26 px-5 pb-18"
         data={sessionsSorted}
-        keyExtractor={(item, index) => `${item.name}.${index}`}
+        keyExtractor={(item) => item.sessionId}
         ListHeaderComponent={
           sessionsSorted.length > 0 ? (
             <HelperText placement="listHeader">

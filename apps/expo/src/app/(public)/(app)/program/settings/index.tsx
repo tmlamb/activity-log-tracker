@@ -25,6 +25,7 @@ export default function ProgramSettingsScreen() {
       <FlatList
         contentContainerClassName="px-5 pt-36"
         data={programs}
+        keyExtractor={(item) => item.programId}
         renderItem={({ index, item }) => (
           <Link
             href={`/(public)/(app)/program/form?programId=${item.programId}`}

@@ -39,10 +39,18 @@ const inferLoadKindFromName = (
   return undefined;
 };
 
+const isLoadKind = (value?: string): value is Exercise["loadKind"] =>
+  value === "BARBELL" || value === "WEIGHT_PAIR" || value === "SINGLE_WEIGHT";
+
 export default function ExerciseFormScreen() {
-  const { exerciseId, name: presetName } = useLocalSearchParams<{
+  const {
+    exerciseId,
+    name: presetName,
+    loadKind: presetLoadKind,
+  } = useLocalSearchParams<{
     exerciseId?: string;
     name?: string;
+    loadKind?: string;
   }>();
   const router = useRouter();
   const {
@@ -57,7 +65,10 @@ export default function ExerciseFormScreen() {
   const exercise = exercises.find((e) => e.exerciseId === exerciseId);
   const heaviestBarbell = _.maxBy(equipment.barbells, "value");
   const defaultLoadKind =
-    exercise?.loadKind ?? inferLoadKindFromName(presetName ?? "") ?? "BARBELL";
+    exercise?.loadKind ??
+    (isLoadKind(presetLoadKind) ? presetLoadKind : undefined) ??
+    inferLoadKindFromName(presetName ?? "") ??
+    "BARBELL";
   const [oneRepMaxInput, setOneRepMaxInput] = useState(
     exercise?.oneRepMax?.value && exercise.oneRepMax.value > 0
       ? String(exercise.oneRepMax.value)

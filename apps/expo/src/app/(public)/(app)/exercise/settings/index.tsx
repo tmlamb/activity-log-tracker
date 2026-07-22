@@ -90,7 +90,7 @@ export default function ExerciseSettingsScreen() {
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         data={exerciseList}
-        keyExtractor={(item, index) => `${item.name}.${index}`}
+        keyExtractor={(item) => item.exerciseId ?? item.name ?? ""}
         ListHeaderComponent={
           <>
             <SectionHeading className="leading-snug">
@@ -106,7 +106,7 @@ export default function ExerciseSettingsScreen() {
               href={
                 (item as Exercise).exerciseId
                   ? `/(public)/(app)/exercise/form?exerciseId=${(item as Exercise).exerciseId}`
-                  : `/(public)/(app)/exercise/form?name=${encodeURIComponent(item.name ?? "")}`
+                  : `/(public)/(app)/exercise/form?name=${encodeURIComponent(item.name ?? "")}${item.loadKind ? `&loadKind=${item.loadKind}` : ""}`
               }
               asChild
             >

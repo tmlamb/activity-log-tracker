@@ -584,7 +584,9 @@ function WorkoutSetDetailScreenContent({
                       stack={{ index: 1, size: 3 }}
                       label="Actual Reps"
                       onChangeText={(newValue) => {
-                        onChange(newValue);
+                        onChange(
+                          newValue === "" ? undefined : Number(newValue),
+                        );
                         setLastAction("complete");
                       }}
                       onBlur={() => {

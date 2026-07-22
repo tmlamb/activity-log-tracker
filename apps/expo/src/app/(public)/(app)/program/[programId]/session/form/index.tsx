@@ -781,7 +781,13 @@ function SessionFormScreenContent({
                             <TextInputThemed
                               label="Repetitions"
                               stack={{ index: 2, size: 5 }}
-                              onChangeText={onChange}
+                              onChangeText={(newValue) => {
+                                onChange(
+                                  newValue === ""
+                                    ? undefined
+                                    : Number(newValue),
+                                );
+                              }}
                               onBlur={onBlur}
                               value={value ? String(value) : undefined}
                               innerRef={ref}
@@ -803,7 +809,9 @@ function SessionFormScreenContent({
                             <TextInputThemed
                               label="Rest (minutes)"
                               stack={{ index: 3, size: 5 }}
-                              onChangeText={onChange}
+                              onChangeText={(newValue) => {
+                                onChange(Number(newValue));
+                              }}
                               onBlur={onBlur}
                               value={String(value)}
                               placeholder="0"

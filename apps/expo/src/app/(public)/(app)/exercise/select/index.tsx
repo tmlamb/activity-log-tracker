@@ -142,7 +142,7 @@ export default function ExerciseSelectScreen() {
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         data={exerciseList}
-        keyExtractor={(item, index) => `${item.name}.${index}`}
+        keyExtractor={(item) => item.exerciseId ?? item.name ?? ""}
         ListHeaderComponent={
           <>
             <View className="flex-row items-baseline justify-between px-5 pb-2">
