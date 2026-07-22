@@ -22,10 +22,12 @@ export default function SessionSelectScreen() {
   const program = programs.find((p) => p.programId === programId);
   const sessions = program?.sessions ?? [];
 
-  // Only completed sessions (have an end date) make sense as templates
+  // Only completed sessions make sense as templates. For template lineages,
+  // show only the latest completed session in each lineage.
   const sessionsSorted = _(sessions)
-    .filter("end")
+    .filter((session) => session.status === "Done" && !!session.end)
     .orderBy(["start"], ["desc"])
+    .uniqBy((session) => session.templateId ?? session.sessionId)
     .value();
   const programStart = _.last(sessionsSorted)?.start ?? new Date();
 

@@ -61,6 +61,7 @@ export interface Exercise {
 export interface Session {
   name: string;
   sessionId: string;
+  templateId?: string;
   start?: Date;
   end?: Date;
   status: "Planned" | "Ready" | "Done";

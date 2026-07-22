@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
@@ -57,7 +57,6 @@ const activityEditorInputCardVariants: React.ComponentProps<
 
 export interface SessionFormData {
   name: string;
-  sessionId: string;
   start?: Date;
   end?: Date;
   status: "Planned" | "Ready" | "Done";
@@ -188,6 +187,7 @@ function SessionFormScreenContent({
   const [fromType, setFromType] = useState<
     "Scratch" | "Template" | undefined
   >();
+  const templateSourceSessionRef = useRef<Session | undefined>(undefined);
   const watchActivities = useWatch({ control, name: "activities" });
 
   // Consume pending selection store (populated by exercise/select, load, session/select modals)
@@ -206,11 +206,29 @@ function SessionFormScreenContent({
     } else {
       setValue(`activities.${index}.load`, { type: "RPE", value: 5 });
     }
+
+    setValue(
+      `activities.${index}.warmupSets`,
+      (watchActivities[index]?.warmupSets ?? []).map((warmupSet) => ({
+        ...warmupSet,
+        weight: undefined,
+        feedback: "Neutral" as const,
+      })),
+      { shouldDirty: true },
+    );
+    setValue(
+      `activities.${index}.mainSets`,
+      (watchActivities[index]?.mainSets ?? []).map((mainSet) => ({
+        ...mainSet,
+        weight: undefined,
+        feedback: "Neutral" as const,
+      })),
+      { shouldDirty: true },
+    );
   };
 
   const buildTemplateFormData = (template: Session): SessionFormData => ({
     name: template.name,
-    sessionId: uuidv4(),
     start: undefined,
     end: undefined,
     status: "Planned",
@@ -242,9 +260,9 @@ function SessionFormScreenContent({
   });
 
   const resetToScratch = () => {
+    templateSourceSessionRef.current = undefined;
     reset({
       name: "",
-      sessionId: uuidv4(),
       start: undefined,
       end: undefined,
       status: "Planned",
@@ -339,6 +357,7 @@ function SessionFormScreenContent({
   useEffect(() => {
     if (!pendingSession) return;
     reset(buildTemplateFormData(pendingSession.session));
+    templateSourceSessionRef.current = pendingSession.session;
     queueMicrotask(() => setFromType("Template"));
     clearPendingSession();
   }, [pendingSession]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -348,20 +367,36 @@ function SessionFormScreenContent({
       updateSession(program.programId, {
         name: data.name,
         sessionId: session.sessionId,
+        templateId: session.templateId,
         activities: data.activities,
         start: session.start,
         end: data.end,
         status: session.status,
       });
     } else {
+      const templateSourceSession = templateSourceSessionRef.current;
+      const templateId = templateSourceSession
+        ? (templateSourceSession.templateId ?? uuidv4())
+        : undefined;
+      if (
+        templateSourceSession &&
+        templateSourceSession.templateId !== templateId
+      ) {
+        updateSession(program.programId, {
+          ...templateSourceSession,
+          templateId,
+        });
+      }
       addSession(program.programId, {
         name: data.name,
         sessionId: uuidv4(),
+        templateId,
         activities: data.activities,
         start: undefined,
         end: undefined,
         status: "Planned",
       });
+      templateSourceSessionRef.current = undefined;
     }
     router.back();
   };

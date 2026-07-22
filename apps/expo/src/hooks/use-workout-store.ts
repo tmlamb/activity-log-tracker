@@ -176,6 +176,7 @@ const useWorkoutStore = create<WorkoutStore>()(
             );
             if (!current) throw new Error("Session not found");
             current.name = session.name.trim();
+            current.templateId = session.templateId;
             current.start = session.start;
             current.end = session.end;
             current.activities = session.activities;
