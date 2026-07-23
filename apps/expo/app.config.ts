@@ -16,6 +16,7 @@ const {
 const appVersion = packageJson.version;
 const runtimeVersion = appVersion.split(".").slice(0, 2).join(".");
 const appIdSuffix = APP_ENV !== "production" ? `.${APP_ENV}` : "";
+const appIconBackgroundColor = "#0ea5e9";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
@@ -52,7 +53,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       package: `${ANDROID_PACKAGE_NAME}${appIdSuffix}`,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
-        backgroundColor: "#0ea5e9",
+        backgroundColor: appIconBackgroundColor,
       },
       softwareKeyboardLayoutMode: "pan",
     },
@@ -73,7 +74,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         "expo-splash-screen",
         {
-          backgroundColor: "#0ea5e9",
+          backgroundColor: appIconBackgroundColor,
           image: "./assets/adaptive-icon.png",
           imageWidth: 200,
         },

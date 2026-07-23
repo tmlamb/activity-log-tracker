@@ -119,6 +119,7 @@ export default function PlateChart({
   const accentColor = useNativeVariable("--info") as string;
   const warningColor = useNativeVariable("--warning") as string;
   const destructiveColor = useNativeVariable("--destructive") as string;
+  const barbellColor = useNativeVariable("--muted") as string;
   const plateColors = [
     primaryColor,
     accentColor,
@@ -156,7 +157,7 @@ export default function PlateChart({
             width={18}
             height={marginTop + Math.max(40 - 12 * plates.length, 0)}
           >
-            <Rect height="100%" width="100%" fill="#91a0b6" rx={1.5} />
+            <Rect height="100%" width="100%" fill={barbellColor} rx={1.5} />
           </Svg>
           <View
             className={`items-center justify-start pt-px mt-[${marginTop}px]`}
@@ -179,7 +180,7 @@ export default function PlateChart({
             <Plate
               weight={loadConfig.barbell.value}
               width={35}
-              fill="#91a0b6"
+              fill={barbellColor}
             />
           </View>
         </AnimatedViewStyled>
