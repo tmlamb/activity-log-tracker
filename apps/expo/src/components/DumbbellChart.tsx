@@ -19,13 +19,13 @@ function Dumbbell({ weight }: { weight: number; unit: "lbs" | "kg" }) {
   return (
     <Svg width={130} height={100}>
       <Rect x={0} y={7} width={36} height={66} rx={5} fill={primaryColor} />
-      <Rect x={38} y={30} width={52} height={20} rx={0} fill={handleColor} />
-      <Rect x={92} y={7} width={36} height={66} rx={5} fill={primaryColor} />
+      <Rect x={37} y={30} width={52} height={20} rx={0} fill={handleColor} />
+      <Rect x={90} y={7} width={36} height={66} rx={5} fill={primaryColor} />
       <Text
         fill={foregroundColor}
         fontSize="14"
         fontWeight="bold"
-        x="50%"
+        x="48.5%"
         y="41%"
         alignmentBaseline="middle"
         textAnchor="middle"

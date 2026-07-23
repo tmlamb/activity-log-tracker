@@ -204,7 +204,7 @@ function SessionFormScreenContent({
     if (selectedExercise.oneRepMax && selectedExercise.oneRepMax.value > 0) {
       setValue(`activities.${index}.load`, { type: "PERCENT", value: 0.75 });
     } else {
-      setValue(`activities.${index}.load`, { type: "RPE", value: 5 });
+      setValue(`activities.${index}.load`, { type: "RPE", value: 8 });
     }
 
     setValue(
@@ -804,7 +804,7 @@ function SessionFormScreenContent({
                         <Controller
                           name={`activities.${index}.rest`}
                           control={control}
-                          defaultValue={3}
+                          defaultValue={2}
                           render={({ field: { onChange, onBlur, value } }) => (
                             <TextInputThemed
                               label="Rest (minutes)"
@@ -861,8 +861,8 @@ function SessionFormScreenContent({
                         activityId: uuidv4(),
                         exerciseId: "",
                         reps: 10,
-                        rest: 3,
-                        load: { type: "RPE", value: 5 },
+                        rest: 2,
+                        load: { type: "RPE", value: 8 },
                         warmupSets: Array.from(Array(3)).map(() => ({
                           workoutSetId: uuidv4(),
                           type: "Warmup" as const,

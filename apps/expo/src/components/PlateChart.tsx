@@ -41,7 +41,7 @@ function Plate({
   const foregroundColor = useNativeVariable("--secondary-foreground") as string;
   return (
     <Svg
-      style={{ marginBottom: 0.5 }}
+      style={{ marginBottom: 1 }}
       width={width ?? Math.log(weight) * 50}
       height={20}
     >
@@ -142,7 +142,7 @@ export default function PlateChart({
   );
   const plates = loadConfig?.plates ?? [];
   plates.reverse();
-  const marginTop = plates.length > 0 ? Math.max(60 / plates.length, 36) : 36;
+  const marginTop = 36;
 
   return (
     <View className={`items-center ${className ?? ""}`}>
@@ -152,10 +152,15 @@ export default function PlateChart({
           entering={FadeIn.duration(500)}
           exiting={FadeOut.duration(500)}
         >
-          <Svg width={18} height={marginTop - 4}>
+          <Svg
+            width={18}
+            height={marginTop + Math.max(40 - 12 * plates.length, 0)}
+          >
             <Rect height="100%" width="100%" fill="#91a0b6" rx={1.5} />
           </Svg>
-          <View className={`items-center justify-start mt-[${marginTop}px]`}>
+          <View
+            className={`items-center justify-start pt-px mt-[${marginTop}px]`}
+          >
             {plates.map((plate, index) => (
               <Plate
                 key={plate.platePairId}

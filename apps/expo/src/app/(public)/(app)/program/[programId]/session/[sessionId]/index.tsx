@@ -50,6 +50,13 @@ const areAllActivitySetsDone = (activity: Activity) => {
   );
 };
 
+const getCompletedActivityIds = (activities: Activity[]) =>
+  new Set(
+    activities
+      .filter(areAllActivitySetsDone)
+      .map((activity) => activity.activityId),
+  );
+
 interface WorkoutSetCardProps {
   workoutSet: WarmupSet | MainSet;
   activity: Activity;
@@ -91,7 +98,7 @@ function WorkoutSetCard({
         }}
         cardClassName={
           index === activity.mainSets.length + activity.warmupSets.length - 1
-            ? "mb-6"
+            ? "mb-3"
             : undefined
         }
         trailingText={
@@ -135,7 +142,7 @@ function ExerciseSectionHeader({
     >
       <SectionHeading
         placement="inline"
-        className="text-foreground flex-1 pr-3"
+        className={`${allSetsDone ? "text-muted" : "text-foreground"} flex-1 pr-3`}
       >
         {title}
       </SectionHeading>
@@ -244,9 +251,11 @@ function SessionDetailScreenContent({
   updateSession: WorkoutStore["updateSession"];
 }) {
   const [collapsedActivityIds, setCollapsedActivityIds] = useState<Set<string>>(
-    () => new Set(),
+    () => getCompletedActivityIds(session.activities),
   );
-  const autoCollapsedActivityIdsRef = useRef<Set<string>>(new Set());
+  const autoCollapsedActivityIdsRef = useRef<Set<string>>(
+    getCompletedActivityIds(session.activities),
+  );
 
   const toggleActivityCollapsed = (activityId: string) => {
     setCollapsedActivityIds((current) => {
@@ -261,11 +270,7 @@ function SessionDetailScreenContent({
   };
 
   useEffect(() => {
-    const completedActivityIds = new Set(
-      session.activities
-        .filter(areAllActivitySetsDone)
-        .map((activity) => activity.activityId),
-    );
+    const completedActivityIds = getCompletedActivityIds(session.activities);
     const autoCollapsedActivityIds = autoCollapsedActivityIdsRef.current;
     const newlyCompletedActivityIds = [...completedActivityIds].filter(
       (activityId) => !autoCollapsedActivityIds.has(activityId),

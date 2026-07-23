@@ -37,7 +37,7 @@ Leg Extension,SINGLE_WEIGHT
 Cable Pull-over,SINGLE_WEIGHT
 Dumbbell Lateral Raise,WEIGHT_PAIR
 EZ Bar Skull Crusher,BARBELL
-Overhead Press,BARBELL
+Overhead Press,WEIGHT_PAIR
 Egyptian Lateral Raise,SINGLE_WEIGHT
 Cable Seated Row,SINGLE_WEIGHT
 Seated Hip Abduction,SINGLE_WEIGHT
@@ -62,7 +62,7 @@ Dumbbell Lunge,WEIGHT_PAIR
 Cable Upright Row,SINGLE_WEIGHT
 Sissy Squat,SINGLE_WEIGHT
 Reverse Dumbbell Fly,WEIGHT_PAIR
-Skull Crusher,BARBELL
+Skull Crusher,WEIGHT_PAIR
 Lateral Band Walk,SINGLE_WEIGHT`;
 
 function createDefaultExercises() {
