@@ -47,7 +47,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
-      icon: "./assets/icon.png",
+      icon: "./assets/activity-log.icon",
     },
     android: {
       package: `${ANDROID_PACKAGE_NAME}${appIdSuffix}`,
