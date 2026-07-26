@@ -16,7 +16,7 @@ const {
 const appVersion = packageJson.version;
 const runtimeVersion = appVersion.split(".").slice(0, 2).join(".");
 const appIdSuffix = APP_ENV !== "production" ? `.${APP_ENV}` : "";
-const appIconBackgroundColor = "#0ea5e9";
+const appIconBackgroundColor = "#e7e8e9";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
