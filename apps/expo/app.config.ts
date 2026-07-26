@@ -17,6 +17,7 @@ const appVersion = packageJson.version;
 const runtimeVersion = appVersion.split(".").slice(0, 2).join(".");
 const appIdSuffix = APP_ENV !== "production" ? `.${APP_ENV}` : "";
 const appIconBackgroundColor = "#e7e8e9";
+const appDarkBackgroundColor = "#1a1b1c";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
@@ -75,6 +76,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "expo-splash-screen",
         {
           backgroundColor: appIconBackgroundColor,
+          dark: {
+            backgroundColor: appDarkBackgroundColor,
+          },
           image: "./assets/adaptive-icon.png",
           imageWidth: 200,
         },
