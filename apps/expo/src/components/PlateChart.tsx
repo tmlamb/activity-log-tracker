@@ -38,7 +38,9 @@ function Plate({
   width?: number;
   fill?: string;
 }) {
-  const foregroundColor = useNativeVariable("--secondary-foreground") as string;
+  const foregroundColor = useNativeVariable(
+    "--plate-chart-foreground",
+  ) as string;
   return (
     <Svg
       style={{ marginBottom: 1 }}
@@ -115,17 +117,14 @@ export default function PlateChart({
   equipment,
   barbell,
 }: Props) {
-  const primaryColor = useNativeVariable("--primary") as string;
-  const accentColor = useNativeVariable("--info") as string;
-  const warningColor = useNativeVariable("--warning") as string;
-  const destructiveColor = useNativeVariable("--destructive") as string;
+  const primaryColor = useNativeVariable("--plate-chart-primary") as string;
+  const infoColor = useNativeVariable("--plate-chart-info") as string;
+  const warningColor = useNativeVariable("--plate-chart-warning") as string;
+  const destructiveColor = useNativeVariable(
+    "--plate-chart-destructive",
+  ) as string;
   const barbellColor = useNativeVariable("--muted") as string;
-  const plateColors = [
-    primaryColor,
-    accentColor,
-    warningColor,
-    destructiveColor,
-  ];
+  const plateColors = [primaryColor, infoColor, warningColor, destructiveColor];
 
   const availablePlatePairs = [...equipment.plates]
     .sort((a, b) => a.value - b.value)
@@ -162,19 +161,19 @@ export default function PlateChart({
           <View
             className={`items-center justify-start pt-px mt-[${marginTop}px]`}
           >
-            {plates.map((plate, index) => (
-              <Plate
-                key={plate.platePairId}
-                weight={plate.value}
-                fill={
-                  plateColors[
-                    (index > 0 && plates[index - 1]?.value === plate.value
-                      ? plates.findIndex((p) => p.value === plate.value)
-                      : index) % 4
-                  ]
-                }
-              />
-            ))}
+            {plates.map((plate, index) => {
+              const colorIndex =
+                (index > 0 && plates[index - 1]?.value === plate.value
+                  ? plates.findIndex((p) => p.value === plate.value)
+                  : index) % 4;
+              return (
+                <Plate
+                  key={plate.platePairId}
+                  weight={plate.value}
+                  fill={plateColors[colorIndex]}
+                />
+              );
+            })}
           </View>
           <View className="items-center">
             <Plate
