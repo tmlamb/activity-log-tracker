@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { FlatList, Text, View } from "react-native";
+import { useNativeVariable } from "react-native-css";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { AntDesign } from "@expo/vector-icons";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Host } from "@expo/ui";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import type { Exercise } from "@activity-log/ui/utils";
 
@@ -40,6 +42,7 @@ export default function ExerciseSelectScreen() {
     addExercise,
   } = useWorkoutStore((state) => state);
   const { setPendingExercise } = usePendingSelection();
+  const primaryColor = useNativeVariable("--primary") as string;
 
   const initialExercise = usedExercises.find(
     (e) => e.exerciseId === currentExerciseId,
@@ -64,16 +67,13 @@ export default function ExerciseSelectScreen() {
       : true,
   );
 
-  const exerciseList = sortRecordsByName([...filteredUsedExercises]).concat(
-    filteredAvailableExercises.filter(
-      (ae) =>
-        !filteredUsedExercises.find((e) => exerciseNamesMatch(e.name, ae.name)),
-    ),
+  const sortedFilteredUsedExercises = sortRecordsByName([
+    ...filteredUsedExercises,
+  ]) as Exercise[];
+  const filteredUnusedExercises = filteredAvailableExercises.filter(
+    (ae) =>
+      !filteredUsedExercises.find((e) => exerciseNamesMatch(e.name, ae.name)),
   ) as Partial<Exercise>[];
-
-  const filteredUnusedExercises = exerciseList.slice(
-    filteredUsedExercises.length,
-  );
 
   const handleDone = () => {
     if (!selected) return;
@@ -128,91 +128,106 @@ export default function ExerciseSelectScreen() {
               color="foreground"
             />
           ),
-          headerSearchBarOptions: {
-            placeholder: "Search Exercises",
-            onChangeText: (event) => setSearchFilter(event.nativeEvent.text),
-            onSearchButtonPress: () => setSearchFilter(""),
-            hideNavigationBar: false,
-          },
         }}
       />
+      <Stack.SearchBar
+        placeholder="Search Exercises"
+        onChangeText={(event) => setSearchFilter(event.nativeEvent.text)}
+        onSearchButtonPress={() => setSearchFilter("")}
+        hideNavigationBar={false}
+      />
+      <Host ignoreSafeArea="all">
+        <Stack.Toolbar placement="bottom">
+          <Stack.Toolbar.SearchBarSlot />
+          <Stack.Toolbar.Spacer />
+          <Stack.Toolbar.Button
+            icon="plus"
+            accessibilityLabel="Add exercise"
+            onPress={() => router.push("/(public)/(app)/exercise/form")}
+            tintColor={primaryColor}
+            separateBackground
+          />
+        </Stack.Toolbar>
+      </Host>
       <FlatList
         className="flex-1"
-        contentContainerClassName={twMerge("px-5")}
+        contentContainerClassName={twMerge("px-5 py-5")}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
-        data={exerciseList}
-        keyExtractor={(item) => item.exerciseId ?? item.name ?? ""}
-        ListHeaderComponent={
-          <>
-            <View className="flex-row items-baseline justify-between px-5 pb-2">
-              <SectionHeading placement="inline">
-                {filteredUsedExercises.length > 0
-                  ? "Your Exercises"
-                  : "Available Exercises"}
-              </SectionHeading>
-              <Link
-                href="/(public)/(app)/exercise/settings?parentRoute=select"
-                asChild
-              >
-                <PressableThemed
-                  className="flex-row items-center"
-                  accessibilityLabel="Navigate to Exercise Settings to add, remove, or edit exercises"
-                >
-                  <Text
-                    maxFontSizeMultiplier={2.5}
-                    className="text-primary text-xl font-semibold"
-                  >
-                    Manage
-                  </Text>
-                  <Text
-                    maxFontSizeMultiplier={2.5}
-                    className="text-primary pt-0.5 pl-0.5 text-xl"
-                  >
-                    <AntDesign name="plus" size={14} />
-                  </Text>
-                </PressableThemed>
-              </Link>
-            </View>
-          </>
-        }
+        data={sortedFilteredUsedExercises}
+        keyExtractor={(item) => item.exerciseId}
         renderItem={({ item, index }) => (
           <Animated.View entering={FadeIn} exiting={FadeOut}>
             <SelectableCardRow
               title={item.name}
               selected={item.name === selected?.name}
-              onPress={() => setSelected(item as Exercise)}
+              onPress={() => setSelected(item)}
+              trailingAccessory={
+                <PressableThemed
+                  className="-mr-3 h-11 w-11 items-center justify-center"
+                  accessibilityLabel={`Edit exercise ${item.name}`}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    router.push(
+                      `/(public)/(app)/exercise/form?exerciseId=${item.exerciseId}`,
+                    );
+                  }}
+                >
+                  <Text maxFontSizeMultiplier={2.5} className="text-primary">
+                    <MaterialCommunityIcons
+                      name="information-variant-circle-outline"
+                      size={22}
+                    />
+                  </Text>
+                </PressableThemed>
+              }
               stack={{
-                index:
-                  filteredUsedExercises.length > 0 &&
-                  index >= filteredUsedExercises.length
-                    ? index - filteredUsedExercises.length
-                    : index,
-                size:
-                  filteredUsedExercises.length > 0 &&
-                  index >= filteredUsedExercises.length
-                    ? filteredUnusedExercises.length
-                    : filteredUsedExercises.length || exerciseList.length,
+                index,
+                size: sortedFilteredUsedExercises.length,
               }}
               cardClassName={
-                (filteredUsedExercises.length > 0 &&
-                  index === filteredUsedExercises.length - 1) ||
-                index === exerciseList.length - 1
+                index === sortedFilteredUsedExercises.length - 1
                   ? "mb-6"
                   : undefined
               }
             />
-            {filteredUsedExercises.length > 0 &&
-              index === filteredUsedExercises.length - 1 &&
-              filteredAvailableExercises.length > 0 && (
-                <View pointerEvents="none">
-                  <SectionHeading placement="inlineInset">
-                    Available Exercises
-                  </SectionHeading>
-                </View>
-              )}
           </Animated.View>
         )}
+        ListFooterComponent={
+          <View>
+            {filteredUnusedExercises.length > 0 && (
+              <>
+                <View pointerEvents="none">
+                  <SectionHeading placement="inlineInset">
+                    More Exercises
+                  </SectionHeading>
+                </View>
+                {filteredUnusedExercises.map((item, index) => (
+                  <Animated.View
+                    key={item.exerciseId ?? item.name ?? ""}
+                    entering={FadeIn}
+                    exiting={FadeOut}
+                  >
+                    <SelectableCardRow
+                      title={item.name}
+                      selected={item.name === selected?.name}
+                      onPress={() => setSelected(item as Exercise)}
+                      stack={{
+                        index,
+                        size: filteredUnusedExercises.length,
+                      }}
+                      cardClassName={
+                        index === filteredUnusedExercises.length - 1
+                          ? "mb-6"
+                          : undefined
+                      }
+                    />
+                  </Animated.View>
+                ))}
+              </>
+            )}
+          </View>
+        }
       />
     </>
   );

@@ -1,15 +1,7 @@
-import type { LayoutChangeEvent } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { SectionList, View } from "react-native";
-import Animated, {
-  Easing,
-  LinearTransition,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { LinearTransition } from "react-native-reanimated";
 import { Link, Redirect, Stack, useLocalSearchParams } from "expo-router";
-import { AntDesign } from "@expo/vector-icons";
 import { format } from "date-fns";
 import _ from "lodash";
 
@@ -25,18 +17,14 @@ import type {
 import type { WorkoutStore } from "~/hooks/use-workout-store";
 import BottomActionBar from "~/components/BottomActionBar";
 import { DetailCardRow, NavigationCardRow } from "~/components/CardRow";
+import {
+  CollapsibleSectionBody,
+  CollapsibleSectionHeader,
+} from "~/components/CollapsibleSection";
 import ElapsedTime from "~/components/ElapsedTime";
 import { HeaderTextAction } from "~/components/HeaderAction";
-import PressableThemed from "~/components/PressableThemed";
-import {
-  HelperText,
-  ScreenHeading,
-  SectionHeading,
-} from "~/components/Typography";
+import { HelperText, ScreenHeading } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
-
-const collapseAnimationDuration = 320;
-const collapseAnimationEasing = Easing.bezier(0.22, 0, 0, 1);
 
 const getActivityWorkoutSets = (activity: Activity): WorkoutSet[] => [
   ...activity.warmupSets,
@@ -113,50 +101,6 @@ function WorkoutSetCard({
   );
 }
 
-function ExerciseSectionHeader({
-  title,
-  collapsed,
-  allSetsDone,
-  onPress,
-}: {
-  title: string;
-  collapsed: boolean;
-  allSetsDone: boolean;
-  onPress: () => void;
-}) {
-  const chevronRotation = useSharedValue(collapsed ? 0 : 90);
-  const chevronStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${chevronRotation.value}deg` }],
-  }));
-
-  useEffect(() => {
-    chevronRotation.value = withTiming(collapsed ? 0 : 90, { duration: 180 });
-  }, [chevronRotation, collapsed]);
-
-  return (
-    <PressableThemed
-      className="mx-5 flex-row items-center justify-between pt-3 pb-2"
-      onPress={onPress}
-      accessibilityLabel={`${collapsed ? "Expand" : "Collapse"} ${title}`}
-      accessibilityState={{ expanded: !collapsed }}
-    >
-      <SectionHeading
-        placement="inline"
-        className={`${allSetsDone ? "text-muted" : "text-foreground"} flex-1 pr-3`}
-      >
-        {title}
-      </SectionHeading>
-      <Animated.Text
-        maxFontSizeMultiplier={2.5}
-        className={collapsed && !allSetsDone ? "text-primary" : "text-muted"}
-        style={chevronStyle}
-      >
-        <AntDesign name="right" size={15} />
-      </Animated.Text>
-    </PressableThemed>
-  );
-}
-
 function ExerciseSectionBody({
   collapsed,
   workoutSets,
@@ -164,53 +108,20 @@ function ExerciseSectionBody({
   collapsed: boolean;
   workoutSets: WorkoutSetCardProps[];
 }) {
-  const [contentHeight, setContentHeight] = useState(0);
-  const expansionProgress = useSharedValue(collapsed ? 0 : 1);
-  const bodyStyle = useAnimatedStyle(() =>
-    contentHeight > 0
-      ? { height: contentHeight * expansionProgress.value }
-      : {},
-  );
-  const contentStyle = useAnimatedStyle(() =>
-    contentHeight > 0
-      ? {
-          transform: [
-            { translateY: -contentHeight * (1 - expansionProgress.value) },
-          ],
-        }
-      : {},
-  );
-
-  useEffect(() => {
-    expansionProgress.value = withTiming(collapsed ? 0 : 1, {
-      duration: collapseAnimationDuration,
-      easing: collapseAnimationEasing,
-    });
-  }, [collapsed, expansionProgress]);
-
-  const handleContentLayout = (event: LayoutChangeEvent) => {
-    const nextHeight = event.nativeEvent.layout.height;
-    if (nextHeight > 0 && nextHeight !== contentHeight) {
-      setContentHeight(nextHeight);
-    }
-  };
-
   return (
-    <Animated.View className="overflow-hidden" style={bodyStyle}>
-      <Animated.View onLayout={handleContentLayout} style={contentStyle}>
-        {workoutSets.map((item) => (
-          <WorkoutSetCard
-            key={item.workoutSet.workoutSetId}
-            workoutSet={item.workoutSet}
-            activity={item.activity}
-            session={item.session}
-            program={item.program}
-            title={item.title}
-            index={item.index}
-          />
-        ))}
-      </Animated.View>
-    </Animated.View>
+    <CollapsibleSectionBody collapsed={collapsed}>
+      {workoutSets.map((item) => (
+        <WorkoutSetCard
+          key={item.workoutSet.workoutSetId}
+          workoutSet={item.workoutSet}
+          activity={item.activity}
+          session={item.session}
+          program={item.program}
+          title={item.title}
+          index={item.index}
+        />
+      ))}
+    </CollapsibleSectionBody>
   );
 }
 
@@ -412,10 +323,13 @@ function SessionDetailScreenContent({
           renderSectionHeader={({
             section: { activityId, allSetsDone, collapsed, title },
           }) => (
-            <ExerciseSectionHeader
+            <CollapsibleSectionHeader
               title={title}
               collapsed={collapsed}
-              allSetsDone={allSetsDone}
+              titleClassName={allSetsDone ? "text-muted" : "text-foreground"}
+              chevronClassName={
+                collapsed && !allSetsDone ? "text-primary" : "text-muted"
+              }
               onPress={() => toggleActivityCollapsed(activityId)}
             />
           )}

@@ -127,6 +127,7 @@ interface SelectableCardRowProps extends PressableProps {
   titleNumberOfLines?: number;
   trailingText?: React.ReactNode;
   trailingTextClassName?: string;
+  trailingAccessory?: React.ReactNode;
 }
 
 interface PrimaryCardActionProps extends PressableProps {
@@ -192,6 +193,7 @@ export function SelectableCardRow({
   titleNumberOfLines = 1,
   trailingText,
   trailingTextClassName,
+  trailingAccessory,
   ...pressableProps
 }: SelectableCardRowProps) {
   return (
@@ -199,30 +201,33 @@ export function SelectableCardRow({
       <Card stack={stack} variants={cardVariants} className={cardClassName}>
         <Text
           maxFontSizeMultiplier={2.5}
+          className="text-primary w-6 text-left text-xl"
+        >
+          {selected ? <AntDesign name="check" size={20} /> : null}
+        </Text>
+        <Text
+          maxFontSizeMultiplier={2.5}
           className={twMerge(
-            "text-foreground flex-1 pr-6 text-xl",
+            "text-foreground flex-1 pr-2.5 text-xl",
             titleClassName,
           )}
           numberOfLines={titleNumberOfLines}
         >
           {title}
         </Text>
-        <View className="flex-row items-center justify-end gap-3">
-          {trailingText != null ? (
-            <Text
-              maxFontSizeMultiplier={2.5}
-              className={twMerge("text-muted text-xl", trailingTextClassName)}
-            >
-              {trailingText}
-            </Text>
-          ) : null}
-          <Text
-            maxFontSizeMultiplier={2.5}
-            className="text-primary w-6 text-right text-xl"
-          >
-            {selected ? <AntDesign name="check" size={22} /> : null}
-          </Text>
-        </View>
+        {(trailingText != null || trailingAccessory != null) && (
+          <View className="flex-row items-center justify-end gap-3">
+            {trailingText != null ? (
+              <Text
+                maxFontSizeMultiplier={2.5}
+                className={twMerge("text-muted text-xl", trailingTextClassName)}
+              >
+                {trailingText}
+              </Text>
+            ) : null}
+            {trailingAccessory}
+          </View>
+        )}
       </Card>
     </PressableThemed>
   );

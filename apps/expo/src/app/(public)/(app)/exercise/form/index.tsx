@@ -21,7 +21,7 @@ import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import TextInputThemed, {
   TextInputThemedGroup,
 } from "~/components/TextInputThemed";
-import { HelperText } from "~/components/Typography";
+import { HelperText, SectionHeading } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
 const decimalTextToNumber = (text: string) => {
@@ -299,6 +299,7 @@ export default function ExerciseFormScreen() {
                   rules={{ required: "Required" }}
                   render={({ field: { onChange, value } }) => (
                     <>
+                      <SectionHeading>Barbell Weight</SectionHeading>
                       {equipment.barbells.map((barbell, index) => (
                         <SelectableCardRow
                           key={barbell.barbellId}
