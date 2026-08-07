@@ -180,11 +180,15 @@ function WorkoutSetDetailScreenContent({
       ? String(defaultWeight.value)
       : "",
   );
+  const defaultActualReps = workoutSet.actualReps ?? 0;
+  const [actualRepsInput, setActualRepsInput] = useState(
+    defaultActualReps > 0 ? String(defaultActualReps) : "",
+  );
 
   const { control, handleSubmit, setValue } = useForm<WorkoutSet>({
     defaultValues: {
       weight: defaultWeight,
-      actualReps: workoutSet.actualReps ?? 0,
+      actualReps: defaultActualReps,
       start: workoutSet.start,
       end: workoutSet.end,
       status: workoutSet.status,
@@ -572,34 +576,28 @@ function WorkoutSetDetailScreenContent({
               <Controller
                 control={control}
                 rules={{ required: true, min: 1, max: 9999 }}
-                render={({
-                  field: { onChange, onBlur, value },
-                  fieldState,
-                }) => {
-                  const shouldShowPlaceholder =
-                    !fieldState.isDirty && value === 0;
-
+                render={({ field: { onChange, onBlur } }) => {
                   return (
                     <TextInputThemed
                       stack={{ index: 1, size: 3 }}
                       label="Actual Reps"
                       onChangeText={(newValue) => {
+                        setActualRepsInput(newValue);
                         onChange(
                           newValue === "" ? undefined : Number(newValue),
                         );
                         setLastAction("complete");
                       }}
                       onBlur={() => {
+                        const numericValue =
+                          decimalTextToNumber(actualRepsInput);
+                        setActualRepsInput(
+                          numericValue != null ? String(numericValue) : "",
+                        );
                         onBlur();
                         void submitCurrentValues();
                       }}
-                      value={
-                        shouldShowPlaceholder
-                          ? undefined
-                          : value != null
-                            ? String(value)
-                            : undefined
-                      }
+                      value={actualRepsInput || undefined}
                       placeholder="0"
                       maxLength={4}
                       keyboardType="number-pad"
