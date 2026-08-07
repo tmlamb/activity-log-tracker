@@ -21,6 +21,7 @@ interface DetailCardRowProps {
   labelClassName?: string;
   valueClassName?: string;
   valueNumberOfLines?: number;
+  trailingAccessory?: React.ReactNode;
 }
 
 export function DetailCardRow({
@@ -32,6 +33,7 @@ export function DetailCardRow({
   labelClassName,
   valueClassName,
   valueNumberOfLines,
+  trailingAccessory,
 }: DetailCardRowProps) {
   return (
     <Card stack={stack} variants={cardVariants} className={className}>
@@ -51,6 +53,7 @@ export function DetailCardRow({
       >
         {value}
       </Text>
+      {trailingAccessory}
     </Card>
   );
 }

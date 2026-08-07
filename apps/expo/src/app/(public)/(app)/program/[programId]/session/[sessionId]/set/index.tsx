@@ -11,6 +11,7 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { add, subMinutes } from "date-fns";
 import _ from "lodash";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -481,6 +482,24 @@ function WorkoutSetDetailScreenContent({
               label="Exercise"
               value={exercise.name}
               valueNumberOfLines={3}
+              trailingAccessory={
+                <PressableThemed
+                  className="-mr-3 h-11 w-11 items-center justify-center"
+                  accessibilityLabel={`Edit exercise ${exercise.name}`}
+                  onPress={() =>
+                    router.push(
+                      `/(public)/(app)/exercise/form?exerciseId=${exercise.exerciseId}`,
+                    )
+                  }
+                >
+                  <Text maxFontSizeMultiplier={2.5} className="text-primary">
+                    <MaterialCommunityIcons
+                      name="information-variant-circle-outline"
+                      size={22}
+                    />
+                  </Text>
+                </PressableThemed>
+              }
               stack={
                 workoutSet.type === "Main"
                   ? { index: 0, size: 4 }
@@ -575,7 +594,7 @@ function WorkoutSetDetailScreenContent({
               />
               <Controller
                 control={control}
-                rules={{ required: true, min: 1, max: 9999 }}
+                rules={{ max: 9999 }}
                 render={({ field: { onChange, onBlur } }) => {
                   return (
                     <TextInputThemed

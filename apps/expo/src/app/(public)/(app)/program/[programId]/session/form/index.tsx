@@ -102,22 +102,24 @@ const numberToWorkoutSetArray = <
 };
 
 const plannedRepsFromTemplateActivity = (activity: Activity) => {
-  const repCounts = activity.mainSets.reduce<Record<number, number>>(
-    (counts, mainSet) => {
-      const reps = mainSet.actualReps;
-      if (mainSet.status === "Done" && reps && reps > 0) {
-        counts[reps] = (counts[reps] ?? 0) + 1;
+  const actualReps = activity.mainSets.reduce(
+    (result, mainSet) => {
+      if (
+        mainSet.status === "Done" &&
+        mainSet.actualReps != null &&
+        mainSet.actualReps > 0
+      ) {
+        result.total += mainSet.actualReps;
+        result.count += 1;
       }
-      return counts;
+      return result;
     },
-    {},
+    { total: 0, count: 0 },
   );
-  const [plannedReps] = Object.entries(repCounts).sort(
-    ([aReps, aCount], [bReps, bCount]) =>
-      bCount - aCount || Number(bReps) - Number(aReps),
-  )[0] ?? [activity.reps];
 
-  return Number(plannedReps);
+  if (!actualReps.count) return activity.reps;
+
+  return Math.ceil(actualReps.total / actualReps.count);
 };
 
 export default function SessionFormScreen() {
