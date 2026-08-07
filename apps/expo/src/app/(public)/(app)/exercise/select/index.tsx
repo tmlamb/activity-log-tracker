@@ -1,3 +1,4 @@
+import type { Href } from "expo-router";
 import { useState } from "react";
 import { FlatList, Text, View } from "react-native";
 import { useNativeVariable } from "react-native-css";
@@ -43,6 +44,15 @@ export default function ExerciseSelectScreen() {
   } = useWorkoutStore((state) => state);
   const { setPendingExercise } = usePendingSelection();
   const primaryColor = useNativeVariable("--primary") as string;
+  const [initialUsedExerciseIds] = useState(
+    () => new Set(usedExercises.map((exercise) => exercise.exerciseId)),
+  );
+  const [initialUsedExerciseNames] = useState(
+    () =>
+      new Set(
+        usedExercises.map((exercise) => normalizeExerciseName(exercise.name)),
+      ),
+  );
 
   const initialExercise = usedExercises.find(
     (e) => e.exerciseId === currentExerciseId,
@@ -55,10 +65,12 @@ export default function ExerciseSelectScreen() {
     ? normalizeExerciseName(searchFilter)
     : undefined;
 
-  const filteredUsedExercises = usedExercises.filter((ue) =>
-    normalizedSearchFilter
-      ? normalizeExerciseName(ue.name).includes(normalizedSearchFilter)
-      : true,
+  const filteredUsedExercises = usedExercises.filter(
+    (ue) =>
+      initialUsedExerciseIds.has(ue.exerciseId) &&
+      (normalizedSearchFilter
+        ? normalizeExerciseName(ue.name).includes(normalizedSearchFilter)
+        : true),
   );
 
   const filteredAvailableExercises = availableExercises.filter((ae) =>
@@ -71,9 +83,38 @@ export default function ExerciseSelectScreen() {
     ...filteredUsedExercises,
   ]) as Exercise[];
   const filteredUnusedExercises = filteredAvailableExercises.filter(
-    (ae) =>
-      !filteredUsedExercises.find((e) => exerciseNamesMatch(e.name, ae.name)),
+    (ae) => !initialUsedExerciseNames.has(normalizeExerciseName(ae.name)),
   ) as Partial<Exercise>[];
+
+  const getExerciseFormHref = (exercise: Partial<Exercise>): Href => {
+    const exerciseName = exercise.name;
+    const savedExercise = exerciseName
+      ? usedExercises.find((e) => exerciseNamesMatch(e.name, exerciseName))
+      : undefined;
+    const exerciseId = exercise.exerciseId ?? savedExercise?.exerciseId;
+
+    return exerciseId
+      ? `/(public)/(app)/exercise/form?exerciseId=${exerciseId}`
+      : `/(public)/(app)/exercise/form?name=${encodeURIComponent(exerciseName ?? "")}${exercise.loadKind ? `&loadKind=${exercise.loadKind}` : ""}`;
+  };
+
+  const renderExerciseInfoButton = (exercise: Partial<Exercise>) => (
+    <PressableThemed
+      className="-mr-3 h-11 w-11 items-center justify-center"
+      accessibilityLabel={`Edit exercise ${exercise.name}`}
+      onPress={(event) => {
+        event.stopPropagation();
+        router.push(getExerciseFormHref(exercise));
+      }}
+    >
+      <Text maxFontSizeMultiplier={2.5} className="text-primary">
+        <MaterialCommunityIcons
+          name="information-variant-circle-outline"
+          size={22}
+        />
+      </Text>
+    </PressableThemed>
+  );
 
   const handleDone = () => {
     if (!selected) return;
@@ -162,25 +203,7 @@ export default function ExerciseSelectScreen() {
               title={item.name}
               selected={item.name === selected?.name}
               onPress={() => setSelected(item)}
-              trailingAccessory={
-                <PressableThemed
-                  className="-mr-3 h-11 w-11 items-center justify-center"
-                  accessibilityLabel={`Edit exercise ${item.name}`}
-                  onPress={(event) => {
-                    event.stopPropagation();
-                    router.push(
-                      `/(public)/(app)/exercise/form?exerciseId=${item.exerciseId}`,
-                    );
-                  }}
-                >
-                  <Text maxFontSizeMultiplier={2.5} className="text-primary">
-                    <MaterialCommunityIcons
-                      name="information-variant-circle-outline"
-                      size={22}
-                    />
-                  </Text>
-                </PressableThemed>
-              }
+              trailingAccessory={renderExerciseInfoButton(item)}
               stack={{
                 index,
                 size: sortedFilteredUsedExercises.length,
@@ -212,6 +235,7 @@ export default function ExerciseSelectScreen() {
                       title={item.name}
                       selected={item.name === selected?.name}
                       onPress={() => setSelected(item as Exercise)}
+                      trailingAccessory={renderExerciseInfoButton(item)}
                       stack={{
                         index,
                         size: filteredUnusedExercises.length,
