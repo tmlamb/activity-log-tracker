@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import _ from "lodash";
 
 import type { Session } from "@activity-log/ui/utils";
-import { weekAndDayFromStart } from "@activity-log/ui/utils";
 
 import { SelectableCardRow } from "~/components/CardRow";
 import { HeaderTextAction } from "~/components/HeaderAction";
@@ -29,7 +28,6 @@ export default function SessionSelectScreen() {
     .orderBy(["start"], ["desc"])
     .uniqBy((session) => session.templateId ?? session.sessionId)
     .value();
-  const programStart = _.last(sessionsSorted)?.start ?? new Date();
 
   const [selected, setSelected] = useState<Session | undefined>();
 
@@ -83,10 +81,6 @@ export default function SessionSelectScreen() {
             title={item.name}
             selected={item.sessionId === selected?.sessionId}
             stack={{ index, size: sessionsSorted.length }}
-            trailingText={weekAndDayFromStart(
-              programStart,
-              item.start ?? new Date(),
-            )}
             onPress={() => {
               setSelected(item);
             }}
