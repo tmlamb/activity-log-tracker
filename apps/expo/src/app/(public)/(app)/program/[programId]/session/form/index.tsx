@@ -785,9 +785,7 @@ function SessionFormScreenContent({
                               stack={{ index: 2, size: 5 }}
                               onChangeText={(newValue) => {
                                 onChange(
-                                  newValue === ""
-                                    ? ""
-                                    : Number(newValue),
+                                  newValue === "" ? "" : Number(newValue),
                                 );
                               }}
                               onBlur={onBlur}
