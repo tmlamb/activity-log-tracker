@@ -786,12 +786,12 @@ function SessionFormScreenContent({
                               onChangeText={(newValue) => {
                                 onChange(
                                   newValue === ""
-                                    ? undefined
+                                    ? ""
                                     : Number(newValue),
                                 );
                               }}
                               onBlur={onBlur}
-                              value={value ? String(value) : undefined}
+                              value={String(value)}
                               innerRef={ref}
                               placeholder="0"
                               maxLength={2}
