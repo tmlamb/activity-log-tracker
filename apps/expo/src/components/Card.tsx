@@ -94,10 +94,10 @@ export default function Card({
       ) : (
         children
       )}
-      {stack && stack.index < stack.size - 1 ? (
+      {stack && stack.index > 0 ? (
         <View
           className={twMerge(
-            "bg-border absolute right-5 bottom-0 left-5 h-px",
+            "bg-border absolute top-0 right-5 left-5 h-px",
             variants.includes("square") ? "right-0 left-0" : "",
           )}
         />

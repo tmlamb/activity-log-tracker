@@ -532,11 +532,12 @@ function SessionFormScreenContent({
                 );
 
                 return (
-                  <Animated.View
+                  <AnimatedViewStyled
                     key={item.activityId}
                     collapsable={false}
                     entering={FadeInUp.duration(220)}
                     exiting={FadeOutUp.duration(220)}
+                    className={exerciseFieldState.error ? "relative z-20" : ""}
                   >
                     <Card
                       className={activityEditorCardClassName}
@@ -845,7 +846,7 @@ function SessionFormScreenContent({
                         />
                       </View>
                     </Card>
-                  </Animated.View>
+                  </AnimatedViewStyled>
                 );
               })}
               <Animated.View
@@ -886,7 +887,7 @@ function SessionFormScreenContent({
                     );
                   }}
                   disabled={fields.length > 100}
-                  cardClassName="rounded-none"
+                  cardVariants={["square"]}
                   stack={{
                     size: fields.length + 1,
                     index: fields.length,
