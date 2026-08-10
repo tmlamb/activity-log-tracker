@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Keyboard, Text, TextInput as RNTextInput, View } from "react-native";
+import { Keyboard, TextInput as RNTextInput, Text, View } from "react-native";
 import {
   KeyboardAwareScrollView,
   KeyboardExtender,
