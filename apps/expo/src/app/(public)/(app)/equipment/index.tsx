@@ -23,7 +23,21 @@ import useWorkoutStore, {
   createDefaultEquipment,
 } from "~/hooks/use-workout-store";
 
-type FormData = Equipment;
+type FormEquipmentBarbell = Omit<Equipment["barbells"][number], "value"> & {
+  value: number | string;
+};
+type FormEquipmentPlate = Omit<
+  Equipment["plates"][number],
+  "quantity" | "value"
+> & {
+  quantity: number | string;
+  value: number | string;
+};
+
+interface FormData {
+  barbells: FormEquipmentBarbell[];
+  plates: FormEquipmentPlate[];
+}
 
 const normalizeEquipmentFormData = (
   equipment: Partial<Equipment>,
@@ -45,12 +59,18 @@ const normalizeWeightInput = (value: string) => {
 
 const validateUniqueWeight = <T extends { value: number | string }>(
   value: number | string,
+  index: number,
   allItems: T[],
+  options: { allowZero?: boolean } = {},
 ) => {
   const weightText = String(value).trim();
   const weight = Number(weightText);
 
-  if (!weightText || Number.isNaN(weight) || weight <= 0) {
+  if (
+    !weightText ||
+    Number.isNaN(weight) ||
+    (options.allowZero ? weight < 0 : weight <= 0)
+  ) {
     return "Required";
   }
 
@@ -62,7 +82,15 @@ const validateUniqueWeight = <T extends { value: number | string }>(
     return "Must be 250 lbs or less";
   }
 
-  if (allItems.filter((item) => Number(item.value) === weight).length > 1) {
+  if (
+    allItems.some((item, itemIndex) => {
+      const itemWeightText = String(item.value).trim();
+
+      return (
+        itemIndex < index && itemWeightText && Number(itemWeightText) === weight
+      );
+    })
+  ) {
     return "Already added";
   }
 
@@ -136,7 +164,7 @@ export default function EquipmentScreen() {
   };
 
   const addBarbell = () => {
-    appendBarbell({ value: 0, unit: "lbs", barbellId: uuidv4() });
+    appendBarbell({ value: "", unit: "lbs", barbellId: uuidv4() });
   };
 
   const addPlate = () => {
@@ -203,24 +231,15 @@ export default function EquipmentScreen() {
                       control={control}
                       rules={{
                         required: "Required",
-                        validate: (value) => {
-                          const weight = Number(value);
-                          const allBarbells = getValues("barbells");
-
-                          if (weight <= 0) {
-                            return "Required";
-                          }
-
-                          if (
-                            allBarbells.filter(
-                              (barbell) => Number(barbell.value) === weight,
-                            ).length > 1
-                          ) {
-                            return "Already added";
-                          }
-
-                          return true;
-                        },
+                        validate: (value) =>
+                          validateUniqueWeight(
+                            value,
+                            index,
+                            getValues("barbells"),
+                            {
+                              allowZero: true,
+                            },
+                          ),
                       }}
                       render={({
                         field: { onChange, onBlur, value },
@@ -228,7 +247,9 @@ export default function EquipmentScreen() {
                       }) => (
                         <InventoryCounterInputRow
                           value={String(value)}
-                          onChangeText={onChange}
+                          onChangeText={(newValue) => {
+                            onChange(normalizeWeightInput(newValue));
+                          }}
                           onBlur={onBlur}
                           unit="lbs"
                           inputAccessibilityLabel="Barbell weight in pounds"
@@ -289,6 +310,7 @@ export default function EquipmentScreen() {
                         validate: (value) => {
                           return validateUniqueWeight(
                             value,
+                            index,
                             getValues("plates"),
                           );
                         },
