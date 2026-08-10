@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Keyboard, Text, View } from "react-native";
+import { Keyboard, Text, TextInput as RNTextInput, View } from "react-native";
 import {
   KeyboardAwareScrollView,
   KeyboardExtender,
@@ -48,6 +48,7 @@ const warmupPercentageMap: Record<number, number[]> = {
 };
 
 const actionAnimationDuration = 250;
+const keyboardDismissTimeout = 500;
 
 const decimalTextToNumber = (text: string) => {
   if (!text || text === ".") return undefined;
@@ -285,6 +286,33 @@ function WorkoutSetDetailScreenContent({
       ? `Start ${workoutSet.type.toLowerCase()} set`
       : `Complete ${workoutSet.type.toLowerCase()} set`;
 
+  const dismissKeyboardBeforeNavigation = useCallback(async () => {
+    const dismissActiveInput = () => {
+      RNTextInput.State.blurTextInput(
+        RNTextInput.State.currentlyFocusedInput(),
+      );
+      Keyboard.dismiss();
+    };
+
+    if (!isKeyboardVisible && !isKeyboardOverlayVisible) {
+      dismissActiveInput();
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      const subscription = Keyboard.addListener("keyboardDidHide", () => {
+        clearTimeout(timeout);
+        subscription.remove();
+        resolve();
+      });
+      const timeout = setTimeout(() => {
+        subscription.remove();
+        resolve();
+      }, keyboardDismissTimeout);
+      dismissActiveInput();
+    });
+  }, [isKeyboardOverlayVisible, isKeyboardVisible]);
+
   const onActionPress = async () => {
     if (isStartable) {
       setLastAction("start");
@@ -323,6 +351,7 @@ function WorkoutSetDetailScreenContent({
         },
       );
     }
+    await dismissKeyboardBeforeNavigation();
     router.back();
   };
 
