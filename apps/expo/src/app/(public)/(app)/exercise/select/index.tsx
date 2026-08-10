@@ -44,14 +44,8 @@ export default function ExerciseSelectScreen() {
   } = useWorkoutStore((state) => state);
   const { setPendingExercise } = usePendingSelection();
   const primaryColor = useNativeVariable("--primary") as string;
-  const [initialUsedExerciseIds] = useState(
-    () => new Set(usedExercises.map((exercise) => exercise.exerciseId)),
-  );
-  const [initialUsedExerciseNames] = useState(
-    () =>
-      new Set(
-        usedExercises.map((exercise) => normalizeExerciseName(exercise.name)),
-      ),
+  const usedExerciseNames = new Set(
+    usedExercises.map((exercise) => normalizeExerciseName(exercise.name)),
   );
 
   const initialExercise = usedExercises.find(
@@ -67,10 +61,9 @@ export default function ExerciseSelectScreen() {
 
   const filteredUsedExercises = usedExercises.filter(
     (ue) =>
-      initialUsedExerciseIds.has(ue.exerciseId) &&
-      (normalizedSearchFilter
+      normalizedSearchFilter
         ? normalizeExerciseName(ue.name).includes(normalizedSearchFilter)
-        : true),
+        : true,
   );
 
   const filteredAvailableExercises = availableExercises.filter((ae) =>
@@ -83,7 +76,7 @@ export default function ExerciseSelectScreen() {
     ...filteredUsedExercises,
   ]) as Exercise[];
   const filteredUnusedExercises = filteredAvailableExercises.filter(
-    (ae) => !initialUsedExerciseNames.has(normalizeExerciseName(ae.name)),
+    (ae) => !usedExerciseNames.has(normalizeExerciseName(ae.name)),
   ) as Partial<Exercise>[];
 
   const getExerciseFormHref = (exercise: Partial<Exercise>): Href => {
