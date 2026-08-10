@@ -1,7 +1,7 @@
 {
   "name": "@activity-log/expo",
   "private": true,
-  "version": "2.0.19",
+  "version": "2.0.20",
   "main": "index.ts",
   "scripts": {
     "clean": "git clean -xdf .cache .expo .turbo android ios node_modules",
