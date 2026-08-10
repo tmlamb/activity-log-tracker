@@ -59,11 +59,10 @@ export default function ExerciseSelectScreen() {
     ? normalizeExerciseName(searchFilter)
     : undefined;
 
-  const filteredUsedExercises = usedExercises.filter(
-    (ue) =>
-      normalizedSearchFilter
-        ? normalizeExerciseName(ue.name).includes(normalizedSearchFilter)
-        : true,
+  const filteredUsedExercises = usedExercises.filter((ue) =>
+    normalizedSearchFilter
+      ? normalizeExerciseName(ue.name).includes(normalizedSearchFilter)
+      : true,
   );
 
   const filteredAvailableExercises = availableExercises.filter((ae) =>
