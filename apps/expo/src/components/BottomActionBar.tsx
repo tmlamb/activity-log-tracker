@@ -57,9 +57,9 @@ export default function BottomActionBar({
   }));
   const { colors, locations } = easeGradient({
     colorStops: {
-      1: { color: "rgba(0,0,0,0.99)" },
-      0.75: { color: "rgba(0,0,0,0.9)" },
-      0.3: { color: "rgba(0,0,0,0.55)" },
+      1: { color: "rgba(0,0,0,0.75)" },
+      0.85: { color: "rgba(0,0,0,0.75)" },
+      0.55: { color: "rgba(0,0,0,0.4)" },
       0: { color: "transparent" },
     },
   });
@@ -135,6 +135,7 @@ export default function BottomActionBar({
         >
           <Card
             variants={["glass"]}
+            layout={null}
             glassEffectStyle={{
               style: glassVisible ? "regular" : "none",
               animate: false,

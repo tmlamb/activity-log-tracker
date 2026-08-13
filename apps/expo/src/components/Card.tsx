@@ -19,6 +19,7 @@ const cardLayoutTransition = LinearTransition.duration(80);
 interface CardProps {
   children: React.ReactNode;
   className?: string;
+  layout?: React.ComponentProps<typeof AnimatedViewStyled>["layout"] | null;
   variants?: (keyof typeof variantClasses)[];
   glassEffectStyle?: CardGlassEffectStyle;
   nativeGlassButton?: {
@@ -40,6 +41,7 @@ interface CardProps {
 export default function Card({
   children,
   className,
+  layout = cardLayoutTransition,
   variants = [],
   glassEffectStyle,
   nativeGlassButton,
@@ -76,7 +78,7 @@ export default function Card({
 
   return (
     <AnimatedViewStyled
-      layout={cardLayoutTransition}
+      layout={layout ?? undefined}
       className={cardClassName}
       accessible={accessible}
       accessibilityLabel={accessibilityLabel}

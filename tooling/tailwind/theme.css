@@ -32,7 +32,7 @@
   @variant dark {
     --background: oklch(0.17 0.005 260);
     --foreground: oklch(0.97 0.001 260);
-    --card: oklch(0.298 0.0085 260);
+    --card: oklch(0.25 0.0085 260);
     --card-foreground: oklch(0.97 0.001 260);
     --popover: oklch(0.3 0.009 260 / 0.5);
     --popover-foreground: oklch(0.97 0.001 260);
