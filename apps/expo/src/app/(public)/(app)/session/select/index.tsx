@@ -27,6 +27,7 @@ export default function SessionSelectScreen() {
     .filter((session) => session.status === "Done" && !!session.end)
     .orderBy(["start"], ["desc"])
     .uniqBy((session) => session.templateId ?? session.sessionId)
+    .reverse()
     .value();
 
   const [selected, setSelected] = useState<Session | undefined>();
@@ -81,6 +82,7 @@ export default function SessionSelectScreen() {
             title={item.name}
             selected={item.sessionId === selected?.sessionId}
             stack={{ index, size: sessionsSorted.length }}
+            cardVariants={["multiline"]}
             onPress={() => {
               setSelected(item);
             }}
