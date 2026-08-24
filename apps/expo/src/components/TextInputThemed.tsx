@@ -12,7 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Pressable, Text, TextInput } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { FadeInRight, FadeOutRight } from "react-native-reanimated";
 import Feather from "@expo/vector-icons/Feather";
 import { twMerge } from "tailwind-merge";
@@ -231,6 +231,7 @@ export default function TextInputThemed({
     onChangeText?.(normalizedText);
   };
   const textAlign = isGrouped && numeric ? "left" : numeric ? "right" : "left";
+  const maskDecimalText = numeric && decimalPlaces != null;
 
   const setInputRef = (node: TextInput | null) => {
     inputRef.current = node;
@@ -280,6 +281,24 @@ export default function TextInputThemed({
           className,
         )}
       >
+        {maskDecimalText ? (
+          <View
+            pointerEvents="none"
+            accessible={false}
+            className="absolute inset-y-0 right-5 left-5 z-10 justify-center"
+          >
+            <Text
+              maxFontSizeMultiplier={2}
+              className={twMerge(
+                "text-xl leading-loose tracking-normal",
+                value ? "text-foreground" : "text-muted",
+              )}
+              style={{ paddingLeft, textAlign }}
+            >
+              {value?.length ? value : placeholder}
+            </Text>
+          </View>
+        ) : null}
         <TextInput
           onChangeText={handleChange}
           onChange={onChange}
@@ -290,8 +309,11 @@ export default function TextInputThemed({
             "text-foreground placeholder:text-muted z-20 flex-1 flex-row items-center justify-center text-xl leading-loose tracking-normal",
             textInputClassName,
           )}
-          style={{ paddingLeft }}
-          placeholder={placeholder}
+          style={{
+            paddingLeft,
+            color: maskDecimalText ? "transparent" : undefined,
+          }}
+          placeholder={maskDecimalText ? "" : placeholder}
           maxLength={maxLength}
           keyboardType={keyboardType}
           textAlignVertical="center"

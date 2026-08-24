@@ -12,6 +12,7 @@ export const variantClasses = {
   transparent: "bg-transparent",
   square: "rounded-none",
   small: "h-[45px] py-2.5",
+  multiline: "h-auto min-h-[53px] py-0",
 };
 
 const cardLayoutTransition = LinearTransition.duration(80);

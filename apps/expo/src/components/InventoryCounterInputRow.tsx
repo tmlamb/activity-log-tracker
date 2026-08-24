@@ -1,7 +1,7 @@
 import type { KeyboardTypeOptions, LayoutChangeEvent } from "react-native";
 import { useRef, useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
-import { Entypo } from "@expo/vector-icons";
+import { Alert, Pressable, Text, TextInput, View } from "react-native";
+import { Entypo, Feather } from "@expo/vector-icons";
 import { twMerge } from "tailwind-merge";
 
 import Card from "./Card";
@@ -72,6 +72,17 @@ export default function InventoryCounterInputRow({
       : undefined;
   const measuredInputText = value.length > 0 ? value : (placeholder ?? "");
   const accessibilityValueText = value ? `${value} ${unit}` : undefined;
+
+  const confirmRemoval = (onConfirm: () => void) => {
+    Alert.alert(
+      "Remove Inventory Item?",
+      "Are you sure you want to remove this item from your equipment inventory?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Remove", style: "destructive", onPress: onConfirm },
+      ],
+    );
+  };
 
   const handleInputTextLayout = (event: LayoutChangeEvent) => {
     const nextWidth = Math.ceil(event.nativeEvent.layout.width) + 3;
@@ -153,7 +164,13 @@ export default function InventoryCounterInputRow({
             <>
               <PressableThemed
                 className="h-11 w-11 items-center justify-center rounded-full"
-                onPress={trailing.onDecrement}
+                onPress={() => {
+                  if (trailing.count <= 0) {
+                    confirmRemoval(trailing.onDecrement);
+                    return;
+                  }
+                  trailing.onDecrement();
+                }}
                 accessibilityLabel={trailing.decrementAccessibilityLabel}
                 accessibilityHint={trailing.decrementAccessibilityHint}
                 accessibilityValue={{
@@ -168,7 +185,11 @@ export default function InventoryCounterInputRow({
                     trailing.count <= 0 ? "text-destructive" : "text-muted",
                   )}
                 >
-                  <Entypo name="circle-with-minus" size={20} />
+                  {trailing.count <= 0 ? (
+                    <Feather name="trash-2" size={20} />
+                  ) : (
+                    <Entypo name="circle-with-minus" size={20} />
+                  )}
                 </Text>
               </PressableThemed>
               <View
@@ -202,7 +223,7 @@ export default function InventoryCounterInputRow({
               >
                 <Text
                   maxFontSizeMultiplier={2.5}
-                  className="text-primary text-xl font-semibold"
+                  className="text-muted text-xl font-semibold"
                 >
                   <Entypo name="circle-with-plus" size={20} />
                 </Text>
@@ -220,7 +241,7 @@ export default function InventoryCounterInputRow({
               ) : null}
               <PressableThemed
                 className="h-11 w-11 items-center justify-center rounded-full"
-                onPress={trailing.onRemove}
+                onPress={() => confirmRemoval(trailing.onRemove)}
                 accessibilityLabel={trailing.removeAccessibilityLabel}
                 accessibilityHint={trailing.removeAccessibilityHint}
               >
@@ -228,7 +249,7 @@ export default function InventoryCounterInputRow({
                   maxFontSizeMultiplier={2.5}
                   className="text-destructive text-xl font-semibold"
                 >
-                  <Entypo name="circle-with-minus" size={20} />
+                  <Feather name="trash-2" size={20} />
                 </Text>
               </PressableThemed>
             </>

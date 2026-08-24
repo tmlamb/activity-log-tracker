@@ -1,5 +1,6 @@
-import { SectionList, View } from "react-native";
+import { SectionList, Text, View } from "react-native";
 import { Link, Redirect, useLocalSearchParams } from "expo-router";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { differenceInCalendarDays } from "date-fns";
 import _ from "lodash";
 
@@ -15,6 +16,7 @@ import {
   NavigationCardRow,
   PrimaryCardAction,
 } from "~/components/CardRow";
+import PressableThemed from "~/components/PressableThemed";
 import {
   HelperText,
   ScreenHeading,
@@ -82,7 +84,29 @@ function ProgramDetailScreenContent({
         }
         ListHeaderComponent={
           <>
-            <DetailCardRow label="Program" value={program.name} />
+            <DetailCardRow
+              label="Program"
+              value={program.name}
+              cardVariants={["multiline"]}
+              trailingAccessory={
+                <Link
+                  href={`/(public)/(app)/program/form?programId=${program.programId}`}
+                  asChild
+                >
+                  <PressableThemed
+                    className="-mt-3 -mr-3 -mb-3 h-11 w-11 items-center justify-center"
+                    accessibilityLabel={`Edit workout program ${program.name}`}
+                  >
+                    <Text maxFontSizeMultiplier={2.5} className="text-primary">
+                      <MaterialCommunityIcons
+                        name="information-variant-circle-outline"
+                        size={22}
+                      />
+                    </Text>
+                  </PressableThemed>
+                </Link>
+              }
+            />
             <ScreenHeading>Workout Sessions</ScreenHeading>
           </>
         }
@@ -122,6 +146,7 @@ function ProgramDetailScreenContent({
               >
                 <NavigationCardRow
                   title={item.name}
+                  cardVariants={["multiline"]}
                   stack={{
                     index,
                     size: section.title.includes("Today")

@@ -213,13 +213,22 @@ export default function MultilineTextInputThemed(props: Props) {
         <AnimatedViewStyled
           entering={FadeInDown.springify().stiffness(40).damping(6).mass(0.3)}
           exiting={FadeOutDown.springify().stiffness(40).damping(6).mass(0.3)}
-          className={twMerge("px-5 pt-2", errorClassName)}
+          className={twMerge(
+            "absolute z-10",
+            cardVariants?.includes("small")
+              ? "right-5 bottom-1"
+              : "right-5 bottom-1",
+            errorClassName,
+          )}
           pointerEvents="none"
         >
           <Text
             accessibilityRole="alert"
             maxFontSizeMultiplier={2}
-            className="text-destructive text-sm"
+            className={twMerge(
+              "text-destructive",
+              cardVariants?.includes("small") ? "text-xs" : "text-sm",
+            )}
           >
             {error}
           </Text>

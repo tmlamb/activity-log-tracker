@@ -510,10 +510,10 @@ function WorkoutSetDetailScreenContent({
             <DetailCardRow
               label="Exercise"
               value={exercise.name}
-              valueNumberOfLines={3}
+              cardVariants={["multiline"]}
               trailingAccessory={
                 <PressableThemed
-                  className="-mr-3 h-11 w-11 items-center justify-center"
+                  className="-mt-3 -mr-3 -mb-3 h-11 w-11 items-center justify-center"
                   accessibilityLabel={`Edit exercise ${exercise.name}`}
                   onPress={() =>
                     router.push(

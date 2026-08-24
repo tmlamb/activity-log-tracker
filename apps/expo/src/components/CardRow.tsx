@@ -1,4 +1,5 @@
 import type { PressableProps } from "react-native";
+import { useState } from "react";
 import { Text, View } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { twMerge } from "tailwind-merge";
@@ -35,6 +36,44 @@ export function DetailCardRow({
   valueNumberOfLines,
   trailingAccessory,
 }: DetailCardRowProps) {
+  const multilineEnabled = cardVariants?.includes("multiline") ?? false;
+
+  if (multilineEnabled) {
+    return (
+      <Card
+        stack={stack}
+        variants={cardVariants}
+        className={twMerge(
+          "flex-col items-stretch justify-center px-5 py-4.5",
+          className,
+        )}
+      >
+        <View className="-mb-1 flex-row items-center justify-between">
+          <Text
+            maxFontSizeMultiplier={2.5}
+            className={twMerge(
+              "text-foreground flex-1 text-xl",
+              labelClassName,
+            )}
+          >
+            {label}
+          </Text>
+          {trailingAccessory}
+        </View>
+        <Text
+          maxFontSizeMultiplier={2.5}
+          className={twMerge(
+            "text-muted text-left text-xl leading-tight",
+            valueClassName,
+          )}
+          numberOfLines={valueNumberOfLines}
+        >
+          {value}
+        </Text>
+      </Card>
+    );
+  }
+
   return (
     <Card stack={stack} variants={cardVariants} className={className}>
       <Text
@@ -78,12 +117,15 @@ export function NavigationCardRow({
   className,
   cardClassName,
   titleClassName,
-  titleNumberOfLines = 1,
+  titleNumberOfLines,
   trailingText,
   trailingTextClassName,
   showChevron = true,
   ...pressableProps
 }: NavigationCardRowProps) {
+  const multilineEnabled = cardVariants?.includes("multiline") ?? false;
+  const [titleIsMultiline, setTitleIsMultiline] = useState(false);
+
   return (
     <PressableThemed className={className} {...pressableProps}>
       <Card stack={stack} variants={cardVariants} className={cardClassName}>
@@ -91,9 +133,22 @@ export function NavigationCardRow({
           maxFontSizeMultiplier={2.5}
           className={twMerge(
             "text-foreground flex-1 pr-2.5 text-xl",
+            multilineEnabled
+              ? titleIsMultiline
+                ? "py-4.5 leading-tight"
+                : "py-3"
+              : undefined,
             titleClassName,
           )}
-          numberOfLines={titleNumberOfLines}
+          numberOfLines={
+            titleNumberOfLines ?? (multilineEnabled ? undefined : 1)
+          }
+          onTextLayout={
+            multilineEnabled
+              ? (event) =>
+                  setTitleIsMultiline(event.nativeEvent.lines.length > 1)
+              : undefined
+          }
         >
           {title}
         </Text>
@@ -193,12 +248,15 @@ export function SelectableCardRow({
   className,
   cardClassName,
   titleClassName,
-  titleNumberOfLines = 1,
+  titleNumberOfLines,
   trailingText,
   trailingTextClassName,
   trailingAccessory,
   ...pressableProps
 }: SelectableCardRowProps) {
+  const multilineEnabled = cardVariants?.includes("multiline") ?? false;
+  const [titleIsMultiline, setTitleIsMultiline] = useState(false);
+
   return (
     <PressableThemed className={className} {...pressableProps}>
       <Card stack={stack} variants={cardVariants} className={cardClassName}>
@@ -212,9 +270,22 @@ export function SelectableCardRow({
           maxFontSizeMultiplier={2.5}
           className={twMerge(
             "text-foreground flex-1 pr-2.5 text-xl",
+            multilineEnabled
+              ? titleIsMultiline
+                ? "py-4.5 leading-tight"
+                : "py-3"
+              : undefined,
             titleClassName,
           )}
-          numberOfLines={titleNumberOfLines}
+          numberOfLines={
+            titleNumberOfLines ?? (multilineEnabled ? undefined : 1)
+          }
+          onTextLayout={
+            multilineEnabled
+              ? (event) =>
+                  setTitleIsMultiline(event.nativeEvent.lines.length > 1)
+              : undefined
+          }
         >
           {title}
         </Text>

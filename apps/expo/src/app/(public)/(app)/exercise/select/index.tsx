@@ -193,6 +193,7 @@ export default function ExerciseSelectScreen() {
           <Animated.View entering={FadeIn} exiting={FadeOut}>
             <SelectableCardRow
               title={item.name}
+              cardVariants={["multiline"]}
               selected={item.name === selected?.name}
               onPress={() => setSelected(item)}
               trailingAccessory={renderExerciseInfoButton(item)}
@@ -225,6 +226,7 @@ export default function ExerciseSelectScreen() {
                   >
                     <SelectableCardRow
                       title={item.name}
+                      cardVariants={["multiline"]}
                       selected={item.name === selected?.name}
                       onPress={() => setSelected(item as Exercise)}
                       trailingAccessory={renderExerciseInfoButton(item)}

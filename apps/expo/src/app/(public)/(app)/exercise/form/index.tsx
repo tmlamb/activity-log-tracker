@@ -18,9 +18,7 @@ import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
-import TextInputThemed, {
-  TextInputThemedGroup,
-} from "~/components/TextInputThemed";
+import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText, SectionHeading } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
@@ -214,182 +212,180 @@ export default function ExerciseFormScreen() {
         className="flex-1"
         contentContainerClassName={twMerge("pt-26 pb-18 gap-10")}
       >
-        <TextInputThemedGroup>
-          <View>
-            <Controller
-              name="name"
-              control={control}
-              rules={{
-                required: "Required",
-                validate: (value) =>
-                  !hasDuplicateExerciseName(value) ||
-                  "Exercise name already exists",
-              }}
-              render={({
-                field: { ref, onChange, onBlur, value },
-                fieldState: { error },
-              }) => (
-                <TextInputThemed
-                  label="Exercise Name"
-                  innerRef={ref}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  value={value}
-                  maxLength={25}
-                  error={error?.message}
-                  cardVariants={["square"]}
-                />
-              )}
-            />
-            {exercise && usedInWorkout && (
-              <HelperText placement="formInset" className="pt-2">
-                Warning: Modifying the exercise name reflects in existing
-                workouts where it&apos;s been used.
-              </HelperText>
-            )}
-          </View>
+        <View>
           <Controller
-            name="loadKind"
+            name="name"
             control={control}
-            rules={{ required: "Required" }}
-            render={({ field: { onChange, value }, fieldState: { error } }) => (
-              <View>
-                <SegmentedInputThemed
-                  label="Equipment"
-                  value={value}
-                  error={error?.message}
-                  accessibilityLabel="Exercise equipment style"
-                  options={[
-                    {
-                      label: "Barbell",
-                      value: "BARBELL",
-                      accessibilityLabel: "Exercise uses a barbell",
-                    },
-                    {
-                      label: "Pair",
-                      value: "WEIGHT_PAIR",
-                      accessibilityLabel: "Exercise uses a pair of weights",
-                    },
-                    {
-                      label: "Single",
-                      value: "SINGLE_WEIGHT",
-                      accessibilityLabel: "Exercise uses a single weight",
-                    },
-                  ]}
-                  onChange={(nextLoadKind) => {
-                    hasManuallySelectedLoadKindRef.current = true;
-                    onChange(nextLoadKind);
-                  }}
-                  cardVariants={["square"]}
-                />
-                <HelperText placement="formInset" className="pt-2">
-                  Sets how weight is counted. Pair means one weight per side
-                  (e.g. dumbbells); Single means one weight (e.g. kettlebells or
-                  machines).
-                </HelperText>
-              </View>
-            )}
-          />
-          {selectedLoadKind === "BARBELL" && (
-            <View>
-              {equipment.barbells.length > 0 ? (
-                <Controller
-                  name="barbellId"
-                  control={control}
-                  rules={{ required: "Required" }}
-                  render={({ field: { onChange, value } }) => (
-                    <>
-                      <SectionHeading>Barbell Weight</SectionHeading>
-                      {equipment.barbells.map((barbell, index) => (
-                        <SelectableCardRow
-                          key={barbell.barbellId}
-                          title={`${barbell.value}${barbell.unit}`}
-                          selected={barbell.barbellId === value}
-                          onPress={() => onChange(barbell.barbellId)}
-                          accessibilityLabel={`Use ${barbell.value} pound barbell for this exercise`}
-                          cardVariants={["square"]}
-                          stack={{ index, size: equipment.barbells.length }}
-                        />
-                      ))}
-                    </>
-                  )}
-                />
-              ) : (
-                <HelperText placement="formInset">
-                  Add a barbell in Equipment before selecting one for this
-                  exercise.
-                </HelperText>
-              )}
-            </View>
-          )}
-          <Controller
-            name="oneRepMax"
-            control={control}
-            rules={{ required: false, min: 5 }}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInputThemed
-                label="One Rep Max (lbs)"
-                onChangeText={(text) => {
-                  const numericValue = decimalTextToNumber(text);
-                  setOneRepMaxInput(text);
-                  onChange(
-                    numericValue != null
-                      ? { unit: value?.unit ?? "lbs", value: numericValue }
-                      : undefined,
-                  );
-                }}
-                onBlur={() => {
-                  const numericValue = decimalTextToNumber(oneRepMaxInput);
-                  setOneRepMaxInput(
-                    numericValue != null ? String(numericValue) : "",
-                  );
-                  onBlur();
-                }}
-                value={oneRepMaxInput}
-                maxLength={7}
-                keyboardType="decimal-pad"
-                numeric
-                decimalPlaces={2}
-                accessibilityLabel="One Rep Max in pounds"
-                cardVariants={["square"]}
-              />
-            )}
-          />
-          <Controller
-            name="notes"
-            control={control}
-            render={({ field: { ref, onChange, onBlur, value } }) => (
+            rules={{
+              required: "Required",
+              validate: (value) =>
+                !hasDuplicateExerciseName(value) ||
+                "Exercise name already exists",
+            }}
+            render={({
+              field: { ref, onChange, onBlur, value },
+              fieldState: { error },
+            }) => (
               <MultilineTextInputThemed
-                label="Notes"
+                label="Exercise Name"
                 innerRef={ref}
                 onChangeText={onChange}
                 onBlur={onBlur}
                 value={value}
+                maxLength={50}
+                error={error?.message}
                 cardVariants={["square"]}
               />
             )}
           />
-          {exercise && !usedInWorkout && (
-            <ConfirmButton
-              accessibilityLabel={`Delete Exercise with name ${exercise.name}`}
-              title="Delete Exercise?"
-              message="This will permanently delete this exercise."
-              confirmText="Delete Exercise"
-              onConfirm={() => {
-                deleteExercise(exercise.exerciseId);
-                router.back();
-              }}
-              cardVariants={["square"]}
-            >
-              Delete This Exercise
-            </ConfirmButton>
-          )}
-          {usedInWorkout && (
-            <HelperText placement="formInset">
-              Exercises used in a workout cannot be deleted.
+          {exercise && usedInWorkout && (
+            <HelperText placement="formInset" className="pt-2">
+              Warning: Modifying the exercise name reflects in existing workouts
+              where it&apos;s been used.
             </HelperText>
           )}
-        </TextInputThemedGroup>
+        </View>
+        <Controller
+          name="loadKind"
+          control={control}
+          rules={{ required: "Required" }}
+          render={({ field: { onChange, value }, fieldState: { error } }) => (
+            <View>
+              <SegmentedInputThemed
+                label="Equipment"
+                value={value}
+                error={error?.message}
+                accessibilityLabel="Exercise equipment style"
+                options={[
+                  {
+                    label: "Barbell",
+                    value: "BARBELL",
+                    accessibilityLabel: "Exercise uses a barbell",
+                  },
+                  {
+                    label: "Pair",
+                    value: "WEIGHT_PAIR",
+                    accessibilityLabel: "Exercise uses a pair of weights",
+                  },
+                  {
+                    label: "Single",
+                    value: "SINGLE_WEIGHT",
+                    accessibilityLabel: "Exercise uses a single weight",
+                  },
+                ]}
+                onChange={(nextLoadKind) => {
+                  hasManuallySelectedLoadKindRef.current = true;
+                  onChange(nextLoadKind);
+                }}
+                cardVariants={["square"]}
+              />
+              <HelperText placement="formInset" className="pt-2">
+                Sets how weight is counted. Pair means one weight per side (e.g.
+                dumbbells); Single means one weight (e.g. kettlebells or
+                machines).
+              </HelperText>
+            </View>
+          )}
+        />
+        {selectedLoadKind === "BARBELL" && (
+          <View>
+            {equipment.barbells.length > 0 ? (
+              <Controller
+                name="barbellId"
+                control={control}
+                rules={{ required: "Required" }}
+                render={({ field: { onChange, value } }) => (
+                  <>
+                    <SectionHeading>Barbell Weight</SectionHeading>
+                    {equipment.barbells.map((barbell, index) => (
+                      <SelectableCardRow
+                        key={barbell.barbellId}
+                        title={`${barbell.value}${barbell.unit}`}
+                        selected={barbell.barbellId === value}
+                        onPress={() => onChange(barbell.barbellId)}
+                        accessibilityLabel={`Use ${barbell.value} pound barbell for this exercise`}
+                        cardVariants={["square"]}
+                        stack={{ index, size: equipment.barbells.length }}
+                      />
+                    ))}
+                  </>
+                )}
+              />
+            ) : (
+              <HelperText placement="formInset">
+                Add a barbell in Equipment before selecting one for this
+                exercise.
+              </HelperText>
+            )}
+          </View>
+        )}
+        <Controller
+          name="oneRepMax"
+          control={control}
+          rules={{ required: false, min: 5 }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInputThemed
+              label="One Rep Max (lbs)"
+              onChangeText={(text) => {
+                const numericValue = decimalTextToNumber(text);
+                setOneRepMaxInput(text);
+                onChange(
+                  numericValue != null
+                    ? { unit: value?.unit ?? "lbs", value: numericValue }
+                    : undefined,
+                );
+              }}
+              onBlur={() => {
+                const numericValue = decimalTextToNumber(oneRepMaxInput);
+                setOneRepMaxInput(
+                  numericValue != null ? String(numericValue) : "",
+                );
+                onBlur();
+              }}
+              value={oneRepMaxInput}
+              maxLength={7}
+              keyboardType="decimal-pad"
+              numeric
+              decimalPlaces={2}
+              accessibilityLabel="One Rep Max in pounds"
+              cardVariants={["square"]}
+            />
+          )}
+        />
+        <Controller
+          name="notes"
+          control={control}
+          render={({ field: { ref, onChange, onBlur, value } }) => (
+            <MultilineTextInputThemed
+              label="Notes"
+              innerRef={ref}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              value={value}
+              cardVariants={["square"]}
+            />
+          )}
+        />
+        {exercise && !usedInWorkout && (
+          <ConfirmButton
+            accessibilityLabel={`Delete Exercise with name ${exercise.name}`}
+            title="Delete Exercise?"
+            message="This will permanently delete this exercise."
+            confirmText="Delete Exercise"
+            onConfirm={() => {
+              deleteExercise(exercise.exerciseId);
+              router.back();
+            }}
+            cardVariants={["square"]}
+          >
+            Delete This Exercise
+          </ConfirmButton>
+        )}
+        {usedInWorkout && (
+          <HelperText placement="formInset">
+            Exercises used in a workout cannot be deleted.
+          </HelperText>
+        )}
       </KeyboardAwareScrollView>
     </>
   );

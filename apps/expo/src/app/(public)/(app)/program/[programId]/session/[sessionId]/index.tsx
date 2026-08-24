@@ -297,7 +297,7 @@ function SessionDetailScreenContent({
               <DetailCardRow
                 label="Session"
                 value={session.name}
-                valueNumberOfLines={1}
+                cardVariants={["multiline"]}
                 stack={session.start ? { index: 0, size: 3 } : undefined}
               />
               {session.start && (
@@ -326,7 +326,11 @@ function SessionDetailScreenContent({
             <CollapsibleSectionHeader
               title={title}
               collapsed={collapsed}
-              titleClassName={allSetsDone ? "text-muted" : "text-foreground"}
+              titleClassName={
+                allSetsDone
+                  ? "text-muted leading-tight"
+                  : "text-foreground leading-tight"
+              }
               chevronClassName={
                 collapsed && !allSetsDone ? "text-primary" : "text-muted"
               }

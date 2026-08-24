@@ -112,6 +112,7 @@ export default function ExerciseSettingsScreen() {
             >
               <NavigationCardRow
                 title={item.name}
+                cardVariants={["multiline"]}
                 stack={{
                   index:
                     filteredUsedExercises.length > 0 &&

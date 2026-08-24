@@ -23,6 +23,16 @@ const decimalTextToNumber = (text: string) => {
   return Number.isFinite(value) ? value : undefined;
 };
 
+const percentNumToString = (value?: number) => {
+  if (value == null) return "";
+  return String(Number((value * 100).toFixed(2)));
+};
+
+const percentStringToNum = (value: string) => {
+  const percentValue = decimalTextToNumber(value);
+  return percentValue == null ? undefined : percentValue / 100;
+};
+
 export default function LoadScreen() {
   const { activityId, exerciseId, loadType, loadValue } = useLocalSearchParams<{
     activityId: string;
@@ -45,6 +55,11 @@ export default function LoadScreen() {
     loadType && loadValue
       ? { type: loadType as Load["type"], value: Number(loadValue) }
       : undefined;
+  const [percentInput, setPercentInput] = useState(
+    initialLoad?.type === "PERCENT"
+      ? percentNumToString(initialLoad.value)
+      : "",
+  );
 
   const { control, handleSubmit, setValue, clearErrors, trigger, reset } =
     useForm<FormData>({
@@ -79,16 +94,6 @@ export default function LoadScreen() {
       setPendingLoad({ selectionKey: activityId, load: selected });
     }
     router.back();
-  };
-
-  const percentNumToString = (value?: number) => {
-    if (value == null) return "";
-    return String(Number((value * 100).toFixed(2)));
-  };
-
-  const percentStringToNum = (value: string) => {
-    const percentValue = decimalTextToNumber(value);
-    return percentValue == null ? undefined : percentValue / 100;
   };
 
   return (
@@ -143,6 +148,11 @@ export default function LoadScreen() {
 
                   if (nextType === "PERCENT") {
                     clearErrors("value");
+                    setPercentInput(
+                      initialLoad?.type === nextType
+                        ? percentNumToString(initialLoad.value)
+                        : "0",
+                    );
                   }
 
                   setValue(
@@ -273,26 +283,40 @@ export default function LoadScreen() {
               <Controller
                 name="value"
                 control={control}
-                rules={{ required: true, min: 0.001, max: 0.9999 }}
+                rules={{ required: true, min: 0.0001, max: 1 }}
                 render={({
-                  field: { ref, onChange, onBlur, value },
+                  field: { ref, onChange, onBlur },
                   fieldState: { error },
                 }) => (
                   <TextInputThemed
                     label="% of One Rep Max"
                     onChangeText={(newValue) => {
+                      setPercentInput(newValue);
                       onChange(percentStringToNum(newValue));
                     }}
-                    onBlur={onBlur}
+                    onBlur={() => {
+                      const percentValue = decimalTextToNumber(percentInput);
+                      setPercentInput(
+                        percentValue != null ? String(percentValue) : "",
+                      );
+                      onChange(
+                        percentValue != null ? percentValue / 100 : undefined,
+                      );
+                      onBlur();
+                    }}
                     innerRef={ref}
-                    value={value ? percentNumToString(value) : undefined}
+                    value={percentInput}
                     placeholder="00.00"
                     maxLength={5}
                     keyboardType="decimal-pad"
                     selectTextOnFocus
                     numeric
                     decimalPlaces={2}
-                    error={error ? "Required" : undefined}
+                    error={
+                      error
+                        ? "Percentage must be between 0.01 and 100"
+                        : undefined
+                    }
                     cardVariants={["square"]}
                   />
                 )}
@@ -325,7 +349,6 @@ export default function LoadScreen() {
                     }) => (
                       <TextInputThemed
                         label="One Rep Max (lbs)"
-                        placeholder="Required"
                         onChangeText={(text) => {
                           setOneRepMaxInput(text);
                           onChange(decimalTextToNumber(text));

@@ -33,6 +33,7 @@ export default function ProgramSettingsScreen() {
           >
             <NavigationCardRow
               title={item.name}
+              cardVariants={["multiline"]}
               stack={{ index, size: programs.length }}
               trailingText={`${item.sessions.length} session${item.sessions.length !== 1 ? "s" : ""}`}
               accessibilityLabel={`Navigate to Edit Workout Program ${item.name}`}

@@ -17,7 +17,7 @@ import {
   useRouter,
 } from "expo-router";
 import { useIsFocused } from "expo-router/react-navigation";
-import { AntDesign, Entypo } from "@expo/vector-icons";
+import { AntDesign, Entypo, Feather } from "@expo/vector-icons";
 import { add, differenceInMinutes } from "date-fns";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 
@@ -40,6 +40,7 @@ import Card from "~/components/Card";
 import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
+import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PressableThemed from "~/components/PressableThemed";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import { AnimatedViewStyled } from "~/components/Styled";
@@ -504,13 +505,13 @@ function SessionFormScreenContent({
                   field: { onChange, ref, onBlur, value },
                   fieldState: { error },
                 }) => (
-                  <TextInputThemed
+                  <MultilineTextInputThemed
                     onChangeText={onChange}
                     onBlur={onBlur}
                     value={value}
                     label="Session Name"
                     innerRef={ref}
-                    maxLength={25}
+                    maxLength={50}
                     cardVariants={["square"]}
                     error={error ? "Required" : undefined}
                   />
@@ -655,7 +656,7 @@ function SessionFormScreenContent({
                             maxFontSizeMultiplier={2.5}
                             className="text-destructive text-xl"
                           >
-                            <Entypo name="circle-with-minus" size={20} />
+                            <Feather name="trash-2" size={20} />
                           </Text>
                         </PressableThemed>
                         {index !== 0 && (

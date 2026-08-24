@@ -73,6 +73,7 @@ export default function DashboardScreen() {
           <Link href={`/(public)/(app)/program/${item.programId}`} asChild>
             <NavigationCardRow
               title={item.name}
+              cardVariants={["multiline"]}
               stack={{ index, size: section.data.length }}
               accessibilityLabel={`Navigate to Workout Program ${item.name}`}
             />

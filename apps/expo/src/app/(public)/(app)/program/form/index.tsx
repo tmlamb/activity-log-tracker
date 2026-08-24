@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
-import TextInputThemed from "~/components/TextInputThemed";
+import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import { HelperText } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
@@ -72,13 +72,13 @@ export default function ProgramFormScreen() {
               field: { onChange, ref, onBlur, value },
               fieldState: { error },
             }) => (
-              <TextInputThemed
+              <MultilineTextInputThemed
                 onChangeText={onChange}
                 onBlur={onBlur}
                 innerRef={ref}
                 value={value}
                 label="Program Name"
-                maxLength={25}
+                maxLength={50}
                 error={error ? "Required" : undefined}
                 accessibilityLabel="Enter Workout Program Name"
                 testID="program-name-input"
