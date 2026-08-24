@@ -1,6 +1,10 @@
-import type { PressableProps } from "react-native";
+import type {
+  LayoutChangeEvent,
+  PressableProps,
+  TextLayoutEvent,
+} from "react-native";
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { Text, useWindowDimensions, View } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { twMerge } from "tailwind-merge";
 
@@ -25,6 +29,15 @@ interface DetailCardRowProps {
   trailingAccessory?: React.ReactNode;
 }
 
+interface StackedDetailContent {
+  label: React.ReactNode;
+  value: React.ReactNode;
+  trailingAccessory: React.ReactNode;
+  labelClassName: string | undefined;
+  valueClassName: string | undefined;
+  fontScale: number;
+}
+
 export function DetailCardRow({
   label,
   value,
@@ -37,6 +50,43 @@ export function DetailCardRow({
   trailingAccessory,
 }: DetailCardRowProps) {
   const multilineEnabled = cardVariants?.includes("multiline") ?? false;
+  const { fontScale } = useWindowDimensions();
+  const [contentWidth, setContentWidth] = useState(0);
+  const [stackedContent, setStackedContent] = useState<StackedDetailContent>();
+
+  const useStackedLayout =
+    multilineEnabled &&
+    stackedContent !== undefined &&
+    stackedContent.label === label &&
+    stackedContent.value === value &&
+    stackedContent.trailingAccessory === trailingAccessory &&
+    stackedContent.labelClassName === labelClassName &&
+    stackedContent.valueClassName === valueClassName &&
+    stackedContent.fontScale === fontScale;
+
+  const handleContentLayout = (event: LayoutChangeEvent) => {
+    const nextContentWidth = Math.ceil(event.nativeEvent.layout.width);
+
+    if (contentWidth > 0 && contentWidth !== nextContentWidth) {
+      setStackedContent(undefined);
+    }
+    if (contentWidth !== nextContentWidth) {
+      setContentWidth(nextContentWidth);
+    }
+  };
+
+  const handleCompactTextLayout = (event: TextLayoutEvent) => {
+    if (event.nativeEvent.lines.length < 2) return;
+
+    setStackedContent({
+      label,
+      value,
+      trailingAccessory,
+      labelClassName,
+      valueClassName,
+      fontScale,
+    });
+  };
 
   if (multilineEnabled) {
     return (
@@ -44,32 +94,65 @@ export function DetailCardRow({
         stack={stack}
         variants={cardVariants}
         className={twMerge(
-          "flex-col items-stretch justify-center px-5 py-4.5",
+          useStackedLayout
+            ? "flex-col items-stretch justify-center px-5 py-4.5"
+            : undefined,
           className,
         )}
       >
-        <View className="-mb-1 flex-row items-center justify-between">
-          <Text
-            maxFontSizeMultiplier={2.5}
-            className={twMerge(
-              "text-foreground flex-1 text-xl",
-              labelClassName,
-            )}
+        {useStackedLayout ? (
+          <View className="w-full" onLayout={handleContentLayout}>
+            <View className="flex-row items-center justify-between">
+              <Text
+                maxFontSizeMultiplier={2.5}
+                className={twMerge(
+                  "text-foreground flex-1 text-xl",
+                  labelClassName,
+                )}
+              >
+                {label}
+              </Text>
+              {trailingAccessory}
+            </View>
+            <Text
+              maxFontSizeMultiplier={2.5}
+              className={twMerge(
+                "text-muted text-left text-xl leading-tight",
+                valueClassName,
+              )}
+              numberOfLines={valueNumberOfLines}
+            >
+              {value}
+            </Text>
+          </View>
+        ) : (
+          <View
+            className="w-full flex-row items-center justify-between gap-2"
+            onLayout={handleContentLayout}
           >
-            {label}
-          </Text>
-          {trailingAccessory}
-        </View>
-        <Text
-          maxFontSizeMultiplier={2.5}
-          className={twMerge(
-            "text-muted text-left text-xl leading-tight",
-            valueClassName,
-          )}
-          numberOfLines={valueNumberOfLines}
-        >
-          {value}
-        </Text>
+            <Text
+              maxFontSizeMultiplier={2.5}
+              className={twMerge(
+                "text-foreground py-3 pr-3 text-xl",
+                labelClassName,
+              )}
+              onTextLayout={handleCompactTextLayout}
+            >
+              {label}
+            </Text>
+            <Text
+              maxFontSizeMultiplier={2.5}
+              className={twMerge(
+                "text-muted flex-1 py-3 text-right text-xl",
+                valueClassName,
+              )}
+              onTextLayout={handleCompactTextLayout}
+            >
+              {value}
+            </Text>
+            {trailingAccessory}
+          </View>
+        )}
       </Card>
     );
   }

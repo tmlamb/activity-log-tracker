@@ -647,7 +647,7 @@ function SessionFormScreenContent({
                           }}
                         />
                         <PressableThemed
-                          className="absolute top-1 left-3 p-2"
+                          className="absolute top-1 left-2 p-2"
                           hitSlop={20}
                           onPress={() => removeActivity(index, item.activityId)}
                           accessibilityLabel="Remove exercise from Session"
