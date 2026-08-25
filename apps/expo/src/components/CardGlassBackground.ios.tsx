@@ -91,7 +91,7 @@ export default function CardGlassBackground({
       onLayout={onLayout}
     >
       {size.width > 0 && size.height > 0 ? (
-        <Host style={size}>
+        <Host style={size} ignoreSafeArea="all">
           {nativeGlassButton ? (
             <Button
               onPress={
