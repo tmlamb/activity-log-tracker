@@ -11,7 +11,13 @@ import type {
   Session,
   WorkoutSet,
 } from "@activity-log/ui/utils";
-import { dateRegex, exerciseNamesMatch } from "@activity-log/ui/utils";
+import {
+  cleanupInactiveSession,
+  dateRegex,
+  exerciseNamesMatch,
+  completeSession as finalizeSession,
+  reconcileCompletedWorkoutSet as reconcileWorkoutSet,
+} from "@activity-log/ui/utils";
 
 export interface WorkoutStore {
   programs: Program[];
@@ -24,6 +30,7 @@ export interface WorkoutStore {
   deleteProgram: (programId: string) => void;
   addSession: (programId: string, session: Session) => void;
   updateSession: (programId: string, session: Session) => void;
+  completeSession: (programId: string, session: Session) => void;
   startSession: (programId: string, sessionId: string) => void;
   deleteSession: (programId: string, sessionId: string) => void;
   addActivity: (
@@ -50,6 +57,14 @@ export interface WorkoutStore {
     activityId: string,
     workoutSet: WorkoutSet,
   ) => void;
+  reconcileCompletedWorkoutSet: (
+    programId: string,
+    sessionId: string,
+    activityId: string,
+    workoutSetId: string,
+    actualReps: number | undefined,
+  ) => void;
+  cleanupInactiveSessions: (now?: Date) => void;
   updateEquipment: (equipment: Equipment) => void;
   resetWorkoutStore: () => void;
 }
@@ -87,7 +102,7 @@ const createDefaultWorkoutStoreData = (): WorkoutStoreData => ({
 });
 
 const reviveDates = (key: string, value: unknown): unknown =>
-  (key === "start" || key === "end") &&
+  (key === "start" || key === "end" || key === "lastActivityAt") &&
   typeof value === "string" &&
   dateRegex.exec(value)
     ? new Date(value)
@@ -119,7 +134,7 @@ const createWorkoutStorage = (): StateStorage<void> => {
 
 const useWorkoutStore = create<WorkoutStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...createDefaultWorkoutStoreData(),
       hasHydrated: false,
       setHasHydrated: (hasHydrated: boolean) => {
@@ -161,7 +176,10 @@ const useWorkoutStore = create<WorkoutStore>()(
             const program = state.programs.find(
               (el) => el.programId === programId,
             );
-            program?.sessions.push(session);
+            program?.sessions.push({
+              ...session,
+              lastActivityAt: new Date(),
+            });
           }),
         );
       },
@@ -175,12 +193,70 @@ const useWorkoutStore = create<WorkoutStore>()(
               (el) => el.sessionId === session.sessionId,
             );
             if (!current) throw new Error("Session not found");
-            current.name = session.name.trim();
-            current.templateId = session.templateId;
-            current.start = session.start;
-            current.end = session.end;
-            current.activities = session.activities;
-            current.status = session.status;
+            const now = new Date();
+            const status =
+              current.status === "Done" && session.status === "Ready"
+                ? "Done"
+                : session.status;
+            const end =
+              status === "Done"
+                ? (session.end ?? current.end ?? now)
+                : session.end;
+            const hasNonterminalSets = session.activities.some((activity) =>
+              [...activity.warmupSets, ...activity.mainSets].some(
+                (workoutSet) =>
+                  workoutSet.status === "Planned" ||
+                  workoutSet.status === "Ready",
+              ),
+            );
+            const activities =
+              current.status === "Done" &&
+              status === "Done" &&
+              hasNonterminalSets
+                ? current.activities
+                : session.activities;
+            const nextSession =
+              current.status !== "Done" && status === "Done"
+                ? finalizeSession({ ...session, status }, end ?? now)
+                : { ...session, activities, end, status };
+            current.name = nextSession.name.trim();
+            current.templateId = nextSession.templateId;
+            current.start = nextSession.start;
+            current.end = nextSession.end;
+            current.activities = nextSession.activities;
+            current.status = nextSession.status;
+            current.lastActivityAt = now;
+          }),
+        );
+      },
+      completeSession: (programId: string, session: Session) => {
+        const current = get()
+          .programs.find((program) => program.programId === programId)
+          ?.sessions.find((item) => item.sessionId === session.sessionId);
+        if (current?.status !== "Ready") return;
+
+        set(
+          produce((state: WorkoutStore) => {
+            const program = state.programs.find(
+              (item) => item.programId === programId,
+            );
+            const currentSession = program?.sessions.find(
+              (item) => item.sessionId === session.sessionId,
+            );
+            if (currentSession?.status !== "Ready") return;
+
+            const now = new Date();
+            const completedSession = finalizeSession(
+              { ...session, start: currentSession.start },
+              session.end ?? now,
+            );
+            currentSession.name = completedSession.name.trim();
+            currentSession.templateId = completedSession.templateId;
+            currentSession.start = completedSession.start;
+            currentSession.end = completedSession.end;
+            currentSession.activities = completedSession.activities;
+            currentSession.status = completedSession.status;
+            currentSession.lastActivityAt = now;
           }),
         );
       },
@@ -199,7 +275,9 @@ const useWorkoutStore = create<WorkoutStore>()(
               throw new Error(
                 `Session already started: ${session.name} (${session.sessionId}, ${session.status})`,
               );
-            session.start = new Date();
+            const now = new Date();
+            session.start = now;
+            session.lastActivityAt = now;
             session.status = "Ready";
           }),
         );
@@ -235,6 +313,7 @@ const useWorkoutStore = create<WorkoutStore>()(
             );
             if (!session) throw new Error("Session not found");
             session.activities.push(activity);
+            session.lastActivityAt = new Date();
           }),
         );
       },
@@ -263,6 +342,7 @@ const useWorkoutStore = create<WorkoutStore>()(
             current.exerciseId = activity.exerciseId;
             current.rest = activity.rest;
             current.reps = activity.reps;
+            session.lastActivityAt = new Date();
           }),
         );
       },
@@ -286,6 +366,7 @@ const useWorkoutStore = create<WorkoutStore>()(
             );
             if (idx === -1) throw new Error("Activity not found");
             session.activities.splice(idx, 1);
+            session.lastActivityAt = new Date();
           }),
         );
       },
@@ -371,14 +452,90 @@ const useWorkoutStore = create<WorkoutStore>()(
                 (el) => el.workoutSetId === workoutSet.workoutSetId,
               );
             if (!current) throw new Error("WorkoutSet not found");
+            const now = new Date();
             current.actualReps = workoutSet.actualReps;
             current.weight = workoutSet.weight;
-            current.end = workoutSet.end;
-            current.start = workoutSet.start;
-            current.status = workoutSet.status;
             current.feedback = workoutSet.feedback;
+            if (session.status !== "Done") {
+              current.end = workoutSet.end;
+              current.start = workoutSet.start;
+              current.status = workoutSet.status;
+            }
+            session.lastActivityAt = now;
           }),
         );
+      },
+      reconcileCompletedWorkoutSet: (
+        programId: string,
+        sessionId: string,
+        activityId: string,
+        workoutSetId: string,
+        actualReps: number | undefined,
+      ) => {
+        const session = get()
+          .programs.find((program) => program.programId === programId)
+          ?.sessions.find((item) => item.sessionId === sessionId);
+        const activity = session?.activities.find(
+          (item) => item.activityId === activityId,
+        );
+        const workoutSet = [
+          ...(activity?.warmupSets ?? []),
+          ...(activity?.mainSets ?? []),
+        ].find((item) => item.workoutSetId === workoutSetId);
+        const status = (actualReps ?? 0) > 0 ? "Done" : "Incomplete";
+        if (
+          session?.status !== "Done" ||
+          !workoutSet ||
+          (Object.is(workoutSet.actualReps, actualReps) &&
+            workoutSet.status === status)
+        ) {
+          return;
+        }
+
+        set(
+          produce((state: WorkoutStore) => {
+            const currentSession = state.programs
+              .find((program) => program.programId === programId)
+              ?.sessions.find((item) => item.sessionId === sessionId);
+            const currentActivity = currentSession?.activities.find(
+              (item) => item.activityId === activityId,
+            );
+            const currentWorkoutSet = [
+              ...(currentActivity?.warmupSets ?? []),
+              ...(currentActivity?.mainSets ?? []),
+            ].find((item) => item.workoutSetId === workoutSetId);
+            if (currentSession?.status !== "Done" || !currentWorkoutSet) return;
+
+            const now = new Date();
+            const end = currentSession.end ?? now;
+            Object.assign(
+              currentWorkoutSet,
+              reconcileWorkoutSet(currentWorkoutSet, actualReps, end),
+            );
+            currentSession.end ??= end;
+            currentSession.lastActivityAt = now;
+          }),
+        );
+      },
+      cleanupInactiveSessions: (now = new Date()) => {
+        const state = get();
+        const programs = state.programs.map((program) => {
+          const sessions = program.sessions.map((session) =>
+            cleanupInactiveSession(session, now),
+          );
+          const changed = sessions.some(
+            (session, index) => session !== program.sessions[index],
+          );
+
+          return changed ? { ...program, sessions } : program;
+        });
+        const changed = programs.some(
+          (program, index) => program !== state.programs[index],
+        );
+
+        if (changed) {
+          set({ programs });
+        }
       },
       updateEquipment: (equipment: Equipment) => {
         set(
@@ -398,6 +555,7 @@ const useWorkoutStore = create<WorkoutStore>()(
     {
       name: "workout-storage",
       onRehydrateStorage: () => (state?: WorkoutStore) => {
+        state?.cleanupInactiveSessions();
         state?.setHasHydrated(true);
       },
       merge: (persistedState, currentState) => {

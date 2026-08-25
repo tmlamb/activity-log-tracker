@@ -13,6 +13,7 @@ import type {
   WarmupSet,
   WorkoutSet,
 } from "@activity-log/ui/utils";
+import { SESSION_INACTIVITY_TIMEOUT_MS } from "@activity-log/ui/utils";
 
 import type { WorkoutStore } from "~/hooks/use-workout-store";
 import BottomActionBar from "~/components/BottomActionBar";
@@ -31,11 +32,41 @@ const getActivityWorkoutSets = (activity: Activity): WorkoutSet[] => [
   ...activity.mainSets,
 ];
 
+const isWorkoutSetDone = (workoutSet: WorkoutSet) =>
+  workoutSet.status === "Done" && (workoutSet.actualReps ?? 0) > 0;
+
+const sessionCleanupWarningDelayMs = SESSION_INACTIVITY_TIMEOUT_MS / 2;
+
+function SessionCleanupWarning({ session }: { session: Session }) {
+  const warningAt = session.lastActivityAt
+    ? session.lastActivityAt.getTime() + sessionCleanupWarningDelayMs
+    : undefined;
+  const [currentTime, setCurrentTime] = useState(0);
+  const visible =
+    session.status === "Ready" && warningAt != null && currentTime >= warningAt;
+
+  useEffect(() => {
+    if (session.status !== "Ready" || warningAt == null) return;
+
+    const delay = Math.max(0, warningAt - Date.now());
+    const timeout = setTimeout(
+      () => setCurrentTime(Math.max(Date.now(), warningAt)),
+      delay,
+    );
+    return () => clearTimeout(timeout);
+  }, [session.status, warningAt]);
+
+  return visible ? (
+    <HelperText>
+      Sessions left open without activity after 1 hour will automatically be
+      marked complete
+    </HelperText>
+  ) : null;
+}
+
 const areAllActivitySetsDone = (activity: Activity) => {
   const workoutSets = getActivityWorkoutSets(activity);
-  return (
-    workoutSets.length > 0 && workoutSets.every((ws) => ws.status === "Done")
-  );
+  return workoutSets.length > 0 && workoutSets.every(isWorkoutSetDone);
 };
 
 const getCompletedActivityIds = (activities: Activity[]) =>
@@ -89,11 +120,13 @@ function WorkoutSetCard({
             ? "mb-3"
             : undefined
         }
-        trailingText={
-          status === "Ready" || status === "Done" ? status : undefined
-        }
+        trailingText={status === "Planned" ? undefined : status}
         trailingTextClassName={
-          status === "Ready" ? "text-primary" : "text-muted"
+          status === "Ready"
+            ? "text-primary"
+            : status === "Incomplete"
+              ? "text-warning"
+              : "text-muted"
         }
         accessibilityLabel={`Navigate to ${title}, current status: ${status}`}
       />
@@ -130,7 +163,7 @@ export default function SessionDetailScreen() {
     programId: string;
     sessionId: string;
   }>();
-  const { programs, exercises, updateSession } = useWorkoutStore(
+  const { programs, exercises, completeSession } = useWorkoutStore(
     (store) => store,
   );
   const program = programs.find((p) => p.programId === programId);
@@ -145,7 +178,7 @@ export default function SessionDetailScreen() {
       program={program}
       session={session}
       exercises={exercises}
-      updateSession={updateSession}
+      completeSession={completeSession}
     />
   );
 }
@@ -154,12 +187,12 @@ function SessionDetailScreenContent({
   program,
   session,
   exercises,
-  updateSession,
+  completeSession,
 }: {
   program: Program;
   session: Session;
   exercises: WorkoutStore["exercises"];
-  updateSession: WorkoutStore["updateSession"];
+  completeSession: WorkoutStore["completeSession"];
 }) {
   const [collapsedActivityIds, setCollapsedActivityIds] = useState<Set<string>>(
     () => getCompletedActivityIds(session.activities),
@@ -214,7 +247,7 @@ function SessionDetailScreenContent({
         result,
         _.filter(
           getActivityWorkoutSets(activity),
-          (ws) => ws.status !== "Done",
+          (workoutSet) => !isWorkoutSetDone(workoutSet),
         ),
       ),
     [] as WorkoutSet[],
@@ -314,6 +347,7 @@ function SessionDetailScreenContent({
                     stack={{ index: 2, size: 3 }}
                     showHours
                   />
+                  <SessionCleanupWarning session={session} />
                 </>
               )}
               <ScreenHeading>Planned Exercises</ScreenHeading>
@@ -360,7 +394,7 @@ function SessionDetailScreenContent({
           className="absolute bottom-0 z-10 w-full"
           visible={completable}
           onPress={() => {
-            updateSession(program.programId, {
+            completeSession(program.programId, {
               ...session,
               status: "Done",
               end: new Date(),

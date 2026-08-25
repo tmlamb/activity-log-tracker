@@ -10,7 +10,13 @@ import Animated, {
   FadeOutDown,
   LinearTransition,
 } from "react-native-reanimated";
-import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Redirect,
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { add, subMinutes } from "date-fns";
 import _ from "lodash";
@@ -71,6 +77,7 @@ export default function WorkoutSetDetailScreen() {
     exercises,
     equipment,
     updateWorkoutSet,
+    reconcileCompletedWorkoutSet,
     updateExercise,
     startSession,
   } = useWorkoutStore((store) => store);
@@ -97,6 +104,7 @@ export default function WorkoutSetDetailScreen() {
       workoutSet={workoutSet}
       equipment={equipment}
       updateWorkoutSet={updateWorkoutSet}
+      reconcileCompletedWorkoutSet={reconcileCompletedWorkoutSet}
       updateExercise={updateExercise}
       startSession={startSession}
     />
@@ -112,6 +120,7 @@ function WorkoutSetDetailScreenContent({
   workoutSet,
   equipment,
   updateWorkoutSet,
+  reconcileCompletedWorkoutSet,
   updateExercise,
   startSession,
 }: {
@@ -123,6 +132,7 @@ function WorkoutSetDetailScreenContent({
   workoutSet: WorkoutSet;
   equipment: WorkoutStore["equipment"];
   updateWorkoutSet: WorkoutStore["updateWorkoutSet"];
+  reconcileCompletedWorkoutSet: WorkoutStore["reconcileCompletedWorkoutSet"];
   updateExercise: WorkoutStore["updateExercise"];
   startSession: WorkoutStore["startSession"];
 }) {
@@ -187,7 +197,7 @@ function WorkoutSetDetailScreenContent({
     defaultActualReps > 0 ? String(defaultActualReps) : "",
   );
 
-  const { control, handleSubmit, setValue } = useForm<WorkoutSet>({
+  const { control, getValues, handleSubmit, setValue } = useForm<WorkoutSet>({
     defaultValues: {
       weight: defaultWeight,
       actualReps: defaultActualReps,
@@ -203,9 +213,34 @@ function WorkoutSetDetailScreenContent({
     ...activity.mainSets,
   ];
   const isStartable =
+    session.status !== "Done" &&
     workoutSet.status === "Planned" &&
     activitySets.find((ws) => ["Planned", "Ready"].includes(ws.status))
       ?.workoutSetId === workoutSet.workoutSetId;
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        const actualReps = getValues("actualReps");
+        if (actualReps != null && !Number.isFinite(actualReps)) return;
+
+        reconcileCompletedWorkoutSet(
+          program.programId,
+          session.sessionId,
+          activity.activityId,
+          workoutSet.workoutSetId,
+          actualReps,
+        );
+      };
+    }, [
+      activity.activityId,
+      getValues,
+      program.programId,
+      reconcileCompletedWorkoutSet,
+      session.sessionId,
+      workoutSet.workoutSetId,
+    ]),
+  );
 
   const onSubmit = useCallback(
     (data: WorkoutSet) => {
@@ -257,7 +292,9 @@ function WorkoutSetDetailScreenContent({
   const weightWatcher = useWatch({ control, name: "weight" });
   const actualRepsWatcher = useWatch({ control, name: "actualReps" });
   const canComplete =
-    workoutSet.status === "Ready" && (actualRepsWatcher ?? 0) > 0;
+    session.status === "Ready" &&
+    workoutSet.status === "Ready" &&
+    (actualRepsWatcher ?? 0) > 0;
   const [isStartingSet, setIsStartingSet] = useState(false);
   const isActionVisible = !isStartingSet && (isStartable || canComplete);
   const action = isStartingSet
@@ -631,9 +668,7 @@ function WorkoutSetDetailScreenContent({
                       label="Actual Reps"
                       onChangeText={(newValue) => {
                         setActualRepsInput(newValue);
-                        onChange(
-                          newValue === "" ? undefined : Number(newValue),
-                        );
+                        onChange(decimalTextToNumber(newValue));
                         setLastAction("complete");
                       }}
                       onBlur={() => {

@@ -33,7 +33,10 @@ import "react-native-get-random-values";
 
 import { v4 as uuidv4 } from "uuid";
 
-import { stringifyLoad } from "@activity-log/ui/utils";
+import {
+  plannedRepsFromTemplateActivity,
+  stringifyLoad,
+} from "@activity-log/ui/utils";
 
 import type { WorkoutStore } from "~/hooks/use-workout-store";
 import Card from "~/components/Card";
@@ -90,7 +93,7 @@ const numberToWorkoutSetArray = <
           ({
             workoutSetId: uuidv4(),
             type,
-            status: session?.status === "Done" ? "Done" : "Planned",
+            status: session?.status === "Done" ? "Incomplete" : "Planned",
             start: session?.status === "Done" ? session.end : undefined,
             end: session?.status === "Done" ? session.end : undefined,
             actualReps: 0,
@@ -102,34 +105,19 @@ const numberToWorkoutSetArray = <
   return newArray;
 };
 
-const plannedRepsFromTemplateActivity = (activity: Activity) => {
-  const actualReps = activity.mainSets.reduce(
-    (result, mainSet) => {
-      if (
-        mainSet.status === "Done" &&
-        mainSet.actualReps != null &&
-        mainSet.actualReps > 0
-      ) {
-        result.total += mainSet.actualReps;
-        result.count += 1;
-      }
-      return result;
-    },
-    { total: 0, count: 0 },
-  );
-
-  if (!actualReps.count) return activity.reps;
-
-  return Math.ceil(actualReps.total / actualReps.count);
-};
-
 export default function SessionFormScreen() {
   const { programId, sessionId } = useLocalSearchParams<{
     programId: string;
     sessionId?: string;
   }>();
-  const { programs, exercises, addSession, updateSession, deleteSession } =
-    useWorkoutStore((store) => store);
+  const {
+    programs,
+    exercises,
+    addSession,
+    updateSession,
+    completeSession,
+    deleteSession,
+  } = useWorkoutStore((store) => store);
 
   const program = programs.find((p) => p.programId === programId);
   const session = program?.sessions.find((s) => s.sessionId === sessionId);
@@ -145,6 +133,7 @@ export default function SessionFormScreen() {
       exercises={exercises}
       addSession={addSession}
       updateSession={updateSession}
+      completeSession={completeSession}
       deleteSession={deleteSession}
       programId={programId}
     />
@@ -157,6 +146,7 @@ function SessionFormScreenContent({
   exercises,
   addSession,
   updateSession,
+  completeSession,
   deleteSession,
   programId,
 }: {
@@ -165,6 +155,7 @@ function SessionFormScreenContent({
   exercises: WorkoutStore["exercises"];
   addSession: WorkoutStore["addSession"];
   updateSession: WorkoutStore["updateSession"];
+  completeSession: WorkoutStore["completeSession"];
   deleteSession: WorkoutStore["deleteSession"];
   programId: string;
 }) {
@@ -402,6 +393,44 @@ function SessionFormScreenContent({
       templateSourceSessionRef.current = undefined;
     }
     router.back();
+  };
+
+  const handleCompleteSession = () => {
+    if (session?.status !== "Ready") return;
+
+    const hasSetsWithoutActualReps = watchActivities.some((activity) =>
+      [...activity.warmupSets, ...activity.mainSets].some(
+        (workoutSet) => (workoutSet.actualReps ?? 0) <= 0,
+      ),
+    );
+
+    Alert.alert(
+      "Complete Workout Session?",
+      hasSetsWithoutActualReps
+        ? "Some sets do not have Actual Reps. Those sets will be marked Incomplete. You can enter their reps later."
+        : "This will mark the workout session as Done.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Complete Session",
+          style: hasSetsWithoutActualReps ? "destructive" : "default",
+          onPress: () => {
+            void handleSubmit((data) => {
+              completeSession(program.programId, {
+                name: data.name,
+                sessionId: session.sessionId,
+                templateId: session.templateId,
+                activities: data.activities,
+                start: session.start,
+                end: new Date(),
+                status: "Done",
+              });
+              router.back();
+            })();
+          },
+        },
+      ],
+    );
   };
 
   const removeActivity = (index: number, activityId: string) => {
@@ -924,6 +953,14 @@ function SessionFormScreenContent({
                 cardVariants={["square"]}
               />
             )}
+          />
+        )}
+        {session?.status === "Ready" && (
+          <PrimaryCardAction
+            label="Complete Workout Session"
+            onPress={handleCompleteSession}
+            accessibilityLabel="Complete workout session from session form"
+            cardVariants={["square"]}
           />
         )}
         {session && (
