@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import _ from "lodash";
 
 import type { Session } from "@activity-log/ui/utils";
+import { isSessionTerminalStatus } from "@activity-log/ui/utils";
 
 import { SelectableCardRow } from "~/components/CardRow";
 import { HeaderTextAction } from "~/components/HeaderAction";
@@ -21,10 +22,12 @@ export default function SessionSelectScreen() {
   const program = programs.find((p) => p.programId === programId);
   const sessions = program?.sessions ?? [];
 
-  // Only completed sessions make sense as templates. For template lineages,
-  // show only the latest completed session in each lineage.
+  // Only terminal sessions make sense as templates. For template lineages,
+  // show only the latest terminal session in each lineage.
   const sessionsSorted = _(sessions)
-    .filter((session) => session.status === "Done" && !!session.end)
+    .filter(
+      (session) => isSessionTerminalStatus(session.status) && !!session.end,
+    )
     .orderBy(["start"], ["desc"])
     .uniqBy((session) => session.templateId ?? session.sessionId)
     .reverse()
@@ -73,7 +76,7 @@ export default function SessionSelectScreen() {
             </HelperText>
           ) : (
             <HelperText placement="listHeader">
-              No completed sessions in current program.
+              No previous sessions are available as templates.
             </HelperText>
           )
         }

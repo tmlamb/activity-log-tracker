@@ -58,6 +58,8 @@ export interface Exercise {
   notes?: string;
 }
 
+export type SessionStatus = "Planned" | "Ready" | "Incomplete" | "Done";
+
 export interface Session {
   name: string;
   sessionId: string;
@@ -65,7 +67,7 @@ export interface Session {
   start?: Date;
   end?: Date;
   lastActivityAt?: Date;
-  status: "Planned" | "Ready" | "Done";
+  status: SessionStatus;
   activities: Activity[];
 }
 
@@ -82,6 +84,9 @@ export interface Equipment {
 
 export const SESSION_INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 export const LEGACY_SESSION_DURATION_MS = 60 * 60 * 1000;
+
+export const isSessionTerminalStatus = (status: SessionStatus) =>
+  status === "Incomplete" || status === "Done";
 
 const isValidDate = (value: unknown): value is Date =>
   value instanceof Date && !Number.isNaN(value.getTime());
@@ -191,7 +196,7 @@ export const cleanupInactiveSession = (
       ? new Date(session.start.getTime() + LEGACY_SESSION_DURATION_MS)
       : now);
 
-  return completeSession(session, end);
+  return { ...completeSession(session, end), status: "Incomplete" };
 };
 
 export const plannedRepsFromTemplateActivity = (activity: Activity) => {

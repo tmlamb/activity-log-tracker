@@ -161,7 +161,11 @@ function ProgramDetailScreenContent({
                   }
                   trailingText={item.status}
                   trailingTextClassName={
-                    item.status === "Ready" ? "text-primary" : "text-muted"
+                    item.status === "Ready"
+                      ? "text-primary"
+                      : item.status === "Incomplete"
+                        ? "text-warning"
+                        : "text-muted"
                   }
                   accessibilityLabel={`Navigate to session ${item.name}, status ${item.status}`}
                 />

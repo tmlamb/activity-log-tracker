@@ -34,6 +34,7 @@ import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 
 import {
+  isSessionTerminalStatus,
   plannedRepsFromTemplateActivity,
   stringifyLoad,
 } from "@activity-log/ui/utils";
@@ -63,7 +64,7 @@ export interface SessionFormData {
   name: string;
   start?: Date;
   end?: Date;
-  status: "Planned" | "Ready" | "Done";
+  status: Session["status"];
   activities: Activity[];
 }
 
@@ -84,6 +85,9 @@ const numberToWorkoutSetArray = <
   session?: Session,
 ): T[] => {
   const newArray = [...current];
+  const sessionIsTerminal = session
+    ? isSessionTerminalStatus(session.status)
+    : false;
   if (length < current.length) {
     newArray.splice(length, newArray.length - length);
   } else if (length > newArray.length) {
@@ -93,9 +97,9 @@ const numberToWorkoutSetArray = <
           ({
             workoutSetId: uuidv4(),
             type,
-            status: session?.status === "Done" ? "Incomplete" : "Planned",
-            start: session?.status === "Done" ? session.end : undefined,
-            end: session?.status === "Done" ? session.end : undefined,
+            status: sessionIsTerminal ? "Incomplete" : "Planned",
+            start: sessionIsTerminal ? session?.end : undefined,
+            end: sessionIsTerminal ? session?.end : undefined,
             actualReps: 0,
             feedback: "Neutral",
           }) as T,
@@ -162,6 +166,9 @@ function SessionFormScreenContent({
   const router = useRouter();
   const isFocused = useIsFocused();
   const sessions = program.sessions;
+  const sessionIsTerminal = session
+    ? isSessionTerminalStatus(session.status)
+    : false;
 
   const { control, handleSubmit, getFieldState, reset, setValue, formState } =
     useForm<SessionFormData>({
@@ -897,18 +904,22 @@ function SessionFormScreenContent({
                         warmupSets: Array.from(Array(3)).map(() => ({
                           workoutSetId: uuidv4(),
                           type: "Warmup" as const,
-                          status: "Planned" as const,
-                          start: undefined,
-                          end: undefined,
+                          status: sessionIsTerminal
+                            ? ("Incomplete" as const)
+                            : ("Planned" as const),
+                          start: sessionIsTerminal ? session?.end : undefined,
+                          end: sessionIsTerminal ? session?.end : undefined,
                           actualReps: 0,
                           feedback: "Neutral" as const,
                         })),
                         mainSets: Array.from(Array(3)).map(() => ({
                           workoutSetId: uuidv4(),
                           type: "Main" as const,
-                          status: "Planned" as const,
-                          start: undefined,
-                          end: undefined,
+                          status: sessionIsTerminal
+                            ? ("Incomplete" as const)
+                            : ("Planned" as const),
+                          start: sessionIsTerminal ? session?.end : undefined,
+                          end: sessionIsTerminal ? session?.end : undefined,
                           actualReps: 0,
                           feedback: "Neutral" as const,
                         })),
@@ -927,34 +938,36 @@ function SessionFormScreenContent({
             </Animated.View>
           </AnimatedViewStyled>
         )}
-        {session?.status === "Done" && session.start && (
-          <Controller
-            name="end"
-            control={control}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInputThemed
-                label="Elapsed Time (minutes)"
-                onChangeText={(newValue) =>
-                  onChange(
-                    session.start &&
-                      add(session.start, { minutes: Number(newValue) }),
-                  )
-                }
-                onBlur={onBlur}
-                value={
-                  value && session.start
-                    ? String(differenceInMinutes(value, session.start))
-                    : undefined
-                }
-                maxLength={3}
-                keyboardType="number-pad"
-                selectTextOnFocus
-                numeric
-                cardVariants={["square"]}
-              />
-            )}
-          />
-        )}
+        {session &&
+          isSessionTerminalStatus(session.status) &&
+          session.start && (
+            <Controller
+              name="end"
+              control={control}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInputThemed
+                  label="Elapsed Time (minutes)"
+                  onChangeText={(newValue) =>
+                    onChange(
+                      session.start &&
+                        add(session.start, { minutes: Number(newValue) }),
+                    )
+                  }
+                  onBlur={onBlur}
+                  value={
+                    value && session.start
+                      ? String(differenceInMinutes(value, session.start))
+                      : undefined
+                  }
+                  maxLength={3}
+                  keyboardType="number-pad"
+                  selectTextOnFocus
+                  numeric
+                  cardVariants={["square"]}
+                />
+              )}
+            />
+          )}
         {session?.status === "Ready" && (
           <PrimaryCardAction
             label="Complete Workout Session"

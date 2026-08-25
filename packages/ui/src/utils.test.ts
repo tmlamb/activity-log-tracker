@@ -104,7 +104,7 @@ describe("plannedRepsFromTemplateActivity", () => {
 });
 
 describe("cleanupInactiveSession", () => {
-  it("completes a session when every set was already completed", () => {
+  it("marks a timed-out session incomplete when every set was completed", () => {
     const lastActivityAt = new Date("2026-08-24T09:00:00.000Z");
     const session = createSession(
       createActivity([
@@ -122,12 +122,12 @@ describe("cleanupInactiveSession", () => {
       new Date("2026-08-24T10:00:00.000Z"),
     );
 
-    expect(result.status).toBe("Done");
+    expect(result.status).toBe("Incomplete");
     expect(result.end).toEqual(lastActivityAt);
     expect(result.activities[0]?.mainSets[0]?.status).toBe("Done");
   });
 
-  it("completes a session after one hour without a write", () => {
+  it("marks a session incomplete after one hour without a write", () => {
     const lastActivityAt = new Date("2026-08-24T09:00:00.000Z");
     const readySetStart = new Date("2026-08-24T08:30:00.000Z");
     const session = createSession(
@@ -152,7 +152,7 @@ describe("cleanupInactiveSession", () => {
       new Date("2026-08-24T10:00:00.000Z"),
     );
 
-    expect(result.status).toBe("Done");
+    expect(result.status).toBe("Incomplete");
     expect(result.end).toEqual(lastActivityAt);
     expect(result.activities[0]?.mainSets).toMatchObject([
       { status: "Done" },
@@ -193,7 +193,7 @@ describe("cleanupInactiveSession", () => {
       new Date("2026-08-24T10:00:00.000Z"),
     );
 
-    expect(result.status).toBe("Done");
+    expect(result.status).toBe("Incomplete");
     expect(result.end).toEqual(latestSetEnd);
   });
 
@@ -236,16 +236,18 @@ describe("cleanupInactiveSession", () => {
       new Date("2026-08-25T10:00:00.000Z"),
     );
 
-    expect(result.status).toBe("Done");
+    expect(result.status).toBe("Incomplete");
     expect(result.end).toEqual(new Date("2026-08-24T09:00:00.000Z"));
   });
 
-  it("does not change planned or completed sessions", () => {
+  it("does not change planned or terminal sessions", () => {
     const activity = createActivity([]);
     const planned = createSession(activity, { status: "Planned" });
+    const incomplete = createSession(activity, { status: "Incomplete" });
     const done = createSession(activity, { status: "Done" });
 
     expect(cleanupInactiveSession(planned)).toBe(planned);
+    expect(cleanupInactiveSession(incomplete)).toBe(incomplete);
     expect(cleanupInactiveSession(done)).toBe(done);
   });
 });
@@ -276,6 +278,22 @@ describe("completeSession", () => {
     ]);
     expect(result.activities[0]?.mainSets[2]?.start).toBeUndefined();
     expect(result.activities[0]?.mainSets[2]?.end).toBeUndefined();
+  });
+
+  it("acknowledges an incomplete session without changing its end time", () => {
+    const end = new Date("2026-08-24T09:00:00.000Z");
+    const session = createSession(
+      createActivity([
+        createWorkoutSet("incomplete", { status: "Incomplete" }),
+      ]),
+      { status: "Incomplete", end },
+    );
+
+    const result = completeSession(session, end);
+
+    expect(result.status).toBe("Done");
+    expect(result.end).toEqual(end);
+    expect(result.activities[0]?.mainSets[0]?.status).toBe("Incomplete");
   });
 });
 

@@ -5,6 +5,7 @@ import type {
 } from "react-native";
 import { useState } from "react";
 import { Text, useWindowDimensions, View } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { AntDesign } from "@expo/vector-icons";
 import { twMerge } from "tailwind-merge";
 
@@ -190,6 +191,8 @@ interface NavigationCardRowProps extends PressableProps {
   titleNumberOfLines?: number;
   trailingText?: React.ReactNode;
   trailingTextClassName?: string;
+  animateTrailingText?: boolean;
+  trailingTextAnimationKey?: string;
   showChevron?: boolean;
 }
 
@@ -203,6 +206,8 @@ export function NavigationCardRow({
   titleNumberOfLines,
   trailingText,
   trailingTextClassName,
+  animateTrailingText = false,
+  trailingTextAnimationKey,
   showChevron = true,
   ...pressableProps
 }: NavigationCardRowProps) {
@@ -238,12 +243,30 @@ export function NavigationCardRow({
         {(trailingText != null || showChevron) && (
           <View className="flex-row items-center justify-end gap-1">
             {trailingText != null ? (
-              <Text
-                maxFontSizeMultiplier={2.5}
-                className={twMerge("text-muted text-xl", trailingTextClassName)}
-              >
-                {trailingText}
-              </Text>
+              animateTrailingText ? (
+                <Animated.Text
+                  key={trailingTextAnimationKey}
+                  entering={FadeIn.duration(250)}
+                  exiting={FadeOut.duration(250)}
+                  maxFontSizeMultiplier={2.5}
+                  className={twMerge(
+                    "text-muted text-xl",
+                    trailingTextClassName,
+                  )}
+                >
+                  {trailingText}
+                </Animated.Text>
+              ) : (
+                <Text
+                  maxFontSizeMultiplier={2.5}
+                  className={twMerge(
+                    "text-muted text-xl",
+                    trailingTextClassName,
+                  )}
+                >
+                  {trailingText}
+                </Text>
+              )
             ) : null}
             {showChevron ? (
               <Text maxFontSizeMultiplier={2.5} className="text-muted">

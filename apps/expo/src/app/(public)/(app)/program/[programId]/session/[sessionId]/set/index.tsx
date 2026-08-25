@@ -25,6 +25,7 @@ import { twMerge } from "tailwind-merge";
 
 import type { Activity, WarmupSet, WorkoutSet } from "@activity-log/ui/utils";
 import {
+  isSessionTerminalStatus,
   round5,
   stringifyLoad,
   stringifyPercent,
@@ -213,7 +214,7 @@ function WorkoutSetDetailScreenContent({
     ...activity.mainSets,
   ];
   const isStartable =
-    session.status !== "Done" &&
+    !isSessionTerminalStatus(session.status) &&
     workoutSet.status === "Planned" &&
     activitySets.find((ws) => ["Planned", "Ready"].includes(ws.status))
       ?.workoutSetId === workoutSet.workoutSetId;

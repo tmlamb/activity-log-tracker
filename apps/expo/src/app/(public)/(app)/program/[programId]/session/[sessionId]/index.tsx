@@ -13,7 +13,10 @@ import type {
   WarmupSet,
   WorkoutSet,
 } from "@activity-log/ui/utils";
-import { SESSION_INACTIVITY_TIMEOUT_MS } from "@activity-log/ui/utils";
+import {
+  isSessionTerminalStatus,
+  SESSION_INACTIVITY_TIMEOUT_MS,
+} from "@activity-log/ui/utils";
 
 import type { WorkoutStore } from "~/hooks/use-workout-store";
 import BottomActionBar from "~/components/BottomActionBar";
@@ -59,7 +62,7 @@ function SessionCleanupWarning({ session }: { session: Session }) {
   return visible ? (
     <HelperText>
       Sessions left open without activity after 1 hour will automatically be
-      marked complete
+      marked incomplete
     </HelperText>
   ) : null;
 }
@@ -128,6 +131,8 @@ function WorkoutSetCard({
               ? "text-warning"
               : "text-muted"
         }
+        animateTrailingText
+        trailingTextAnimationKey={status}
         accessibilityLabel={`Navigate to ${title}, current status: ${status}`}
       />
     </Link>
@@ -297,9 +302,10 @@ function SessionDetailScreenContent({
   });
 
   const completable =
-    !workoutSetsPending.length &&
-    session.status === "Ready" &&
-    session.activities.length > 0;
+    session.status === "Incomplete" ||
+    (!workoutSetsPending.length &&
+      session.status === "Ready" &&
+      session.activities.length > 0);
 
   return (
     <>
@@ -382,7 +388,7 @@ function SessionDetailScreenContent({
               {session.activities.length < 1
                 ? "Before continuing with this workout session, use the 'Edit' button to add exercises."
                 : session.activities.length > 1 ||
-                  session.status === "Done" ||
+                  isSessionTerminalStatus(session.status) ||
                   "Use the 'Edit' button to add more exercises to the workout session."}
             </HelperText>
           }
@@ -397,7 +403,7 @@ function SessionDetailScreenContent({
             completeSession(program.programId, {
               ...session,
               status: "Done",
-              end: new Date(),
+              end: session.status === "Incomplete" ? session.end : new Date(),
             });
           }}
         />

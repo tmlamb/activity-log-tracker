@@ -16,6 +16,7 @@ import {
   dateRegex,
   exerciseNamesMatch,
   completeSession as finalizeSession,
+  isSessionTerminalStatus,
   reconcileCompletedWorkoutSet as reconcileWorkoutSet,
 } from "@activity-log/ui/utils";
 
@@ -195,13 +196,14 @@ const useWorkoutStore = create<WorkoutStore>()(
             if (!current) throw new Error("Session not found");
             const now = new Date();
             const status =
-              current.status === "Done" && session.status === "Ready"
+              current.status === "Done" && session.status !== "Planned"
                 ? "Done"
-                : session.status;
-            const end =
-              status === "Done"
-                ? (session.end ?? current.end ?? now)
-                : session.end;
+                : current.status === "Incomplete" && session.status === "Ready"
+                  ? "Incomplete"
+                  : session.status;
+            const end = isSessionTerminalStatus(status)
+              ? (session.end ?? current.end ?? now)
+              : session.end;
             const hasNonterminalSets = session.activities.some((activity) =>
               [...activity.warmupSets, ...activity.mainSets].some(
                 (workoutSet) =>
@@ -210,13 +212,13 @@ const useWorkoutStore = create<WorkoutStore>()(
               ),
             );
             const activities =
-              current.status === "Done" &&
-              status === "Done" &&
+              isSessionTerminalStatus(current.status) &&
+              isSessionTerminalStatus(status) &&
               hasNonterminalSets
                 ? current.activities
                 : session.activities;
             const nextSession =
-              current.status !== "Done" && status === "Done"
+              !isSessionTerminalStatus(current.status) && status === "Done"
                 ? finalizeSession({ ...session, status }, end ?? now)
                 : { ...session, activities, end, status };
             current.name = nextSession.name.trim();
@@ -233,7 +235,9 @@ const useWorkoutStore = create<WorkoutStore>()(
         const current = get()
           .programs.find((program) => program.programId === programId)
           ?.sessions.find((item) => item.sessionId === session.sessionId);
-        if (current?.status !== "Ready") return;
+        if (current?.status !== "Ready" && current?.status !== "Incomplete") {
+          return;
+        }
 
         set(
           produce((state: WorkoutStore) => {
@@ -243,12 +247,23 @@ const useWorkoutStore = create<WorkoutStore>()(
             const currentSession = program?.sessions.find(
               (item) => item.sessionId === session.sessionId,
             );
-            if (currentSession?.status !== "Ready") return;
+            if (
+              currentSession?.status !== "Ready" &&
+              currentSession?.status !== "Incomplete"
+            ) {
+              return;
+            }
 
             const now = new Date();
+            const isAcknowledgingTimeout =
+              currentSession.status === "Incomplete";
             const completedSession = finalizeSession(
-              { ...session, start: currentSession.start },
-              session.end ?? now,
+              isAcknowledgingTimeout
+                ? { ...currentSession }
+                : { ...session, start: currentSession.start },
+              isAcknowledgingTimeout
+                ? (currentSession.end ?? now)
+                : (session.end ?? now),
             );
             currentSession.name = completedSession.name.trim();
             currentSession.templateId = completedSession.templateId;
@@ -456,7 +471,7 @@ const useWorkoutStore = create<WorkoutStore>()(
             current.actualReps = workoutSet.actualReps;
             current.weight = workoutSet.weight;
             current.feedback = workoutSet.feedback;
-            if (session.status !== "Done") {
+            if (!isSessionTerminalStatus(session.status)) {
               current.end = workoutSet.end;
               current.start = workoutSet.start;
               current.status = workoutSet.status;
@@ -484,7 +499,8 @@ const useWorkoutStore = create<WorkoutStore>()(
         ].find((item) => item.workoutSetId === workoutSetId);
         const status = (actualReps ?? 0) > 0 ? "Done" : "Incomplete";
         if (
-          session?.status !== "Done" ||
+          !session ||
+          !isSessionTerminalStatus(session.status) ||
           !workoutSet ||
           (Object.is(workoutSet.actualReps, actualReps) &&
             workoutSet.status === status)
@@ -504,7 +520,13 @@ const useWorkoutStore = create<WorkoutStore>()(
               ...(currentActivity?.warmupSets ?? []),
               ...(currentActivity?.mainSets ?? []),
             ].find((item) => item.workoutSetId === workoutSetId);
-            if (currentSession?.status !== "Done" || !currentWorkoutSet) return;
+            if (
+              !currentSession ||
+              !isSessionTerminalStatus(currentSession.status) ||
+              !currentWorkoutSet
+            ) {
+              return;
+            }
 
             const now = new Date();
             const end = currentSession.end ?? now;
