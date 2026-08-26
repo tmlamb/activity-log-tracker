@@ -24,6 +24,7 @@ import { DetailCardRow, NavigationCardRow } from "~/components/CardRow";
 import {
   CollapsibleSectionBody,
   CollapsibleSectionHeader,
+  useCollapsibleSectionScroll,
 } from "~/components/CollapsibleSection";
 import ElapsedTime from "~/components/ElapsedTime";
 import { HeaderTextAction } from "~/components/HeaderAction";
@@ -86,6 +87,20 @@ interface WorkoutSetCardProps {
   program: Program;
   title: string;
   index: number;
+}
+
+interface ExerciseSectionItem {
+  activityId: string;
+  collapsed: boolean;
+  workoutSets: WorkoutSetCardProps[];
+}
+
+interface ExerciseSection {
+  title: string;
+  activityId: string;
+  allSetsDone: boolean;
+  collapsed: boolean;
+  data: ExerciseSectionItem[];
 }
 
 function WorkoutSetCard({
@@ -199,6 +214,9 @@ function SessionDetailScreenContent({
   exercises: WorkoutStore["exercises"];
   completeSession: WorkoutStore["completeSession"];
 }) {
+  const sectionListRef =
+    useRef<SectionList<ExerciseSectionItem, ExerciseSection>>(null);
+  const collapsibleSectionScroll = useCollapsibleSectionScroll();
   const [collapsedActivityIds, setCollapsedActivityIds] = useState<Set<string>>(
     () => getCompletedActivityIds(session.activities),
   );
@@ -207,6 +225,7 @@ function SessionDetailScreenContent({
   );
 
   const toggleActivityCollapsed = (activityId: string) => {
+    collapsibleSectionScroll.prepareSectionToggle();
     setCollapsedActivityIds((current) => {
       const next = new Set(current);
       if (next.has(activityId)) {
@@ -258,48 +277,40 @@ function SessionDetailScreenContent({
     [] as WorkoutSet[],
   );
 
-  const sections = session.activities.map<{
-    title: string;
-    activityId: string;
-    allSetsDone: boolean;
-    collapsed: boolean;
-    data: {
-      activityId: string;
-      collapsed: boolean;
-      workoutSets: WorkoutSetCardProps[];
-    }[];
-  }>((activity, actIndex) => {
-    const allSetsDone = areAllActivitySetsDone(activity);
-    const collapsed = collapsedActivityIds.has(activity.activityId);
-    const workoutSets = _.concat<WorkoutSetCardProps>(
-      activity.warmupSets.map((ws, i) => ({
-        workoutSet: ws,
-        activity,
-        session,
-        program,
-        title: `Warmup Set ${i + 1}`,
-        index: i,
-      })),
-      activity.mainSets.map((ws, i) => ({
-        workoutSet: ws,
-        activity,
-        session,
-        program,
-        title: `Main Set ${i + 1}`,
-        index: activity.warmupSets.length + i,
-      })),
-    );
+  const sections = session.activities.map<ExerciseSection>(
+    (activity, actIndex) => {
+      const allSetsDone = areAllActivitySetsDone(activity);
+      const collapsed = collapsedActivityIds.has(activity.activityId);
+      const workoutSets = _.concat<WorkoutSetCardProps>(
+        activity.warmupSets.map((ws, i) => ({
+          workoutSet: ws,
+          activity,
+          session,
+          program,
+          title: `Warmup Set ${i + 1}`,
+          index: i,
+        })),
+        activity.mainSets.map((ws, i) => ({
+          workoutSet: ws,
+          activity,
+          session,
+          program,
+          title: `Main Set ${i + 1}`,
+          index: activity.warmupSets.length + i,
+        })),
+      );
 
-    return {
-      title:
-        exercises.find((e) => e.exerciseId === activity.exerciseId)?.name ??
-        `Activity ${actIndex + 1}`,
-      activityId: activity.activityId,
-      allSetsDone,
-      collapsed,
-      data: [{ activityId: activity.activityId, collapsed, workoutSets }],
-    };
-  });
+      return {
+        title:
+          exercises.find((e) => e.exerciseId === activity.exerciseId)?.name ??
+          `Activity ${actIndex + 1}`,
+        activityId: activity.activityId,
+        allSetsDone,
+        collapsed,
+        data: [{ activityId: activity.activityId, collapsed, workoutSets }],
+      };
+    },
+  );
 
   const completable =
     session.status === "Incomplete" ||
@@ -326,8 +337,12 @@ function SessionDetailScreenContent({
       />
       <View className="flex-1">
         <SectionList
+          ref={sectionListRef}
           className="flex-1"
           sections={sections}
+          onLayout={collapsibleSectionScroll.onListLayout}
+          onScroll={collapsibleSectionScroll.onScroll}
+          scrollEventThrottle={16}
           contentContainerClassName="pt-36 px-5 pb-24"
           keyExtractor={(item) => item.activityId}
           stickySectionHeadersEnabled={false}

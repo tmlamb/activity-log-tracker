@@ -216,27 +216,19 @@ export function NavigationCardRow({
   ...pressableProps
 }: NavigationCardRowProps) {
   const multilineEnabled = cardVariants?.includes("multiline") ?? false;
-  const [titleIsMultiline, setTitleIsMultiline] = useState(false);
   const titlePaddingClassName = multilineEnabled
-    ? titleIsMultiline
-      ? "py-4.5 leading-tight"
-      : "py-3"
+    ? "py-3 leading-tight"
     : undefined;
 
   const titleText = (
     <Text
       maxFontSizeMultiplier={2.5}
       className={twMerge(
-        "text-foreground flex-1 pr-2.5 text-xl",
+        "text-foreground min-w-0 flex-1 pr-2.5 text-xl",
         titlePaddingClassName,
         titleClassName,
       )}
       numberOfLines={titleNumberOfLines ?? (multilineEnabled ? undefined : 1)}
-      onTextLayout={
-        multilineEnabled
-          ? (event) => setTitleIsMultiline(event.nativeEvent.lines.length > 1)
-          : undefined
-      }
     >
       {title}
     </Text>
@@ -246,7 +238,7 @@ export function NavigationCardRow({
     <PressableThemed className={className} {...pressableProps}>
       <Card stack={stack} variants={cardVariants} className={cardClassName}>
         {leadingText != null ? (
-          <View className="flex-1 flex-row items-start gap-4">
+          <View className="min-w-0 flex-1 flex-row items-start gap-4">
             <Text
               maxFontSizeMultiplier={2.5}
               className={twMerge(

@@ -1,5 +1,10 @@
-import type { LayoutChangeEvent } from "react-native";
-import { useEffect, useState } from "react";
+import type {
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LayoutAnimation } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -14,6 +19,37 @@ import { SectionHeading } from "./Typography";
 
 const collapseAnimationDuration = 320;
 const collapseAnimationEasing = Easing.bezier(0.22, 0, 0, 1);
+
+export function useCollapsibleSectionScroll() {
+  const scrollOffsetRef = useRef(0);
+  const listHeightRef = useRef(0);
+
+  const onListLayout = useCallback((event: LayoutChangeEvent) => {
+    listHeightRef.current = event.nativeEvent.layout.height;
+  }, []);
+
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+    },
+    [],
+  );
+
+  const prepareSectionToggle = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  }, []);
+
+  return useMemo(
+    () => ({
+      onListLayout,
+      onScroll,
+      prepareSectionToggle,
+      getScrollOffset: () => scrollOffsetRef.current,
+      getListHeight: () => listHeightRef.current,
+    }),
+    [onListLayout, onScroll, prepareSectionToggle],
+  );
+}
 
 interface CollapsibleSectionHeaderProps {
   title: string;
@@ -77,6 +113,7 @@ interface CollapsibleSectionBodyProps {
   children: React.ReactNode;
   className?: string;
   contentClassName?: string;
+  onContentLayout?: (height: number) => void;
 }
 
 export function CollapsibleSectionBody({
@@ -84,6 +121,7 @@ export function CollapsibleSectionBody({
   children,
   className,
   contentClassName,
+  onContentLayout,
 }: CollapsibleSectionBodyProps) {
   const [contentHeight, setContentHeight] = useState(0);
   const expansionProgress = useSharedValue(collapsed ? 0 : 1);
@@ -114,15 +152,17 @@ export function CollapsibleSectionBody({
     if (nextHeight > 0 && nextHeight !== contentHeight) {
       setContentHeight(nextHeight);
     }
+    onContentLayout?.(nextHeight);
   };
 
   return (
     <Animated.View
-      className={twMerge("overflow-hidden", className)}
+      className={twMerge("w-full overflow-hidden", className)}
       style={bodyStyle}
     >
       <Animated.View
-        className={contentClassName}
+        key={collapsed ? "collapsed" : "expanded"}
+        className={twMerge("absolute right-0 left-0", contentClassName)}
         onLayout={handleContentLayout}
         style={contentStyle}
       >
