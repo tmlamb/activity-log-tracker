@@ -349,6 +349,7 @@ function ProgramDetailScreenContent({
               <CollapsibleSectionHeader
                 title={section.title}
                 collapsed={section.collapsed}
+                titleClassName="leading-tight"
                 onPress={() => toggleSectionCollapsed(section.sectionId)}
               />
             ) : (
@@ -385,7 +386,7 @@ function ProgramDetailScreenContent({
                       cardVariants={["multiline"]}
                       stack={{ index, size: sessions.length }}
                       cardClassName={
-                        index === sessions.length - 1 ? "mb-6" : undefined
+                        index === sessions.length - 1 ? "mb-3" : undefined
                       }
                       trailingText={session.status}
                       trailingTextClassName={
