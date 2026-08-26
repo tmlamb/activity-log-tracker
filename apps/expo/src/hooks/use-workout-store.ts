@@ -16,6 +16,7 @@ import {
   dateRegex,
   exerciseNamesMatch,
   completeSession as finalizeSession,
+  getSessionWeekMoveEligibility,
   isSessionTerminalStatus,
   reconcileCompletedWorkoutSet as reconcileWorkoutSet,
 } from "@activity-log/ui/utils";
@@ -31,6 +32,11 @@ export interface WorkoutStore {
   deleteProgram: (programId: string) => void;
   addSession: (programId: string, session: Session) => void;
   updateSession: (programId: string, session: Session) => void;
+  moveSessionToAdjacentWeek: (
+    programId: string,
+    sessionId: string,
+    direction: "prior" | "following",
+  ) => boolean;
   completeSession: (programId: string, session: Session) => void;
   startSession: (programId: string, sessionId: string) => void;
   deleteSession: (programId: string, sessionId: string) => void;
@@ -225,11 +231,60 @@ const useWorkoutStore = create<WorkoutStore>()(
             current.templateId = nextSession.templateId;
             current.start = nextSession.start;
             current.end = nextSession.end;
+            current.weekOffset = nextSession.weekOffset;
             current.activities = nextSession.activities;
             current.status = nextSession.status;
             current.lastActivityAt = now;
           }),
         );
+      },
+      moveSessionToAdjacentWeek: (
+        programId: string,
+        sessionId: string,
+        direction: "prior" | "following",
+      ) => {
+        const program = get().programs.find(
+          (item) => item.programId === programId,
+        );
+        if (!program) throw new Error("Program not found");
+
+        const session = program.sessions.find(
+          (item) => item.sessionId === sessionId,
+        );
+        if (!session) throw new Error("Session not found");
+
+        const eligibility = getSessionWeekMoveEligibility(
+          program.sessions,
+          session,
+        );
+        if (
+          (direction === "prior" && !eligibility.canMoveToPriorWeek) ||
+          (direction === "following" && !eligibility.canMoveToFollowingWeek)
+        ) {
+          return false;
+        }
+
+        set(
+          produce((state: WorkoutStore) => {
+            const program = state.programs.find(
+              (item) => item.programId === programId,
+            );
+            if (!program) throw new Error("Program not found");
+
+            const session = program.sessions.find(
+              (item) => item.sessionId === sessionId,
+            );
+            if (!session) throw new Error("Session not found");
+            if (!isSessionTerminalStatus(session.status)) {
+              throw new Error("Only completed sessions can move between weeks");
+            }
+
+            const nextWeekOffset =
+              (session.weekOffset ?? 0) + (direction === "prior" ? -1 : 1);
+            session.weekOffset = nextWeekOffset || undefined;
+          }),
+        );
+        return true;
       },
       completeSession: (programId: string, session: Session) => {
         const current = get()
@@ -269,6 +324,7 @@ const useWorkoutStore = create<WorkoutStore>()(
             currentSession.templateId = completedSession.templateId;
             currentSession.start = completedSession.start;
             currentSession.end = completedSession.end;
+            currentSession.weekOffset = completedSession.weekOffset;
             currentSession.activities = completedSession.activities;
             currentSession.status = completedSession.status;
             currentSession.lastActivityAt = now;

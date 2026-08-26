@@ -1,31 +1,50 @@
+import { useEffect, useRef, useState } from "react";
 import { SectionList, Text, View } from "react-native";
-import { Link, Redirect, useLocalSearchParams } from "expo-router";
+import { Link, Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { useIsFocused } from "expo-router/react-navigation";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { differenceInCalendarDays } from "date-fns";
 import _ from "lodash";
 
 import type { Session } from "@activity-log/ui/utils";
-import {
-  normalizedLocalDate,
-  weekAndDayFromStart,
-} from "@activity-log/ui/utils";
+import { weekAndDayNumbersFromStart } from "@activity-log/ui/utils";
 
 import type { WorkoutStore } from "~/hooks/use-workout-store";
+import BottomActionBar from "~/components/BottomActionBar";
+import { DetailCardRow, NavigationCardRow } from "~/components/CardRow";
 import {
-  DetailCardRow,
-  NavigationCardRow,
-  PrimaryCardAction,
-} from "~/components/CardRow";
+  CollapsibleSectionBody,
+  CollapsibleSectionHeader,
+} from "~/components/CollapsibleSection";
 import PressableThemed from "~/components/PressableThemed";
-import {
-  HelperText,
-  ScreenHeading,
-  SectionHeading,
-} from "~/components/Typography";
+import { HelperText, ScreenHeading } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
+const sessionStatusOrder: Record<Session["status"], number> = {
+  Ready: 0,
+  Planned: 1,
+  Done: 2,
+  Incomplete: 2,
+};
+
+interface WeekSectionItem {
+  week: number;
+  collapsed: boolean;
+  session?: Session;
+}
+
+interface WeekSection {
+  title: string;
+  week: number;
+  collapsed: boolean;
+  sessionCount: number;
+  data: WeekSectionItem[];
+}
+
 export default function ProgramDetailScreen() {
-  const { programId } = useLocalSearchParams<{ programId: string }>();
+  const { programId, focusSessionId } = useLocalSearchParams<{
+    programId: string;
+    focusSessionId?: string;
+  }>();
   const programs = useWorkoutStore((state) => state.programs);
   const program = programs.find((p) => p.programId === programId);
 
@@ -33,55 +52,211 @@ export default function ProgramDetailScreen() {
     return <Redirect href="/(public)/(app)" />;
   }
 
-  return <ProgramDetailScreenContent program={program} />;
+  return (
+    <ProgramDetailScreenContent
+      program={program}
+      focusSessionId={focusSessionId}
+    />
+  );
 }
 
 function ProgramDetailScreenContent({
   program,
+  focusSessionId,
 }: {
   program: WorkoutStore["programs"][number];
+  focusSessionId?: string;
 }) {
+  const router = useRouter();
+  const isFocused = useIsFocused();
+  const sectionListRef =
+    useRef<SectionList<WeekSectionItem, WeekSection>>(null);
+  const [weekCollapseOverrides, setWeekCollapseOverrides] = useState<
+    Set<number>
+  >(() => new Set());
+  const now = new Date();
   const orderedByStart = _.orderBy(program.sessions, ["start"], ["asc"]);
-  const programStart = orderedByStart[0]?.start ?? new Date();
+  const programStart = orderedByStart[0]?.start ?? now;
 
-  const sections: { title: string; data: (Session | undefined)[] }[] = _(
-    orderedByStart,
-  )
-    .groupBy((session) =>
-      weekAndDayFromStart(programStart, session.start ?? new Date()),
-    )
-    .map((data, title) => ({ title, data }))
+  const getSessionWeekAndDay = (session: Session) =>
+    weekAndDayNumbersFromStart(
+      programStart,
+      session.start ?? now,
+      session.weekOffset,
+    );
+
+  const weekSections: {
+    title: string;
+    week: number;
+    sessions: Session[];
+  }[] = _(orderedByStart)
+    .groupBy((session) => getSessionWeekAndDay(session).week)
+    .map((data, week) => ({
+      title: `Week ${week}`,
+      week: Number(week),
+      sessions: _.sortBy(
+        [...data].reverse(),
+        (session) => sessionStatusOrder[session.status],
+      ),
+    }))
     .value();
 
-  const section = sections[sections.length - 1];
+  const { week: currentWeek } = weekAndDayNumbersFromStart(programStart, now);
+  const currentWeekSection = weekSections.find(
+    (section) => section.week === currentWeek,
+  );
 
-  if (
-    sections.length > 0 &&
-    section &&
-    differenceInCalendarDays(
-      normalizedLocalDate(new Date()),
-      normalizedLocalDate(section.data[0]?.start ?? new Date()),
-    ) === 0
-  ) {
-    section.title += " (Today)";
-  } else {
-    sections.push({
-      title: `${weekAndDayFromStart(programStart, new Date())} (Today)`,
-      data: [undefined],
+  if (!currentWeekSection) {
+    weekSections.push({
+      title: `Week ${currentWeek}`,
+      week: currentWeek,
+      sessions: [],
     });
   }
 
-  sections.reverse();
+  weekSections.sort((a, b) => b.week - a.week);
+
+  const currentWeekSectionIndex = weekSections.findIndex(
+    (section) => section.week === currentWeek,
+  );
+
+  const toggleWeekCollapsed = (week: number) => {
+    setWeekCollapseOverrides((current) => {
+      const next = new Set(current);
+      if (next.has(week)) {
+        next.delete(week);
+      } else {
+        next.add(week);
+      }
+      return next;
+    });
+  };
+
+  const sections: WeekSection[] = weekSections.map(
+    ({ title, week, sessions }, index) => {
+      const collapsedByDefault = index > currentWeekSectionIndex;
+      const collapsedFromState = weekCollapseOverrides.has(week)
+        ? !collapsedByDefault
+        : collapsedByDefault;
+      const containsFocusedSession = sessions.some(
+        (session) => session.sessionId === focusSessionId,
+      );
+      const collapsed = containsFocusedSession ? false : collapsedFromState;
+      const isCurrent = week === currentWeek;
+      const data: WeekSectionItem[] = sessions.length
+        ? sessions.map((session) => ({ week, collapsed, session }))
+        : [{ week, collapsed }];
+
+      return {
+        title: `${title}${isCurrent ? " (Current)" : ""}`,
+        week,
+        collapsed,
+        sessionCount: sessions.length,
+        data,
+      };
+    },
+  );
+
+  const focusedSectionIndex = focusSessionId
+    ? sections.findIndex((section) =>
+        section.data.some((item) => item.session?.sessionId === focusSessionId),
+      )
+    : -1;
+  const focusedSection = sections[focusedSectionIndex];
+  const focusedItemIndex = focusSessionId
+    ? (focusedSection?.data.findIndex(
+        (item) => item.session?.sessionId === focusSessionId,
+      ) ?? -1)
+    : -1;
+  const focusedWeek = focusedSection?.week;
+
+  useEffect(() => {
+    if (!isFocused || !focusSessionId) {
+      return;
+    }
+
+    if (
+      focusedSectionIndex < 0 ||
+      focusedItemIndex < 0 ||
+      focusedWeek == null
+    ) {
+      const clearFocusTimeout = setTimeout(
+        () => router.setParams({ focusSessionId: undefined }),
+        0,
+      );
+      return () => clearTimeout(clearFocusTimeout);
+    }
+
+    const scrollTimeout = setTimeout(() => {
+      const collapsedByDefault = focusedSectionIndex > currentWeekSectionIndex;
+      setWeekCollapseOverrides((current) => {
+        const hasOverride = current.has(focusedWeek);
+        if (hasOverride === collapsedByDefault) return current;
+
+        const next = new Set(current);
+        if (collapsedByDefault) {
+          next.add(focusedWeek);
+        } else {
+          next.delete(focusedWeek);
+        }
+        return next;
+      });
+      sectionListRef.current?.recordInteraction();
+      sectionListRef.current?.scrollToLocation({
+        animated: true,
+        sectionIndex: focusedSectionIndex,
+        // RN 0.86 omits the current section header from its flattened index.
+        itemIndex: focusedItemIndex + 1,
+        viewPosition: 0.45,
+      });
+    }, 400);
+    const clearFocusTimeout = setTimeout(
+      () => router.setParams({ focusSessionId: undefined }),
+      2000,
+    );
+
+    return () => {
+      clearTimeout(scrollTimeout);
+      clearTimeout(clearFocusTimeout);
+    };
+  }, [
+    currentWeekSectionIndex,
+    focusSessionId,
+    focusedItemIndex,
+    focusedSectionIndex,
+    focusedWeek,
+    isFocused,
+    router,
+  ]);
 
   return (
     <View className="flex-1">
       <SectionList
-        scrollEnabled={program.sessions.length > 4}
-        contentContainerClassName="px-5 pt-36 pb-18"
+        ref={sectionListRef}
+        contentContainerClassName="px-5 pt-36 pb-36"
         sections={sections}
-        keyExtractor={(session, index) =>
-          session ? session.sessionId : String(index)
+        extraData={weekCollapseOverrides}
+        keyExtractor={(item) =>
+          item.session?.sessionId ?? `empty-week-${item.week}`
         }
+        onScrollToIndexFailed={({ averageItemLength, index }) => {
+          if (focusedSectionIndex < 0 || focusedItemIndex < 0) return;
+
+          sectionListRef.current?.getScrollResponder()?.scrollTo({
+            animated: false,
+            y: averageItemLength * index,
+          });
+          setTimeout(() => {
+            sectionListRef.current?.scrollToLocation({
+              animated: true,
+              sectionIndex: focusedSectionIndex,
+              // See the RN 0.86 workaround in the initial scroll above.
+              itemIndex: focusedItemIndex + 1,
+              viewPosition: 0.45,
+            });
+          }, 100);
+        }}
+        stickySectionHeadersEnabled={false}
         ListHeaderComponent={
           <>
             <DetailCardRow
@@ -110,87 +285,56 @@ function ProgramDetailScreenContent({
             <ScreenHeading>Workout Sessions</ScreenHeading>
           </>
         }
-        renderSectionHeader={({ section: { title } }) => (
-          <SectionHeading>{title}</SectionHeading>
+        renderSectionHeader={({ section: { collapsed, title, week } }) => (
+          <CollapsibleSectionHeader
+            title={title}
+            collapsed={collapsed}
+            onPress={() => toggleWeekCollapsed(week)}
+          />
         )}
-        renderItem={({ index, item, section }) => (
-          <>
-            {!item && (
-              <>
-                <Link
-                  href={`/(public)/(app)/program/${program.programId}/session/form`}
-                  asChild
-                >
-                  <PrimaryCardAction
-                    label="Plan Workout Session"
-                    className={
-                      index === section.data.length - 1 &&
-                      program.sessions.length
-                        ? "mb-6"
-                        : undefined
-                    }
-                    accessibilityLabel={`Plan new workout session for ${program.name}`}
-                  />
-                </Link>
-                {program.sessions.length < 1 && (
-                  <HelperText>
-                    Start tracking your exercises by planning a session.
-                  </HelperText>
-                )}
-              </>
-            )}
-            {item && (
+        renderItem={({ index, item: { collapsed, session }, section }) => (
+          <CollapsibleSectionBody collapsed={collapsed}>
+            {session ? (
               <Link
-                href={`/(public)/(app)/program/${program.programId}/session/${item.sessionId}`}
+                href={`/(public)/(app)/program/${program.programId}/session/${session.sessionId}`}
                 asChild
               >
                 <NavigationCardRow
-                  title={item.name}
+                  title={session.name}
+                  leadingText={`Day ${getSessionWeekAndDay(session).day}`}
                   cardVariants={["multiline"]}
-                  stack={{
-                    index,
-                    size: section.title.includes("Today")
-                      ? section.data.length + 1
-                      : section.data.length,
-                  }}
+                  stack={{ index, size: section.sessionCount }}
                   cardClassName={
-                    index === section.data.length - 1 &&
-                    !section.title.includes("Today")
-                      ? "mb-6"
-                      : undefined
+                    index === section.sessionCount - 1 ? "mb-6" : undefined
                   }
-                  trailingText={item.status}
+                  trailingText={session.status}
                   trailingTextClassName={
-                    item.status === "Ready"
+                    session.status === "Ready"
                       ? "text-primary"
-                      : item.status === "Incomplete"
+                      : session.status === "Incomplete"
                         ? "text-warning"
                         : "text-muted"
                   }
-                  accessibilityLabel={`Navigate to session ${item.name}, status ${item.status}`}
+                  accessibilityLabel={`Navigate to Day ${getSessionWeekAndDay(session).day} session ${session.name}, status ${session.status}`}
                 />
               </Link>
-            )}
-            {section.title.includes("Today") &&
-              index === section.data.length - 1 &&
-              item && (
-                <Link
-                  href={`/(public)/(app)/program/${program.programId}/session/form`}
-                  asChild
-                >
-                  <PrimaryCardAction
-                    label="Plan Workout Session"
-                    className="mb-6"
-                    stack={{
-                      index: section.data.length,
-                      size: section.data.length + 1,
-                    }}
-                    accessibilityLabel="Navigate to create new workout session form"
-                  />
-                </Link>
-              )}
-          </>
+            ) : program.sessions.length < 1 ? (
+              <HelperText className="mb-6">
+                Start tracking your exercises by planning a session.
+              </HelperText>
+            ) : null}
+          </CollapsibleSectionBody>
         )}
+      />
+      <BottomActionBar
+        label="Plan Workout Session"
+        accessibilityLabel={`Plan new workout session for ${program.name}`}
+        className="absolute bottom-0 z-10 w-full"
+        onPress={() =>
+          router.push(
+            `/(public)/(app)/program/${program.programId}/session/form`,
+          )
+        }
       />
     </View>
   );

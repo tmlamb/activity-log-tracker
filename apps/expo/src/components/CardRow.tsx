@@ -183,6 +183,8 @@ export function DetailCardRow({
 
 interface NavigationCardRowProps extends PressableProps {
   title: React.ReactNode;
+  leadingText?: React.ReactNode;
+  leadingTextClassName?: string;
   stack?: CardRowStack;
   cardVariants?: (keyof typeof variantClasses)[];
   className?: string;
@@ -198,6 +200,8 @@ interface NavigationCardRowProps extends PressableProps {
 
 export function NavigationCardRow({
   title,
+  leadingText,
+  leadingTextClassName,
   stack,
   cardVariants,
   className,
@@ -213,33 +217,52 @@ export function NavigationCardRow({
 }: NavigationCardRowProps) {
   const multilineEnabled = cardVariants?.includes("multiline") ?? false;
   const [titleIsMultiline, setTitleIsMultiline] = useState(false);
+  const titlePaddingClassName = multilineEnabled
+    ? titleIsMultiline
+      ? "py-4.5 leading-tight"
+      : "py-3"
+    : undefined;
+
+  const titleText = (
+    <Text
+      maxFontSizeMultiplier={2.5}
+      className={twMerge(
+        "text-foreground flex-1 pr-2.5 text-xl",
+        titlePaddingClassName,
+        titleClassName,
+      )}
+      numberOfLines={titleNumberOfLines ?? (multilineEnabled ? undefined : 1)}
+      onTextLayout={
+        multilineEnabled
+          ? (event) => setTitleIsMultiline(event.nativeEvent.lines.length > 1)
+          : undefined
+      }
+    >
+      {title}
+    </Text>
+  );
 
   return (
     <PressableThemed className={className} {...pressableProps}>
       <Card stack={stack} variants={cardVariants} className={cardClassName}>
-        <Text
-          maxFontSizeMultiplier={2.5}
-          className={twMerge(
-            "text-foreground flex-1 pr-2.5 text-xl",
-            multilineEnabled
-              ? titleIsMultiline
-                ? "py-4.5 leading-tight"
-                : "py-3"
-              : undefined,
-            titleClassName,
-          )}
-          numberOfLines={
-            titleNumberOfLines ?? (multilineEnabled ? undefined : 1)
-          }
-          onTextLayout={
-            multilineEnabled
-              ? (event) =>
-                  setTitleIsMultiline(event.nativeEvent.lines.length > 1)
-              : undefined
-          }
-        >
-          {title}
-        </Text>
+        {leadingText != null ? (
+          <View className="flex-1 flex-row items-start gap-4">
+            <Text
+              maxFontSizeMultiplier={2.5}
+              className={twMerge(
+                "text-muted shrink-0 self-center text-xl",
+                titlePaddingClassName,
+                leadingTextClassName,
+              )}
+              numberOfLines={1}
+            >
+              {leadingText}
+            </Text>
+            {titleText}
+          </View>
+        ) : (
+          titleText
+        )}
         {(trailingText != null || showChevron) && (
           <View className="flex-row items-center justify-end gap-1">
             {trailingText != null ? (

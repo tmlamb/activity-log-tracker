@@ -34,6 +34,7 @@ import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 
 import {
+  getSessionWeekMoveEligibility,
   isSessionTerminalStatus,
   plannedRepsFromTemplateActivity,
   stringifyLoad,
@@ -119,6 +120,7 @@ export default function SessionFormScreen() {
     exercises,
     addSession,
     updateSession,
+    moveSessionToAdjacentWeek,
     completeSession,
     deleteSession,
   } = useWorkoutStore((store) => store);
@@ -137,6 +139,7 @@ export default function SessionFormScreen() {
       exercises={exercises}
       addSession={addSession}
       updateSession={updateSession}
+      moveSessionToAdjacentWeek={moveSessionToAdjacentWeek}
       completeSession={completeSession}
       deleteSession={deleteSession}
       programId={programId}
@@ -150,6 +153,7 @@ function SessionFormScreenContent({
   exercises,
   addSession,
   updateSession,
+  moveSessionToAdjacentWeek,
   completeSession,
   deleteSession,
   programId,
@@ -159,6 +163,7 @@ function SessionFormScreenContent({
   exercises: WorkoutStore["exercises"];
   addSession: WorkoutStore["addSession"];
   updateSession: WorkoutStore["updateSession"];
+  moveSessionToAdjacentWeek: WorkoutStore["moveSessionToAdjacentWeek"];
   completeSession: WorkoutStore["completeSession"];
   deleteSession: WorkoutStore["deleteSession"];
   programId: string;
@@ -169,6 +174,9 @@ function SessionFormScreenContent({
   const sessionIsTerminal = session
     ? isSessionTerminalStatus(session.status)
     : false;
+  const { canMoveToPriorWeek = false, canMoveToFollowingWeek = false } = session
+    ? getSessionWeekMoveEligibility(program.sessions, session)
+    : {};
 
   const { control, handleSubmit, getFieldState, reset, setValue, formState } =
     useForm<SessionFormData>({
@@ -363,17 +371,27 @@ function SessionFormScreenContent({
     clearPendingSession();
   }, [pendingSession]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const updateExistingSession = (
+    data: SessionFormData,
+    options?: { weekOffset?: number },
+  ) => {
+    if (!session) return;
+
+    updateSession(program.programId, {
+      name: data.name,
+      sessionId: session.sessionId,
+      templateId: session.templateId,
+      activities: data.activities,
+      start: session.start,
+      end: data.end,
+      weekOffset: options ? options.weekOffset : session.weekOffset,
+      status: session.status,
+    });
+  };
+
   const onSubmit = (data: SessionFormData) => {
     if (session) {
-      updateSession(program.programId, {
-        name: data.name,
-        sessionId: session.sessionId,
-        templateId: session.templateId,
-        activities: data.activities,
-        start: session.start,
-        end: data.end,
-        status: session.status,
-      });
+      updateExistingSession(data);
     } else {
       const templateSourceSession = templateSourceSessionRef.current;
       const templateId = templateSourceSession
@@ -430,9 +448,57 @@ function SessionFormScreenContent({
                 activities: data.activities,
                 start: session.start,
                 end: new Date(),
+                weekOffset: session.weekOffset,
                 status: "Done",
               });
               router.back();
+            })();
+          },
+        },
+      ],
+    );
+  };
+
+  const confirmSessionWeekMove = (direction: "prior" | "following") => {
+    if (!session) return;
+
+    const destination = direction === "prior" ? "Prior" : "Following";
+    Alert.alert(
+      `Move Session To ${destination} Week?`,
+      "This keeps the recorded date, so the session's Day number may fall outside 1-7. You can move it back later.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: `Move To ${destination} Week`,
+          onPress: () => {
+            void handleSubmit((data) => {
+              const nextWeekOffset =
+                (session.weekOffset ?? 0) + (direction === "prior" ? -1 : 1);
+              const moved = moveSessionToAdjacentWeek(
+                program.programId,
+                session.sessionId,
+                direction,
+              );
+
+              if (!moved) {
+                Alert.alert(
+                  "Unable To Move Session",
+                  "The session is no longer at the required week boundary.",
+                );
+                return;
+              }
+
+              updateExistingSession(data, {
+                weekOffset: nextWeekOffset || undefined,
+              });
+
+              router.dismissTo({
+                pathname: "/(public)/(app)/program/[programId]",
+                params: {
+                  programId: program.programId,
+                  focusSessionId: session.sessionId,
+                },
+              });
             })();
           },
         },
@@ -976,6 +1042,24 @@ function SessionFormScreenContent({
             cardVariants={["square"]}
           />
         )}
+        {sessionIsTerminal && canMoveToPriorWeek && (
+          <PrimaryCardAction
+            label="Move To Prior Week"
+            labelClassName="text-warning"
+            onPress={() => confirmSessionWeekMove("prior")}
+            accessibilityLabel={`Move ${session?.name ?? "session"} to the prior week`}
+            cardVariants={["square"]}
+          />
+        )}
+        {sessionIsTerminal && canMoveToFollowingWeek && (
+          <PrimaryCardAction
+            label="Move To Following Week"
+            labelClassName="text-warning"
+            onPress={() => confirmSessionWeekMove("following")}
+            accessibilityLabel={`Move ${session?.name ?? "session"} to the following week`}
+            cardVariants={["square"]}
+          />
+        )}
         {session && (
           <ConfirmButton
             title="Delete Session?"
@@ -1003,6 +1087,7 @@ function SessionFormScreenContent({
                   ...session,
                   start: undefined,
                   end: undefined,
+                  weekOffset: undefined,
                   status: "Planned",
                   activities: session.activities.map((actvy) => ({
                     ...actvy,
