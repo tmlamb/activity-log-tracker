@@ -364,12 +364,21 @@ function SessionFormScreenContent({
 
   // Apply session template returned from session/select modal
   useEffect(() => {
-    if (!pendingSession) return;
+    if (!pendingSession || !isFocused) return;
+
+    if (pendingSession.session.status === "Planned") {
+      clearPendingSession();
+      void router.replace(
+        `/(public)/(app)/program/${programId}/session/form?sessionId=${pendingSession.session.sessionId}`,
+      );
+      return;
+    }
+
     reset(buildTemplateFormData(pendingSession.session));
     templateSourceSessionRef.current = pendingSession.session;
     queueMicrotask(() => setFromType("Template"));
     clearPendingSession();
-  }, [pendingSession]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isFocused, pendingSession]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateExistingSession = (
     data: SessionFormData,
@@ -451,7 +460,7 @@ function SessionFormScreenContent({
                 weekOffset: session.weekOffset,
                 status: "Done",
               });
-              router.back();
+              router.dismissTo(`/(public)/(app)/program/${program.programId}`);
             })();
           },
         },
@@ -492,13 +501,7 @@ function SessionFormScreenContent({
                 weekOffset: nextWeekOffset || undefined,
               });
 
-              router.dismissTo({
-                pathname: "/(public)/(app)/program/[programId]",
-                params: {
-                  programId: program.programId,
-                  focusSessionId: session.sessionId,
-                },
-              });
+              router.dismissTo(`/(public)/(app)/program/${program.programId}`);
             })();
           },
         },

@@ -21,20 +21,12 @@ export default function SessionSelectScreen() {
 
   const program = programs.find((p) => p.programId === programId);
   const sessions = program?.sessions ?? [];
-  const plannedTemplateIds = new Set(
-    sessions
-      .filter((session) => session.status === "Planned")
-      .map((session) => session.templateId ?? session.sessionId),
-  );
 
   // Only terminal sessions make sense as templates. For template lineages,
-  // show only the latest terminal session in each lineage that is not planned.
+  // show only the latest terminal session in each lineage.
   const sessionsSorted = _(sessions)
     .filter(
-      (session) =>
-        isSessionTerminalStatus(session.status) &&
-        !!session.end &&
-        !plannedTemplateIds.has(session.templateId ?? session.sessionId),
+      (session) => isSessionTerminalStatus(session.status) && !!session.end,
     )
     .orderBy(["start"], ["desc"])
     .uniqBy((session) => session.templateId ?? session.sessionId)
@@ -45,7 +37,14 @@ export default function SessionSelectScreen() {
 
   const handleDone = () => {
     if (!selected) return;
-    setPendingSession({ session: selected });
+    const templateId = selected.templateId ?? selected.sessionId;
+    const plannedSession = sessions.find(
+      (session) =>
+        session.status === "Planned" &&
+        (session.templateId ?? session.sessionId) === templateId,
+    );
+
+    setPendingSession({ session: plannedSession ?? selected });
     router.back();
   };
 
@@ -84,7 +83,7 @@ export default function SessionSelectScreen() {
             </HelperText>
           ) : (
             <HelperText placement="listHeader">
-              No sessions are available as templates.
+              No previous sessions are available as templates.
             </HelperText>
           )
         }
