@@ -80,11 +80,7 @@ function ProgramDetailScreenContent({
   );
 
   const getSessionWeekAndDay = (session: Session) =>
-    weekAndDayNumbersFromStart(
-      programStart,
-      session.start ?? now,
-      session.weekOffset,
-    );
+    weekAndDayNumbersFromStart(programStart, session.start ?? now);
 
   const weekSections: {
     title: string;

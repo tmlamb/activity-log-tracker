@@ -34,9 +34,9 @@ import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 
 import {
-  getSessionWeekMoveEligibility,
   isSessionTerminalStatus,
   plannedRepsFromTemplateActivity,
+  shiftSessionStart,
   stringifyLoad,
 } from "@activity-log/ui/utils";
 
@@ -44,6 +44,7 @@ import type { WorkoutStore } from "~/hooks/use-workout-store";
 import Card from "~/components/Card";
 import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
+import DateTimeInputThemed from "~/components/DateTimeInputThemed";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PressableThemed from "~/components/PressableThemed";
@@ -120,7 +121,6 @@ export default function SessionFormScreen() {
     exercises,
     addSession,
     updateSession,
-    moveSessionToAdjacentWeek,
     completeSession,
     deleteSession,
   } = useWorkoutStore((store) => store);
@@ -139,7 +139,6 @@ export default function SessionFormScreen() {
       exercises={exercises}
       addSession={addSession}
       updateSession={updateSession}
-      moveSessionToAdjacentWeek={moveSessionToAdjacentWeek}
       completeSession={completeSession}
       deleteSession={deleteSession}
       programId={programId}
@@ -153,7 +152,6 @@ function SessionFormScreenContent({
   exercises,
   addSession,
   updateSession,
-  moveSessionToAdjacentWeek,
   completeSession,
   deleteSession,
   programId,
@@ -163,7 +161,6 @@ function SessionFormScreenContent({
   exercises: WorkoutStore["exercises"];
   addSession: WorkoutStore["addSession"];
   updateSession: WorkoutStore["updateSession"];
-  moveSessionToAdjacentWeek: WorkoutStore["moveSessionToAdjacentWeek"];
   completeSession: WorkoutStore["completeSession"];
   deleteSession: WorkoutStore["deleteSession"];
   programId: string;
@@ -174,18 +171,23 @@ function SessionFormScreenContent({
   const sessionIsTerminal = session
     ? isSessionTerminalStatus(session.status)
     : false;
-  const { canMoveToPriorWeek = false, canMoveToFollowingWeek = false } = session
-    ? getSessionWeekMoveEligibility(program.sessions, session)
-    : {};
 
-  const { control, handleSubmit, getFieldState, reset, setValue, formState } =
-    useForm<SessionFormData>({
-      defaultValues: {
-        name: session?.name ?? "",
-        end: session?.end ?? undefined,
-        activities: session?.activities ?? [],
-      },
-    });
+  const {
+    control,
+    handleSubmit,
+    getFieldState,
+    getValues,
+    reset,
+    setValue,
+    formState,
+  } = useForm<SessionFormData>({
+    defaultValues: {
+      name: session?.name ?? "",
+      start: session?.start ?? undefined,
+      end: session?.end ?? undefined,
+      activities: session?.activities ?? [],
+    },
+  });
 
   const fieldArray = useFieldArray({ control, name: "activities" });
   const { fields, append, remove, swap } = fieldArray;
@@ -197,6 +199,7 @@ function SessionFormScreenContent({
     "Scratch" | "Template" | undefined
   >();
   const templateSourceSessionRef = useRef<Session | undefined>(undefined);
+  const watchStart = useWatch({ control, name: "start" });
   const watchActivities = useWatch({ control, name: "activities" });
 
   // Consume pending selection store (populated by exercise/select, load, session/select modals)
@@ -380,27 +383,38 @@ function SessionFormScreenContent({
     clearPendingSession();
   }, [isFocused, pendingSession]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const updateExistingSession = (
-    data: SessionFormData,
-    options?: { weekOffset?: number },
-  ) => {
-    if (!session) return;
+  const handleSessionStartChange = (start: Date) => {
+    if (!sessionIsTerminal || !session) return;
 
-    updateSession(program.programId, {
-      name: data.name,
-      sessionId: session.sessionId,
-      templateId: session.templateId,
-      activities: data.activities,
-      start: session.start,
-      end: data.end,
-      weekOffset: options ? options.weekOffset : session.weekOffset,
-      status: session.status,
-    });
+    const currentStart = getValues("start");
+    if (!currentStart) return;
+
+    const shifted = shiftSessionStart(
+      {
+        ...session,
+        start: currentStart,
+        end: getValues("end"),
+        activities: getValues("activities"),
+      },
+      start,
+    );
+
+    setValue("start", shifted.start, { shouldDirty: true });
+    setValue("end", shifted.end, { shouldDirty: true });
+    setValue("activities", shifted.activities, { shouldDirty: true });
   };
 
   const onSubmit = (data: SessionFormData) => {
     if (session) {
-      updateExistingSession(data);
+      updateSession(program.programId, {
+        name: data.name,
+        sessionId: session.sessionId,
+        templateId: session.templateId,
+        activities: data.activities,
+        start: data.start,
+        end: data.end,
+        status: session.status,
+      });
     } else {
       const templateSourceSession = templateSourceSessionRef.current;
       const templateId = templateSourceSession
@@ -457,50 +471,8 @@ function SessionFormScreenContent({
                 activities: data.activities,
                 start: session.start,
                 end: new Date(),
-                weekOffset: session.weekOffset,
                 status: "Done",
               });
-              router.dismissTo(`/(public)/(app)/program/${program.programId}`);
-            })();
-          },
-        },
-      ],
-    );
-  };
-
-  const confirmSessionWeekMove = (direction: "prior" | "following") => {
-    if (!session) return;
-
-    const destination = direction === "prior" ? "Prior" : "Following";
-    Alert.alert(
-      `Move Session To ${destination} Week?`,
-      "This keeps the recorded date, so the session's Day number may fall outside 1-7. You can move it back later.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: `Move To ${destination} Week`,
-          onPress: () => {
-            void handleSubmit((data) => {
-              const nextWeekOffset =
-                (session.weekOffset ?? 0) + (direction === "prior" ? -1 : 1);
-              const moved = moveSessionToAdjacentWeek(
-                program.programId,
-                session.sessionId,
-                direction,
-              );
-
-              if (!moved) {
-                Alert.alert(
-                  "Unable To Move Session",
-                  "The session is no longer at the required week boundary.",
-                );
-                return;
-              }
-
-              updateExistingSession(data, {
-                weekOffset: nextWeekOffset || undefined,
-              });
-
               router.dismissTo(`/(public)/(app)/program/${program.programId}`);
             })();
           },
@@ -816,7 +788,9 @@ function SessionFormScreenContent({
                                     Number(v),
                                     watchActivities[index]?.warmupSets ?? [],
                                     "Warmup",
-                                    session,
+                                    session
+                                      ? { ...session, end: getValues("end") }
+                                      : undefined,
                                   ),
                                 )
                               }
@@ -859,7 +833,9 @@ function SessionFormScreenContent({
                                     Number(v),
                                     watchActivities[index]?.mainSets ?? [],
                                     "Main",
-                                    session,
+                                    session
+                                      ? { ...session, end: getValues("end") }
+                                      : undefined,
                                   ),
                                 )
                               }
@@ -976,8 +952,10 @@ function SessionFormScreenContent({
                           status: sessionIsTerminal
                             ? ("Incomplete" as const)
                             : ("Planned" as const),
-                          start: sessionIsTerminal ? session?.end : undefined,
-                          end: sessionIsTerminal ? session?.end : undefined,
+                          start: sessionIsTerminal
+                            ? getValues("end")
+                            : undefined,
+                          end: sessionIsTerminal ? getValues("end") : undefined,
                           actualReps: 0,
                           feedback: "Neutral" as const,
                         })),
@@ -987,8 +965,10 @@ function SessionFormScreenContent({
                           status: sessionIsTerminal
                             ? ("Incomplete" as const)
                             : ("Planned" as const),
-                          start: sessionIsTerminal ? session?.end : undefined,
-                          end: sessionIsTerminal ? session?.end : undefined,
+                          start: sessionIsTerminal
+                            ? getValues("end")
+                            : undefined,
+                          end: sessionIsTerminal ? getValues("end") : undefined,
                           actualReps: 0,
                           feedback: "Neutral" as const,
                         })),
@@ -1007,9 +987,26 @@ function SessionFormScreenContent({
             </Animated.View>
           </AnimatedViewStyled>
         )}
-        {session &&
-          isSessionTerminalStatus(session.status) &&
-          session.start && (
+        {sessionIsTerminal && watchStart && (
+          <View>
+            <DateTimeInputThemed
+              label="Start Date"
+              value={watchStart}
+              mode="date"
+              onChange={handleSessionStartChange}
+              testID="session-start-date"
+              cardVariants={["square"]}
+              stack={{ index: 0, size: 3 }}
+            />
+            <DateTimeInputThemed
+              label="Start Time"
+              value={watchStart}
+              mode="time"
+              onChange={handleSessionStartChange}
+              testID="session-start-time"
+              cardVariants={["square"]}
+              stack={{ index: 1, size: 3 }}
+            />
             <Controller
               name="end"
               control={control}
@@ -1017,15 +1014,12 @@ function SessionFormScreenContent({
                 <TextInputThemed
                   label="Elapsed Time (minutes)"
                   onChangeText={(newValue) =>
-                    onChange(
-                      session.start &&
-                        add(session.start, { minutes: Number(newValue) }),
-                    )
+                    onChange(add(watchStart, { minutes: Number(newValue) }))
                   }
                   onBlur={onBlur}
                   value={
-                    value && session.start
-                      ? String(differenceInMinutes(value, session.start))
+                    value
+                      ? String(differenceInMinutes(value, watchStart))
                       : undefined
                   }
                   maxLength={3}
@@ -1033,33 +1027,17 @@ function SessionFormScreenContent({
                   selectTextOnFocus
                   numeric
                   cardVariants={["square"]}
+                  stack={{ index: 2, size: 3 }}
                 />
               )}
             />
-          )}
+          </View>
+        )}
         {session?.status === "Ready" && (
           <PrimaryCardAction
             label="Complete Workout Session"
             onPress={handleCompleteSession}
             accessibilityLabel="Complete workout session from session form"
-            cardVariants={["square"]}
-          />
-        )}
-        {sessionIsTerminal && canMoveToPriorWeek && (
-          <PrimaryCardAction
-            label="Move To Prior Week"
-            labelClassName="text-warning"
-            onPress={() => confirmSessionWeekMove("prior")}
-            accessibilityLabel={`Move ${session?.name ?? "session"} to the prior week`}
-            cardVariants={["square"]}
-          />
-        )}
-        {sessionIsTerminal && canMoveToFollowingWeek && (
-          <PrimaryCardAction
-            label="Move To Following Week"
-            labelClassName="text-warning"
-            onPress={() => confirmSessionWeekMove("following")}
-            accessibilityLabel={`Move ${session?.name ?? "session"} to the following week`}
             cardVariants={["square"]}
           />
         )}
@@ -1090,7 +1068,6 @@ function SessionFormScreenContent({
                   ...session,
                   start: undefined,
                   end: undefined,
-                  weekOffset: undefined,
                   status: "Planned",
                   activities: session.activities.map((actvy) => ({
                     ...actvy,

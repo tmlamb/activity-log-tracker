@@ -6,14 +6,13 @@ import {
   completeSession,
   exerciseNamesMatch,
   finalizeWorkoutSet,
-  getSessionWeekMoveEligibility,
   normalizeExerciseName,
   plannedRepsFromTemplateActivity,
   reconcileCompletedWorkoutSet,
+  shiftSessionStart,
   stringifyLoad,
   stringifyPercent,
   weekAndDayFromStart,
-  weekAndDayNumbersFromStart,
 } from "./utils";
 
 const createWorkoutSet = (
@@ -299,6 +298,70 @@ describe("completeSession", () => {
   });
 });
 
+describe("shiftSessionStart", () => {
+  it("preserves session and set offsets while leaving edit recency unchanged", () => {
+    const originalStart = new Date("2026-08-24T08:00:00.000Z");
+    const originalEnd = new Date("2026-08-24T09:30:00.000Z");
+    const lastActivityAt = new Date("2026-08-29T12:00:00.000Z");
+    const warmupStart = new Date("2026-08-24T08:05:00.000Z");
+    const warmupEnd = new Date("2026-08-24T08:10:00.000Z");
+    const mainStart = new Date("2026-08-24T08:20:00.000Z");
+    const mainEnd = new Date("2026-08-24T08:30:00.000Z");
+    const session = createSession(
+      createActivity(
+        [
+          createWorkoutSet("main", {
+            status: "Incomplete",
+            start: mainStart,
+            end: mainEnd,
+          }),
+          createWorkoutSet("missing-times", { status: "Incomplete" }),
+        ],
+        [
+          createWorkoutSet("warmup", {
+            status: "Done",
+            start: warmupStart,
+            end: warmupEnd,
+          }),
+        ],
+      ),
+      {
+        start: originalStart,
+        end: originalEnd,
+        lastActivityAt,
+        status: "Done",
+      },
+    );
+    const nextStart = new Date("2026-09-07T18:45:00.000Z");
+
+    const shifted = shiftSessionStart(session, nextStart);
+    const shiftedWarmup = shifted.activities[0]?.warmupSets[0];
+    const shiftedMain = shifted.activities[0]?.mainSets[0];
+    const shiftedMissingTimes = shifted.activities[0]?.mainSets[1];
+
+    expect(shifted.start).toEqual(nextStart);
+    expect(shifted.end?.getTime()).toBe(
+      nextStart.getTime() + originalEnd.getTime() - originalStart.getTime(),
+    );
+    expect(shiftedWarmup?.start?.getTime()).toBe(
+      nextStart.getTime() + warmupStart.getTime() - originalStart.getTime(),
+    );
+    expect(shiftedWarmup?.end?.getTime()).toBe(
+      nextStart.getTime() + warmupEnd.getTime() - originalStart.getTime(),
+    );
+    expect(shiftedMain?.start?.getTime()).toBe(
+      nextStart.getTime() + mainStart.getTime() - originalStart.getTime(),
+    );
+    expect(shiftedMain?.end?.getTime()).toBe(
+      nextStart.getTime() + mainEnd.getTime() - originalStart.getTime(),
+    );
+    expect(shiftedMissingTimes?.start).toBeUndefined();
+    expect(shiftedMissingTimes?.end).toBeUndefined();
+    expect(shifted.lastActivityAt).toBe(lastActivityAt);
+    expect(session.start).toBe(originalStart);
+  });
+});
+
 describe("finalizeWorkoutSet", () => {
   it("completes a previously incomplete set without extending its end time", () => {
     const sessionEnd = new Date("2026-08-24T09:00:00.000Z");
@@ -416,131 +479,5 @@ describe("weekAndDayFromStart", () => {
     const endDate = new Date(2022, 9, 18, 0, 0, 0);
     const result = weekAndDayFromStart(startDate, endDate);
     expect(result).toBe("Week 15, Day 6");
-  });
-});
-
-describe("weekAndDayNumbersFromStart", () => {
-  const programStart = new Date(2026, 0, 1);
-
-  it("shows day 8 when week 2 day 1 is assigned to the prior week", () => {
-    expect(
-      weekAndDayNumbersFromStart(programStart, new Date(2026, 0, 8), -1),
-    ).toEqual({ week: 1, day: 8 });
-  });
-
-  it("shows day 0 when week 1 day 7 is assigned to the following week", () => {
-    expect(
-      weekAndDayNumbersFromStart(programStart, new Date(2026, 0, 7), 1),
-    ).toEqual({ week: 2, day: 0 });
-  });
-
-  it("shows day -1 when week 1 day 6 is assigned to the following week", () => {
-    expect(
-      weekAndDayNumbersFromStart(programStart, new Date(2026, 0, 6), 1),
-    ).toEqual({ week: 2, day: -1 });
-  });
-});
-
-describe("getSessionWeekMoveEligibility", () => {
-  const activity = createActivity([]);
-  const weekOneSession = createSession(activity, {
-    sessionId: "week-1",
-    start: new Date(2026, 0, 1, 8),
-    status: "Done",
-  });
-  const firstWeekTwoSession = createSession(activity, {
-    sessionId: "week-2-first",
-    start: new Date(2026, 0, 8, 8),
-    status: "Done",
-  });
-  const lastWeekTwoSession = createSession(activity, {
-    sessionId: "week-2-last",
-    start: new Date(2026, 0, 10, 8),
-    status: "Incomplete",
-  });
-  const sessions = [weekOneSession, firstWeekTwoSession, lastWeekTwoSession];
-  const currentDate = new Date(2026, 0, 20, 8);
-
-  const getSessionById = (items: Session[], sessionId: string) => {
-    const session = items.find((item) => item.sessionId === sessionId);
-    if (!session) throw new Error(`Session not found: ${sessionId}`);
-    return session;
-  };
-
-  it("offers prior for the first session and following for the last session", () => {
-    expect(
-      getSessionWeekMoveEligibility(sessions, firstWeekTwoSession, currentDate),
-    ).toEqual({
-      canMoveToPriorWeek: true,
-      canMoveToFollowingWeek: false,
-    });
-    expect(
-      getSessionWeekMoveEligibility(sessions, lastWeekTwoSession, currentDate),
-    ).toEqual({
-      canMoveToPriorWeek: false,
-      canMoveToFollowingWeek: true,
-    });
-  });
-
-  it("unlocks the next session and offers the reverse move", () => {
-    const movedSessions = sessions.map((session) =>
-      session.sessionId === "week-2-first"
-        ? { ...session, weekOffset: -1 }
-        : session,
-    );
-    const movedSession = getSessionById(movedSessions, "week-2-first");
-    const nextSession = getSessionById(movedSessions, "week-2-last");
-
-    expect(
-      getSessionWeekMoveEligibility(movedSessions, movedSession, currentDate),
-    ).toEqual({
-      canMoveToPriorWeek: false,
-      canMoveToFollowingWeek: true,
-    });
-    expect(
-      getSessionWeekMoveEligibility(movedSessions, nextSession, currentDate),
-    ).toEqual({
-      canMoveToPriorWeek: true,
-      canMoveToFollowingWeek: true,
-    });
-  });
-
-  it("unlocks the previous session after moving the last session forward", () => {
-    const movedSessions = sessions.map((session) =>
-      session.sessionId === "week-2-last"
-        ? { ...session, weekOffset: 1 }
-        : session,
-    );
-    const movedSession = getSessionById(movedSessions, "week-2-last");
-    const previousSession = getSessionById(movedSessions, "week-2-first");
-    const laterCurrentDate = new Date(2026, 0, 27, 8);
-
-    expect(
-      getSessionWeekMoveEligibility(
-        movedSessions,
-        movedSession,
-        laterCurrentDate,
-      ),
-    ).toMatchObject({ canMoveToPriorWeek: true });
-    expect(
-      getSessionWeekMoveEligibility(
-        movedSessions,
-        previousSession,
-        laterCurrentDate,
-      ),
-    ).toMatchObject({ canMoveToFollowingWeek: true });
-  });
-
-  it("does not offer following for the current week", () => {
-    expect(
-      getSessionWeekMoveEligibility(
-        sessions,
-        lastWeekTwoSession,
-        new Date(2026, 0, 10, 12),
-      ),
-    ).toEqual({
-      canMoveToPriorWeek: false,
-      canMoveToFollowingWeek: false,
-    });
   });
 });

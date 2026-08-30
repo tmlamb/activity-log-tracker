@@ -67,7 +67,6 @@ export interface Session {
   start?: Date;
   end?: Date;
   lastActivityAt?: Date;
-  weekOffset?: number;
   status: SessionStatus;
   activities: Activity[];
 }
@@ -174,6 +173,31 @@ export const completeSession = (session: Session, end: Date): Session => ({
   })),
 });
 
+const shiftDate = (date: Date | undefined, milliseconds: number) =>
+  isValidDate(date) ? new Date(date.getTime() + milliseconds) : date;
+
+export const shiftSessionStart = (session: Session, start: Date): Session => {
+  if (!isValidDate(session.start)) return { ...session, start };
+
+  const milliseconds = start.getTime() - session.start.getTime();
+  const shiftWorkoutSet = <T extends WorkoutSet>(workoutSet: T): T => ({
+    ...workoutSet,
+    start: shiftDate(workoutSet.start, milliseconds),
+    end: shiftDate(workoutSet.end, milliseconds),
+  });
+
+  return {
+    ...session,
+    start,
+    end: shiftDate(session.end, milliseconds),
+    activities: session.activities.map((activity) => ({
+      ...activity,
+      warmupSets: activity.warmupSets.map(shiftWorkoutSet),
+      mainSets: activity.mainSets.map(shiftWorkoutSet),
+    })),
+  };
+};
+
 export const cleanupInactiveSession = (
   session: Session,
   now = new Date(),
@@ -226,100 +250,20 @@ export const dateRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/;
 export const normalizedLocalDate = (date: Date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-export const weekAndDayNumbersFromStart = (
-  start: Date,
-  end: Date,
-  weekOffset = 0,
-) => {
+export const weekAndDayNumbersFromStart = (start: Date, end: Date) => {
   const daysDiff = differenceInCalendarDays(
     normalizedLocalDate(end),
     normalizedLocalDate(start),
   );
-  const calendarWeek = Math.floor(daysDiff / 7) + 1;
-  const calendarDay = (daysDiff % 7) + 1;
+  const week = Math.floor(daysDiff / 7) + 1;
+  const day = (daysDiff % 7) + 1;
 
-  return {
-    week: calendarWeek + weekOffset,
-    // Preserve the calendar position when assigning a session to another week.
-    day: calendarDay - weekOffset * 7,
-  };
+  return { week, day };
 };
 
 export const weekAndDayFromStart = (start: Date, end: Date) => {
   const { week, day } = weekAndDayNumbersFromStart(start, end);
   return `${week > 1 ? `Week ${week}, ` : ""}Day ${day}`;
-};
-
-export const getSessionWeekMoveEligibility = (
-  sessions: Session[],
-  targetSession: Session,
-  currentDate = new Date(),
-) => {
-  const targetIndex = sessions.findIndex(
-    (session) => session.sessionId === targetSession.sessionId,
-  );
-  const target = sessions[targetIndex];
-
-  if (!target?.start || !isSessionTerminalStatus(target.status)) {
-    return {
-      canMoveToPriorWeek: false,
-      canMoveToFollowingWeek: false,
-    };
-  }
-
-  const programStart = sessions.reduce<Date | undefined>(
-    (earliest, session) => {
-      const start = session.start;
-      if (!start) return earliest;
-
-      return !earliest || start.getTime() < earliest.getTime()
-        ? start
-        : earliest;
-    },
-    undefined,
-  );
-
-  if (!programStart) {
-    return {
-      canMoveToPriorWeek: false,
-      canMoveToFollowingWeek: false,
-    };
-  }
-
-  const targetWeek = weekAndDayNumbersFromStart(
-    programStart,
-    target.start,
-    target.weekOffset,
-  ).week;
-  const sessionsInTargetWeek = sessions
-    .map((session, index) => ({
-      index,
-      session,
-      week: weekAndDayNumbersFromStart(
-        programStart,
-        session.start ?? currentDate,
-        session.weekOffset,
-      ).week,
-    }))
-    .filter(({ week }) => week === targetWeek)
-    .sort(
-      (a, b) =>
-        (a.session.start?.getTime() ?? currentDate.getTime()) -
-          (b.session.start?.getTime() ?? currentDate.getTime()) ||
-        a.index - b.index,
-    );
-  const currentWeek = weekAndDayNumbersFromStart(
-    programStart,
-    currentDate,
-  ).week;
-
-  return {
-    canMoveToPriorWeek:
-      sessionsInTargetWeek[0]?.session.sessionId === target.sessionId,
-    canMoveToFollowingWeek:
-      targetWeek !== currentWeek &&
-      sessionsInTargetWeek.at(-1)?.session.sessionId === target.sessionId,
-  };
 };
 
 export const stringifyPercent = (value: number) =>
