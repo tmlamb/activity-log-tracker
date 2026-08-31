@@ -152,7 +152,7 @@ function ProgramDetailScreenContent({
 
       return {
         sectionId,
-        title: `${title}${isCurrent ? " (Current)" : ""}: ${getWeekDateRange(week)}`,
+        title: `${title}${isCurrent ? " (Now)" : ""}: ${getWeekDateRange(week)}`,
         week,
         showDay: true,
         showHeader: true,
