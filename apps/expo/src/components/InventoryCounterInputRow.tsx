@@ -7,6 +7,17 @@ import { twMerge } from "tailwind-merge";
 import Card from "./Card";
 import PressableThemed from "./PressableThemed";
 
+function assignRef<T>(ref: React.Ref<T> | undefined, value: T | null) {
+  if (typeof ref === "function") {
+    ref(value);
+    return;
+  }
+
+  if (ref) {
+    (ref as { current: T | null }).current = value;
+  }
+}
+
 interface CardRowStack {
   index: number;
   size: number;
@@ -16,6 +27,7 @@ interface InventoryCounterInputRowBaseProps {
   value: string;
   onChangeText: (value: string) => void;
   onBlur?: (event: unknown) => void;
+  innerRef?: React.Ref<TextInput>;
   unit: string;
   inputAccessibilityLabel: string;
   placeholder?: string;
@@ -55,6 +67,7 @@ export default function InventoryCounterInputRow({
   value,
   onChangeText,
   onBlur,
+  innerRef,
   unit,
   inputAccessibilityLabel,
   placeholder,
@@ -72,6 +85,11 @@ export default function InventoryCounterInputRow({
       : undefined;
   const measuredInputText = value.length > 0 ? value : (placeholder ?? "");
   const accessibilityValueText = value ? `${value} ${unit}` : undefined;
+
+  const setInputRef = (node: TextInput | null) => {
+    inputRef.current = node;
+    assignRef(innerRef, node);
+  };
 
   const confirmRemoval = (onConfirm: () => void) => {
     Alert.alert(
@@ -125,7 +143,7 @@ export default function InventoryCounterInputRow({
               </Text>
             ) : null}
             <TextInput
-              ref={inputRef}
+              ref={setInputRef}
               onChangeText={onChangeText}
               onBlur={onBlur}
               value={value}

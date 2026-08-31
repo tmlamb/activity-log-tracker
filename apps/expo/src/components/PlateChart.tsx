@@ -142,7 +142,7 @@ export default function PlateChart({
   );
   const plates = loadConfig?.plates ?? [];
   plates.reverse();
-  const marginTop = 36;
+  const shaftHeight = 36 + Math.max(40 - 12 * plates.length, 0);
 
   return (
     <View className={`items-center ${className ?? ""}`}>
@@ -152,15 +152,15 @@ export default function PlateChart({
           entering={FadeIn.duration(500)}
           exiting={FadeOut.duration(500)}
         >
-          <Svg
-            width={18}
-            height={marginTop + Math.max(40 - 12 * plates.length, 0)}
-          >
-            <Rect height="100%" width="100%" fill={barbellColor} rx={1.5} />
+          <Svg width={18} height={shaftHeight}>
+            <Rect
+              height={shaftHeight}
+              width={18}
+              fill={barbellColor}
+              rx={1.5}
+            />
           </Svg>
-          <View
-            className={`items-center justify-start pt-px mt-[${marginTop}px]`}
-          >
+          <View className="items-center justify-start pt-px">
             {plates.map((plate, index) => {
               const colorIndex =
                 (index > 0 && plates[index - 1]?.value === plate.value

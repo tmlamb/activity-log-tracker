@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SectionList, Text, View } from "react-native";
 import { Link, Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { addDays, format, isSameMonth } from "date-fns";
 import _ from "lodash";
 
 import type { Session } from "@activity-log/ui/utils";
@@ -81,6 +82,14 @@ function ProgramDetailScreenContent({
 
   const getSessionWeekAndDay = (session: Session) =>
     weekAndDayNumbersFromStart(programStart, session.start ?? now);
+  const getWeekDateRange = (week: number) => {
+    const start = addDays(programStart, (week - 1) * 7);
+    const end = addDays(start, 6);
+
+    return isSameMonth(start, end)
+      ? `${format(start, "MMM d")}-${format(end, "d")}`
+      : `${format(start, "MMM d")}-${format(end, "MMM d")}`;
+  };
 
   const weekSections: {
     title: string;
@@ -143,7 +152,7 @@ function ProgramDetailScreenContent({
 
       return {
         sectionId,
-        title: `${title}${isCurrent ? " (Current)" : ""}`,
+        title: `${title}${isCurrent ? " (Current)" : ""}: ${getWeekDateRange(week)}`,
         week,
         showDay: true,
         showHeader: true,

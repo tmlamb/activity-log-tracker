@@ -191,6 +191,10 @@ interface NavigationCardRowProps extends PressableProps {
   cardClassName?: string;
   titleClassName?: string;
   titleNumberOfLines?: number;
+  centerTextLines?: readonly [React.ReactNode, React.ReactNode];
+  centerTextClassName?: string;
+  centerTextColumnWidth?: number;
+  onCenterTextLineLayout?: (lineIndex: 0 | 1, width: number) => void;
   trailingText?: React.ReactNode;
   trailingTextClassName?: string;
   animateTrailingText?: boolean;
@@ -208,6 +212,10 @@ export function NavigationCardRow({
   cardClassName,
   titleClassName,
   titleNumberOfLines,
+  centerTextLines,
+  centerTextClassName,
+  centerTextColumnWidth,
+  onCenterTextLineLayout,
   trailingText,
   trailingTextClassName,
   animateTrailingText = false,
@@ -219,6 +227,13 @@ export function NavigationCardRow({
   const titlePaddingClassName = multilineEnabled
     ? "py-4.5 leading-tight"
     : undefined;
+  const reportCenterTextLineWidth = (
+    lineIndex: 0 | 1,
+    event: TextLayoutEvent,
+  ) => {
+    const width = event.nativeEvent.lines[0]?.width;
+    if (width != null) onCenterTextLineLayout?.(lineIndex, width);
+  };
 
   const titleText = (
     <Text
@@ -255,8 +270,47 @@ export function NavigationCardRow({
         ) : (
           titleText
         )}
-        {(trailingText != null || showChevron) && (
-          <View className="flex-row items-center justify-end gap-1">
+        {(centerTextLines != null || trailingText != null || showChevron) && (
+          <View className="flex-row items-center justify-end">
+            {centerTextLines != null ? (
+              <View className="h-[53px] justify-center pr-5">
+                <View
+                  className="items-start"
+                  style={
+                    centerTextColumnWidth != null
+                      ? { width: centerTextColumnWidth }
+                      : undefined
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={2.5}
+                    className={twMerge(
+                      "text-muted text-left text-lg leading-none",
+                      centerTextClassName,
+                    )}
+                    numberOfLines={1}
+                    onTextLayout={(event) =>
+                      reportCenterTextLineWidth(0, event)
+                    }
+                  >
+                    {centerTextLines[0]}
+                  </Text>
+                  <Text
+                    maxFontSizeMultiplier={2.5}
+                    className={twMerge(
+                      "text-muted text-left text-lg leading-none",
+                      centerTextClassName,
+                    )}
+                    numberOfLines={1}
+                    onTextLayout={(event) =>
+                      reportCenterTextLineWidth(1, event)
+                    }
+                  >
+                    {centerTextLines[1]}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
             {trailingText != null ? (
               animateTrailingText ? (
                 <Animated.Text
@@ -284,7 +338,7 @@ export function NavigationCardRow({
               )
             ) : null}
             {showChevron ? (
-              <Text maxFontSizeMultiplier={2.5} className="text-muted">
+              <Text maxFontSizeMultiplier={2.5} className="text-muted ml-1">
                 <AntDesign name="right" size={15} />
               </Text>
             ) : null}

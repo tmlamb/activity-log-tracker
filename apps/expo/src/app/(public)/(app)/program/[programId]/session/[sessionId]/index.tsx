@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { SectionList, View } from "react-native";
 import Animated, { LinearTransition } from "react-native-reanimated";
-import { Link, Redirect, Stack, useLocalSearchParams } from "expo-router";
+import {
+  Link,
+  Redirect,
+  Stack,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import { format } from "date-fns";
 import _ from "lodash";
 
@@ -38,6 +44,15 @@ const getActivityWorkoutSets = (activity: Activity): WorkoutSet[] => [
 
 const isWorkoutSetDone = (workoutSet: WorkoutSet) =>
   workoutSet.status === "Done" && (workoutSet.actualReps ?? 0) > 0;
+
+const getCompletedSetTextLines = (workoutSet: WorkoutSet) => {
+  const { actualReps, weight } = workoutSet;
+  if (!isWorkoutSetDone(workoutSet) || actualReps == null || weight == null) {
+    return undefined;
+  }
+
+  return [`${weight.value} ${weight.unit}`, `${actualReps} reps`] as const;
+};
 
 const sessionCleanupWarningDelayMs = SESSION_INACTIVITY_TIMEOUT_MS / 2;
 
@@ -87,6 +102,12 @@ interface WorkoutSetCardProps {
   program: Program;
   title: string;
   index: number;
+  completionTextColumnWidth?: number;
+  onCompletionTextLineLayout?: (
+    workoutSetId: string,
+    lineIndex: 0 | 1,
+    width: number,
+  ) => void;
 }
 
 interface ExerciseSectionItem {
@@ -110,6 +131,8 @@ function WorkoutSetCard({
   program,
   title,
   index,
+  completionTextColumnWidth,
+  onCompletionTextLineLayout,
 }: WorkoutSetCardProps) {
   const status =
     workoutSet.status === "Planned" &&
@@ -121,6 +144,7 @@ function WorkoutSetCard({
         workoutSet.workoutSetId)
       ? "Ready"
       : workoutSet.status;
+  const completedSetTextLines = getCompletedSetTextLines(workoutSet);
 
   return (
     <Link
@@ -138,6 +162,18 @@ function WorkoutSetCard({
             ? "mb-3"
             : undefined
         }
+        centerTextLines={completedSetTextLines}
+        centerTextColumnWidth={completionTextColumnWidth}
+        onCenterTextLineLayout={
+          onCompletionTextLineLayout
+            ? (lineIndex, width) =>
+                onCompletionTextLineLayout(
+                  workoutSet.workoutSetId,
+                  lineIndex,
+                  width,
+                )
+            : undefined
+        }
         trailingText={status === "Planned" ? undefined : status}
         trailingTextClassName={
           status === "Ready"
@@ -148,7 +184,7 @@ function WorkoutSetCard({
         }
         animateTrailingText
         trailingTextAnimationKey={status}
-        accessibilityLabel={`Navigate to ${title}, current status: ${status}`}
+        accessibilityLabel={`Navigate to ${title}${completedSetTextLines ? `, completed with ${workoutSet.weight?.value} ${workoutSet.weight?.unit} for ${workoutSet.actualReps} reps` : ""}, current status: ${status}`}
       />
     </Link>
   );
@@ -161,6 +197,33 @@ function ExerciseSectionBody({
   collapsed: boolean;
   workoutSets: WorkoutSetCardProps[];
 }) {
+  const [completionTextLineWidths, setCompletionTextLineWidths] = useState<
+    Record<string, number>
+  >({});
+  const completionTextColumnWidth = workoutSets.reduce((width, item) => {
+    if (!getCompletedSetTextLines(item.workoutSet)) return width;
+
+    return Math.max(
+      width,
+      completionTextLineWidths[`${item.workoutSet.workoutSetId}-0`] ?? 0,
+      completionTextLineWidths[`${item.workoutSet.workoutSetId}-1`] ?? 0,
+    );
+  }, 0);
+
+  const handleCompletionTextLineLayout = (
+    workoutSetId: string,
+    lineIndex: 0 | 1,
+    width: number,
+  ) => {
+    const key = `${workoutSetId}-${lineIndex}`;
+    const roundedWidth = Math.ceil(width);
+    setCompletionTextLineWidths((current) =>
+      current[key] === roundedWidth
+        ? current
+        : { ...current, [key]: roundedWidth },
+    );
+  };
+
   return (
     <CollapsibleSectionBody collapsed={collapsed}>
       {workoutSets.map((item) => (
@@ -172,6 +235,8 @@ function ExerciseSectionBody({
           program={item.program}
           title={item.title}
           index={item.index}
+          completionTextColumnWidth={completionTextColumnWidth || undefined}
+          onCompletionTextLineLayout={handleCompletionTextLineLayout}
         />
       ))}
     </CollapsibleSectionBody>
@@ -214,6 +279,7 @@ function SessionDetailScreenContent({
   exercises: WorkoutStore["exercises"];
   completeSession: WorkoutStore["completeSession"];
 }) {
+  const router = useRouter();
   const sectionListRef =
     useRef<SectionList<ExerciseSectionItem, ExerciseSection>>(null);
   const collapsibleSectionScroll = useCollapsibleSectionScroll();
@@ -420,6 +486,7 @@ function SessionDetailScreenContent({
               status: "Done",
               end: session.status === "Incomplete" ? session.end : new Date(),
             });
+            router.dismissTo(`/(public)/(app)/program/${program.programId}`);
           }}
         />
       </View>

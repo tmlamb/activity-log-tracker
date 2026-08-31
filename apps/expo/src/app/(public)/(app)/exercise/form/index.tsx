@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { View } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Text, View } from "react-native";
+import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
 import type { Exercise } from "@activity-log/ui/utils";
@@ -17,6 +18,7 @@ import { SelectableCardRow } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
+import PressableThemed from "~/components/PressableThemed";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText, SectionHeading } from "~/components/Typography";
@@ -290,31 +292,62 @@ export default function ExerciseFormScreen() {
         {selectedLoadKind === "BARBELL" && (
           <View>
             {equipment.barbells.length > 0 ? (
-              <Controller
-                name="barbellId"
-                control={control}
-                rules={{ required: "Required" }}
-                render={({ field: { onChange, value } }) => (
-                  <>
-                    <SectionHeading>Barbell Weight</SectionHeading>
-                    {equipment.barbells.map((barbell, index) => (
-                      <SelectableCardRow
-                        key={barbell.barbellId}
-                        title={`${barbell.value}${barbell.unit}`}
-                        selected={barbell.barbellId === value}
-                        onPress={() => onChange(barbell.barbellId)}
-                        accessibilityLabel={`Use ${barbell.value} pound barbell for this exercise`}
-                        cardVariants={["square"]}
-                        stack={{ index, size: equipment.barbells.length }}
-                      />
-                    ))}
-                  </>
-                )}
-              />
+              <>
+                <View className="mb-2 ml-5 flex-row items-center">
+                  <SectionHeading placement="inline">
+                    Barbell Weight
+                  </SectionHeading>
+                  <Link href="/(public)/(app)/equipment" asChild>
+                    <PressableThemed
+                      className="-my-3 h-11 w-11 items-center justify-center"
+                      accessibilityLabel="Manage equipment"
+                    >
+                      <Text
+                        maxFontSizeMultiplier={2.5}
+                        className="text-primary"
+                      >
+                        <MaterialCommunityIcons
+                          name="information-variant-circle-outline"
+                          size={22}
+                        />
+                      </Text>
+                    </PressableThemed>
+                  </Link>
+                </View>
+                <Controller
+                  name="barbellId"
+                  control={control}
+                  rules={{ required: "Required" }}
+                  render={({ field: { onChange, value } }) => (
+                    <>
+                      {equipment.barbells.map((barbell, index) => (
+                        <SelectableCardRow
+                          key={barbell.barbellId}
+                          title={`${barbell.value}${barbell.unit}`}
+                          selected={barbell.barbellId === value}
+                          onPress={() => onChange(barbell.barbellId)}
+                          accessibilityLabel={`Use ${barbell.value} pound barbell for this exercise`}
+                          cardVariants={["square"]}
+                          stack={{ index, size: equipment.barbells.length }}
+                        />
+                      ))}
+                    </>
+                  )}
+                />
+              </>
             ) : (
               <HelperText placement="formInset">
-                Add a barbell in Equipment before selecting one for this
-                exercise.
+                To select a barbell weight for this exercise,{" "}
+                <Link href="/(public)/(app)/equipment" asChild>
+                  <Text
+                    className="text-primary"
+                    accessibilityLabel="Add a barbell in equipment settings"
+                    accessibilityRole="link"
+                  >
+                    add a barbell
+                  </Text>
+                </Link>{" "}
+                in the equipment settings.
               </HelperText>
             )}
           </View>

@@ -164,16 +164,22 @@ export default function EquipmentScreen() {
   };
 
   const addBarbell = () => {
-    appendBarbell({ value: "", unit: "lbs", barbellId: uuidv4() });
+    appendBarbell(
+      { value: "", unit: "lbs", barbellId: uuidv4() },
+      { focusName: `barbells.${barbellFields.length}.value` },
+    );
   };
 
   const addPlate = () => {
-    appendPlate({
-      value: 0,
-      unit: "lbs",
-      plateId: uuidv4(),
-      quantity: 2,
-    });
+    appendPlate(
+      {
+        value: 0,
+        unit: "lbs",
+        plateId: uuidv4(),
+        quantity: 2,
+      },
+      { focusName: `plates.${plateFields.length}.value` },
+    );
   };
 
   const restoreEquipmentDefaults = () => {
@@ -242,10 +248,11 @@ export default function EquipmentScreen() {
                           ),
                       }}
                       render={({
-                        field: { onChange, onBlur, value },
+                        field: { ref, onChange, onBlur, value },
                         fieldState: { error },
                       }) => (
                         <InventoryCounterInputRow
+                          innerRef={ref}
                           value={String(value)}
                           onChangeText={(newValue) => {
                             onChange(normalizeWeightInput(newValue));
@@ -316,10 +323,11 @@ export default function EquipmentScreen() {
                         },
                       }}
                       render={({
-                        field: { onChange, onBlur, value },
+                        field: { ref, onChange, onBlur, value },
                         fieldState: { error },
                       }) => (
                         <InventoryCounterInputRow
+                          innerRef={ref}
                           value={String(value)}
                           onChangeText={(newValue) => {
                             onChange(normalizeWeightInput(newValue));
