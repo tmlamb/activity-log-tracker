@@ -2,7 +2,7 @@ import Papa from "papaparse";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import type { Exercise, MuscleGroup } from "@activity-log/ui/utils";
+import type { Exercise } from "@activity-log/ui/utils";
 import {
   normalizeMuscleGroups,
   sortRecordsByName,
