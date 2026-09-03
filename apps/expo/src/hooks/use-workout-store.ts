@@ -78,7 +78,6 @@ export interface WorkoutStore {
   cleanupInactiveSessions: (now?: Date) => void;
   updateEquipment: (equipment: Equipment) => void;
   updateMuscleGroups: (muscleGroups: string[]) => void;
-  replaceWorkoutData: (data: WorkoutStoreImportData) => void;
   resetWorkoutStore: () => void;
 }
 
@@ -86,10 +85,6 @@ type WorkoutStoreData = Pick<
   WorkoutStore,
   "programs" | "exercises" | "equipment" | "muscleGroups"
 >;
-
-type WorkoutStoreImportData = Omit<WorkoutStoreData, "muscleGroups"> & {
-  muscleGroups?: string[];
-};
 
 export const createDefaultEquipment = (): Equipment => ({
   barbells: [
@@ -671,19 +666,6 @@ const useWorkoutStore = create<WorkoutStore>()(
             });
           }),
         );
-      },
-      replaceWorkoutData: (data: WorkoutStoreImportData) => {
-        set({
-          programs: data.programs,
-          exercises: data.exercises.map(normalizeExerciseMuscles),
-          equipment: normalizeEquipment(data.equipment),
-          muscleGroups: normalizeMuscleCatalog([
-            ...(data.muscleGroups ?? createDefaultMuscleGroups()),
-            ...data.exercises.flatMap(
-              (exercise) => exercise.primaryMuscles ?? [],
-            ),
-          ]),
-        });
       },
       resetWorkoutStore: () => {
         set(
