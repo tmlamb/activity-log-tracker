@@ -80,9 +80,7 @@ export function createDefaultExercises() {
   });
   const rows = results.data.map(({ primaryMuscles, ...exercise }) => ({
     ...exercise,
-    primaryMuscles: normalizeMuscleGroups(
-      primaryMuscles.split("|"),
-    ) as MuscleGroup[],
+    primaryMuscles: normalizeMuscleGroups(primaryMuscles.split("|")),
   }));
   sortRecordsByName(rows);
   return rows;

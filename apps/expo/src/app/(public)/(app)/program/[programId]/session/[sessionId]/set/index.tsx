@@ -28,7 +28,6 @@ import {
   isSessionTerminalStatus,
   round5,
   stringifyLoad,
-  stringifyPercent,
 } from "@activity-log/ui/utils";
 
 import type { WorkoutStore } from "~/hooks/use-workout-store";
