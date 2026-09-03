@@ -2,83 +2,101 @@ import Papa from "papaparse";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import type { Exercise } from "@activity-log/ui/utils";
-import { sortRecordsByName } from "@activity-log/ui/utils";
+import type { Exercise, MuscleGroup } from "@activity-log/ui/utils";
+import {
+  normalizeMuscleGroups,
+  sortRecordsByName,
+} from "@activity-log/ui/utils";
 
 // These are presets that will be available in the app by default.
-const exerciseData = `name,loadKind
-Back Squat,BARBELL
-Dumbbell Incline Press,WEIGHT_PAIR
-Lying Leg Curl,SINGLE_WEIGHT
-Leg Curl,SINGLE_WEIGHT
-Pronated Pulldown,SINGLE_WEIGHT
-Supinated EZ Bar Curl,BARBELL
-Hanging Leg Raise,SINGLE_WEIGHT
-Barbell Bench Press,BARBELL
-Low To High Cable Fly,WEIGHT_PAIR
-Barbell Hip Thrust,BARBELL
-Romanian Deadlift,BARBELL
-Chest-supported T-Bar Row,SINGLE_WEIGHT
-Arnold Press,WEIGHT_PAIR
-Tricep Press-down,SINGLE_WEIGHT
-Dumbbell Shrug,WEIGHT_PAIR
-Hex Bar Shrug,BARBELL
-Smith Machine Shrug,BARBELL
-Weighted Pull-up,SINGLE_WEIGHT
-Humble Row,WEIGHT_PAIR
-Leg Press,SINGLE_WEIGHT
-Standing Calf Raise,SINGLE_WEIGHT
-Cable Rope Upright Row,SINGLE_WEIGHT
-Hammer Curl,WEIGHT_PAIR
-Deadlift,BARBELL
-Weighted Dip,SINGLE_WEIGHT
-Glute Ham Raise,SINGLE_WEIGHT
-Leg Extension,SINGLE_WEIGHT
-Cable Pull-over,SINGLE_WEIGHT
-Dumbbell Lateral Raise,WEIGHT_PAIR
-EZ Bar Skull Crusher,BARBELL
-Overhead Press,WEIGHT_PAIR
-Egyptian Lateral Raise,SINGLE_WEIGHT
-Cable Seated Row,SINGLE_WEIGHT
-Seated Hip Abduction,SINGLE_WEIGHT
-Incline Dumbbell Curl,WEIGHT_PAIR
-Bicycle Crunch,SINGLE_WEIGHT
-Push-up,SINGLE_WEIGHT
-Swiss Ball Leg Curl,SINGLE_WEIGHT
-Chin-up,SINGLE_WEIGHT
-Ab Wheel Rollout,SINGLE_WEIGHT
-Low Incline Dumbbell Press,WEIGHT_PAIR
-Dumbbell Row,WEIGHT_PAIR
-Overhead Tricep Extension,SINGLE_WEIGHT
-Single-Leg Leg Press,SINGLE_WEIGHT
-Decline Bench Press,BARBELL
-Pendlay Row,BARBELL
-EZ Bar Curl,BARBELL
-Cable Crunch,SINGLE_WEIGHT
-Lat Pulldown,SINGLE_WEIGHT
-Rope Face Pull,SINGLE_WEIGHT
-Tricep Kickback,SINGLE_WEIGHT
-Dumbbell Lunge,WEIGHT_PAIR
-Cable Upright Row,SINGLE_WEIGHT
-Sissy Squat,SINGLE_WEIGHT
-Reverse Dumbbell Fly,WEIGHT_PAIR
-Skull Crusher,WEIGHT_PAIR
-Lateral Band Walk,SINGLE_WEIGHT`;
+const exerciseData = `name,loadKind,primaryMuscles
+Back Squat,BARBELL,Quads
+Dumbbell Incline Press,WEIGHT_PAIR,Chest
+Lying Leg Curl,SINGLE_WEIGHT,Hamstrings
+Leg Curl,SINGLE_WEIGHT,Hamstrings
+Pronated Pulldown,SINGLE_WEIGHT,Back
+Supinated EZ Bar Curl,BARBELL,Biceps
+Hanging Leg Raise,SINGLE_WEIGHT,Core
+Barbell Bench Press,BARBELL,Chest
+Low To High Cable Fly,WEIGHT_PAIR,Chest
+Barbell Hip Thrust,BARBELL,Glutes
+Romanian Deadlift,BARBELL,"Hamstrings|Glutes"
+Chest-supported T-Bar Row,SINGLE_WEIGHT,Back
+Arnold Press,WEIGHT_PAIR,Shoulders
+Tricep Press-down,SINGLE_WEIGHT,Triceps
+Dumbbell Shrug,WEIGHT_PAIR,Traps
+Hex Bar Shrug,BARBELL,Traps
+Smith Machine Shrug,BARBELL,Traps
+Weighted Pull-up,SINGLE_WEIGHT,Back
+Humble Row,WEIGHT_PAIR,"Traps|Back|Shoulders"
+Leg Press,SINGLE_WEIGHT,"Quads|Hamstrings|Glutes"
+Standing Calf Raise,SINGLE_WEIGHT,Calves
+Cable Rope Upright Row,SINGLE_WEIGHT,"Shoulders|Traps"
+Hammer Curl,WEIGHT_PAIR,"Biceps|Forearms"
+Deadlift,BARBELL,"Glutes|Hamstrings|Back"
+Weighted Dip,SINGLE_WEIGHT,"Chest|Triceps"
+Glute Ham Raise,SINGLE_WEIGHT,"Hamstrings|Glutes"
+Leg Extension,SINGLE_WEIGHT,Quads
+Cable Pull-over,SINGLE_WEIGHT,Back
+Dumbbell Lateral Raise,WEIGHT_PAIR,Shoulders
+EZ Bar Skull Crusher,BARBELL,Triceps
+Overhead Press,WEIGHT_PAIR,Shoulders
+Egyptian Lateral Raise,SINGLE_WEIGHT,Shoulders
+Cable Seated Row,SINGLE_WEIGHT,Back
+Seated Hip Abduction,SINGLE_WEIGHT,Abductors
+Incline Dumbbell Curl,WEIGHT_PAIR,Biceps
+Bicycle Crunch,SINGLE_WEIGHT,Core
+Push-up,SINGLE_WEIGHT,"Chest"
+Swiss Ball Leg Curl,SINGLE_WEIGHT,Hamstrings
+Chin-up,SINGLE_WEIGHT,"Back|Biceps"
+Ab Wheel Rollout,SINGLE_WEIGHT,Core
+Low Incline Dumbbell Press,WEIGHT_PAIR,Chest
+Dumbbell Row,WEIGHT_PAIR,Back
+Overhead Tricep Extension,SINGLE_WEIGHT,Triceps
+Single-Leg Leg Press,SINGLE_WEIGHT,"Quads|Glutes"
+Decline Bench Press,BARBELL,Chest
+Pendlay Row,BARBELL,Back
+EZ Bar Curl,BARBELL,Biceps
+Cable Crunch,SINGLE_WEIGHT,Core
+Lat Pulldown,SINGLE_WEIGHT,Back
+Rope Face Pull,SINGLE_WEIGHT,"Shoulders"
+Tricep Kickback,SINGLE_WEIGHT,Triceps
+Dumbbell Lunge,WEIGHT_PAIR,Quads
+Cable Upright Row,SINGLE_WEIGHT,"Shoulders|Traps"
+Sissy Squat,SINGLE_WEIGHT,Quads
+Reverse Dumbbell Fly,WEIGHT_PAIR,Shoulders
+Skull Crusher,WEIGHT_PAIR,Triceps
+Lateral Band Walk,SINGLE_WEIGHT,"Glutes|Abductors"`;
 
-function createDefaultExercises() {
-  const results = Papa.parse<Pick<Exercise, "name" | "loadKind">>(
-    exerciseData,
-    {
-      header: true,
-    },
-  );
-  const rows = results.data;
+interface DefaultExerciseRow {
+  name: string;
+  loadKind: Exercise["loadKind"];
+  primaryMuscles: string;
+}
+
+export function createDefaultExercises() {
+  const results = Papa.parse<DefaultExerciseRow>(exerciseData, {
+    header: true,
+  });
+  const rows = results.data.map(({ primaryMuscles, ...exercise }) => ({
+    ...exercise,
+    primaryMuscles: normalizeMuscleGroups(
+      primaryMuscles.split("|"),
+    ) as MuscleGroup[],
+  }));
   sortRecordsByName(rows);
   return rows;
 }
 
+export const createDefaultMuscleGroups = () =>
+  Array.from(
+    new Set(
+      createDefaultExercises().flatMap((exercise) => exercise.primaryMuscles),
+    ),
+  ).sort((a, b) => a.localeCompare(b));
+
 interface ExerciseStore {
-  exercises: Pick<Exercise, "name" | "loadKind">[];
+  exercises: Pick<Exercise, "name" | "loadKind" | "primaryMuscles">[];
   resetExercises: () => void;
 }
 
@@ -92,6 +110,14 @@ const useExerciseStore = create<ExerciseStore>()(
     }),
     {
       name: "exercise-storage",
+      version: 2,
+      migrate: (persistedState, version) =>
+        version < 2
+          ? {
+              ...(persistedState as Partial<ExerciseStore>),
+              exercises: createDefaultExercises(),
+            }
+          : persistedState,
     },
   ),
 );

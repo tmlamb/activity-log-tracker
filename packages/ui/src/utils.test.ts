@@ -7,6 +7,8 @@ import {
   exerciseNamesMatch,
   finalizeWorkoutSet,
   normalizeExerciseName,
+  normalizeMuscleGroups,
+  normalizeSingleLineText,
   plannedRepsFromTemplateActivity,
   reconcileCompletedWorkoutSet,
   shiftSessionStart,
@@ -60,6 +62,22 @@ const createSession = (
 describe("normalizeExerciseName", () => {
   it("should normalize case and whitespace", () => {
     expect(normalizeExerciseName("  Bench  Press ")).toBe("benchpress");
+  });
+});
+
+describe("normalizeSingleLineText", () => {
+  it("should collapse whitespace into a single space", () => {
+    expect(normalizeSingleLineText("  Upper\n\nBody\tDay  ")).toBe(
+      "Upper Body Day",
+    );
+  });
+});
+
+describe("normalizeMuscleGroups", () => {
+  it("keeps arbitrary names while removing empty and duplicate entries", () => {
+    expect(
+      normalizeMuscleGroups(["  Abductors ", "Back", "back", "", null]),
+    ).toEqual(["Abductors", "Back"]);
   });
 });
 

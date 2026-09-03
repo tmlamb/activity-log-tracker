@@ -59,6 +59,8 @@ type InventoryCounterInputRowProps = InventoryCounterInputRowBaseProps &
           onRemove: () => void;
           removeAccessibilityLabel: string;
           removeAccessibilityHint?: string;
+          removeConfirmationTitle?: string;
+          removeConfirmationMessage?: string;
         };
       }
   );
@@ -91,15 +93,15 @@ export default function InventoryCounterInputRow({
     assignRef(innerRef, node);
   };
 
-  const confirmRemoval = (onConfirm: () => void) => {
-    Alert.alert(
-      "Remove Inventory Item?",
-      "Are you sure you want to remove this item from your equipment inventory?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Remove", style: "destructive", onPress: onConfirm },
-      ],
-    );
+  const confirmRemoval = (
+    onConfirm: () => void,
+    title = "Remove Inventory Item?",
+    message = "Are you sure you want to remove this item from your equipment inventory?",
+  ) => {
+    Alert.alert(title, message, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Remove", style: "destructive", onPress: onConfirm },
+    ]);
   };
 
   const handleInputTextLayout = (event: LayoutChangeEvent) => {
@@ -122,7 +124,7 @@ export default function InventoryCounterInputRow({
         <Pressable
           accessible={false}
           onPress={() => inputRef.current?.focus()}
-          className="relative min-w-0 basis-1/2 flex-row items-center self-stretch"
+          className="relative min-w-0 flex-1 flex-row items-center self-stretch"
         >
           <Text
             accessible={false}
@@ -132,7 +134,7 @@ export default function InventoryCounterInputRow({
           >
             {measuredInputText}
           </Text>
-          <View className="h-10 w-24 justify-center">
+          <View className="h-10 flex-1 justify-center">
             {!value && placeholder ? (
               <Text
                 accessible={false}
@@ -177,7 +179,7 @@ export default function InventoryCounterInputRow({
           </View>
         </Pressable>
 
-        <View className="min-w-0 flex-1 flex-row items-center justify-end gap-1.5">
+        <View className="min-w-0 shrink-0 flex-row items-center justify-end gap-1.5">
           {trailing.type === "counter" ? (
             <>
               <PressableThemed
@@ -259,7 +261,13 @@ export default function InventoryCounterInputRow({
               ) : null}
               <PressableThemed
                 className="h-11 w-11 items-center justify-center rounded-full"
-                onPress={() => confirmRemoval(trailing.onRemove)}
+                onPress={() =>
+                  confirmRemoval(
+                    trailing.onRemove,
+                    trailing.removeConfirmationTitle,
+                    trailing.removeConfirmationMessage,
+                  )
+                }
                 accessibilityLabel={trailing.removeAccessibilityLabel}
                 accessibilityHint={trailing.removeAccessibilityHint}
               >

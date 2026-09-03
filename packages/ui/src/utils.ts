@@ -38,6 +38,28 @@ export type MainSet = WorkoutSet & {
   type: "Main";
 };
 
+export type MuscleGroup = string;
+
+export const normalizeMuscleGroup = (value: unknown) => {
+  if (typeof value !== "string") return undefined;
+
+  const muscleGroup = value.trim();
+  return muscleGroup || undefined;
+};
+
+export const normalizeMuscleGroups = (values: readonly unknown[]) => {
+  const seen = new Set<string>();
+
+  return values.flatMap((value) => {
+    const muscleGroup = normalizeMuscleGroup(value);
+    const key = muscleGroup?.toLocaleLowerCase();
+    if (!muscleGroup || !key || seen.has(key)) return [];
+
+    seen.add(key);
+    return [muscleGroup];
+  });
+};
+
 export interface Activity {
   activityId: string;
   reps: number;
@@ -54,8 +76,9 @@ export interface Exercise {
   loadKind: "BARBELL" | "WEIGHT_PAIR" | "SINGLE_WEIGHT";
   barbellId?: string;
   oneRepMax?: Weight;
-  primaryMuscle?: string;
+  primaryMuscles?: MuscleGroup[];
   notes?: string;
+  deleted?: boolean;
 }
 
 export type SessionStatus = "Planned" | "Ready" | "Incomplete" | "Done";
@@ -282,6 +305,9 @@ export const sortRecordsByName = (rows: { name: string }[]) =>
 
 export const normalizeExerciseName = (name: string) =>
   name.trim().replace(/\s+/g, "").toLocaleLowerCase();
+
+export const normalizeSingleLineText = (text: string) =>
+  text.trim().replace(/\s+/g, " ");
 
 export const exerciseNamesMatch = (a: string, b: string) =>
   normalizeExerciseName(a) === normalizeExerciseName(b);

@@ -670,7 +670,9 @@ function SessionFormScreenContent({
                                               : "text-foreground flex-1 text-xl leading-tight"
                                           }
                                         >
-                                          {ex.name}
+                                          {ex.deleted
+                                            ? `${ex.name} (Deleted)`
+                                            : ex.name}
                                         </Text>
                                       ) : (
                                         <Text

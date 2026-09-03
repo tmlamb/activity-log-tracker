@@ -5,7 +5,10 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
 import type { Exercise } from "@activity-log/ui/utils";
-import { exerciseNamesMatch } from "@activity-log/ui/utils";
+import {
+  exerciseNamesMatch,
+  normalizeMuscleGroups,
+} from "@activity-log/ui/utils";
 
 import "react-native-get-random-values";
 
@@ -14,7 +17,7 @@ import _ from "lodash";
 import { twMerge } from "tailwind-merge";
 import { v4 as uuidv4 } from "uuid";
 
-import { SelectableCardRow } from "~/components/CardRow";
+import { PrimaryCardAction, SelectableCardRow } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
@@ -42,15 +45,26 @@ const inferLoadKindFromName = (
 const isLoadKind = (value?: string): value is Exercise["loadKind"] =>
   value === "BARBELL" || value === "WEIGHT_PAIR" || value === "SINGLE_WEIGHT";
 
+const parsePresetMuscles = (value?: string) => {
+  try {
+    const muscles = JSON.parse(value ?? "[]") as unknown;
+    return Array.isArray(muscles) ? normalizeMuscleGroups(muscles) : [];
+  } catch {
+    return [];
+  }
+};
+
 export default function ExerciseFormScreen() {
   const {
     exerciseId,
     name: presetName,
     loadKind: presetLoadKind,
+    primaryMuscles: presetPrimaryMuscles,
   } = useLocalSearchParams<{
     exerciseId?: string;
     name?: string;
     loadKind?: string;
+    primaryMuscles?: string;
   }>();
   const router = useRouter();
   const {
@@ -59,7 +73,9 @@ export default function ExerciseFormScreen() {
     equipment,
     addExercise,
     updateExercise,
+    restoreExercise,
     deleteExercise,
+    muscleGroups,
   } = useWorkoutStore((state) => state);
 
   const exercise = exercises.find((e) => e.exerciseId === exerciseId);
@@ -81,13 +97,19 @@ export default function ExerciseFormScreen() {
       loadKind: defaultLoadKind,
       barbellId: exercise?.barbellId ?? heaviestBarbell?.barbellId,
       oneRepMax: exercise?.oneRepMax ?? undefined,
-      primaryMuscle: exercise?.primaryMuscle ?? undefined,
+      primaryMuscles: (
+        exercise?.primaryMuscles ?? parsePresetMuscles(presetPrimaryMuscles)
+      ).filter((muscleGroup) => muscleGroups.includes(muscleGroup)),
       notes: exercise?.notes ?? undefined,
     },
   });
   const selectedLoadKind = useWatch({ control, name: "loadKind" });
   const selectedBarbellId = useWatch({ control, name: "barbellId" });
   const selectedName = useWatch({ control, name: "name" });
+  const selectedPrimaryMuscles = useWatch({
+    control,
+    name: "primaryMuscles",
+  });
   const hasManuallySelectedLoadKindRef = useRef(false);
 
   useEffect(() => {
@@ -122,6 +144,17 @@ export default function ExerciseFormScreen() {
     setValue("loadKind", inferredLoadKind, { shouldDirty: true });
   }, [exercise, selectedLoadKind, selectedName, setValue]);
 
+  useEffect(() => {
+    const currentPrimaryMuscles = selectedPrimaryMuscles ?? [];
+    const nextPrimaryMuscles = currentPrimaryMuscles.filter((muscleGroup) =>
+      muscleGroups.includes(muscleGroup),
+    );
+
+    if (nextPrimaryMuscles.length !== currentPrimaryMuscles.length) {
+      setValue("primaryMuscles", nextPrimaryMuscles, { shouldDirty: true });
+    }
+  }, [muscleGroups, selectedPrimaryMuscles, setValue]);
+
   const usedInWorkout = programs.find((program) =>
     program.sessions.find((session) =>
       session.activities.find(
@@ -134,6 +167,7 @@ export default function ExerciseFormScreen() {
     exercises.some(
       (e) =>
         e.exerciseId !== exercise?.exerciseId &&
+        !e.deleted &&
         exerciseNamesMatch(e.name, name),
     );
 
@@ -150,22 +184,28 @@ export default function ExerciseFormScreen() {
 
     try {
       if (exercise) {
-        updateExercise({
+        const updatedExercise = {
           ...exercise,
           name: data.name,
           loadKind: data.loadKind,
           barbellId: data.loadKind === "BARBELL" ? data.barbellId : undefined,
           oneRepMax: data.oneRepMax,
-          primaryMuscle: data.primaryMuscle,
+          primaryMuscles: data.primaryMuscles,
           notes,
-        });
+        };
+
+        if (exercise.deleted) {
+          restoreExercise(updatedExercise);
+        } else {
+          updateExercise(updatedExercise);
+        }
       } else {
         addExercise({
           name: data.name,
           loadKind: data.loadKind,
           barbellId: data.loadKind === "BARBELL" ? data.barbellId : undefined,
           oneRepMax: data.oneRepMax,
-          primaryMuscle: data.primaryMuscle,
+          primaryMuscles: data.primaryMuscles,
           notes,
           exerciseId: uuidv4(),
         });
@@ -192,14 +232,16 @@ export default function ExerciseFormScreen() {
       <Stack.Screen
         options={{
           title: exercise ? "Edit Exercise" : "Add Exercise",
-          headerRight: () => (
-            <HeaderTextAction
-              label="Save"
-              onPress={handleSubmit(onSubmit)}
-              accessibilityLabel="Save exercise"
-              weight="bold"
-            />
-          ),
+          headerRight: exercise?.deleted
+            ? undefined
+            : () => (
+                <HeaderTextAction
+                  label="Save"
+                  onPress={handleSubmit(onSubmit)}
+                  accessibilityLabel="Save exercise"
+                  weight="bold"
+                />
+              ),
           headerLeft: () => (
             <HeaderTextAction
               label="Cancel"
@@ -247,6 +289,53 @@ export default function ExerciseFormScreen() {
             </HelperText>
           )}
         </View>
+        <Controller
+          name="oneRepMax"
+          control={control}
+          rules={{ required: false, min: 5 }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInputThemed
+              label="One Rep Max (lbs)"
+              onChangeText={(text) => {
+                const numericValue = decimalTextToNumber(text);
+                setOneRepMaxInput(text);
+                onChange(
+                  numericValue != null
+                    ? { unit: value?.unit ?? "lbs", value: numericValue }
+                    : undefined,
+                );
+              }}
+              onBlur={() => {
+                const numericValue = decimalTextToNumber(oneRepMaxInput);
+                setOneRepMaxInput(
+                  numericValue != null ? String(numericValue) : "",
+                );
+                onBlur();
+              }}
+              value={oneRepMaxInput}
+              maxLength={7}
+              keyboardType="decimal-pad"
+              numeric
+              decimalPlaces={2}
+              accessibilityLabel="One Rep Max in pounds"
+              cardVariants={["square"]}
+            />
+          )}
+        />
+        <Controller
+          name="notes"
+          control={control}
+          render={({ field: { ref, onChange, onBlur, value } }) => (
+            <MultilineTextInputThemed
+              label="Notes"
+              innerRef={ref}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              value={value}
+              cardVariants={["square"]}
+            />
+          )}
+        />
         <Controller
           name="loadKind"
           control={control}
@@ -352,58 +441,65 @@ export default function ExerciseFormScreen() {
             )}
           </View>
         )}
-        <Controller
-          name="oneRepMax"
-          control={control}
-          rules={{ required: false, min: 5 }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInputThemed
-              label="One Rep Max (lbs)"
-              onChangeText={(text) => {
-                const numericValue = decimalTextToNumber(text);
-                setOneRepMaxInput(text);
-                onChange(
-                  numericValue != null
-                    ? { unit: value?.unit ?? "lbs", value: numericValue }
-                    : undefined,
-                );
-              }}
-              onBlur={() => {
-                const numericValue = decimalTextToNumber(oneRepMaxInput);
-                setOneRepMaxInput(
-                  numericValue != null ? String(numericValue) : "",
-                );
-                onBlur();
-              }}
-              value={oneRepMaxInput}
-              maxLength={7}
-              keyboardType="decimal-pad"
-              numeric
-              decimalPlaces={2}
-              accessibilityLabel="One Rep Max in pounds"
-              cardVariants={["square"]}
-            />
-          )}
-        />
-        <Controller
-          name="notes"
-          control={control}
-          render={({ field: { ref, onChange, onBlur, value } }) => (
-            <MultilineTextInputThemed
-              label="Notes"
-              innerRef={ref}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              value={value}
-              cardVariants={["square"]}
-            />
-          )}
-        />
-        {exercise && !usedInWorkout && (
+        <View>
+          <View className="mb-2 ml-5 flex-row items-center">
+            <SectionHeading placement="inline">Primary Muscles</SectionHeading>
+            <Link href="/(public)/(app)/exercise/muscles" asChild>
+              <PressableThemed
+                className="-my-3 h-11 w-11 items-center justify-center"
+                accessibilityLabel="Manage muscle groups"
+              >
+                <Text maxFontSizeMultiplier={2.5} className="text-primary">
+                  <MaterialCommunityIcons
+                    name="information-variant-circle-outline"
+                    size={22}
+                  />
+                </Text>
+              </PressableThemed>
+            </Link>
+          </View>
+          <Controller
+            name="primaryMuscles"
+            control={control}
+            render={({ field: { onChange, value = [] } }) => (
+              <>
+                {muscleGroups.map((muscleGroup, index) => {
+                  const selected = value.includes(muscleGroup);
+
+                  return (
+                    <SelectableCardRow
+                      key={muscleGroup}
+                      title={muscleGroup}
+                      selected={selected}
+                      onPress={() =>
+                        onChange(
+                          selected
+                            ? value.filter((item) => item !== muscleGroup)
+                            : [...value, muscleGroup],
+                        )
+                      }
+                      accessibilityLabel={`${selected ? "Remove" : "Add"} ${muscleGroup} as a primary muscle`}
+                      cardVariants={["square"]}
+                      stack={{ index, size: muscleGroups.length }}
+                    />
+                  );
+                })}
+              </>
+            )}
+          />
+        </View>
+        {exercise?.deleted ? (
+          <PrimaryCardAction
+            label="Undo Deletion"
+            onPress={handleSubmit(onSubmit)}
+            accessibilityLabel={`Restore exercise with name ${exercise.name}`}
+            cardVariants={["square"]}
+          />
+        ) : exercise ? (
           <ConfirmButton
             accessibilityLabel={`Delete Exercise with name ${exercise.name}`}
             title="Delete Exercise?"
-            message="This will permanently delete this exercise."
+            message="This will hide the exercise from selection and management. Existing workouts will keep it."
             confirmText="Delete Exercise"
             onConfirm={() => {
               deleteExercise(exercise.exerciseId);
@@ -413,12 +509,7 @@ export default function ExerciseFormScreen() {
           >
             Delete This Exercise
           </ConfirmButton>
-        )}
-        {usedInWorkout && (
-          <HelperText placement="formInset">
-            Exercises used in a workout cannot be deleted.
-          </HelperText>
-        )}
+        ) : null}
       </KeyboardAwareScrollView>
     </>
   );

@@ -52,6 +52,10 @@ export default function AppLayout() {
           title: "Manage Exercises",
         }}
       />
+      <Stack.Screen
+        name="exercise/muscles/index"
+        options={{ title: "Manage Muscles" }}
+      />
       {/* Modals */}
       <Stack.Screen
         name="program/form/index"

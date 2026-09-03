@@ -1,7 +1,7 @@
 {
   "name": "@activity-log/expo",
   "private": true,
-  "version": "2.0.37",
+  "version": "2.0.38,
   "main": "index.ts",
   "scripts": {
     "clean": "git clean -xdf .cache .expo .turbo android ios node_modules",
@@ -30,10 +30,13 @@
     "expo-blur": "^57.0.2",
     "expo-constants": "~57.0.9",
     "expo-dev-client": "~57.0.10",
+    "expo-document-picker": "~57.0.1",
+    "expo-file-system": "~57.0.6",
     "expo-linking": "~57.0.5",
     "expo-localization": "57.0.1",
     "expo-navigation-bar": "~57.0.2",
     "expo-router": "~57.0.11",
+    "expo-sharing": "~57.0.16",
     "expo-splash-screen": "~57.0.5",
     "expo-sqlite": "~57.0.1",
     "expo-status-bar": "~57.0.1",
@@ -60,6 +63,7 @@
     "react-native-worklets": "0.10.1",
     "tailwind-merge": "3.3.1",
     "uuid": "^10.0.0",
+    "zod": "catalog:",
     "zustand": "^5.0.3"
   },
   "devDependencies": {

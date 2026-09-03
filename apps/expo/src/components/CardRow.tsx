@@ -5,7 +5,11 @@ import type {
 } from "react-native";
 import { useState } from "react";
 import { Text, useWindowDimensions, View } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from "react-native-reanimated";
 import { AntDesign } from "@expo/vector-icons";
 import { twMerge } from "tailwind-merge";
 
@@ -191,16 +195,17 @@ interface NavigationCardRowProps extends PressableProps {
   cardClassName?: string;
   titleClassName?: string;
   titleNumberOfLines?: number;
-  centerTextLines?: readonly [React.ReactNode, React.ReactNode];
+  centerTextLines?: readonly [React.ReactNode, React.ReactNode?];
   centerTextClassName?: string;
   centerTextColumnWidth?: number;
-  onCenterTextLineLayout?: (lineIndex: 0 | 1, width: number) => void;
   trailingText?: React.ReactNode;
   trailingTextClassName?: string;
   animateTrailingText?: boolean;
   trailingTextAnimationKey?: string;
   showChevron?: boolean;
 }
+
+const centerTextLayoutTransition = LinearTransition.duration(180);
 
 export function NavigationCardRow({
   title,
@@ -215,7 +220,6 @@ export function NavigationCardRow({
   centerTextLines,
   centerTextClassName,
   centerTextColumnWidth,
-  onCenterTextLineLayout,
   trailingText,
   trailingTextClassName,
   animateTrailingText = false,
@@ -227,14 +231,6 @@ export function NavigationCardRow({
   const titlePaddingClassName = multilineEnabled
     ? "py-4.5 leading-tight"
     : undefined;
-  const reportCenterTextLineWidth = (
-    lineIndex: 0 | 1,
-    event: TextLayoutEvent,
-  ) => {
-    const width = event.nativeEvent.lines[0]?.width;
-    if (width != null) onCenterTextLineLayout?.(lineIndex, width);
-  };
-
   const titleText = (
     <Text
       maxFontSizeMultiplier={2.5}
@@ -273,8 +269,12 @@ export function NavigationCardRow({
         {(centerTextLines != null || trailingText != null || showChevron) && (
           <View className="flex-row items-center justify-end">
             {centerTextLines != null ? (
-              <View className="h-[53px] justify-center pr-5">
-                <View
+              <Animated.View
+                layout={centerTextLayoutTransition}
+                className="h-[53px] justify-center pr-5"
+              >
+                <Animated.View
+                  layout={centerTextLayoutTransition}
                   className="items-start"
                   style={
                     centerTextColumnWidth != null
@@ -289,27 +289,23 @@ export function NavigationCardRow({
                       centerTextClassName,
                     )}
                     numberOfLines={1}
-                    onTextLayout={(event) =>
-                      reportCenterTextLineWidth(0, event)
-                    }
                   >
                     {centerTextLines[0]}
                   </Text>
-                  <Text
-                    maxFontSizeMultiplier={2.5}
-                    className={twMerge(
-                      "text-muted text-left text-lg leading-none",
-                      centerTextClassName,
-                    )}
-                    numberOfLines={1}
-                    onTextLayout={(event) =>
-                      reportCenterTextLineWidth(1, event)
-                    }
-                  >
-                    {centerTextLines[1]}
-                  </Text>
-                </View>
-              </View>
+                  {centerTextLines[1] != null ? (
+                    <Text
+                      maxFontSizeMultiplier={2.5}
+                      className={twMerge(
+                        "text-muted text-left text-lg leading-none",
+                        centerTextClassName,
+                      )}
+                      numberOfLines={1}
+                    >
+                      {centerTextLines[1]}
+                    </Text>
+                  ) : null}
+                </Animated.View>
+              </Animated.View>
             ) : null}
             {trailingText != null ? (
               animateTrailingText ? (

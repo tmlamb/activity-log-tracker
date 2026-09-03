@@ -17,13 +17,22 @@ import {
   exerciseNamesMatch,
   completeSession as finalizeSession,
   isSessionTerminalStatus,
+  normalizeExerciseName,
+  normalizeMuscleGroups,
+  normalizeSingleLineText,
   reconcileCompletedWorkoutSet as reconcileWorkoutSet,
 } from "@activity-log/ui/utils";
+
+import {
+  createDefaultExercises,
+  createDefaultMuscleGroups,
+} from "./use-exercise-store";
 
 export interface WorkoutStore {
   programs: Program[];
   exercises: Exercise[];
   equipment: Equipment;
+  muscleGroups: string[];
   hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
   addProgram: (program: Program) => void;
@@ -51,6 +60,7 @@ export interface WorkoutStore {
   ) => void;
   addExercise: (exercise: Exercise) => void;
   updateExercise: (exercise: Exercise) => void;
+  restoreExercise: (exercise: Exercise) => void;
   deleteExercise: (exerciseId: string) => void;
   updateWorkoutSet: (
     programId: string,
@@ -67,13 +77,19 @@ export interface WorkoutStore {
   ) => void;
   cleanupInactiveSessions: (now?: Date) => void;
   updateEquipment: (equipment: Equipment) => void;
+  updateMuscleGroups: (muscleGroups: string[]) => void;
+  replaceWorkoutData: (data: WorkoutStoreImportData) => void;
   resetWorkoutStore: () => void;
 }
 
 type WorkoutStoreData = Pick<
   WorkoutStore,
-  "programs" | "exercises" | "equipment"
+  "programs" | "exercises" | "equipment" | "muscleGroups"
 >;
+
+type WorkoutStoreImportData = Omit<WorkoutStoreData, "muscleGroups"> & {
+  muscleGroups?: string[];
+};
 
 export const createDefaultEquipment = (): Equipment => ({
   barbells: [
@@ -96,11 +112,49 @@ const normalizeEquipment = (equipment: Partial<Equipment> = {}): Equipment => ({
   plates: equipment.plates ?? [],
 });
 
+const normalizeExerciseMuscles = (exercise: Exercise): Exercise => {
+  const legacyExercise = exercise as Exercise & { primaryMuscle?: string };
+  const primaryMuscles = exercise.primaryMuscles ?? [
+    legacyExercise.primaryMuscle,
+  ];
+
+  return {
+    ...exercise,
+    primaryMuscles: normalizeMuscleGroups(primaryMuscles),
+  };
+};
+
+const migrateSavedExerciseMuscles = (exercises: Exercise[]) => {
+  const presetMusclesByName = new Map(
+    createDefaultExercises().map((exercise) => [
+      normalizeExerciseName(exercise.name),
+      exercise.primaryMuscles,
+    ]),
+  );
+
+  return exercises.map((exercise) => {
+    const normalizedExercise = normalizeExerciseMuscles(exercise);
+    const presetMuscles = presetMusclesByName.get(
+      normalizeExerciseName(exercise.name),
+    );
+
+    return exercise.primaryMuscles === undefined &&
+      (normalizedExercise.primaryMuscles?.length ?? 0) === 0 &&
+      presetMuscles
+      ? { ...normalizedExercise, primaryMuscles: presetMuscles }
+      : normalizedExercise;
+  });
+};
+
 const createDefaultWorkoutStoreData = (): WorkoutStoreData => ({
   programs: [],
   exercises: [],
   equipment: createDefaultEquipment(),
+  muscleGroups: createDefaultMuscleGroups(),
 });
+
+const normalizeMuscleCatalog = (muscleGroups: readonly unknown[]) =>
+  normalizeMuscleGroups(muscleGroups).sort((a, b) => a.localeCompare(b));
 
 const reviveDates = (key: string, value: unknown): unknown =>
   (key === "start" || key === "end" || key === "lastActivityAt") &&
@@ -144,7 +198,10 @@ const useWorkoutStore = create<WorkoutStore>()(
       addProgram: (program: Program) => {
         set(
           produce((state: WorkoutStore) => {
-            state.programs.push(program);
+            state.programs.push({
+              ...program,
+              name: normalizeSingleLineText(program.name),
+            });
           }),
         );
       },
@@ -155,7 +212,7 @@ const useWorkoutStore = create<WorkoutStore>()(
               (el) => el.programId === program.programId,
             );
             if (!current) throw new Error("Program not found");
-            current.name = program.name.trim();
+            current.name = normalizeSingleLineText(program.name);
             current.sessions = program.sessions;
           }),
         );
@@ -179,6 +236,7 @@ const useWorkoutStore = create<WorkoutStore>()(
             );
             program?.sessions.push({
               ...session,
+              name: normalizeSingleLineText(session.name),
               lastActivityAt: new Date(),
             });
           }),
@@ -221,7 +279,7 @@ const useWorkoutStore = create<WorkoutStore>()(
               !isSessionTerminalStatus(current.status) && status === "Done"
                 ? finalizeSession({ ...session, status }, end ?? now)
                 : { ...session, activities, end, status };
-            current.name = nextSession.name.trim();
+            current.name = normalizeSingleLineText(nextSession.name);
             current.templateId = nextSession.templateId;
             current.start = nextSession.start;
             current.end = nextSession.end;
@@ -265,7 +323,9 @@ const useWorkoutStore = create<WorkoutStore>()(
                 ? (currentSession.end ?? now)
                 : (session.end ?? now),
             );
-            currentSession.name = completedSession.name.trim();
+            currentSession.name = normalizeSingleLineText(
+              completedSession.name,
+            );
             currentSession.templateId = completedSession.templateId;
             currentSession.start = completedSession.start;
             currentSession.end = completedSession.end;
@@ -389,16 +449,16 @@ const useWorkoutStore = create<WorkoutStore>()(
         set(
           produce((state: WorkoutStore) => {
             if (
-              state.exercises.some((el) =>
-                exerciseNamesMatch(el.name, exercise.name),
+              state.exercises.some(
+                (el) =>
+                  !el.deleted && exerciseNamesMatch(el.name, exercise.name),
               )
             ) {
               throw new Error("Exercise name already exists");
             }
             state.exercises.push({
-              ...exercise,
-              name: exercise.name.trim(),
-              primaryMuscle: exercise.primaryMuscle?.trim(),
+              ...normalizeExerciseMuscles(exercise),
+              name: normalizeSingleLineText(exercise.name),
             });
           }),
         );
@@ -411,20 +471,50 @@ const useWorkoutStore = create<WorkoutStore>()(
             );
             if (!current) throw new Error("Exercise not found");
             if (
+              !current.deleted &&
               state.exercises.some(
                 (el) =>
                   el.exerciseId !== exercise.exerciseId &&
+                  !el.deleted &&
                   exerciseNamesMatch(el.name, exercise.name),
               )
             ) {
               throw new Error("Exercise name already exists");
             }
-            current.name = exercise.name.trim();
+            current.name = normalizeSingleLineText(exercise.name);
             current.loadKind = exercise.loadKind;
             current.barbellId = exercise.barbellId;
             current.oneRepMax = exercise.oneRepMax;
-            current.primaryMuscle = exercise.primaryMuscle?.trim();
+            current.primaryMuscles = exercise.primaryMuscles;
             current.notes = exercise.notes;
+          }),
+        );
+      },
+      restoreExercise: (exercise: Exercise) => {
+        set(
+          produce((state: WorkoutStore) => {
+            const current = state.exercises.find(
+              (el) => el.exerciseId === exercise.exerciseId,
+            );
+            if (!current) throw new Error("Exercise not found");
+            if (
+              state.exercises.some(
+                (el) =>
+                  el.exerciseId !== exercise.exerciseId &&
+                  !el.deleted &&
+                  exerciseNamesMatch(el.name, exercise.name),
+              )
+            ) {
+              throw new Error("Exercise name already exists");
+            }
+
+            current.name = normalizeSingleLineText(exercise.name);
+            current.loadKind = exercise.loadKind;
+            current.barbellId = exercise.barbellId;
+            current.oneRepMax = exercise.oneRepMax;
+            current.primaryMuscles = exercise.primaryMuscles;
+            current.notes = exercise.notes;
+            current.deleted = false;
           }),
         );
       },
@@ -435,7 +525,9 @@ const useWorkoutStore = create<WorkoutStore>()(
               (el) => el.exerciseId === exerciseId,
             );
             if (idx === -1) throw new Error("Exercise not found");
-            state.exercises.splice(idx, 1);
+            const exercise = state.exercises[idx];
+            if (!exercise) throw new Error("Exercise not found");
+            exercise.deleted = true;
           }),
         );
       },
@@ -566,6 +658,33 @@ const useWorkoutStore = create<WorkoutStore>()(
           }),
         );
       },
+      updateMuscleGroups: (muscleGroups: string[]) => {
+        const nextMuscleGroups = normalizeMuscleCatalog(muscleGroups);
+
+        set(
+          produce((state: WorkoutStore) => {
+            state.muscleGroups = nextMuscleGroups;
+            state.exercises.forEach((exercise) => {
+              exercise.primaryMuscles = exercise.primaryMuscles?.filter(
+                (item) => nextMuscleGroups.includes(item),
+              );
+            });
+          }),
+        );
+      },
+      replaceWorkoutData: (data: WorkoutStoreImportData) => {
+        set({
+          programs: data.programs,
+          exercises: data.exercises.map(normalizeExerciseMuscles),
+          equipment: normalizeEquipment(data.equipment),
+          muscleGroups: normalizeMuscleCatalog([
+            ...(data.muscleGroups ?? createDefaultMuscleGroups()),
+            ...data.exercises.flatMap(
+              (exercise) => exercise.primaryMuscles ?? [],
+            ),
+          ]),
+        });
+      },
       resetWorkoutStore: () => {
         set(
           produce((state: WorkoutStore) => {
@@ -576,19 +695,40 @@ const useWorkoutStore = create<WorkoutStore>()(
     }),
     {
       name: "workout-storage",
+      version: 1,
+      migrate: (persistedState, version) => {
+        if (version >= 1) return persistedState;
+
+        const persisted = (persistedState ?? {}) as Partial<WorkoutStoreData>;
+
+        return {
+          ...persisted,
+          exercises: persisted.exercises
+            ? migrateSavedExerciseMuscles(persisted.exercises)
+            : undefined,
+        };
+      },
       onRehydrateStorage: () => (state?: WorkoutStore) => {
         state?.cleanupInactiveSessions();
         state?.setHasHydrated(true);
       },
       merge: (persistedState, currentState) => {
         const persisted = (persistedState ?? {}) as Partial<WorkoutStoreData>;
+        const exercises = (persisted.exercises ?? currentState.exercises).map(
+          normalizeExerciseMuscles,
+        );
 
         return {
           ...currentState,
           ...persisted,
+          exercises,
           equipment: normalizeEquipment(
             persisted.equipment ?? currentState.equipment,
           ),
+          muscleGroups: normalizeMuscleCatalog([
+            ...(persisted.muscleGroups ?? currentState.muscleGroups),
+            ...exercises.flatMap((exercise) => exercise.primaryMuscles ?? []),
+          ]),
         };
       },
       storage: createJSONStorage(createWorkoutStorage, {

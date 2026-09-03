@@ -162,20 +162,19 @@ function WorkoutSetDetailScreenContent({
     exercise.oneRepMax && targetPercent
       ? round5(exercise.oneRepMax.value * targetPercent)
       : undefined;
-  const warmupTargetLoadValue =
-    workoutSet.type === "Warmup" &&
-    activity.load.type === "PERCENT" &&
-    exercise.oneRepMax
-      ? `${stringifyPercent(warmupPercent * 100)}${targetWeight && workoutSet.status !== "Done" ? ` / ${targetWeight}lbs` : ""}`
-      : workoutSet.type === "Warmup" &&
-          activity.load.type === "RPE" &&
-          initialWeight
-        ? `${initialWeight.value}${initialWeight.unit}`
-        : undefined;
+  const firstMainSet = activity.mainSets[0];
+  const mainTargetWeight =
+    exercise.oneRepMax && activity.load.type === "PERCENT"
+      ? round5(exercise.oneRepMax.value * activity.load.value)
+      : undefined;
   const targetLoadValue =
     workoutSet.type === "Main"
       ? `${stringifyLoad(activity.load)}${activity.load.type === "PERCENT" && targetWeight && workoutSet.status !== "Done" ? ` / ${targetWeight}lbs` : ""}${activity.load.type === "RPE" && initialWeight ? ` / ${initialWeight.value}${initialWeight.unit}` : ""}`
-      : warmupTargetLoadValue;
+      : firstMainSet
+        ? `${stringifyLoad(activity.load)}${activity.load.type === "PERCENT" && mainTargetWeight && firstMainSet.status !== "Done" ? ` / ${mainTargetWeight}lbs` : ""}${activity.load.type === "RPE" && firstMainSet.weight ? ` / ${firstMainSet.weight.value}${firstMainSet.weight.unit}` : ""}`
+        : undefined;
+  const targetSummaryCardCount =
+    workoutSet.type === "Main" ? 4 : targetLoadValue ? 3 : 1;
   const selectedBarbell = equipment.barbells.find(
     (barbell) => barbell.barbellId === exercise.barbellId,
   );
@@ -547,7 +546,7 @@ function WorkoutSetDetailScreenContent({
           <View>
             <DetailCardRow
               label="Exercise"
-              value={exercise.name}
+              value={`${exercise.name}${exercise.deleted ? " (Deleted)" : ""}`}
               cardVariants={["multiline"]}
               trailingAccessory={
                 <PressableThemed
@@ -568,37 +567,43 @@ function WorkoutSetDetailScreenContent({
                 </PressableThemed>
               }
               stack={
-                workoutSet.type === "Main"
-                  ? { index: 0, size: 4 }
-                  : targetLoadValue
-                    ? { index: 0, size: 2 }
-                    : undefined
+                targetSummaryCardCount > 1
+                  ? { index: 0, size: targetSummaryCardCount }
+                  : undefined
               }
             />
             {targetLoadValue && (
               <DetailCardRow
-                label="Target Load"
+                label={
+                  workoutSet.type === "Warmup"
+                    ? "Target Load (Main)"
+                    : "Target Load"
+                }
                 value={targetLoadValue}
-                stack={{ index: 1, size: workoutSet.type === "Main" ? 4 : 2 }}
+                stack={{ index: 1, size: targetSummaryCardCount }}
+              />
+            )}
+            {(workoutSet.type === "Main" || targetLoadValue) && (
+              <DetailCardRow
+                label={
+                  workoutSet.type === "Warmup"
+                    ? "Target Reps (Main)"
+                    : "Target Reps"
+                }
+                value={String(activity.reps)}
+                stack={{ index: 2, size: targetSummaryCardCount }}
               />
             )}
             {workoutSet.type === "Main" && (
-              <>
-                <DetailCardRow
-                  label="Target Reps"
-                  value={String(activity.reps)}
-                  stack={{ index: 2, size: 4 }}
-                />
-                <DetailCardRow
-                  label="Target Rest"
-                  value={
-                    activity.rest > 0
-                      ? `${String(activity.rest)} minutes`
-                      : "No rest"
-                  }
-                  stack={{ index: 3, size: 4 }}
-                />
-              </>
+              <DetailCardRow
+                label="Target Rest"
+                value={
+                  activity.rest > 0
+                    ? `${String(activity.rest)} minutes`
+                    : "No rest"
+                }
+                stack={{ index: 3, size: 4 }}
+              />
             )}
             {activity.load.type === "PERCENT" &&
               (!exercise.oneRepMax || exercise.oneRepMax.value <= 0) && (

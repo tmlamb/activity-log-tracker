@@ -1,4 +1,4 @@
-import { KeyboardAvoidingView, ScrollView } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
   FadeInUp,
   FadeOutUp,
@@ -212,188 +212,188 @@ export default function EquipmentScreen() {
         }}
       />
 
-      <KeyboardAvoidingView behavior="padding" className="flex-1">
-        <ScrollView contentContainerClassName="px-5 pt-34 pb-18">
-          <Animated.View layout={LinearTransition} className="gap-6">
-            <HelperText placement="blockStart">
-              These settings will be used to calculate which barbell and plates
-              to use for each workout set.
-            </HelperText>
+      <KeyboardAwareScrollView
+        bottomOffset={40}
+        className="flex-1"
+        contentContainerClassName="px-5 pt-34 pb-18"
+      >
+        <Animated.View layout={LinearTransition} className="gap-6">
+          <HelperText placement="blockStart">
+            These settings will be used to calculate which barbell and plates to
+            use for each workout set.
+          </HelperText>
 
+          <Animated.View layout={LinearTransition}>
+            <SectionHeading>Barbell Inventory</SectionHeading>
+            {barbellFields.map((item, index) => {
+              const stack = { index, size: barbellFields.length + 1 };
+
+              return (
+                <Animated.View
+                  key={item.barbellId}
+                  entering={FadeInUp}
+                  exiting={FadeOutUp}
+                  layout={LinearTransition}
+                >
+                  <Controller
+                    name={`barbells.${index}.value`}
+                    control={control}
+                    rules={{
+                      required: "Required",
+                      validate: (value) =>
+                        validateUniqueWeight(
+                          value,
+                          index,
+                          getValues("barbells"),
+                          {
+                            allowZero: true,
+                          },
+                        ),
+                    }}
+                    render={({
+                      field: { ref, onChange, onBlur, value },
+                      fieldState: { error },
+                    }) => (
+                      <InventoryCounterInputRow
+                        innerRef={ref}
+                        value={String(value)}
+                        onChangeText={(newValue) => {
+                          onChange(normalizeWeightInput(newValue));
+                        }}
+                        onBlur={onBlur}
+                        unit="lbs"
+                        inputAccessibilityLabel="Barbell weight in pounds"
+                        maxLength={4}
+                        keyboardType="numeric"
+                        error={error?.message}
+                        stack={stack}
+                        trailing={{
+                          type: "remove",
+                          onRemove: () => removeBarbell(index),
+                          removeAccessibilityLabel: `Remove ${value} pound barbell`,
+                          removeAccessibilityHint:
+                            "Removes this barbell weight from the inventory.",
+                        }}
+                      />
+                    )}
+                  />
+                </Animated.View>
+              );
+            })}
             <Animated.View layout={LinearTransition}>
-              <SectionHeading>Barbell Inventory</SectionHeading>
-              {barbellFields.map((item, index) => {
-                const stack = { index, size: barbellFields.length + 1 };
-
-                return (
-                  <Animated.View
-                    key={item.barbellId}
-                    entering={FadeInUp}
-                    exiting={FadeOutUp}
-                    layout={LinearTransition}
-                  >
-                    <Controller
-                      name={`barbells.${index}.value`}
-                      control={control}
-                      rules={{
-                        required: "Required",
-                        validate: (value) =>
-                          validateUniqueWeight(
-                            value,
-                            index,
-                            getValues("barbells"),
-                            {
-                              allowZero: true,
-                            },
-                          ),
-                      }}
-                      render={({
-                        field: { ref, onChange, onBlur, value },
-                        fieldState: { error },
-                      }) => (
-                        <InventoryCounterInputRow
-                          innerRef={ref}
-                          value={String(value)}
-                          onChangeText={(newValue) => {
-                            onChange(normalizeWeightInput(newValue));
-                          }}
-                          onBlur={onBlur}
-                          unit="lbs"
-                          inputAccessibilityLabel="Barbell weight in pounds"
-                          maxLength={4}
-                          keyboardType="numeric"
-                          error={error?.message}
-                          stack={stack}
-                          trailing={{
-                            type: "remove",
-                            onRemove: () => removeBarbell(index),
-                            removeAccessibilityLabel: `Remove ${value} pound barbell`,
-                            removeAccessibilityHint:
-                              "Removes this barbell weight from the inventory.",
-                          }}
-                        />
-                      )}
-                    />
-                  </Animated.View>
-                );
-              })}
-              <Animated.View layout={LinearTransition}>
-                <PrimaryCardAction
-                  label="Add Barbell"
-                  icon={<Entypo name="circle-with-plus" size={20} />}
-                  onPress={addBarbell}
-                  stack={
-                    barbellFields.length > 0
-                      ? {
-                          index: barbellFields.length,
-                          size: barbellFields.length + 1,
-                        }
-                      : undefined
-                  }
-                />
-              </Animated.View>
-            </Animated.View>
-
-            <Animated.View layout={LinearTransition}>
-              <SectionHeading>Plate Inventory</SectionHeading>
-              {plateFields.map((item, index) => {
-                const quantity = Number(
-                  plates[index]?.quantity ?? item.quantity,
-                );
-                const stack = { index, size: plateFields.length + 1 };
-
-                return (
-                  <Animated.View
-                    key={item.plateId}
-                    entering={FadeInUp}
-                    exiting={FadeOutUp}
-                    layout={LinearTransition}
-                  >
-                    <Controller
-                      name={`plates.${index}.value`}
-                      control={control}
-                      rules={{
-                        required: "Required",
-                        validate: (value) => {
-                          return validateUniqueWeight(
-                            value,
-                            index,
-                            getValues("plates"),
-                          );
-                        },
-                      }}
-                      render={({
-                        field: { ref, onChange, onBlur, value },
-                        fieldState: { error },
-                      }) => (
-                        <InventoryCounterInputRow
-                          innerRef={ref}
-                          value={String(value)}
-                          onChangeText={(newValue) => {
-                            onChange(normalizeWeightInput(newValue));
-                          }}
-                          onBlur={onBlur}
-                          unit="lbs"
-                          inputAccessibilityLabel="Plate weight in pounds"
-                          maxLength={7}
-                          error={error?.message}
-                          stack={stack}
-                          trailing={{
-                            type: "counter",
-                            count: quantity,
-                            countUnit: "plates",
-                            onDecrement: () => changePlateQuantity(index, -2),
-                            onIncrement: () => changePlateQuantity(index, 2),
-                            decrementAccessibilityLabel:
-                              quantity <= 0
-                                ? `Remove ${value} pound plates from inventory`
-                                : `Decrease ${value} pound plate count by two`,
-                            decrementAccessibilityHint:
-                              quantity <= 0
-                                ? "Removes this plate weight from the inventory."
-                                : "Reduces the plate count by two. At two plates, the next decrement changes the count to zero.",
-                            incrementAccessibilityLabel: `Increase ${value} pound plate count by two`,
-                            incrementAccessibilityHint:
-                              "Adds two plates to this plate weight.",
-                          }}
-                        />
-                      )}
-                    />
-                  </Animated.View>
-                );
-              })}
-              <Animated.View layout={LinearTransition}>
-                <PrimaryCardAction
-                  label="Add Plates"
-                  icon={<Entypo name="circle-with-plus" size={20} />}
-                  onPress={addPlate}
-                  disabled={plateFields.length > 100}
-                  stack={
-                    plateFields.length > 0
-                      ? {
-                          index: plateFields.length,
-                          size: plateFields.length + 1,
-                        }
-                      : undefined
-                  }
-                />
-              </Animated.View>
+              <PrimaryCardAction
+                label="Add Barbell"
+                icon={<Entypo name="circle-with-plus" size={20} />}
+                onPress={addBarbell}
+                stack={
+                  barbellFields.length > 0
+                    ? {
+                        index: barbellFields.length,
+                        size: barbellFields.length + 1,
+                      }
+                    : undefined
+                }
+              />
             </Animated.View>
           </Animated.View>
 
-          <Animated.View layout={LinearTransition} className="mt-10">
-            <ConfirmButton
-              accessibilityLabel="Restore default equipment inventory"
-              title="Restore Equipment Defaults?"
-              message="This will permanently replace your equipment settings with the default barbell and plate inventory."
-              confirmText="Restore Defaults"
-              onConfirm={restoreEquipmentDefaults}
-            >
-              Restore Defaults
-            </ConfirmButton>
+          <Animated.View layout={LinearTransition}>
+            <SectionHeading>Plate Inventory</SectionHeading>
+            {plateFields.map((item, index) => {
+              const quantity = Number(plates[index]?.quantity ?? item.quantity);
+              const stack = { index, size: plateFields.length + 1 };
+
+              return (
+                <Animated.View
+                  key={item.plateId}
+                  entering={FadeInUp}
+                  exiting={FadeOutUp}
+                  layout={LinearTransition}
+                >
+                  <Controller
+                    name={`plates.${index}.value`}
+                    control={control}
+                    rules={{
+                      required: "Required",
+                      validate: (value) => {
+                        return validateUniqueWeight(
+                          value,
+                          index,
+                          getValues("plates"),
+                        );
+                      },
+                    }}
+                    render={({
+                      field: { ref, onChange, onBlur, value },
+                      fieldState: { error },
+                    }) => (
+                      <InventoryCounterInputRow
+                        innerRef={ref}
+                        value={String(value)}
+                        onChangeText={(newValue) => {
+                          onChange(normalizeWeightInput(newValue));
+                        }}
+                        onBlur={onBlur}
+                        unit="lbs"
+                        inputAccessibilityLabel="Plate weight in pounds"
+                        maxLength={7}
+                        error={error?.message}
+                        stack={stack}
+                        trailing={{
+                          type: "counter",
+                          count: quantity,
+                          countUnit: "plates",
+                          onDecrement: () => changePlateQuantity(index, -2),
+                          onIncrement: () => changePlateQuantity(index, 2),
+                          decrementAccessibilityLabel:
+                            quantity <= 0
+                              ? `Remove ${value} pound plates from inventory`
+                              : `Decrease ${value} pound plate count by two`,
+                          decrementAccessibilityHint:
+                            quantity <= 0
+                              ? "Removes this plate weight from the inventory."
+                              : "Reduces the plate count by two. At two plates, the next decrement changes the count to zero.",
+                          incrementAccessibilityLabel: `Increase ${value} pound plate count by two`,
+                          incrementAccessibilityHint:
+                            "Adds two plates to this plate weight.",
+                        }}
+                      />
+                    )}
+                  />
+                </Animated.View>
+              );
+            })}
+            <Animated.View layout={LinearTransition}>
+              <PrimaryCardAction
+                label="Add Plates"
+                icon={<Entypo name="circle-with-plus" size={20} />}
+                onPress={addPlate}
+                disabled={plateFields.length > 100}
+                stack={
+                  plateFields.length > 0
+                    ? {
+                        index: plateFields.length,
+                        size: plateFields.length + 1,
+                      }
+                    : undefined
+                }
+              />
+            </Animated.View>
           </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </Animated.View>
+
+        <Animated.View layout={LinearTransition} className="mt-10">
+          <ConfirmButton
+            accessibilityLabel="Restore default equipment inventory"
+            title="Restore Equipment Defaults?"
+            message="This will permanently replace your equipment settings with the default barbell and plate inventory."
+            confirmText="Restore Defaults"
+            onConfirm={restoreEquipmentDefaults}
+          >
+            Restore Defaults
+          </ConfirmButton>
+        </Animated.View>
+      </KeyboardAwareScrollView>
     </>
   );
 }

@@ -41,14 +41,18 @@ export default function ExerciseSelectScreen() {
     exercises: usedExercises,
     equipment,
     addExercise,
+    muscleGroups,
   } = useWorkoutStore((state) => state);
   const { setPendingExercise } = usePendingSelection();
+  const activeUsedExercises = usedExercises.filter(
+    (exercise) => !exercise.deleted,
+  );
   const primaryColor = useNativeVariable("--primary") as string;
   const usedExerciseNames = new Set(
     usedExercises.map((exercise) => normalizeExerciseName(exercise.name)),
   );
 
-  const initialExercise = usedExercises.find(
+  const initialExercise = activeUsedExercises.find(
     (e) => e.exerciseId === currentExerciseId,
   );
   const [selected, setSelected] = useState<Exercise | undefined>(
@@ -59,7 +63,7 @@ export default function ExerciseSelectScreen() {
     ? normalizeExerciseName(searchFilter)
     : undefined;
 
-  const filteredUsedExercises = usedExercises.filter((ue) =>
+  const filteredUsedExercises = activeUsedExercises.filter((ue) =>
     normalizedSearchFilter
       ? normalizeExerciseName(ue.name).includes(normalizedSearchFilter)
       : true,
@@ -81,13 +85,15 @@ export default function ExerciseSelectScreen() {
   const getExerciseFormHref = (exercise: Partial<Exercise>): Href => {
     const exerciseName = exercise.name;
     const savedExercise = exerciseName
-      ? usedExercises.find((e) => exerciseNamesMatch(e.name, exerciseName))
+      ? activeUsedExercises.find((e) =>
+          exerciseNamesMatch(e.name, exerciseName),
+        )
       : undefined;
     const exerciseId = exercise.exerciseId ?? savedExercise?.exerciseId;
 
     return exerciseId
       ? `/(public)/(app)/exercise/form?exerciseId=${exerciseId}`
-      : `/(public)/(app)/exercise/form?name=${encodeURIComponent(exerciseName ?? "")}${exercise.loadKind ? `&loadKind=${exercise.loadKind}` : ""}`;
+      : `/(public)/(app)/exercise/form?name=${encodeURIComponent(exerciseName ?? "")}${exercise.loadKind ? `&loadKind=${exercise.loadKind}` : ""}${exercise.primaryMuscles?.length ? `&primaryMuscles=${encodeURIComponent(JSON.stringify(exercise.primaryMuscles))}` : ""}`;
   };
 
   const renderExerciseInfoButton = (exercise: Partial<Exercise>) => (
@@ -110,7 +116,7 @@ export default function ExerciseSelectScreen() {
 
   const handleDone = () => {
     if (!selected) return;
-    const existingExercise = usedExercises.find((e) =>
+    const existingExercise = activeUsedExercises.find((e) =>
       exerciseNamesMatch(e.name, selected.name),
     );
     const heaviestBarbell = _.maxBy(equipment.barbells, "value");
@@ -118,6 +124,9 @@ export default function ExerciseSelectScreen() {
       ? selected
       : (existingExercise ?? {
           ...selected,
+          primaryMuscles: selected.primaryMuscles?.filter((muscleGroup) =>
+            muscleGroups.includes(muscleGroup),
+          ),
           exerciseId: uuidv4(),
           barbellId:
             selected.loadKind === "BARBELL"
@@ -127,7 +136,7 @@ export default function ExerciseSelectScreen() {
 
     // Add to workout store if it's a preset (not yet in usedExercises)
     if (
-      !usedExercises.find(
+      !activeUsedExercises.find(
         (e) => e.exerciseId === normalizedSelection.exerciseId,
       )
     ) {

@@ -47,14 +47,17 @@ const isWorkoutSetDone = (workoutSet: WorkoutSet) =>
 
 const getCompletedSetTextLines = (workoutSet: WorkoutSet) => {
   const { actualReps, weight } = workoutSet;
-  if (!isWorkoutSetDone(workoutSet) || actualReps == null || weight == null) {
+  if (!isWorkoutSetDone(workoutSet) || actualReps == null) {
     return undefined;
   }
 
-  return [`${weight.value} ${weight.unit}`, `${actualReps} reps`] as const;
+  return weight?.value
+    ? ([`${weight.value} ${weight.unit}`, `${actualReps} reps`] as const)
+    : ([`${actualReps} reps`] as const);
 };
 
 const sessionCleanupWarningDelayMs = SESSION_INACTIVITY_TIMEOUT_MS / 2;
+const completionTextCharacterWidth = 8;
 
 function SessionCleanupWarning({ session }: { session: Session }) {
   const warningAt = session.lastActivityAt
@@ -103,11 +106,6 @@ interface WorkoutSetCardProps {
   title: string;
   index: number;
   completionTextColumnWidth?: number;
-  onCompletionTextLineLayout?: (
-    workoutSetId: string,
-    lineIndex: 0 | 1,
-    width: number,
-  ) => void;
 }
 
 interface ExerciseSectionItem {
@@ -132,7 +130,6 @@ function WorkoutSetCard({
   title,
   index,
   completionTextColumnWidth,
-  onCompletionTextLineLayout,
 }: WorkoutSetCardProps) {
   const status =
     workoutSet.status === "Planned" &&
@@ -164,16 +161,6 @@ function WorkoutSetCard({
         }
         centerTextLines={completedSetTextLines}
         centerTextColumnWidth={completionTextColumnWidth}
-        onCenterTextLineLayout={
-          onCompletionTextLineLayout
-            ? (lineIndex, width) =>
-                onCompletionTextLineLayout(
-                  workoutSet.workoutSetId,
-                  lineIndex,
-                  width,
-                )
-            : undefined
-        }
         trailingText={status === "Planned" ? undefined : status}
         trailingTextClassName={
           status === "Ready"
@@ -197,32 +184,15 @@ function ExerciseSectionBody({
   collapsed: boolean;
   workoutSets: WorkoutSetCardProps[];
 }) {
-  const [completionTextLineWidths, setCompletionTextLineWidths] = useState<
-    Record<string, number>
-  >({});
-  const completionTextColumnWidth = workoutSets.reduce((width, item) => {
-    if (!getCompletedSetTextLines(item.workoutSet)) return width;
-
-    return Math.max(
-      width,
-      completionTextLineWidths[`${item.workoutSet.workoutSetId}-0`] ?? 0,
-      completionTextLineWidths[`${item.workoutSet.workoutSetId}-1`] ?? 0,
-    );
-  }, 0);
-
-  const handleCompletionTextLineLayout = (
-    workoutSetId: string,
-    lineIndex: 0 | 1,
-    width: number,
-  ) => {
-    const key = `${workoutSetId}-${lineIndex}`;
-    const roundedWidth = Math.ceil(width);
-    setCompletionTextLineWidths((current) =>
-      current[key] === roundedWidth
-        ? current
-        : { ...current, [key]: roundedWidth },
-    );
-  };
+  const completionTextColumnWidth = Math.max(
+    0,
+    ...workoutSets.flatMap(
+      ({ workoutSet }) =>
+        getCompletedSetTextLines(workoutSet)?.map(
+          (line) => line.length * completionTextCharacterWidth,
+        ) ?? [],
+    ),
+  );
 
   return (
     <CollapsibleSectionBody collapsed={collapsed}>
@@ -236,7 +206,6 @@ function ExerciseSectionBody({
           title={item.title}
           index={item.index}
           completionTextColumnWidth={completionTextColumnWidth || undefined}
-          onCompletionTextLineLayout={handleCompletionTextLineLayout}
         />
       ))}
     </CollapsibleSectionBody>
@@ -367,9 +336,15 @@ function SessionDetailScreenContent({
       );
 
       return {
-        title:
-          exercises.find((e) => e.exerciseId === activity.exerciseId)?.name ??
-          `Activity ${actIndex + 1}`,
+        title: (() => {
+          const exercise = exercises.find(
+            (e) => e.exerciseId === activity.exerciseId,
+          );
+
+          return exercise
+            ? `${exercise.name}${exercise.deleted ? " (Deleted)" : ""}`
+            : `Activity ${actIndex + 1}`;
+        })(),
         activityId: activity.activityId,
         allSetsDone,
         collapsed,

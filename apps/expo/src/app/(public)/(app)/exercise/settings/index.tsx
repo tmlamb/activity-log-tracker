@@ -5,7 +5,6 @@ import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 
 import type { Exercise } from "@activity-log/ui/utils";
 import {
-  exerciseNamesMatch,
   normalizeExerciseName,
   sortRecordsByName,
 } from "@activity-log/ui/utils";
@@ -20,7 +19,11 @@ export default function ExerciseSettingsScreen() {
   const { parentRoute } = useLocalSearchParams<{ parentRoute?: string }>();
   const router = useRouter();
   const availableExercises = useExerciseStore((state) => state.exercises);
-  const usedExercises = useWorkoutStore((state) => state.exercises);
+  const storedExercises = useWorkoutStore((state) => state.exercises);
+  const usedExercises = storedExercises.filter((exercise) => !exercise.deleted);
+  const storedExerciseNames = new Set(
+    storedExercises.map((exercise) => normalizeExerciseName(exercise.name)),
+  );
   const [searchFilter, setSearchFilter] = useState<string>();
   const normalizedSearchFilter = searchFilter
     ? normalizeExerciseName(searchFilter)
@@ -40,8 +43,7 @@ export default function ExerciseSettingsScreen() {
 
   const exerciseList = sortRecordsByName([...filteredUsedExercises]).concat(
     filteredAvailableExercises.filter(
-      (ae) =>
-        !filteredUsedExercises.find((e) => exerciseNamesMatch(e.name, ae.name)),
+      (ae) => !storedExerciseNames.has(normalizeExerciseName(ae.name)),
     ),
   ) as Partial<Exercise>[];
 
@@ -106,7 +108,7 @@ export default function ExerciseSettingsScreen() {
               href={
                 (item as Exercise).exerciseId
                   ? `/(public)/(app)/exercise/form?exerciseId=${(item as Exercise).exerciseId}`
-                  : `/(public)/(app)/exercise/form?name=${encodeURIComponent(item.name ?? "")}${item.loadKind ? `&loadKind=${item.loadKind}` : ""}`
+                  : `/(public)/(app)/exercise/form?name=${encodeURIComponent(item.name ?? "")}${item.loadKind ? `&loadKind=${item.loadKind}` : ""}${item.primaryMuscles?.length ? `&primaryMuscles=${encodeURIComponent(JSON.stringify(item.primaryMuscles))}` : ""}`
               }
               asChild
             >
