@@ -8,7 +8,7 @@ import {
   buttonStyle,
   disabled as disabledModifier,
   font,
-  foregroundStyle,
+  foregroundColor,
   frame,
   glassEffect,
   offset,
@@ -188,7 +188,7 @@ function ButtonText({
         frame({ width, alignment: "center" }),
         offset({ y: 1 }),
         font({ size: 18, weight: "regular" }),
-        foregroundStyle(primaryColor),
+        foregroundColor(primaryColor),
       ]}
     >
       {label}
