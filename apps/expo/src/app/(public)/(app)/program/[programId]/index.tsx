@@ -22,7 +22,7 @@ import {
   CollapsibleSectionHeader,
   useCollapsibleSectionScroll,
 } from "~/components/CollapsibleSection";
-import { HeaderTextAction } from "~/components/HeaderAction";
+import { HeaderIconAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
 import {
   HelperText,
@@ -208,10 +208,20 @@ function ProgramDetailScreenContent({
               href={`/(public)/(app)/program/${program.programId}/insights`}
               asChild
             >
-              <HeaderTextAction
-                label="Insights"
+              <HeaderIconAction
+                className="rounded-full"
                 accessibilityLabel={`View insights for ${program.name}`}
-              />
+              >
+                <Text
+                  maxFontSizeMultiplier={2.5}
+                  className="text-primary leading-none"
+                >
+                  <MaterialCommunityIcons
+                    name="chart-timeline-variant-shimmer"
+                    size={24}
+                  />
+                </Text>
+              </HeaderIconAction>
             </Link>
           ),
         }}
