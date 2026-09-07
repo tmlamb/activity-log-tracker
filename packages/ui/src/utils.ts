@@ -87,6 +87,7 @@ export interface Session {
   name: string;
   sessionId: string;
   templateId?: string;
+  deload: boolean;
   start?: Date;
   end?: Date;
   lastActivityAt?: Date;
@@ -271,6 +272,10 @@ export const cleanupInactiveSession = (
   return { ...completeSession(session, end), status: "Incomplete" };
 };
 
+const kilogramsToPounds = (kilograms: number) => kilograms * 2.2046226218;
+
+export const round5 = (value: number) => Math.round(value / 5) * 5;
+
 export const plannedRepsFromTemplateActivity = (activity: Activity) => {
   const actualReps = activity.mainSets.reduce(
     (result, mainSet) => {
@@ -295,8 +300,12 @@ export const plannedRepsFromTemplateActivity = (activity: Activity) => {
 export const plannedSessionFromTemplate = (
   template: Session,
   createId: () => string,
-): Pick<Session, "name" | "start" | "end" | "status" | "activities"> => ({
+): Pick<
+  Session,
+  "name" | "deload" | "start" | "end" | "status" | "activities"
+> => ({
   name: template.name,
+  deload: false,
   start: undefined,
   end: undefined,
   status: "Planned",
@@ -327,6 +336,147 @@ export const plannedSessionFromTemplate = (
   })),
 });
 
+const getTemplateSeries = (sessions: readonly Session[], session: Session) =>
+  session.templateId
+    ? sessions.filter((item) => item.templateId === session.templateId)
+    : [];
+
+const orderSessionsChronologically = (
+  sessions: readonly Session[],
+  allSessions: readonly Session[],
+) =>
+  sessions
+    .map((session) => ({
+      session,
+      index: allSessions.findIndex(
+        (item) => item.sessionId === session.sessionId,
+      ),
+    }))
+    .sort((a, b) => {
+      const aTime = (a.session.start ?? a.session.end)?.getTime() ?? 0;
+      const bTime = (b.session.start ?? b.session.end)?.getTime() ?? 0;
+      return aTime - bTime || a.index - b.index;
+    })
+    .map(({ session }) => session);
+
+export const canSetSessionDeload = (
+  sessions: readonly Session[],
+  session: Session,
+) => {
+  const sessionIndex = sessions.findIndex(
+    (item) => item.sessionId === session.sessionId,
+  );
+  if (!session.templateId || sessionIndex < 0) return false;
+
+  return sessions
+    .slice(0, sessionIndex)
+    .some((item) => item.templateId === session.templateId);
+};
+
+const getCompletedTemplateSeries = (
+  sessions: readonly Session[],
+  session: Session,
+) =>
+  orderSessionsChronologically(
+    getTemplateSeries(sessions, session).filter(
+      (item) => item.status === "Done",
+    ),
+    sessions,
+  );
+
+const getPreviousCompletedNonDeloadSession = (
+  sessions: readonly Session[],
+  session: Session,
+) => {
+  const completedSeries = getCompletedTemplateSeries(sessions, session);
+  const sessionIndex = completedSeries.findIndex(
+    (item) => item.sessionId === session.sessionId,
+  );
+  if (sessionIndex < 1) return undefined;
+
+  return completedSeries
+    .slice(0, sessionIndex)
+    .reverse()
+    .find((item) => !item.deload);
+};
+
+export const isLatestCompletedSessionInTemplateSeries = (
+  sessions: readonly Session[],
+  session: Session,
+) =>
+  session.status === "Done" &&
+  getCompletedTemplateSeries(sessions, session).at(-1)?.sessionId ===
+    session.sessionId;
+
+export const templateSessionForPlanning = (
+  sessions: readonly Session[],
+  selectedSession: Session,
+) => {
+  return (
+    [...getCompletedTemplateSeries(sessions, selectedSession)]
+      .reverse()
+      .find((session) => !session.deload) ?? selectedSession
+  );
+};
+
+export const plannedSessionVolumeLbs = (
+  session: Session,
+  exercises: readonly Exercise[],
+) => {
+  const exercisesById = new Map(
+    exercises.map((exercise) => [exercise.exerciseId, exercise]),
+  );
+
+  return session.activities.reduce((sessionVolume, activity) => {
+    const exercise = exercisesById.get(activity.exerciseId);
+    const reps = plannedRepsFromTemplateActivity(activity);
+    const weightMultiplier = exercise?.loadKind === "WEIGHT_PAIR" ? 2 : 1;
+    const percentWeight =
+      activity.load.type === "PERCENT" && (exercise?.oneRepMax?.value ?? 0) > 0
+        ? {
+            value: round5(
+              (exercise?.oneRepMax?.value ?? 0) * activity.load.value,
+            ),
+            unit: exercise?.oneRepMax?.unit ?? ("lbs" as const),
+          }
+        : undefined;
+    const activityVolume = activity.mainSets.reduce((volume, mainSet) => {
+      const weight =
+        activity.load.type === "PERCENT" ? percentWeight : mainSet.weight;
+      const weightLbs = weight
+        ? weight.unit === "kg"
+          ? kilogramsToPounds(weight.value)
+          : weight.value
+        : 0;
+
+      return volume + reps * weightLbs * weightMultiplier;
+    }, 0);
+
+    return sessionVolume + activityVolume;
+  }, 0);
+};
+
+export const isDeloadCandidate = (
+  sessions: readonly Session[],
+  session: Session,
+  exercises: readonly Exercise[],
+) => {
+  if (session.status !== "Done" || !canSetSessionDeload(sessions, session)) {
+    return false;
+  }
+
+  const previousSession = getPreviousCompletedNonDeloadSession(
+    sessions,
+    session,
+  );
+  if (!previousSession) return false;
+
+  const previousVolume = plannedSessionVolumeLbs(previousSession, exercises);
+  if (previousVolume <= 0) return false;
+
+  return plannedSessionVolumeLbs(session, exercises) <= previousVolume * 0.75;
+};
+
 export const dateRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/;
 
 export const normalizedLocalDate = (date: Date) =>
@@ -347,8 +497,6 @@ export const weekAndDayFromStart = (start: Date, end: Date) => {
   const { week, day } = weekAndDayNumbersFromStart(start, end);
   return `${week > 1 ? `Week ${week}, ` : ""}Day ${day}`;
 };
-
-const kilogramsToPounds = (kilograms: number) => kilograms * 2.2046226218;
 
 export const buildProgramInsights = (
   program: Program,
@@ -469,8 +617,6 @@ export const stringifyLoad = ({ type, value }: Load) =>
 
 export const stringifyWeight = (weight: Weight) =>
   `${weight.value} ${weight.unit}`;
-
-export const round5 = (value: number) => Math.round(value / 5) * 5;
 
 export const sortRecordsByName = (rows: { name: string }[]) =>
   rows.sort((a, b) => a.name.localeCompare(b.name));

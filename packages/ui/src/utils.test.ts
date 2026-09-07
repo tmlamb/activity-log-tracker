@@ -3,19 +3,24 @@ import { describe, expect, it } from "vitest";
 import type { Activity, Exercise, Program, Session, WorkoutSet } from "./utils";
 import {
   buildProgramInsights,
+  canSetSessionDeload,
   cleanupInactiveSession,
   completeSession,
   exerciseNamesMatch,
   finalizeWorkoutSet,
+  isDeloadCandidate,
+  isLatestCompletedSessionInTemplateSeries,
   normalizeExerciseName,
   normalizeMuscleGroups,
   normalizeSingleLineText,
   plannedRepsFromTemplateActivity,
   plannedSessionFromTemplate,
+  plannedSessionVolumeLbs,
   reconcileCompletedWorkoutSet,
   shiftSessionStart,
   stringifyLoad,
   stringifyPercent,
+  templateSessionForPlanning,
   weekAndDayFromStart,
 } from "./utils";
 
@@ -55,6 +60,7 @@ const createSession = (
 ): Session => ({
   name: "Session",
   sessionId: "session-1",
+  deload: false,
   start: new Date("2026-08-24T08:00:00.000Z"),
   status: "Ready",
   activities: [activity],
@@ -156,6 +162,7 @@ describe("plannedSessionFromTemplate", () => {
 
     expect(result).toMatchObject({
       name: template.name,
+      deload: false,
       start: undefined,
       end: undefined,
       status: "Planned",
@@ -184,6 +191,183 @@ describe("plannedSessionFromTemplate", () => {
         },
       ],
     });
+  });
+});
+
+describe("template series deloads", () => {
+  const exercise: Exercise = {
+    exerciseId: "exercise-1",
+    name: "Barbell Squat",
+    loadKind: "BARBELL",
+  };
+  const completedActivity = (reps: number, weight = 100) =>
+    createActivity([
+      createWorkoutSet("main-1", {
+        status: "Done",
+        actualReps: reps,
+        weight: { value: weight, unit: "lbs" },
+      }),
+      createWorkoutSet("main-2", {
+        status: "Done",
+        actualReps: reps,
+        weight: { value: weight, unit: "lbs" },
+      }),
+      createWorkoutSet("main-3", {
+        status: "Done",
+        actualReps: reps,
+        weight: { value: weight, unit: "lbs" },
+      }),
+    ]);
+  const completedSession = (
+    sessionId: string,
+    day: number,
+    activity = completedActivity(10),
+    overrides: Partial<Session> = {},
+  ) =>
+    createSession(activity, {
+      sessionId,
+      templateId: "series-1",
+      status: "Done",
+      start: new Date(`2026-08-${String(day).padStart(2, "0")}T08:00:00.000Z`),
+      end: new Date(`2026-08-${String(day).padStart(2, "0")}T09:00:00.000Z`),
+      ...overrides,
+    });
+
+  it("only allows sessions after the first series member to be deloads", () => {
+    const first = completedSession("first", 1);
+    const second = completedSession("second", 2);
+    const standalone = createSession(completedActivity(10), {
+      sessionId: "standalone",
+      status: "Done",
+    });
+
+    expect(canSetSessionDeload([first, second], first)).toBe(false);
+    expect(canSetSessionDeload([first, second], second)).toBe(true);
+    expect(canSetSessionDeload([standalone], standalone)).toBe(false);
+  });
+
+  it("plans from the last completed non-deload session after consecutive deloads", () => {
+    const first = completedSession("first", 1);
+    const firstDeload = completedSession("first-deload", 2, undefined, {
+      deload: true,
+    });
+    const latestDeload = completedSession("latest-deload", 3, undefined, {
+      deload: true,
+    });
+    const sessions = [first, firstDeload, latestDeload];
+
+    expect(templateSessionForPlanning(sessions, latestDeload)).toBe(first);
+    expect(
+      isLatestCompletedSessionInTemplateSeries(sessions, latestDeload),
+    ).toBe(true);
+    expect(
+      isLatestCompletedSessionInTemplateSeries(sessions, firstDeload),
+    ).toBe(false);
+  });
+
+  it("keeps using the selected session when the latest completion is not a deload", () => {
+    const first = completedSession("first", 1);
+    const latest = completedSession("latest", 2);
+
+    expect(templateSessionForPlanning([first, latest], latest)).toBe(latest);
+  });
+
+  it("ignores a more recent incomplete session when planning from a template", () => {
+    const first = completedSession("first", 1);
+    const latestCompleted = completedSession("latest-completed", 2);
+    const incomplete = completedSession("incomplete", 3, undefined, {
+      status: "Incomplete",
+    });
+
+    expect(
+      templateSessionForPlanning(
+        [first, latestCompleted, incomplete],
+        incomplete,
+      ),
+    ).toBe(latestCompleted);
+  });
+
+  it("projects incomplete sets using metrics from the completed sets", () => {
+    const previous = completedSession("previous", 1);
+    const current = completedSession(
+      "current",
+      2,
+      createActivity([
+        createWorkoutSet("done", {
+          status: "Done",
+          actualReps: 10,
+          weight: { value: 100, unit: "lbs" },
+        }),
+        createWorkoutSet("incomplete-1", {
+          status: "Incomplete",
+          weight: { value: 100, unit: "lbs" },
+        }),
+        createWorkoutSet("incomplete-2", {
+          status: "Incomplete",
+          weight: { value: 100, unit: "lbs" },
+        }),
+      ]),
+    );
+
+    expect(plannedSessionVolumeLbs(current, [exercise])).toBe(3000);
+    expect(isDeloadCandidate([previous, current], current, [exercise])).toBe(
+      false,
+    );
+  });
+
+  it("identifies completed sessions at or below 75 percent projected volume", () => {
+    const previous = completedSession("previous", 1);
+    const atThreshold = completedSession(
+      "at-threshold",
+      2,
+      completedActivity(10, 75),
+    );
+    const belowThreshold = completedSession(
+      "below-threshold",
+      3,
+      completedActivity(5),
+    );
+
+    expect(
+      isDeloadCandidate([previous, atThreshold], atThreshold, [exercise]),
+    ).toBe(true);
+    expect(
+      isDeloadCandidate(
+        [previous, atThreshold, belowThreshold],
+        belowThreshold,
+        [exercise],
+      ),
+    ).toBe(true);
+  });
+
+  it("does not identify an incomplete session", () => {
+    const previous = completedSession("previous", 1);
+    const incomplete = completedSession("incomplete", 2, completedActivity(1), {
+      status: "Incomplete",
+    });
+
+    expect(
+      isDeloadCandidate([previous, incomplete], incomplete, [exercise]),
+    ).toBe(false);
+  });
+
+  it("uses planned percentage weight and paired-weight volume", () => {
+    const percentageActivity = {
+      ...createActivity([
+        createWorkoutSet("main-1"),
+        createWorkoutSet("main-2"),
+      ]),
+      load: { type: "PERCENT" as const, value: 0.5 },
+    };
+    const session = createSession(percentageActivity);
+    const pairedExercise: Exercise = {
+      exerciseId: "exercise-1",
+      name: "Dumbbell Squat",
+      loadKind: "WEIGHT_PAIR",
+      oneRepMax: { value: 200, unit: "lbs" },
+    };
+
+    expect(plannedSessionVolumeLbs(session, [pairedExercise])).toBe(4000);
   });
 });
 

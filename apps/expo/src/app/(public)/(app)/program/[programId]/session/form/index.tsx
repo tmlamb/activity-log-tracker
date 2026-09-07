@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
@@ -34,6 +34,8 @@ import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 
 import {
+  canSetSessionDeload,
+  isLatestCompletedSessionInTemplateSeries,
   isSessionTerminalStatus,
   plannedSessionFromTemplate,
   shiftSessionStart,
@@ -50,6 +52,7 @@ import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PressableThemed from "~/components/PressableThemed";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import { AnimatedViewStyled } from "~/components/Styled";
+import SwitchThemed from "~/components/SwitchThemed";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText } from "~/components/Typography";
 import usePendingSelection from "~/hooks/use-pending-selection";
@@ -64,6 +67,7 @@ const activityEditorInputCardVariants: React.ComponentProps<
 
 export interface SessionFormData {
   name: string;
+  deload: boolean;
   start?: Date;
   end?: Date;
   status: Session["status"];
@@ -183,6 +187,7 @@ function SessionFormScreenContent({
   } = useForm<SessionFormData>({
     defaultValues: {
       name: session?.name ?? "",
+      deload: session?.deload ?? false,
       start: session?.start ?? undefined,
       end: session?.end ?? undefined,
       activities: session?.activities ?? [],
@@ -198,7 +203,16 @@ function SessionFormScreenContent({
   const [fromType, setFromType] = useState<
     "Scratch" | "Template" | undefined
   >();
-  const templateSourceSessionRef = useRef<Session | undefined>(undefined);
+  const [templateSourceSession, setTemplateSourceSession] = useState<
+    Session | undefined
+  >();
+  const sessionCanBeDeload = session
+    ? canSetSessionDeload(sessions, session)
+    : fromType === "Template" && templateSourceSession != null;
+  const deloadRequiresConfirmation =
+    session?.status !== "Incomplete" &&
+    (session?.status !== "Done" ||
+      isLatestCompletedSessionInTemplateSeries(sessions, session));
   const watchStart = useWatch({ control, name: "start" });
   const watchActivities = useWatch({ control, name: "activities" });
 
@@ -240,9 +254,10 @@ function SessionFormScreenContent({
   };
 
   const resetToScratch = () => {
-    templateSourceSessionRef.current = undefined;
+    setTemplateSourceSession(undefined);
     reset({
       name: "",
+      deload: false,
       start: undefined,
       end: undefined,
       status: "Planned",
@@ -346,8 +361,10 @@ function SessionFormScreenContent({
     }
 
     reset(plannedSessionFromTemplate(pendingSession.session, uuidv4));
-    templateSourceSessionRef.current = pendingSession.session;
-    queueMicrotask(() => setFromType("Template"));
+    queueMicrotask(() => {
+      setTemplateSourceSession(pendingSession.session);
+      setFromType("Template");
+    });
     clearPendingSession();
   }, [isFocused, pendingSession]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -378,13 +395,13 @@ function SessionFormScreenContent({
         name: data.name,
         sessionId: session.sessionId,
         templateId: session.templateId,
+        deload: data.deload,
         activities: data.activities,
         start: data.start,
         end: data.end,
         status: session.status,
       });
     } else {
-      const templateSourceSession = templateSourceSessionRef.current;
       const templateId = templateSourceSession
         ? (templateSourceSession.templateId ?? uuidv4())
         : undefined;
@@ -401,12 +418,13 @@ function SessionFormScreenContent({
         name: data.name,
         sessionId: uuidv4(),
         templateId,
+        deload: data.deload,
         activities: data.activities,
         start: undefined,
         end: undefined,
         status: "Planned",
       });
-      templateSourceSessionRef.current = undefined;
+      setTemplateSourceSession(undefined);
     }
     router.back();
   };
@@ -436,6 +454,7 @@ function SessionFormScreenContent({
                 name: data.name,
                 sessionId: session.sessionId,
                 templateId: session.templateId,
+                deload: data.deload,
                 activities: data.activities,
                 start: session.start,
                 end: new Date(),
@@ -468,6 +487,70 @@ function SessionFormScreenContent({
       ],
     );
   };
+
+  const handleDeloadValueChange = (
+    nextValue: boolean,
+    onValueChange: (value: boolean) => void,
+  ) => {
+    if (!nextValue || !deloadRequiresConfirmation) {
+      onValueChange(nextValue);
+      return;
+    }
+
+    Alert.alert(
+      "Mark as Deload Session?",
+      "This session will be ignored when planning the next session from this template. The last completed non-deload session will be used instead.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Mark as Deload",
+          onPress: () => onValueChange(true),
+        },
+      ],
+    );
+  };
+
+  const deloadInput = (
+    <Controller
+      name="deload"
+      control={control}
+      render={({ field: { onChange, value } }) => (
+        <>
+          <PressableThemed
+            onPress={() => handleDeloadValueChange(!value, onChange)}
+            accessibilityRole="switch"
+            accessibilityLabel="Deload session"
+            accessibilityHint="Marks this workout as a deload session"
+            accessibilityState={{ checked: value }}
+          >
+            <Card variants={["square"]}>
+              <Text
+                accessible={false}
+                maxFontSizeMultiplier={2}
+                className="text-muted text-xl tracking-tight"
+              >
+                Deload
+              </Text>
+              <View
+                accessible={false}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                pointerEvents="none"
+              >
+                <SwitchThemed
+                  value={value}
+                  onValueChange={(nextValue) =>
+                    handleDeloadValueChange(nextValue, onChange)
+                  }
+                  testID="session-deload-toggle"
+                />
+              </View>
+            </Card>
+          </PressableThemed>
+        </>
+      )}
+    />
+  );
 
   return (
     <>
@@ -1003,6 +1086,7 @@ function SessionFormScreenContent({
             />
           </View>
         )}
+        {sessionCanBeDeload && deloadInput}
         {session?.status === "Ready" && (
           <PrimaryCardAction
             label="Complete Workout Session"

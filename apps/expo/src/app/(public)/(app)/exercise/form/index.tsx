@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
+import Animated, {
+  FadeInUp,
+  FadeOutUp,
+  LinearTransition,
+} from "react-native-reanimated";
 import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -379,7 +384,11 @@ export default function ExerciseFormScreen() {
           )}
         />
         {selectedLoadKind === "BARBELL" && (
-          <View>
+          <Animated.View
+            entering={FadeInUp}
+            exiting={FadeOutUp}
+            layout={LinearTransition}
+          >
             {equipment.barbells.length > 0 ? (
               <>
                 <View className="mb-2 ml-5 flex-row items-center">
@@ -439,77 +448,81 @@ export default function ExerciseFormScreen() {
                 in the equipment settings.
               </HelperText>
             )}
-          </View>
+          </Animated.View>
         )}
-        <View>
-          <View className="mb-2 ml-5 flex-row items-center">
-            <SectionHeading placement="inline">Primary Muscles</SectionHeading>
-            <Link href="/(public)/(app)/exercise/muscles" asChild>
-              <PressableThemed
-                className="-my-3 h-11 w-11 items-center justify-center"
-                accessibilityLabel="Manage muscle groups"
-              >
-                <Text maxFontSizeMultiplier={2.5} className="text-primary">
-                  <MaterialCommunityIcons
-                    name="information-variant-circle-outline"
-                    size={22}
-                  />
-                </Text>
-              </PressableThemed>
-            </Link>
-          </View>
-          <Controller
-            name="primaryMuscles"
-            control={control}
-            render={({ field: { onChange, value = [] } }) => (
-              <>
-                {muscleGroups.map((muscleGroup, index) => {
-                  const selected = value.includes(muscleGroup);
-
-                  return (
-                    <SelectableCardRow
-                      key={muscleGroup}
-                      title={muscleGroup}
-                      selected={selected}
-                      onPress={() =>
-                        onChange(
-                          selected
-                            ? value.filter((item) => item !== muscleGroup)
-                            : [...value, muscleGroup],
-                        )
-                      }
-                      accessibilityLabel={`${selected ? "Remove" : "Add"} ${muscleGroup} as a primary muscle`}
-                      cardVariants={["square"]}
-                      stack={{ index, size: muscleGroups.length }}
+        <Animated.View layout={LinearTransition}>
+          <View>
+            <View className="mb-2 ml-5 flex-row items-center">
+              <SectionHeading placement="inline">
+                Primary Muscles
+              </SectionHeading>
+              <Link href="/(public)/(app)/exercise/muscles" asChild>
+                <PressableThemed
+                  className="-my-3 h-11 w-11 items-center justify-center"
+                  accessibilityLabel="Manage muscle groups"
+                >
+                  <Text maxFontSizeMultiplier={2.5} className="text-primary">
+                    <MaterialCommunityIcons
+                      name="information-variant-circle-outline"
+                      size={22}
                     />
-                  );
-                })}
-              </>
-            )}
-          />
-        </View>
-        {exercise?.deleted ? (
-          <PrimaryCardAction
-            label="Undo Deletion"
-            onPress={handleSubmit(onSubmit)}
-            accessibilityLabel={`Restore exercise with name ${exercise.name}`}
-            cardVariants={["square"]}
-          />
-        ) : exercise ? (
-          <ConfirmButton
-            accessibilityLabel={`Delete Exercise with name ${exercise.name}`}
-            title="Delete Exercise?"
-            message="This will hide the exercise from selection and management. Existing workouts will keep it."
-            confirmText="Delete Exercise"
-            onConfirm={() => {
-              deleteExercise(exercise.exerciseId);
-              router.back();
-            }}
-            cardVariants={["square"]}
-          >
-            Delete This Exercise
-          </ConfirmButton>
-        ) : null}
+                  </Text>
+                </PressableThemed>
+              </Link>
+            </View>
+            <Controller
+              name="primaryMuscles"
+              control={control}
+              render={({ field: { onChange, value = [] } }) => (
+                <>
+                  {muscleGroups.map((muscleGroup, index) => {
+                    const selected = value.includes(muscleGroup);
+
+                    return (
+                      <SelectableCardRow
+                        key={muscleGroup}
+                        title={muscleGroup}
+                        selected={selected}
+                        onPress={() =>
+                          onChange(
+                            selected
+                              ? value.filter((item) => item !== muscleGroup)
+                              : [...value, muscleGroup],
+                          )
+                        }
+                        accessibilityLabel={`${selected ? "Remove" : "Add"} ${muscleGroup} as a primary muscle`}
+                        cardVariants={["square"]}
+                        stack={{ index, size: muscleGroups.length }}
+                      />
+                    );
+                  })}
+                </>
+              )}
+            />
+          </View>
+          {exercise?.deleted ? (
+            <PrimaryCardAction
+              label="Undo Deletion"
+              onPress={handleSubmit(onSubmit)}
+              accessibilityLabel={`Restore exercise with name ${exercise.name}`}
+              cardVariants={["square"]}
+            />
+          ) : exercise ? (
+            <ConfirmButton
+              accessibilityLabel={`Delete Exercise with name ${exercise.name}`}
+              title="Delete Exercise?"
+              message="This will hide the exercise from selection and management. Existing workouts will keep it."
+              confirmText="Delete Exercise"
+              onConfirm={() => {
+                deleteExercise(exercise.exerciseId);
+                router.back();
+              }}
+              cardVariants={["square"]}
+            >
+              Delete This Exercise
+            </ConfirmButton>
+          ) : null}
+        </Animated.View>
       </KeyboardAwareScrollView>
     </>
   );

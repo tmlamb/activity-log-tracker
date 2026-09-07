@@ -141,6 +141,15 @@ const migrateSavedExerciseMuscles = (exercises: Exercise[]) => {
   });
 };
 
+const normalizeSessionDeloads = (programs: Program[]) =>
+  programs.map((program) => ({
+    ...program,
+    sessions: program.sessions.map((session) => ({
+      ...session,
+      deload: session.deload === true,
+    })),
+  }));
+
 const createDefaultWorkoutStoreData = (): WorkoutStoreData => ({
   programs: [],
   exercises: [],
@@ -276,6 +285,7 @@ const useWorkoutStore = create<WorkoutStore>()(
                 : { ...session, activities, end, status };
             current.name = normalizeSingleLineText(nextSession.name);
             current.templateId = nextSession.templateId;
+            current.deload = nextSession.deload;
             current.start = nextSession.start;
             current.end = nextSession.end;
             current.activities = nextSession.activities;
@@ -322,6 +332,7 @@ const useWorkoutStore = create<WorkoutStore>()(
               completedSession.name,
             );
             currentSession.templateId = completedSession.templateId;
+            currentSession.deload = completedSession.deload;
             currentSession.start = completedSession.start;
             currentSession.end = completedSession.end;
             currentSession.activities = completedSession.activities;
@@ -677,18 +688,22 @@ const useWorkoutStore = create<WorkoutStore>()(
     }),
     {
       name: "workout-storage",
-      version: 1,
+      version: 2,
       migrate: (persistedState, version) => {
-        if (version >= 1) return persistedState;
-
-        const persisted = (persistedState ?? {}) as Partial<WorkoutStoreData>;
-
-        return {
-          ...persisted,
-          exercises: persisted.exercises
-            ? migrateSavedExerciseMuscles(persisted.exercises)
-            : undefined,
+        const persisted = {
+          ...((persistedState ?? {}) as Partial<WorkoutStoreData>),
         };
+
+        if (version < 1 && persisted.exercises) {
+          persisted.exercises = migrateSavedExerciseMuscles(
+            persisted.exercises,
+          );
+        }
+        if (version < 2 && persisted.programs) {
+          persisted.programs = normalizeSessionDeloads(persisted.programs);
+        }
+
+        return persisted;
       },
       onRehydrateStorage: () => (state?: WorkoutStore) => {
         state?.cleanupInactiveSessions();
@@ -699,10 +714,14 @@ const useWorkoutStore = create<WorkoutStore>()(
         const exercises = (persisted.exercises ?? currentState.exercises).map(
           normalizeExerciseMuscles,
         );
+        const programs = normalizeSessionDeloads(
+          persisted.programs ?? currentState.programs,
+        );
 
         return {
           ...currentState,
           ...persisted,
+          programs,
           exercises,
           equipment: normalizeEquipment(
             persisted.equipment ?? currentState.equipment,

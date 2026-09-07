@@ -4,7 +4,10 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import _ from "lodash";
 
 import type { Session } from "@activity-log/ui/utils";
-import { isSessionTerminalStatus } from "@activity-log/ui/utils";
+import {
+  isSessionTerminalStatus,
+  templateSessionForPlanning,
+} from "@activity-log/ui/utils";
 
 import { SelectableCardRow } from "~/components/CardRow";
 import { HeaderTextAction } from "~/components/HeaderAction";
@@ -44,7 +47,9 @@ export default function SessionSelectScreen() {
         (session.templateId ?? session.sessionId) === templateId,
     );
 
-    setPendingSession({ session: plannedSession ?? selected });
+    setPendingSession({
+      session: plannedSession ?? templateSessionForPlanning(sessions, selected),
+    });
     router.back();
   };
 

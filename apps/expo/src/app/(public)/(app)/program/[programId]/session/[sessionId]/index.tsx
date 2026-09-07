@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { SectionList, View } from "react-native";
+import { Alert, SectionList, Text, View } from "react-native";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import {
   Link,
@@ -20,12 +20,16 @@ import type {
   WorkoutSet,
 } from "@activity-log/ui/utils";
 import {
+  canSetSessionDeload,
+  isDeloadCandidate,
+  isLatestCompletedSessionInTemplateSeries,
   isSessionTerminalStatus,
   SESSION_INACTIVITY_TIMEOUT_MS,
 } from "@activity-log/ui/utils";
 
 import type { WorkoutStore } from "~/hooks/use-workout-store";
 import BottomActionBar from "~/components/BottomActionBar";
+import Card from "~/components/Card";
 import { DetailCardRow, NavigationCardRow } from "~/components/CardRow";
 import {
   CollapsibleSectionBody,
@@ -34,6 +38,8 @@ import {
 } from "~/components/CollapsibleSection";
 import ElapsedTime from "~/components/ElapsedTime";
 import { HeaderTextAction } from "~/components/HeaderAction";
+import PressableThemed from "~/components/PressableThemed";
+import SwitchThemed from "~/components/SwitchThemed";
 import { HelperText, ScreenHeading } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
@@ -217,9 +223,8 @@ export default function SessionDetailScreen() {
     programId: string;
     sessionId: string;
   }>();
-  const { programs, exercises, completeSession } = useWorkoutStore(
-    (store) => store,
-  );
+  const { programs, exercises, completeSession, updateSession } =
+    useWorkoutStore((store) => store);
   const program = programs.find((p) => p.programId === programId);
   const session = program?.sessions.find((s) => s.sessionId === sessionId);
 
@@ -233,6 +238,7 @@ export default function SessionDetailScreen() {
       session={session}
       exercises={exercises}
       completeSession={completeSession}
+      updateSession={updateSession}
     />
   );
 }
@@ -242,11 +248,13 @@ function SessionDetailScreenContent({
   session,
   exercises,
   completeSession,
+  updateSession,
 }: {
   program: Program;
   session: Session;
   exercises: WorkoutStore["exercises"];
   completeSession: WorkoutStore["completeSession"];
+  updateSession: WorkoutStore["updateSession"];
 }) {
   const router = useRouter();
   const sectionListRef =
@@ -258,6 +266,36 @@ function SessionDetailScreenContent({
   const autoCollapsedActivityIdsRef = useRef<Set<string>>(
     getCompletedActivityIds(session.activities),
   );
+  const sessionCanBeDeload = canSetSessionDeload(program.sessions, session);
+  const deloadInputIsEligible =
+    sessionCanBeDeload &&
+    (session.deload || isDeloadCandidate(program.sessions, session, exercises));
+  const deloadRequiresConfirmation =
+    session.status !== "Incomplete" &&
+    (session.status !== "Done" ||
+      isLatestCompletedSessionInTemplateSeries(program.sessions, session));
+  const [hasShownDeloadInput] = useState(() => deloadInputIsEligible);
+  const showDeloadInput = hasShownDeloadInput || deloadInputIsEligible;
+  const summaryCardCount = (session.start ? 3 : 1) + (showDeloadInput ? 1 : 0);
+
+  const handleDeloadValueChange = (deload: boolean) => {
+    const updateDeload = () =>
+      updateSession(program.programId, { ...session, deload });
+
+    if (!deload || !deloadRequiresConfirmation) {
+      updateDeload();
+      return;
+    }
+
+    Alert.alert(
+      "Mark as Deload Session?",
+      "This session will be ignored when planning the next session, which will use the last completed non-deload session instead.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Mark as Deload", onPress: updateDeload },
+      ],
+    );
+  };
 
   const toggleActivityCollapsed = (activityId: string) => {
     collapsibleSectionScroll.prepareSectionToggle();
@@ -363,6 +401,7 @@ function SessionDetailScreenContent({
     <>
       <Stack.Screen
         options={{
+          title: session.deload ? "Deload Session" : "Workout Session",
           headerRight: () => (
             <Link
               href={`/(public)/(app)/program/${program.programId}/session/form?sessionId=${session.sessionId}`}
@@ -393,25 +432,67 @@ function SessionDetailScreenContent({
                 label="Session"
                 value={session.name}
                 cardVariants={["multiline"]}
-                stack={session.start ? { index: 0, size: 3 } : undefined}
+                stack={
+                  summaryCardCount > 1
+                    ? { index: 0, size: summaryCardCount }
+                    : undefined
+                }
               />
               {session.start && (
                 <>
                   <DetailCardRow
                     label="Start Time"
                     value={format(session.start, "MMM do,  hh:mm aa")}
-                    stack={{ index: 1, size: 3 }}
+                    stack={{ index: 1, size: summaryCardCount }}
                   />
                   <ElapsedTime
                     start={session.start}
                     end={session.end}
                     status={session.status}
-                    stack={{ index: 2, size: 3 }}
+                    stack={{ index: 2, size: summaryCardCount }}
                     showHours
                   />
-                  <SessionCleanupWarning session={session} />
                 </>
               )}
+              {showDeloadInput && (
+                <>
+                  <PressableThemed
+                    onPress={() => handleDeloadValueChange(!session.deload)}
+                    accessibilityRole="switch"
+                    accessibilityLabel="Deload session"
+                    accessibilityHint="Marks this workout as a deload session"
+                    accessibilityState={{ checked: session.deload }}
+                  >
+                    <Card
+                      stack={{
+                        index: session.start ? 3 : 1,
+                        size: summaryCardCount,
+                      }}
+                    >
+                      <Text
+                        accessible={false}
+                        maxFontSizeMultiplier={2}
+                        className="text-muted text-xl tracking-tight"
+                      >
+                        Deload
+                      </Text>
+                      <View
+                        accessible={false}
+                        accessibilityElementsHidden
+                        importantForAccessibility="no-hide-descendants"
+                        pointerEvents="none"
+                      >
+                        <SwitchThemed
+                          value={session.deload}
+                          onValueChange={handleDeloadValueChange}
+                          testID="session-deload-toggle"
+                        />
+                      </View>
+                    </Card>
+                  </PressableThemed>
+                </>
+              )}
+              {session.start && <SessionCleanupWarning session={session} />}
               <ScreenHeading>Planned Exercises</ScreenHeading>
             </Animated.View>
           }
