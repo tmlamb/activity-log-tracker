@@ -3,7 +3,14 @@ import type {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { LayoutAnimation } from "react-native";
 import Animated, {
   Easing,
@@ -123,7 +130,12 @@ export function CollapsibleSectionBody({
   contentClassName,
   onContentLayout,
 }: CollapsibleSectionBodyProps) {
+  const [initiallyCollapsed] = useState(collapsed);
   const [contentHeight, setContentHeight] = useState(0);
+  // Mount hidden content after visible siblings, then retain its measured layout.
+  const deferredContentReady = useDeferredValue(true, !initiallyCollapsed);
+  const shouldRenderContent =
+    contentHeight > 0 || !collapsed || deferredContentReady;
   const expansionProgress = useSharedValue(collapsed ? 0 : 1);
   const bodyStyle = useAnimatedStyle(() =>
     contentHeight > 0
@@ -141,11 +153,13 @@ export function CollapsibleSectionBody({
   );
 
   useEffect(() => {
+    if (!collapsed && initiallyCollapsed && contentHeight === 0) return;
+
     expansionProgress.value = withTiming(collapsed ? 0 : 1, {
       duration: collapseAnimationDuration,
       easing: collapseAnimationEasing,
     });
-  }, [collapsed, expansionProgress]);
+  }, [collapsed, contentHeight, expansionProgress, initiallyCollapsed]);
 
   const handleContentLayout = (event: LayoutChangeEvent) => {
     const nextHeight = event.nativeEvent.layout.height;
@@ -161,12 +175,17 @@ export function CollapsibleSectionBody({
       style={bodyStyle}
     >
       <Animated.View
-        key={collapsed ? "collapsed" : "expanded"}
-        className={twMerge("absolute right-0 left-0", contentClassName)}
+        className={twMerge(
+          "w-full",
+          contentHeight > 0 || collapsed || initiallyCollapsed
+            ? "absolute right-0 left-0"
+            : undefined,
+          contentClassName,
+        )}
         onLayout={handleContentLayout}
         style={contentStyle}
       >
-        {children}
+        {shouldRenderContent ? children : null}
       </Animated.View>
     </Animated.View>
   );

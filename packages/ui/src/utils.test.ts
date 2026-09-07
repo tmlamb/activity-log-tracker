@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { Activity, Session, WorkoutSet } from "./utils";
+import type { Activity, Exercise, Program, Session, WorkoutSet } from "./utils";
 import {
+  buildProgramInsights,
   cleanupInactiveSession,
   completeSession,
   exerciseNamesMatch,
@@ -10,6 +11,7 @@ import {
   normalizeMuscleGroups,
   normalizeSingleLineText,
   plannedRepsFromTemplateActivity,
+  plannedSessionFromTemplate,
   reconcileCompletedWorkoutSet,
   shiftSessionStart,
   stringifyLoad,
@@ -119,6 +121,69 @@ describe("plannedRepsFromTemplateActivity", () => {
     ]);
 
     expect(plannedRepsFromTemplateActivity(activity)).toBe(10);
+  });
+});
+
+describe("plannedSessionFromTemplate", () => {
+  it("resets difficulty when creating planned sets from a template", () => {
+    const template = createSession(
+      createActivity(
+        [
+          createWorkoutSet("main", {
+            status: "Done",
+            actualReps: 8,
+            weight: { value: 50, unit: "lbs" },
+            feedback: "Hard",
+          }),
+        ],
+        [
+          createWorkoutSet("warmup", {
+            status: "Done",
+            actualReps: 10,
+            weight: { value: 20, unit: "lbs" },
+            feedback: "Easy",
+          }),
+        ],
+      ),
+    );
+    const ids = ["new-activity", "new-warmup", "new-main"];
+    let idIndex = 0;
+
+    const result = plannedSessionFromTemplate(
+      template,
+      () => ids[idIndex++] ?? "unexpected-id",
+    );
+
+    expect(result).toMatchObject({
+      name: template.name,
+      start: undefined,
+      end: undefined,
+      status: "Planned",
+      activities: [
+        {
+          activityId: "new-activity",
+          reps: 8,
+          warmupSets: [
+            {
+              workoutSetId: "new-warmup",
+              status: "Planned",
+              actualReps: 0,
+              feedback: "Neutral",
+              weight: { value: 20, unit: "lbs" },
+            },
+          ],
+          mainSets: [
+            {
+              workoutSetId: "new-main",
+              status: "Planned",
+              actualReps: 0,
+              feedback: "Neutral",
+              weight: { value: 50, unit: "lbs" },
+            },
+          ],
+        },
+      ],
+    });
   });
 });
 
@@ -497,5 +562,183 @@ describe("weekAndDayFromStart", () => {
     const endDate = new Date(2022, 9, 18, 0, 0, 0);
     const result = weekAndDayFromStart(startDate, endDate);
     expect(result).toBe("Week 15, Day 6");
+  });
+});
+
+describe("buildProgramInsights", () => {
+  it("aggregates completed main sets by week and primary muscle", () => {
+    const exercises: Exercise[] = [
+      {
+        exerciseId: "exercise-1",
+        name: "Dumbbell Press",
+        loadKind: "WEIGHT_PAIR",
+        primaryMuscles: ["Chest", "Triceps"],
+      },
+      {
+        exerciseId: "exercise-2",
+        name: "Row",
+        loadKind: "BARBELL",
+        primaryMuscles: ["Back"],
+      },
+    ];
+    const weekOneActivity = createActivity(
+      [
+        createWorkoutSet("hard", {
+          status: "Done",
+          actualReps: 10,
+          weight: { value: 20, unit: "lbs" },
+          feedback: "Hard",
+        }),
+        createWorkoutSet("easy", {
+          status: "Done",
+          actualReps: 8,
+          weight: { value: 10, unit: "kg" },
+          feedback: "Easy",
+        }),
+        createWorkoutSet("incomplete", {
+          status: "Incomplete",
+          actualReps: 100,
+          weight: { value: 100, unit: "lbs" },
+          feedback: "Hard",
+        }),
+      ],
+      [
+        createWorkoutSet("warmup", {
+          status: "Done",
+          actualReps: 20,
+          weight: { value: 5, unit: "lbs" },
+          feedback: "Easy",
+        }),
+      ],
+    );
+    const weekThreeActivity = {
+      ...createActivity([
+        createWorkoutSet("neutral", {
+          status: "Done",
+          actualReps: 5,
+          weight: { value: 50, unit: "lbs" },
+          feedback: "Neutral",
+        }),
+      ]),
+      exerciseId: "exercise-2",
+    };
+    const program: Program = {
+      name: "Strength",
+      programId: "program-1",
+      sessions: [
+        createSession(weekOneActivity, {
+          start: new Date(2026, 7, 24, 8),
+        }),
+        createSession(weekThreeActivity, {
+          sessionId: "session-2",
+          start: new Date(2026, 8, 7, 8),
+        }),
+      ],
+    };
+
+    const result = buildProgramInsights(
+      program,
+      exercises,
+      new Date(2026, 8, 7),
+    );
+
+    expect(result.muscleGroups).toEqual(["Back", "Chest", "Triceps"]);
+    expect(result.weeks).toHaveLength(3);
+    expect(result.weeks[1]?.muscleGroups).toEqual([]);
+    expect(result.weeks[0]?.muscleGroups[0]).toMatchObject({
+      muscleGroup: "Chest",
+      sets: 2,
+      reps: 18,
+      hardSets: 1,
+      easySets: 1,
+    });
+    expect(result.weeks[0]?.muscleGroups[0]?.volumeLbs).toBeCloseTo(
+      400 + 8 * 10 * 2.2046226218 * 2,
+    );
+    expect(result.weeks[0]?.muscleGroups[1]).toEqual(
+      result.weeks[0]?.muscleGroups[0]
+        ? {
+            ...result.weeks[0].muscleGroups[0],
+            muscleGroup: "Triceps",
+          }
+        : undefined,
+    );
+    expect(result.weeks[2]?.muscleGroups).toEqual([
+      {
+        muscleGroup: "Back",
+        sets: 1,
+        reps: 5,
+        volumeLbs: 250,
+        hardSets: 0,
+        easySets: 0,
+      },
+    ]);
+  });
+
+  it("ignores sets that cannot be assigned to a muscle group", () => {
+    const program: Program = {
+      name: "Strength",
+      programId: "program-1",
+      sessions: [
+        createSession(
+          createActivity([
+            createWorkoutSet("done", {
+              status: "Done",
+              actualReps: 10,
+            }),
+          ]),
+          { start: new Date(2026, 7, 24, 8) },
+        ),
+      ],
+    };
+
+    expect(
+      buildProgramInsights(program, [], new Date(2026, 7, 24, 12)),
+    ).toEqual({
+      muscleGroups: [],
+      weeks: [
+        {
+          week: 1,
+          start: new Date(2026, 7, 24),
+          end: new Date(2026, 7, 30),
+          muscleGroups: [],
+        },
+      ],
+    });
+  });
+
+  it("includes inactive weeks through the current program week", () => {
+    const program: Program = {
+      name: "Strength",
+      programId: "program-1",
+      sessions: [
+        createSession(createActivity([]), {
+          start: new Date(2026, 7, 24, 8),
+        }),
+      ],
+    };
+
+    const result = buildProgramInsights(program, [], new Date(2026, 8, 14, 8));
+
+    expect(result.weeks).toHaveLength(4);
+    expect(result.weeks[3]).toMatchObject({ week: 4, muscleGroups: [] });
+  });
+
+  it("returns no program weeks when sessions have not started", () => {
+    const program: Program = {
+      name: "Strength",
+      programId: "program-1",
+      sessions: [
+        createSession(createActivity([]), {
+          start: undefined,
+          status: "Planned",
+        }),
+      ],
+    };
+
+    expect(buildProgramInsights(program, [])).toEqual({
+      muscleGroups: [],
+      weeks: [],
+    });
   });
 });

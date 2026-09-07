@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { SectionList, Text, View } from "react-native";
-import { Link, Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Link,
+  Redirect,
+  Stack,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { addDays, format, isSameMonth } from "date-fns";
 import _ from "lodash";
@@ -16,6 +22,7 @@ import {
   CollapsibleSectionHeader,
   useCollapsibleSectionScroll,
 } from "~/components/CollapsibleSection";
+import { HeaderTextAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
 import {
   HelperText,
@@ -30,6 +37,7 @@ const sessionStatusOrder: Record<Session["status"], number> = {
   Done: 2,
   Incomplete: 2,
 };
+const initialCollapsedWeekHeadersToRender = 18;
 
 interface WeekSectionItem {
   week: number;
@@ -179,13 +187,40 @@ function ProgramDetailScreenContent({
   const sections = plannedSection
     ? [plannedSection, ...weeklySections]
     : weeklySections;
+  const initialSectionCount = Math.min(
+    sections.length,
+    (plannedSection ? 1 : 0) +
+      currentWeekSectionIndex +
+      1 +
+      initialCollapsedWeekHeadersToRender,
+  );
+  // SectionList virtualizes each section header and footer as separate cells.
+  const initialNumToRender = sections
+    .slice(0, initialSectionCount)
+    .reduce((cellCount, section) => cellCount + section.data.length + 2, 0);
 
   return (
     <View className="flex-1">
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Link
+              href={`/(public)/(app)/program/${program.programId}/insights`}
+              asChild
+            >
+              <HeaderTextAction
+                label="Insights"
+                accessibilityLabel={`View insights for ${program.name}`}
+              />
+            </Link>
+          ),
+        }}
+      />
       <SectionList
         contentContainerClassName="px-5 pt-36 pb-36"
         sections={sections}
         extraData={sectionCollapseOverrides}
+        initialNumToRender={initialNumToRender}
         keyExtractor={(item) => `week-${item.week}`}
         stickySectionHeadersEnabled={false}
         ListHeaderComponent={

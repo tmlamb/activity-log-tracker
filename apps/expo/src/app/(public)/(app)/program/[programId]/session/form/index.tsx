@@ -35,7 +35,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import {
   isSessionTerminalStatus,
-  plannedRepsFromTemplateActivity,
+  plannedSessionFromTemplate,
   shiftSessionStart,
   stringifyLoad,
 } from "@activity-log/ui/utils";
@@ -239,38 +239,6 @@ function SessionFormScreenContent({
     );
   };
 
-  const buildTemplateFormData = (template: Session): SessionFormData => ({
-    name: template.name,
-    start: undefined,
-    end: undefined,
-    status: "Planned",
-    activities: template.activities.map((activity) => ({
-      ...activity,
-      activityId: uuidv4(),
-      reps: plannedRepsFromTemplateActivity(activity),
-      warmupSets: activity.warmupSets.map((warmupSet) => ({
-        workoutSetId: uuidv4(),
-        type: "Warmup" as const,
-        status: "Planned" as const,
-        start: undefined,
-        end: undefined,
-        weight: activity.load.type === "RPE" ? warmupSet.weight : undefined,
-        actualReps: 0,
-        feedback: warmupSet.feedback,
-      })),
-      mainSets: activity.mainSets.map((mainSet) => ({
-        workoutSetId: uuidv4(),
-        type: "Main" as const,
-        status: "Planned" as const,
-        start: undefined,
-        end: undefined,
-        weight: activity.load.type === "RPE" ? mainSet.weight : undefined,
-        actualReps: 0,
-        feedback: mainSet.feedback,
-      })),
-    })),
-  });
-
   const resetToScratch = () => {
     templateSourceSessionRef.current = undefined;
     reset({
@@ -377,7 +345,7 @@ function SessionFormScreenContent({
       return;
     }
 
-    reset(buildTemplateFormData(pendingSession.session));
+    reset(plannedSessionFromTemplate(pendingSession.session, uuidv4));
     templateSourceSessionRef.current = pendingSession.session;
     queueMicrotask(() => setFromType("Template"));
     clearPendingSession();

@@ -1,10 +1,6 @@
-import type {
-  LayoutChangeEvent,
-  PressableProps,
-  TextLayoutEvent,
-} from "react-native";
+import type { PressableProps } from "react-native";
 import { useState } from "react";
-import { Text, useWindowDimensions, View } from "react-native";
+import { Text, View } from "react-native";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -34,15 +30,6 @@ interface DetailCardRowProps {
   trailingAccessory?: React.ReactNode;
 }
 
-interface StackedDetailContent {
-  label: React.ReactNode;
-  value: React.ReactNode;
-  trailingAccessory: React.ReactNode;
-  labelClassName: string | undefined;
-  valueClassName: string | undefined;
-  fontScale: number;
-}
-
 export function DetailCardRow({
   label,
   value,
@@ -55,74 +42,26 @@ export function DetailCardRow({
   trailingAccessory,
 }: DetailCardRowProps) {
   const multilineEnabled = cardVariants?.includes("multiline") ?? false;
-  const { fontScale } = useWindowDimensions();
-  const [contentWidth, setContentWidth] = useState(0);
-  const [stackedContent, setStackedContent] = useState<StackedDetailContent>();
-
-  const useStackedLayout =
-    multilineEnabled &&
-    stackedContent !== undefined &&
-    stackedContent.label === label &&
-    stackedContent.value === value &&
-    stackedContent.trailingAccessory === trailingAccessory &&
-    stackedContent.labelClassName === labelClassName &&
-    stackedContent.valueClassName === valueClassName &&
-    stackedContent.fontScale === fontScale;
-
-  const handleContentLayout = (event: LayoutChangeEvent) => {
-    const nextContentWidth = Math.ceil(event.nativeEvent.layout.width);
-
-    if (contentWidth > 0 && contentWidth !== nextContentWidth) {
-      setStackedContent(undefined);
-    }
-    if (contentWidth !== nextContentWidth) {
-      setContentWidth(nextContentWidth);
-    }
-  };
-
-  const handleCompactTextLayout = (event: TextLayoutEvent) => {
-    if (event.nativeEvent.lines.length < 2) return;
-
-    setStackedContent({
-      label,
-      value,
-      trailingAccessory,
-      labelClassName,
-      valueClassName,
-      fontScale,
-    });
-  };
 
   if (multilineEnabled) {
+    // Keep each text item atomic so native flex layout wraps the whole value.
     return (
-      <Card
-        stack={stack}
-        variants={cardVariants}
-        className={twMerge(
-          useStackedLayout
-            ? "flex-col items-stretch justify-center px-5 py-4.5"
-            : undefined,
-          className,
-        )}
-      >
-        {useStackedLayout ? (
-          <View className="w-full" onLayout={handleContentLayout}>
-            <View className="flex-row items-center justify-between">
-              <Text
-                maxFontSizeMultiplier={2.5}
-                className={twMerge(
-                  "text-foreground flex-1 text-xl",
-                  labelClassName,
-                )}
-              >
-                {label}
-              </Text>
-              {trailingAccessory}
-            </View>
+      <Card stack={stack} variants={cardVariants} className={className}>
+        <View className="w-full flex-row items-start gap-2">
+          <View className="min-w-0 flex-1 flex-row flex-wrap items-baseline justify-between gap-x-5 gap-y-1 py-3">
             <Text
               maxFontSizeMultiplier={2.5}
               className={twMerge(
-                "text-muted text-left text-xl leading-tight",
+                "text-foreground max-w-full shrink-0 text-xl",
+                labelClassName,
+              )}
+            >
+              {label}
+            </Text>
+            <Text
+              maxFontSizeMultiplier={2.5}
+              className={twMerge(
+                "text-muted max-w-full shrink-0 pb-0.5 text-left text-xl leading-tight",
                 valueClassName,
               )}
               numberOfLines={valueNumberOfLines}
@@ -130,34 +69,10 @@ export function DetailCardRow({
               {value}
             </Text>
           </View>
-        ) : (
-          <View
-            className="w-full flex-row items-center justify-between gap-2"
-            onLayout={handleContentLayout}
-          >
-            <Text
-              maxFontSizeMultiplier={2.5}
-              className={twMerge(
-                "text-foreground py-3 pr-3 text-xl",
-                labelClassName,
-              )}
-              onTextLayout={handleCompactTextLayout}
-            >
-              {label}
-            </Text>
-            <Text
-              maxFontSizeMultiplier={2.5}
-              className={twMerge(
-                "text-muted flex-1 py-3 text-right text-xl",
-                valueClassName,
-              )}
-              onTextLayout={handleCompactTextLayout}
-            >
-              {value}
-            </Text>
-            {trailingAccessory}
-          </View>
-        )}
+          {trailingAccessory != null ? (
+            <View className="shrink-0 py-4">{trailingAccessory}</View>
+          ) : null}
+        </View>
       </Card>
     );
   }

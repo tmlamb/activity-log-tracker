@@ -1,4 +1,4 @@
-import { differenceInCalendarDays } from "date-fns";
+import { addDays, differenceInCalendarDays } from "date-fns";
 
 export interface Weight {
   value: number;
@@ -98,6 +98,30 @@ export interface Program {
   name: string;
   programId: string;
   sessions: Session[];
+}
+
+export interface ProgramInsightMetrics {
+  sets: number;
+  reps: number;
+  volumeLbs: number;
+  hardSets: number;
+  easySets: number;
+}
+
+export interface ProgramInsightMuscleGroup extends ProgramInsightMetrics {
+  muscleGroup: MuscleGroup;
+}
+
+export interface ProgramInsightWeek {
+  week: number;
+  start: Date;
+  end: Date;
+  muscleGroups: ProgramInsightMuscleGroup[];
+}
+
+export interface ProgramInsights {
+  muscleGroups: MuscleGroup[];
+  weeks: ProgramInsightWeek[];
 }
 
 export interface Equipment {
@@ -268,6 +292,41 @@ export const plannedRepsFromTemplateActivity = (activity: Activity) => {
   return Math.ceil(actualReps.total / actualReps.count);
 };
 
+export const plannedSessionFromTemplate = (
+  template: Session,
+  createId: () => string,
+): Pick<Session, "name" | "start" | "end" | "status" | "activities"> => ({
+  name: template.name,
+  start: undefined,
+  end: undefined,
+  status: "Planned",
+  activities: template.activities.map((activity) => ({
+    ...activity,
+    activityId: createId(),
+    reps: plannedRepsFromTemplateActivity(activity),
+    warmupSets: activity.warmupSets.map((warmupSet) => ({
+      workoutSetId: createId(),
+      type: "Warmup",
+      status: "Planned",
+      start: undefined,
+      end: undefined,
+      weight: activity.load.type === "RPE" ? warmupSet.weight : undefined,
+      actualReps: 0,
+      feedback: "Neutral",
+    })),
+    mainSets: activity.mainSets.map((mainSet) => ({
+      workoutSetId: createId(),
+      type: "Main",
+      status: "Planned",
+      start: undefined,
+      end: undefined,
+      weight: activity.load.type === "RPE" ? mainSet.weight : undefined,
+      actualReps: 0,
+      feedback: "Neutral",
+    })),
+  })),
+});
+
 export const dateRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/;
 
 export const normalizedLocalDate = (date: Date) =>
@@ -287,6 +346,119 @@ export const weekAndDayNumbersFromStart = (start: Date, end: Date) => {
 export const weekAndDayFromStart = (start: Date, end: Date) => {
   const { week, day } = weekAndDayNumbersFromStart(start, end);
   return `${week > 1 ? `Week ${week}, ` : ""}Day ${day}`;
+};
+
+const kilogramsToPounds = (kilograms: number) => kilograms * 2.2046226218;
+
+export const buildProgramInsights = (
+  program: Program,
+  exercises: readonly Exercise[],
+  now = new Date(),
+): ProgramInsights => {
+  const sessions = program.sessions
+    .filter((session): session is Session & { start: Date } =>
+      isValidDate(session.start),
+    )
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+  const firstSession = sessions[0];
+
+  if (!firstSession) return { muscleGroups: [], weeks: [] };
+
+  const programStart = normalizedLocalDate(firstSession.start);
+  const exercisesById = new Map(
+    exercises.map((exercise) => [exercise.exerciseId, exercise]),
+  );
+  const muscleGroupNames = new Map<string, MuscleGroup>();
+  const weeklyMuscleGroups = new Map<
+    number,
+    Map<string, ProgramInsightMuscleGroup>
+  >();
+  const currentWeek = isValidDate(now)
+    ? weekAndDayNumbersFromStart(programStart, now).week
+    : 0;
+  let lastWeek = Math.max(currentWeek, 0);
+
+  sessions.forEach((session) => {
+    const { week } = weekAndDayNumbersFromStart(programStart, session.start);
+    if (week < 1) return;
+    lastWeek = Math.max(lastWeek, week);
+
+    session.activities.forEach((activity) => {
+      const exercise = exercisesById.get(activity.exerciseId);
+      const muscleGroups = normalizeMuscleGroups(
+        exercise?.primaryMuscles ?? [],
+      );
+      if (!exercise || !muscleGroups.length) return;
+
+      const completedSets = activity.mainSets.filter(
+        (workoutSet) =>
+          workoutSet.status === "Done" && (workoutSet.actualReps ?? 0) > 0,
+      );
+      if (!completedSets.length) return;
+
+      const weekMuscleGroups =
+        weeklyMuscleGroups.get(week) ??
+        new Map<string, ProgramInsightMuscleGroup>();
+      weeklyMuscleGroups.set(week, weekMuscleGroups);
+
+      muscleGroups.forEach((muscleGroup) => {
+        const muscleGroupKey = muscleGroup.toLocaleLowerCase();
+        const canonicalName =
+          muscleGroupNames.get(muscleGroupKey) ?? muscleGroup;
+        muscleGroupNames.set(muscleGroupKey, canonicalName);
+
+        const metrics = weekMuscleGroups.get(muscleGroupKey) ?? {
+          muscleGroup: canonicalName,
+          sets: 0,
+          reps: 0,
+          volumeLbs: 0,
+          hardSets: 0,
+          easySets: 0,
+        };
+
+        completedSets.forEach((workoutSet) => {
+          const reps = workoutSet.actualReps ?? 0;
+          const weight = workoutSet.weight;
+          const weightLbs = weight
+            ? weight.unit === "kg"
+              ? kilogramsToPounds(weight.value)
+              : weight.value
+            : 0;
+          const weightMultiplier = exercise.loadKind === "WEIGHT_PAIR" ? 2 : 1;
+
+          metrics.sets += 1;
+          metrics.reps += reps;
+          metrics.volumeLbs += reps * weightLbs * weightMultiplier;
+          metrics.hardSets += workoutSet.feedback === "Hard" ? 1 : 0;
+          metrics.easySets += workoutSet.feedback === "Easy" ? 1 : 0;
+        });
+
+        weekMuscleGroups.set(muscleGroupKey, metrics);
+      });
+    });
+  });
+
+  const weeks = Array.from({ length: lastWeek }, (_, index) => {
+    const week = index + 1;
+    const start = addDays(programStart, index * 7);
+    const muscleGroups = Array.from(
+      weeklyMuscleGroups.get(week)?.values() ?? [],
+    ).sort((a, b) => a.muscleGroup.localeCompare(b.muscleGroup));
+
+    return {
+      week,
+      start,
+      end: addDays(start, 6),
+      muscleGroups,
+    };
+  });
+
+  return {
+    muscleGroups: Array.from(muscleGroupNames.values()).sort((a, b) =>
+      a.localeCompare(b),
+    ),
+    weeks,
+  };
 };
 
 export const stringifyPercent = (value: number) =>

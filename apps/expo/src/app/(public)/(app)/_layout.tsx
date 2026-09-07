@@ -38,6 +38,10 @@ export default function AppLayout() {
         }}
       />
       <Stack.Screen
+        name="program/[programId]/insights/index"
+        options={{ title: "Program Insights" }}
+      />
+      <Stack.Screen
         name="program/[programId]/session/[sessionId]/index"
         options={{ title: "Workout Session" }}
       />
