@@ -125,6 +125,21 @@ export interface ProgramInsights {
   weeks: ProgramInsightWeek[];
 }
 
+export interface ExerciseSetInsightPoint {
+  sessionId: string;
+  date?: Date;
+  reps: number;
+  weightLbs: number;
+  volumeLbs: number;
+  current: boolean;
+}
+
+export interface ExerciseSetInsights {
+  setType: WorkoutSet["type"];
+  setNumber: number;
+  points: ExerciseSetInsightPoint[];
+}
+
 export interface Equipment {
   barbells: EquipmentBarbell[];
   plates: EquipmentPlate[];
@@ -275,6 +290,144 @@ export const cleanupInactiveSession = (
 const kilogramsToPounds = (kilograms: number) => kilograms * 2.2046226218;
 
 export const round5 = (value: number) => Math.round(value / 5) * 5;
+
+const warmupPercentageMap: Record<number, number[]> = {
+  1: [0.6],
+  2: [0.4, 0.6],
+  3: [0.4, 0.5, 0.6],
+  4: [0.4, 0.5, 0.6, 0.7],
+  5: [0.3, 0.4, 0.5, 0.6, 0.7],
+};
+
+export const plannedWeightForWorkoutSet = (
+  activity: Activity,
+  workoutSet: WorkoutSet,
+  oneRepMax?: Weight,
+): Weight | undefined => {
+  if (activity.load.type !== "PERCENT") {
+    return workoutSet.weight;
+  }
+  if (!oneRepMax?.value) return undefined;
+
+  const warmupPercentages =
+    warmupPercentageMap[activity.warmupSets.length] ??
+    warmupPercentageMap[5] ??
+    [];
+  const setIndex =
+    workoutSet.type === "Main"
+      ? activity.mainSets.findIndex(
+          (item) => item.workoutSetId === workoutSet.workoutSetId,
+        )
+      : activity.warmupSets.findIndex(
+          (item) => item.workoutSetId === workoutSet.workoutSetId,
+        );
+  if (setIndex < 0) return undefined;
+
+  const percent =
+    workoutSet.type === "Main"
+      ? activity.load.value
+      : (warmupPercentages[setIndex] ?? warmupPercentages.at(-1));
+  if (!percent) return undefined;
+
+  return {
+    value: round5(oneRepMax.value * percent),
+    unit: oneRepMax.unit,
+  };
+};
+
+export const buildExerciseSetInsights = (
+  program: Program,
+  currentSession: Session,
+  currentActivity: Activity,
+  currentWorkoutSet: WorkoutSet,
+  exercise: Exercise,
+  now = new Date(),
+): ExerciseSetInsights => {
+  const currentSets =
+    currentWorkoutSet.type === "Main"
+      ? currentActivity.mainSets
+      : currentActivity.warmupSets;
+  const setIndex = currentSets.findIndex(
+    (item) => item.workoutSetId === currentWorkoutSet.workoutSetId,
+  );
+  const currentActivityIndex = currentSession.activities.findIndex(
+    (item) => item.activityId === currentActivity.activityId,
+  );
+  const emptyInsights: ExerciseSetInsights = {
+    setType: currentWorkoutSet.type,
+    setNumber: setIndex + 1,
+    points: [],
+  };
+  if (!currentSession.templateId || setIndex < 0 || currentActivityIndex < 0) {
+    return emptyInsights;
+  }
+
+  const exerciseOccurrence =
+    currentSession.activities
+      .slice(0, currentActivityIndex + 1)
+      .filter((item) => item.exerciseId === currentActivity.exerciseId).length -
+    1;
+  const templateSeries = program.sessions.filter(
+    (session) => session.templateId === currentSession.templateId,
+  );
+  const currentSeriesIndex = templateSeries.findIndex(
+    (session) => session.sessionId === currentSession.sessionId,
+  );
+  if (currentSeriesIndex < 0) return emptyInsights;
+
+  const points = templateSeries
+    .slice(Math.max(0, currentSeriesIndex - 4), currentSeriesIndex + 1)
+    .map<ExerciseSetInsightPoint>((session) => {
+      const current = session.sessionId === currentSession.sessionId;
+      const activity = session.activities.filter(
+        (item) => item.exerciseId === currentActivity.exerciseId,
+      )[exerciseOccurrence];
+      const workoutSet = activity
+        ? currentWorkoutSet.type === "Main"
+          ? activity.mainSets[setIndex]
+          : activity.warmupSets[setIndex]
+        : undefined;
+      const actualReps = workoutSet?.actualReps ?? 0;
+      const reps =
+        !workoutSet || workoutSet.status === "Incomplete"
+          ? 0
+          : current
+            ? actualReps > 0
+              ? actualReps
+              : Math.max(activity?.reps ?? 0, 0)
+            : workoutSet.status === "Done" && actualReps > 0
+              ? actualReps
+              : 0;
+      const weight =
+        workoutSet?.weight ??
+        (current && activity && workoutSet
+          ? plannedWeightForWorkoutSet(activity, workoutSet, exercise.oneRepMax)
+          : undefined);
+      const weightLbs = weight
+        ? weight.unit === "kg"
+          ? kilogramsToPounds(weight.value)
+          : weight.value
+        : 0;
+      const date = [
+        workoutSet?.start,
+        workoutSet?.end,
+        session.start,
+        session.end,
+        current ? now : undefined,
+      ].find(isValidDate);
+
+      return {
+        sessionId: session.sessionId,
+        date,
+        reps,
+        weightLbs,
+        volumeLbs: reps * weightLbs,
+        current,
+      };
+    });
+
+  return { ...emptyInsights, points };
+};
 
 export const plannedRepsFromTemplateActivity = (activity: Activity) => {
   const actualReps = activity.mainSets.reduce(

@@ -144,7 +144,7 @@ export function NavigationCardRow({
 }: NavigationCardRowProps) {
   const multilineEnabled = cardVariants?.includes("multiline") ?? false;
   const titlePaddingClassName = multilineEnabled
-    ? "py-4.5 leading-tight"
+    ? "pt-4.5 pb-5 leading-tight"
     : undefined;
   const titleText = (
     <Text

@@ -40,6 +40,11 @@ export interface WorkoutStore {
   deleteProgram: (programId: string) => void;
   addSession: (programId: string, session: Session) => void;
   updateSession: (programId: string, session: Session) => void;
+  renameSessionsInTemplate: (
+    programId: string,
+    sessionId: string,
+    name: string,
+  ) => void;
   completeSession: (programId: string, session: Session) => void;
   startSession: (programId: string, sessionId: string) => void;
   deleteSession: (programId: string, sessionId: string) => void;
@@ -291,6 +296,26 @@ const useWorkoutStore = create<WorkoutStore>()(
             current.activities = nextSession.activities;
             current.status = nextSession.status;
             current.lastActivityAt = now;
+          }),
+        );
+      },
+      renameSessionsInTemplate: (programId, sessionId, name) => {
+        set(
+          produce((state: WorkoutStore) => {
+            const program = state.programs.find(
+              (item) => item.programId === programId,
+            );
+            const current = program?.sessions.find(
+              (item) => item.sessionId === sessionId,
+            );
+            if (!current) throw new Error("Session not found");
+
+            const templateId = current.templateId ?? current.sessionId;
+            program?.sessions.forEach((item) => {
+              if ((item.templateId ?? item.sessionId) === templateId) {
+                item.name = normalizeSingleLineText(name);
+              }
+            });
           }),
         );
       },

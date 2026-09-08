@@ -125,6 +125,7 @@ export default function SessionFormScreen() {
     exercises,
     addSession,
     updateSession,
+    renameSessionsInTemplate,
     completeSession,
     deleteSession,
   } = useWorkoutStore((store) => store);
@@ -143,6 +144,7 @@ export default function SessionFormScreen() {
       exercises={exercises}
       addSession={addSession}
       updateSession={updateSession}
+      renameSessionsInTemplate={renameSessionsInTemplate}
       completeSession={completeSession}
       deleteSession={deleteSession}
       programId={programId}
@@ -156,6 +158,7 @@ function SessionFormScreenContent({
   exercises,
   addSession,
   updateSession,
+  renameSessionsInTemplate,
   completeSession,
   deleteSession,
   programId,
@@ -165,6 +168,7 @@ function SessionFormScreenContent({
   exercises: WorkoutStore["exercises"];
   addSession: WorkoutStore["addSession"];
   updateSession: WorkoutStore["updateSession"];
+  renameSessionsInTemplate: WorkoutStore["renameSessionsInTemplate"];
   completeSession: WorkoutStore["completeSession"];
   deleteSession: WorkoutStore["deleteSession"];
   programId: string;
@@ -206,6 +210,7 @@ function SessionFormScreenContent({
   const [templateSourceSession, setTemplateSourceSession] = useState<
     Session | undefined
   >();
+  const [renameTemplate, setRenameTemplate] = useState(true);
   const sessionCanBeDeload = session
     ? canSetSessionDeload(sessions, session)
     : fromType === "Template" && templateSourceSession != null;
@@ -214,7 +219,9 @@ function SessionFormScreenContent({
     (session?.status !== "Done" ||
       isLatestCompletedSessionInTemplateSeries(sessions, session));
   const watchStart = useWatch({ control, name: "start" });
+  const watchName = useWatch({ control, name: "name" });
   const watchActivities = useWatch({ control, name: "activities" });
+  const showRenameTemplateInput = session != null && watchName !== session.name;
 
   // Consume pending selection store (populated by exercise/select, load, session/select modals)
   const {
@@ -391,7 +398,7 @@ function SessionFormScreenContent({
 
   const onSubmit = (data: SessionFormData) => {
     if (session) {
-      updateSession(program.programId, {
+      const updatedSession = {
         name: data.name,
         sessionId: session.sessionId,
         templateId: session.templateId,
@@ -400,7 +407,15 @@ function SessionFormScreenContent({
         start: data.start,
         end: data.end,
         status: session.status,
-      });
+      };
+      if (renameTemplate && data.name !== session.name) {
+        renameSessionsInTemplate(
+          program.programId,
+          session.sessionId,
+          data.name,
+        );
+      }
+      updateSession(program.programId, updatedSession);
     } else {
       const templateId = templateSourceSession
         ? (templateSourceSession.templateId ?? uuidv4())
@@ -624,7 +639,7 @@ function SessionFormScreenContent({
               .mass(0.3)}
             className="gap-10"
           >
-            <View>
+            <Animated.View layout={activityListTransition}>
               <Controller
                 name="name"
                 control={control}
@@ -634,24 +649,73 @@ function SessionFormScreenContent({
                   fieldState: { error },
                 }) => (
                   <MultilineTextInputThemed
-                    onChangeText={onChange}
+                    onChangeText={(nextName) => {
+                      if (
+                        value === session?.name &&
+                        nextName !== session.name
+                      ) {
+                        setRenameTemplate(true);
+                      }
+                      onChange(nextName);
+                    }}
                     onBlur={onBlur}
                     value={value}
                     label="Session Name"
                     innerRef={ref}
                     maxLength={50}
                     cardVariants={["square"]}
+                    stack={
+                      showRenameTemplateInput
+                        ? { index: 0, size: 2 }
+                        : undefined
+                    }
                     error={error ? "Required" : undefined}
                   />
                 )}
               />
+              {showRenameTemplateInput && (
+                <Animated.View
+                  entering={FadeInUp.duration(220)}
+                  exiting={FadeOutUp.duration(220)}
+                  layout={activityListTransition}
+                >
+                  <PressableThemed
+                    onPress={() => setRenameTemplate((current) => !current)}
+                    accessibilityRole="switch"
+                    accessibilityLabel="Rename all sessions in template"
+                    accessibilityHint="Renames every session in this template when saved"
+                    accessibilityState={{ checked: renameTemplate }}
+                  >
+                    <Card variants={["square"]} stack={{ index: 1, size: 2 }}>
+                      <Text
+                        accessible={false}
+                        maxFontSizeMultiplier={2}
+                        className="text-muted text-xl tracking-tight"
+                      >
+                        Rename all sessions in template
+                      </Text>
+                      <View
+                        accessible={false}
+                        accessibilityElementsHidden
+                        importantForAccessibility="no-hide-descendants"
+                        pointerEvents="none"
+                      >
+                        <SwitchThemed
+                          value={renameTemplate}
+                          onValueChange={setRenameTemplate}
+                        />
+                      </View>
+                    </Card>
+                  </PressableThemed>
+                </Animated.View>
+              )}
               {program.sessions.length < 3 && fromType !== "Template" && (
                 <HelperText className="leading-tight">
                   Use a descriptive name like &apos;Lower Body&apos; or
                   &apos;Chest Day&apos;.
                 </HelperText>
               )}
-            </View>
+            </Animated.View>
             {/* Activities Input */}
             <Animated.View layout={activityListTransition}>
               {fields.map((item, index) => {
@@ -1041,7 +1105,7 @@ function SessionFormScreenContent({
           </AnimatedViewStyled>
         )}
         {sessionIsTerminal && watchStart && (
-          <View>
+          <Animated.View layout={activityListTransition}>
             <DateTimeInputThemed
               label="Start Date"
               value={watchStart}
@@ -1084,35 +1148,43 @@ function SessionFormScreenContent({
                 />
               )}
             />
-          </View>
+          </Animated.View>
         )}
-        {sessionCanBeDeload && deloadInput}
+        {sessionCanBeDeload && (
+          <Animated.View layout={activityListTransition}>
+            {deloadInput}
+          </Animated.View>
+        )}
         {session?.status === "Ready" && (
-          <PrimaryCardAction
-            label="Complete Workout Session"
-            onPress={handleCompleteSession}
-            accessibilityLabel="Complete workout session from session form"
-            cardVariants={["square"]}
-          />
+          <Animated.View layout={activityListTransition}>
+            <PrimaryCardAction
+              label="Complete Workout Session"
+              onPress={handleCompleteSession}
+              accessibilityLabel="Complete workout session from session form"
+              cardVariants={["square"]}
+            />
+          </Animated.View>
         )}
         {session && (
-          <ConfirmButton
-            title="Delete Session?"
-            message="This will permanently delete this workout session."
-            confirmText="Delete Session"
-            onConfirm={() => {
-              deleteSession(program.programId, session.sessionId);
-              router.back();
-              router.back();
-            }}
-            accessibilityLabel={`Delete Workout Session with name ${session.name}`}
-            cardVariants={["square"]}
-          >
-            Delete This Session
-          </ConfirmButton>
+          <Animated.View layout={activityListTransition}>
+            <ConfirmButton
+              title="Delete Session?"
+              message="This will permanently delete this workout session."
+              confirmText="Delete Session"
+              onConfirm={() => {
+                deleteSession(program.programId, session.sessionId);
+                router.back();
+                router.back();
+              }}
+              accessibilityLabel={`Delete Workout Session with name ${session.name}`}
+              cardVariants={["square"]}
+            >
+              Delete This Session
+            </ConfirmButton>
+          </Animated.View>
         )}
         {session?.start && (
-          <View>
+          <Animated.View layout={activityListTransition}>
             <ConfirmButton
               title="Reset Session?"
               message="This will clear the recorded session data and return it to Planned status."
@@ -1152,7 +1224,7 @@ function SessionFormScreenContent({
               Resets session to &apos;Planned&apos; state by clearing all
               entered data.
             </HelperText>
-          </View>
+          </Animated.View>
         )}
       </KeyboardAwareScrollView>
     </>

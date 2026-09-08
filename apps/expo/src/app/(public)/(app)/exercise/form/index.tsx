@@ -450,7 +450,7 @@ export default function ExerciseFormScreen() {
             )}
           </Animated.View>
         )}
-        <Animated.View layout={LinearTransition}>
+        <Animated.View layout={LinearTransition} className="gap-10">
           <View>
             <View className="mb-2 ml-5 flex-row items-center">
               <SectionHeading placement="inline">

@@ -289,7 +289,7 @@ function SessionDetailScreenContent({
 
     Alert.alert(
       "Mark as Deload Session?",
-      "This session will be ignored when planning the next session, which will use the last completed non-deload session instead.",
+      "This session will be ignored when planning the next session from this template. The last completed non-deload session will be used instead.",
       [
         { text: "Cancel", style: "cancel" },
         { text: "Mark as Deload", onPress: updateDeload },

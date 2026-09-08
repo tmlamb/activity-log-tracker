@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Activity, Exercise, Program, Session, WorkoutSet } from "./utils";
 import {
+  buildExerciseSetInsights,
   buildProgramInsights,
   canSetSessionDeload,
   cleanupInactiveSession,
@@ -746,6 +747,190 @@ describe("weekAndDayFromStart", () => {
     const endDate = new Date(2022, 9, 18, 0, 0, 0);
     const result = weekAndDayFromStart(startDate, endDate);
     expect(result).toBe("Week 15, Day 6");
+  });
+});
+
+describe("buildExerciseSetInsights", () => {
+  const exercise: Exercise = {
+    exerciseId: "exercise-1",
+    name: "Bench Press",
+    loadKind: "BARBELL",
+    oneRepMax: { value: 200, unit: "lbs" },
+  };
+
+  it("compares the same set position across the current and four previous sessions", () => {
+    const sessions = Array.from({ length: 6 }, (_, index) => {
+      const current = index === 5;
+      const activity = {
+        ...createActivity([
+          createWorkoutSet(`first-${index}`, {
+            status: current ? "Planned" : "Done",
+            actualReps: current ? 0 : 20,
+            weight: current ? undefined : { value: 50, unit: "lbs" },
+          }),
+          createWorkoutSet(`second-${index}`, {
+            status: current ? "Planned" : "Done",
+            actualReps: current ? 0 : index + 5,
+            weight: current ? undefined : { value: 100, unit: "lbs" },
+          }),
+        ]),
+        activityId: `activity-${index}`,
+        reps: 12,
+        load: current
+          ? ({ type: "PERCENT", value: 0.5 } as const)
+          : ({ type: "RPE", value: 8 } as const),
+      };
+
+      return createSession(activity, {
+        sessionId: `session-${index}`,
+        templateId: "template-1",
+        status: current ? "Planned" : "Done",
+        start: current ? undefined : new Date(2026, 7, 20 + index, 8),
+      });
+    });
+    const currentSession = sessions[5];
+    const currentActivity = currentSession?.activities[0];
+    const currentSet = currentActivity?.mainSets[1];
+    if (!currentSession || !currentActivity || !currentSet) {
+      throw new Error("Expected current set fixture");
+    }
+
+    const result = buildExerciseSetInsights(
+      { name: "Program", programId: "program-1", sessions },
+      currentSession,
+      currentActivity,
+      currentSet,
+      exercise,
+      new Date(2026, 7, 27, 8),
+    );
+
+    expect(result).toMatchObject({ setType: "Main", setNumber: 2 });
+    expect(result.points.map((point) => point.sessionId)).toEqual([
+      "session-1",
+      "session-2",
+      "session-3",
+      "session-4",
+      "session-5",
+    ]);
+    expect(result.points[0]).toMatchObject({
+      reps: 6,
+      weightLbs: 100,
+      volumeLbs: 600,
+      current: false,
+    });
+    expect(result.points[4]).toMatchObject({
+      date: new Date(2026, 7, 27, 8),
+      reps: 12,
+      weightLbs: 100,
+      volumeLbs: 1200,
+      current: true,
+    });
+  });
+
+  it("keeps zero bars for missing, incomplete, and zero-rep historical sets", () => {
+    const matchingActivity = (
+      activityId: string,
+      secondSet?: Partial<WorkoutSet>,
+    ) => ({
+      ...createActivity([
+        createWorkoutSet(`first-${activityId}`, {
+          status: "Done",
+          actualReps: 10,
+          weight: { value: 50, unit: "lbs" },
+        }),
+        ...(secondSet
+          ? [createWorkoutSet(`second-${activityId}`, secondSet)]
+          : []),
+      ]),
+      activityId,
+      reps: 8,
+    });
+    const sessions = [
+      createSession(
+        matchingActivity("valid", {
+          status: "Done",
+          actualReps: 5,
+          weight: { value: 10, unit: "kg" },
+        }),
+        {
+          sessionId: "valid",
+          templateId: "template-1",
+          status: "Done",
+          start: new Date(2026, 7, 23, 8),
+        },
+      ),
+      createSession(matchingActivity("missing"), {
+        sessionId: "missing",
+        templateId: "template-1",
+        status: "Done",
+        start: new Date(2026, 7, 24, 8),
+      }),
+      createSession(
+        matchingActivity("incomplete", {
+          status: "Incomplete",
+          actualReps: 10,
+          weight: { value: 100, unit: "lbs" },
+        }),
+        {
+          sessionId: "incomplete",
+          templateId: "template-1",
+          status: "Incomplete",
+          start: new Date(2026, 7, 25, 8),
+        },
+      ),
+      createSession(
+        matchingActivity("zero-reps", {
+          status: "Done",
+          actualReps: 0,
+          weight: { value: 100, unit: "lbs" },
+        }),
+        {
+          sessionId: "zero-reps",
+          templateId: "template-1",
+          status: "Done",
+          start: new Date(2026, 7, 26, 8),
+        },
+      ),
+      createSession(
+        matchingActivity("current", {
+          status: "Ready",
+          actualReps: 6,
+          weight: { value: 100, unit: "lbs" },
+        }),
+        {
+          sessionId: "current",
+          templateId: "template-1",
+          status: "Ready",
+          start: new Date(2026, 7, 27, 8),
+        },
+      ),
+    ];
+    const currentSession = sessions[4];
+    const currentActivity = currentSession?.activities[0];
+    const currentSet = currentActivity?.mainSets[1];
+    if (!currentSession || !currentActivity || !currentSet) {
+      throw new Error("Expected current set fixture");
+    }
+
+    const result = buildExerciseSetInsights(
+      { name: "Program", programId: "program-1", sessions },
+      currentSession,
+      currentActivity,
+      currentSet,
+      exercise,
+    );
+
+    expect(result.points[0]?.weightLbs).toBeCloseTo(22.046226218);
+    expect(result.points[0]?.volumeLbs).toBeCloseTo(110.23113109);
+    expect(result.points.slice(1, 4).map((point) => point.volumeLbs)).toEqual([
+      0, 0, 0,
+    ]);
+    expect(result.points[4]).toMatchObject({
+      reps: 6,
+      weightLbs: 100,
+      volumeLbs: 600,
+      current: true,
+    });
   });
 });
 

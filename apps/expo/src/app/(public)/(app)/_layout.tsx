@@ -46,6 +46,13 @@ export default function AppLayout() {
         options={{ title: "Workout Session" }}
       />
       <Stack.Screen
+        name="program/[programId]/session/[sessionId]/set/insights/index"
+        options={{
+          title: "Exercise Insights",
+          headerBackButtonDisplayMode: "minimal",
+        }}
+      />
+      <Stack.Screen
         name="equipment/index"
         options={{ title: "Manage Equipment" }}
       />

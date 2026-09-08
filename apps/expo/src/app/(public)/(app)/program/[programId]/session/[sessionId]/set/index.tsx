@@ -11,6 +11,7 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import {
+  Link,
   Redirect,
   Stack,
   useFocusEffect,
@@ -19,14 +20,13 @@ import {
 } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { add, subMinutes } from "date-fns";
-import _ from "lodash";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { twMerge } from "tailwind-merge";
 
-import type { Activity, WarmupSet, WorkoutSet } from "@activity-log/ui/utils";
+import type { Activity, WorkoutSet } from "@activity-log/ui/utils";
 import {
   isSessionTerminalStatus,
-  round5,
+  plannedWeightForWorkoutSet,
   stringifyLoad,
 } from "@activity-log/ui/utils";
 
@@ -35,6 +35,7 @@ import BottomActionBar from "~/components/BottomActionBar";
 import { DetailCardRow } from "~/components/CardRow";
 import DumbbellChart from "~/components/DumbbellChart";
 import ElapsedTime from "~/components/ElapsedTime";
+import { HeaderIconAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PlateChart from "~/components/PlateChart";
 import PressableThemed from "~/components/PressableThemed";
@@ -44,14 +45,6 @@ import { AnimatedViewStyled } from "~/components/Styled";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
-
-const warmupPercentageMap: Record<number, number[]> = {
-  1: [0.6],
-  2: [0.4, 0.6],
-  3: [0.4, 0.5, 0.6],
-  4: [0.4, 0.5, 0.6, 0.7],
-  5: [0.3, 0.4, 0.5, 0.6, 0.7],
-};
 
 const actionAnimationDuration = 250;
 const keyboardDismissTimeout = 500;
@@ -139,32 +132,16 @@ function WorkoutSetDetailScreenContent({
   const router = useRouter();
   const [initialWeight] = useState(workoutSet.weight);
 
-  const warmupPercentages =
-    warmupPercentageMap[activity.warmupSets.length] ??
-    warmupPercentageMap[5] ??
-    [];
-  const warmupPercent =
-    workoutSet.type === "Warmup" && activity.load.type === "PERCENT"
-      ? (warmupPercentages[
-          activity.warmupSets.indexOf(workoutSet as WarmupSet)
-        ] ??
-        _.last(warmupPercentages) ??
-        0)
-      : 0;
-  const workPercent =
-    workoutSet.type === "Main" && activity.load.type === "PERCENT"
-      ? activity.load.value
-      : 0;
-
-  const targetPercent = warmupPercent || workPercent;
   const targetWeight =
-    exercise.oneRepMax && targetPercent
-      ? round5(exercise.oneRepMax.value * targetPercent)
+    activity.load.type === "PERCENT"
+      ? plannedWeightForWorkoutSet(activity, workoutSet, exercise.oneRepMax)
+          ?.value
       : undefined;
   const firstMainSet = activity.mainSets[0];
   const mainTargetWeight =
-    exercise.oneRepMax && activity.load.type === "PERCENT"
-      ? round5(exercise.oneRepMax.value * activity.load.value)
+    firstMainSet && activity.load.type === "PERCENT"
+      ? plannedWeightForWorkoutSet(activity, firstMainSet, exercise.oneRepMax)
+          ?.value
       : undefined;
   const targetLoadValue =
     workoutSet.type === "Main"
@@ -211,6 +188,15 @@ function WorkoutSetDetailScreenContent({
     ...activity.warmupSets,
     ...activity.mainSets,
   ];
+  const sessionIndex = program.sessions.findIndex(
+    (item) => item.sessionId === session.sessionId,
+  );
+  const hasTemplateHistory =
+    session.templateId != null &&
+    sessionIndex > 0 &&
+    program.sessions
+      .slice(0, sessionIndex)
+      .some((item) => item.templateId === session.templateId);
   const isStartable =
     !isSessionTerminalStatus(session.status) &&
     workoutSet.status === "Planned" &&
@@ -531,6 +517,29 @@ function WorkoutSetDetailScreenContent({
         options={{
           title: title,
           headerBackButtonDisplayMode: "minimal",
+          headerRight: hasTemplateHistory
+            ? () => (
+                <Link
+                  href={`/(public)/(app)/program/${program.programId}/session/${session.sessionId}/set/insights?activityId=${activity.activityId}&workoutSetId=${workoutSet.workoutSetId}`}
+                  asChild
+                >
+                  <HeaderIconAction
+                    className="rounded-full"
+                    accessibilityLabel={`View insights for ${exercise.name}`}
+                  >
+                    <Text
+                      maxFontSizeMultiplier={2.5}
+                      className="text-primary leading-none"
+                    >
+                      <MaterialCommunityIcons
+                        name="chart-timeline-variant-shimmer"
+                        size={24}
+                      />
+                    </Text>
+                  </HeaderIconAction>
+                </Link>
+              )
+            : undefined,
         }}
       />
       <KeyboardAwareScrollView
