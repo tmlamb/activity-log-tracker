@@ -10,12 +10,13 @@ interface SegmentedOption<T extends string> {
   label: string;
   value: T;
   accessibilityLabel?: string;
-  tone?: "primary" | "muted" | "destructive";
+  tone?: "primary" | "muted" | "destructive" | "info";
 }
 
 const selectedOptionToneClasses = {
   primary: { container: "bg-primary", text: "text-primary-foreground" },
-  muted: { container: "bg-muted-foreground", text: "text-foreground" },
+  muted: { container: "bg-muted", text: "text-muted-foreground" },
+  info: { container: "bg-info", text: "text-info-foreground" },
   destructive: {
     container: "bg-destructive",
     text: "text-destructive-foreground",

@@ -735,6 +735,7 @@ function WorkoutSetDetailScreenContent({
                         label: "Easy",
                         value: "Easy",
                         accessibilityLabel: "Set workout set feedback: Easy",
+                        tone: "info",
                       },
                       {
                         label: "Neutral",
@@ -746,7 +747,7 @@ function WorkoutSetDetailScreenContent({
                         label: "Hard",
                         value: "Hard",
                         accessibilityLabel: "Set workout set feedback: Hard",
-                        tone: "destructive",
+                        tone: "primary",
                       },
                     ]}
                     onChange={(feedback) => {

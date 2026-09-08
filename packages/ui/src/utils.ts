@@ -131,6 +131,7 @@ export interface ExerciseSetInsightPoint {
   reps: number;
   weightLbs: number;
   volumeLbs: number;
+  feedback?: WorkoutSet["feedback"];
   current: boolean;
 }
 
@@ -422,6 +423,7 @@ export const buildExerciseSetInsights = (
         reps,
         weightLbs,
         volumeLbs: reps * weightLbs,
+        feedback: reps > 0 ? workoutSet?.feedback : undefined,
         current,
       };
     });
@@ -609,6 +611,105 @@ export const plannedSessionVolumeLbs = (
   }, 0);
 };
 
+const completedSetHasHigherLoadWithLowerVolume = (
+  currentSet: MainSet,
+  previousSet: MainSet,
+) => {
+  const currentReps = currentSet.actualReps ?? 0;
+  const previousReps = previousSet.actualReps ?? 0;
+  if (
+    currentSet.status !== "Done" ||
+    previousSet.status !== "Done" ||
+    currentReps <= 0 ||
+    previousReps <= 0 ||
+    !currentSet.weight ||
+    !previousSet.weight
+  ) {
+    return false;
+  }
+
+  const currentWeightLbs =
+    currentSet.weight.unit === "kg"
+      ? kilogramsToPounds(currentSet.weight.value)
+      : currentSet.weight.value;
+  const previousWeightLbs =
+    previousSet.weight.unit === "kg"
+      ? kilogramsToPounds(previousSet.weight.value)
+      : previousSet.weight.value;
+
+  return (
+    currentWeightLbs > previousWeightLbs &&
+    currentReps < previousReps &&
+    currentWeightLbs * currentReps < previousWeightLbs * previousReps
+  );
+};
+
+const plannedMainSetVolumeLbs = (
+  activity: Activity,
+  mainSet: MainSet,
+  exercise?: Exercise,
+) => {
+  const weight =
+    activity.load.type === "PERCENT" && (exercise?.oneRepMax?.value ?? 0) > 0
+      ? {
+          value: round5(
+            (exercise?.oneRepMax?.value ?? 0) * activity.load.value,
+          ),
+          unit: exercise?.oneRepMax?.unit ?? ("lbs" as const),
+        }
+      : mainSet.weight;
+  const weightLbs = weight
+    ? weight.unit === "kg"
+      ? kilogramsToPounds(weight.value)
+      : weight.value
+    : 0;
+  const weightMultiplier = exercise?.loadKind === "WEIGHT_PAIR" ? 2 : 1;
+
+  return (
+    plannedRepsFromTemplateActivity(activity) * weightLbs * weightMultiplier
+  );
+};
+
+const deloadDetectionVolumeLbs = (
+  session: Session,
+  previousSession: Session,
+  exercises: readonly Exercise[],
+) => {
+  const exercisesById = new Map(
+    exercises.map((exercise) => [exercise.exerciseId, exercise]),
+  );
+
+  return session.activities.reduce((sessionVolume, activity, activityIndex) => {
+    const exercise = exercisesById.get(activity.exerciseId);
+    const exerciseOccurrence =
+      session.activities
+        .slice(0, activityIndex + 1)
+        .filter((item) => item.exerciseId === activity.exerciseId).length - 1;
+    const previousActivity = previousSession.activities.filter(
+      (item) => item.exerciseId === activity.exerciseId,
+    )[exerciseOccurrence];
+
+    return (
+      sessionVolume +
+      activity.mainSets.reduce((activityVolume, mainSet, mainSetIndex) => {
+        const plannedVolume = plannedMainSetVolumeLbs(
+          activity,
+          mainSet,
+          exercise,
+        );
+        const previousSet = previousActivity?.mainSets[mainSetIndex];
+        const progressionCredit =
+          previousSet &&
+          completedSetHasHigherLoadWithLowerVolume(mainSet, previousSet)
+            ? plannedMainSetVolumeLbs(previousActivity, previousSet, exercise)
+            : 0;
+
+        return activityVolume + Math.max(plannedVolume, progressionCredit);
+      }, 0)
+    );
+  }, 0);
+};
+
 export const isDeloadCandidate = (
   sessions: readonly Session[],
   session: Session,
@@ -627,7 +728,10 @@ export const isDeloadCandidate = (
   const previousVolume = plannedSessionVolumeLbs(previousSession, exercises);
   if (previousVolume <= 0) return false;
 
-  return plannedSessionVolumeLbs(session, exercises) <= previousVolume * 0.75;
+  return (
+    deloadDetectionVolumeLbs(session, previousSession, exercises) <=
+    previousVolume * 0.75
+  );
 };
 
 export const dateRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/;

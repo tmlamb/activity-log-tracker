@@ -326,7 +326,7 @@ describe("template series deloads", () => {
     const belowThreshold = completedSession(
       "below-threshold",
       3,
-      completedActivity(5),
+      completedActivity(5, 75),
     );
 
     expect(
@@ -339,6 +339,17 @@ describe("template series deloads", () => {
         [exercise],
       ),
     ).toBe(true);
+  });
+
+  it("does not identify lower-volume higher-load progression as a deload", () => {
+    const previous = completedSession("previous", 1, completedActivity(15, 35));
+    const current = completedSession("current", 2, completedActivity(8, 40));
+
+    expect(plannedSessionVolumeLbs(previous, [exercise])).toBe(1575);
+    expect(plannedSessionVolumeLbs(current, [exercise])).toBe(960);
+    expect(isDeloadCandidate([previous, current], current, [exercise])).toBe(
+      false,
+    );
   });
 
   it("does not identify an incomplete session", () => {
@@ -772,6 +783,7 @@ describe("buildExerciseSetInsights", () => {
             status: current ? "Planned" : "Done",
             actualReps: current ? 0 : index + 5,
             weight: current ? undefined : { value: 100, unit: "lbs" },
+            feedback: current ? "Hard" : "Easy",
           }),
         ]),
         activityId: `activity-${index}`,
@@ -816,6 +828,7 @@ describe("buildExerciseSetInsights", () => {
       reps: 6,
       weightLbs: 100,
       volumeLbs: 600,
+      feedback: "Easy",
       current: false,
     });
     expect(result.points[4]).toMatchObject({
@@ -823,6 +836,7 @@ describe("buildExerciseSetInsights", () => {
       reps: 12,
       weightLbs: 100,
       volumeLbs: 1200,
+      feedback: "Hard",
       current: true,
     });
   });

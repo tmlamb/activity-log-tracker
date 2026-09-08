@@ -42,7 +42,7 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
           Volume History
         </Text>
         <Text maxFontSizeMultiplier={2} className="text-muted text-sm">
-          Reps x weight for this set position
+          Progression of total volume (reps x weight) for this set over time.
         </Text>
       </View>
 
@@ -85,15 +85,30 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
               {insights.points.map((point) => {
                 const barHeight =
                   point.volumeLbs > 0
-                    ? Math.max((point.volumeLbs / maxValue) * maxBarHeight, 46)
+                    ? Math.max((point.volumeLbs / maxValue) * maxBarHeight, 58)
                     : 0;
                 const dateLabel = point.date ? format(point.date, "M/d") : "--";
+                const feedbackTone =
+                  point.feedback === "Easy"
+                    ? {
+                        container: "bg-info",
+                        text: "text-info-foreground",
+                      }
+                    : point.feedback === "Hard"
+                      ? {
+                          container: "bg-primary",
+                          text: "text-primary-foreground",
+                        }
+                      : {
+                          container: "bg-muted",
+                          text: "text-muted-foreground",
+                        };
 
                 return (
                   <View
                     key={point.sessionId}
                     accessible
-                    accessibilityLabel={`${dateLabel}${point.current ? ", current set" : ""}, ${numberFormatter.format(point.reps)} reps at ${numberFormatter.format(point.weightLbs)} pounds, ${numberFormatter.format(point.volumeLbs)} pounds of volume`}
+                    accessibilityLabel={`${dateLabel}${point.current ? ", current set" : ""}, ${point.feedback ?? "no difficulty"}, ${numberFormatter.format(point.reps)} reps at ${numberFormatter.format(point.weightLbs)} pounds, ${numberFormatter.format(point.volumeLbs)} pounds of volume`}
                     className="items-center"
                     style={{ width: columnWidth }}
                   >
@@ -105,8 +120,8 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
                         <View
                           className={
                             point.current
-                              ? "bg-primary items-center justify-center rounded-t-xl px-0.5"
-                              : "bg-primary items-center justify-center rounded-t-xl px-0.5 opacity-70"
+                              ? `${feedbackTone.container} items-center justify-center rounded-t px-0.5`
+                              : `${feedbackTone.container} items-center justify-center rounded-t px-0.5 opacity-70`
                           }
                           style={{ width: barWidth, height: barHeight }}
                         >
@@ -114,7 +129,7 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
                             maxFontSizeMultiplier={1}
                             adjustsFontSizeToFit
                             numberOfLines={1}
-                            className="text-primary-foreground text-[10px] font-bold tabular-nums"
+                            className={`${feedbackTone.text} text-[10px] font-bold tabular-nums`}
                           >
                             {numberFormatter.format(point.reps)} reps
                           </Text>
@@ -122,14 +137,25 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
                             maxFontSizeMultiplier={1}
                             adjustsFontSizeToFit
                             numberOfLines={1}
-                            className="text-primary-foreground text-[10px] font-semibold tabular-nums"
+                            className={`${feedbackTone.text} text-[10px] font-semibold tabular-nums`}
                           >
                             {numberFormatter.format(point.weightLbs)} lbs
                           </Text>
+                          {point.feedback === "Easy" ||
+                          point.feedback === "Hard" ? (
+                            <Text
+                              maxFontSizeMultiplier={1}
+                              adjustsFontSizeToFit
+                              numberOfLines={1}
+                              className={`${feedbackTone.text} text-[10px] font-semibold`}
+                            >
+                              {point.feedback}
+                            </Text>
+                          ) : null}
                         </View>
                       ) : (
                         <View
-                          className="border-border h-11 items-center justify-center rounded-t-xl border"
+                          className="border-border h-11 items-center justify-center rounded-t border"
                           style={{ width: barWidth }}
                         >
                           <Text
