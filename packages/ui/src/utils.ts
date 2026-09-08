@@ -376,57 +376,55 @@ export const buildExerciseSetInsights = (
   );
   if (currentSeriesIndex < 0) return emptyInsights;
 
-  const points = templateSeries
-    .slice(Math.max(0, currentSeriesIndex - 4), currentSeriesIndex + 1)
-    .map<ExerciseSetInsightPoint>((session) => {
-      const current = session.sessionId === currentSession.sessionId;
-      const activity = session.activities.filter(
-        (item) => item.exerciseId === currentActivity.exerciseId,
-      )[exerciseOccurrence];
-      const workoutSet = activity
-        ? currentWorkoutSet.type === "Main"
-          ? activity.mainSets[setIndex]
-          : activity.warmupSets[setIndex]
-        : undefined;
-      const actualReps = workoutSet?.actualReps ?? 0;
-      const reps =
-        !workoutSet || workoutSet.status === "Incomplete"
-          ? 0
-          : current
-            ? actualReps > 0
-              ? actualReps
-              : Math.max(activity?.reps ?? 0, 0)
-            : workoutSet.status === "Done" && actualReps > 0
-              ? actualReps
-              : 0;
-      const weight =
-        workoutSet?.weight ??
-        (current && activity && workoutSet
-          ? plannedWeightForWorkoutSet(activity, workoutSet, exercise.oneRepMax)
-          : undefined);
-      const weightLbs = weight
-        ? weight.unit === "kg"
-          ? kilogramsToPounds(weight.value)
-          : weight.value
-        : 0;
-      const date = [
-        workoutSet?.start,
-        workoutSet?.end,
-        session.start,
-        session.end,
-        current ? now : undefined,
-      ].find(isValidDate);
+  const points = templateSeries.map<ExerciseSetInsightPoint>((session) => {
+    const current = session.sessionId === currentSession.sessionId;
+    const activity = session.activities.filter(
+      (item) => item.exerciseId === currentActivity.exerciseId,
+    )[exerciseOccurrence];
+    const workoutSet = activity
+      ? currentWorkoutSet.type === "Main"
+        ? activity.mainSets[setIndex]
+        : activity.warmupSets[setIndex]
+      : undefined;
+    const actualReps = workoutSet?.actualReps ?? 0;
+    const reps =
+      !workoutSet || workoutSet.status === "Incomplete"
+        ? 0
+        : current
+          ? actualReps > 0
+            ? actualReps
+            : Math.max(activity?.reps ?? 0, 0)
+          : workoutSet.status === "Done" && actualReps > 0
+            ? actualReps
+            : 0;
+    const weight =
+      workoutSet?.weight ??
+      (current && activity && workoutSet
+        ? plannedWeightForWorkoutSet(activity, workoutSet, exercise.oneRepMax)
+        : undefined);
+    const weightLbs = weight
+      ? weight.unit === "kg"
+        ? kilogramsToPounds(weight.value)
+        : weight.value
+      : 0;
+    const date = [
+      workoutSet?.start,
+      workoutSet?.end,
+      session.start,
+      session.end,
+      current ? now : undefined,
+    ].find(isValidDate);
 
-      return {
-        sessionId: session.sessionId,
-        date,
-        reps,
-        weightLbs,
-        volumeLbs: reps * weightLbs,
-        feedback: reps > 0 ? workoutSet?.feedback : undefined,
-        current,
-      };
-    });
+    return {
+      sessionId: session.sessionId,
+      date,
+      reps,
+      weightLbs,
+      volumeLbs: reps * weightLbs,
+      feedback: reps > 0 ? workoutSet?.feedback : undefined,
+      current,
+    };
+  });
 
   return { ...emptyInsights, points };
 };

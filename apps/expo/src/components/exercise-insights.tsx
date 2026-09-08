@@ -1,4 +1,10 @@
-import { ScrollView, Text, useWindowDimensions, View } from "react-native";
+import {
+  FlatList,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { format } from "date-fns";
 
 import type { ExerciseSetInsights } from "@activity-log/ui/utils";
@@ -23,10 +29,12 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
   const chartWidth = Math.max(width - 80, 240);
   const yAxisWidth = 42;
   const plotWidth = chartWidth - yAxisWidth;
-  const columnWidth = plotWidth / Math.max(insights.points.length, 1);
-  const barWidth = Math.min(58, Math.max(columnWidth - 10, 34));
   const maxBarHeight = 128;
   const dateAxisHeight = 32;
+  const currentPointIndex = insights.points.findIndex((point) => point.current);
+  const initialScrollIndex = Math.max(currentPointIndex - 4, 0);
+  const columnWidth = plotWidth / 5;
+  const barWidth = Math.min(58, Math.max(columnWidth - 10, 34));
 
   return (
     <Card
@@ -70,7 +78,10 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
             <View style={{ height: dateAxisHeight }} />
           </View>
 
-          <View className="relative" style={{ width: plotWidth }}>
+          <View
+            className="relative overflow-hidden"
+            style={{ width: plotWidth }}
+          >
             <View
               pointerEvents="none"
               className="absolute top-0 right-0 left-0 justify-between"
@@ -81,8 +92,23 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
               <View className="border-border border-t" />
             </View>
 
-            <View className="flex-row items-end">
-              {insights.points.map((point) => {
+            <FlatList
+              data={insights.points}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              initialScrollIndex={initialScrollIndex}
+              initialNumToRender={7}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              style={{ width: plotWidth }}
+              contentContainerClassName="items-end"
+              keyExtractor={(point) => point.sessionId}
+              getItemLayout={(_, index) => ({
+                length: columnWidth,
+                offset: columnWidth * index,
+                index,
+              })}
+              renderItem={({ item: point }) => {
                 const barHeight =
                   point.volumeLbs > 0
                     ? Math.max((point.volumeLbs / maxValue) * maxBarHeight, 58)
@@ -182,8 +208,8 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
                     </Text>
                   </View>
                 );
-              })}
-            </View>
+              }}
+            />
           </View>
         </View>
       </View>

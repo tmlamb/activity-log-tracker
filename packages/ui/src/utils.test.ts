@@ -769,9 +769,9 @@ describe("buildExerciseSetInsights", () => {
     oneRepMax: { value: 200, unit: "lbs" },
   };
 
-  it("compares the same set position across the current and four previous sessions", () => {
+  it("compares the same set position across the complete template series", () => {
     const sessions = Array.from({ length: 6 }, (_, index) => {
-      const current = index === 5;
+      const current = index === 3;
       const activity = {
         ...createActivity([
           createWorkoutSet(`first-${index}`, {
@@ -800,7 +800,7 @@ describe("buildExerciseSetInsights", () => {
         start: current ? undefined : new Date(2026, 7, 20 + index, 8),
       });
     });
-    const currentSession = sessions[5];
+    const currentSession = sessions[3];
     const currentActivity = currentSession?.activities[0];
     const currentSet = currentActivity?.mainSets[1];
     if (!currentSession || !currentActivity || !currentSet) {
@@ -818,6 +818,7 @@ describe("buildExerciseSetInsights", () => {
 
     expect(result).toMatchObject({ setType: "Main", setNumber: 2 });
     expect(result.points.map((point) => point.sessionId)).toEqual([
+      "session-0",
       "session-1",
       "session-2",
       "session-3",
@@ -825,19 +826,26 @@ describe("buildExerciseSetInsights", () => {
       "session-5",
     ]);
     expect(result.points[0]).toMatchObject({
-      reps: 6,
+      reps: 5,
       weightLbs: 100,
-      volumeLbs: 600,
+      volumeLbs: 500,
       feedback: "Easy",
       current: false,
     });
-    expect(result.points[4]).toMatchObject({
+    expect(result.points[3]).toMatchObject({
       date: new Date(2026, 7, 27, 8),
       reps: 12,
       weightLbs: 100,
       volumeLbs: 1200,
       feedback: "Hard",
       current: true,
+    });
+    expect(result.points[5]).toMatchObject({
+      reps: 10,
+      weightLbs: 100,
+      volumeLbs: 1000,
+      feedback: "Easy",
+      current: false,
     });
   });
 
