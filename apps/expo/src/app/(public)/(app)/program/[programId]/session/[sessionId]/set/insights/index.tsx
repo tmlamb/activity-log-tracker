@@ -1,6 +1,6 @@
 import { Redirect, useLocalSearchParams } from "expo-router";
 
-import { buildExerciseSetInsights } from "@activity-log/ui/utils";
+import { buildExerciseInsights } from "@activity-log/ui/utils";
 
 import ExerciseInsights from "~/components/exercise-insights";
 import useWorkoutStore from "~/hooks/use-workout-store";
@@ -42,7 +42,7 @@ export default function ExerciseInsightsScreen() {
     <ExerciseInsights
       exerciseName={exercise.name}
       sessionName={session.name}
-      insights={buildExerciseSetInsights(
+      insights={buildExerciseInsights(
         program,
         session,
         activity,

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Activity, Exercise, Program, Session, WorkoutSet } from "./utils";
 import {
-  buildExerciseSetInsights,
+  buildExerciseInsights,
   buildProgramInsights,
   canSetSessionDeload,
   cleanupInactiveSession,
@@ -761,7 +761,7 @@ describe("weekAndDayFromStart", () => {
   });
 });
 
-describe("buildExerciseSetInsights", () => {
+describe("buildExerciseInsights", () => {
   const exercise: Exercise = {
     exerciseId: "exercise-1",
     name: "Bench Press",
@@ -773,19 +773,28 @@ describe("buildExerciseSetInsights", () => {
     const sessions = Array.from({ length: 6 }, (_, index) => {
       const current = index === 3;
       const activity = {
-        ...createActivity([
-          createWorkoutSet(`first-${index}`, {
-            status: current ? "Planned" : "Done",
-            actualReps: current ? 0 : 20,
-            weight: current ? undefined : { value: 50, unit: "lbs" },
-          }),
-          createWorkoutSet(`second-${index}`, {
-            status: current ? "Planned" : "Done",
-            actualReps: current ? 0 : index + 5,
-            weight: current ? undefined : { value: 100, unit: "lbs" },
-            feedback: current ? "Hard" : "Easy",
-          }),
-        ]),
+        ...createActivity(
+          [
+            createWorkoutSet(`first-${index}`, {
+              status: current ? "Planned" : "Done",
+              actualReps: current ? 0 : 20,
+              weight: current ? undefined : { value: 50, unit: "lbs" },
+            }),
+            createWorkoutSet(`second-${index}`, {
+              status: current ? "Planned" : "Done",
+              actualReps: current ? 0 : index + 5,
+              weight: current ? undefined : { value: 100, unit: "lbs" },
+              feedback: current ? "Hard" : "Easy",
+            }),
+          ],
+          [
+            createWorkoutSet(`warmup-${index}`, {
+              status: current ? "Planned" : "Done",
+              actualReps: current ? 0 : 10,
+              weight: current ? undefined : { value: 25, unit: "lbs" },
+            }),
+          ],
+        ),
         activityId: `activity-${index}`,
         reps: 12,
         load: current
@@ -807,7 +816,7 @@ describe("buildExerciseSetInsights", () => {
       throw new Error("Expected current set fixture");
     }
 
-    const result = buildExerciseSetInsights(
+    const result = buildExerciseInsights(
       { name: "Program", programId: "program-1", sessions },
       currentSession,
       currentActivity,
@@ -816,8 +825,33 @@ describe("buildExerciseSetInsights", () => {
       new Date(2026, 7, 27, 8),
     );
 
-    expect(result).toMatchObject({ setType: "Main", setNumber: 2 });
-    expect(result.points.map((point) => point.sessionId)).toEqual([
+    expect(
+      result.map(({ setType, setNumber, selected }) => ({
+        setType,
+        setNumber,
+        selected,
+      })),
+    ).toEqual([
+      { setType: "Warmup", setNumber: 1, selected: false },
+      { setType: "Main", setNumber: 1, selected: false },
+      { setType: "Main", setNumber: 2, selected: true },
+    ]);
+    const warmupInsights = result[0];
+    const selectedInsights = result[2];
+    if (!warmupInsights || !selectedInsights) {
+      throw new Error("Expected insights for every set");
+    }
+    expect(warmupInsights.points[0]).toMatchObject({
+      reps: 10,
+      weightLbs: 25,
+      volumeLbs: 250,
+      completed: true,
+      notStarted: false,
+    });
+    expect(
+      result.map((setInsights) => setInsights.points[3]?.notStarted),
+    ).toEqual([true, true, true]);
+    expect(selectedInsights.points.map((point) => point.sessionId)).toEqual([
       "session-0",
       "session-1",
       "session-2",
@@ -825,28 +859,80 @@ describe("buildExerciseSetInsights", () => {
       "session-4",
       "session-5",
     ]);
-    expect(result.points[0]).toMatchObject({
+    expect(selectedInsights.points[0]).toMatchObject({
       reps: 5,
       weightLbs: 100,
       volumeLbs: 500,
       feedback: "Easy",
       current: false,
     });
-    expect(result.points[3]).toMatchObject({
+    expect(selectedInsights.points[3]).toMatchObject({
       date: new Date(2026, 7, 27, 8),
       reps: 12,
       weightLbs: 100,
       volumeLbs: 1200,
       feedback: "Hard",
       current: true,
+      completed: false,
+      notStarted: true,
     });
-    expect(result.points[5]).toMatchObject({
+    expect(selectedInsights.points[5]).toMatchObject({
       reps: 10,
       weightLbs: 100,
       volumeLbs: 1000,
       feedback: "Easy",
       current: false,
     });
+  });
+
+  it("keeps completed rep-only sets available for bodyweight bars", () => {
+    const sessions = [8, 12].map((reps, index) =>
+      createSession(
+        createActivity([
+          createWorkoutSet(`bodyweight-${index}`, {
+            status: "Done",
+            actualReps: reps,
+          }),
+        ]),
+        {
+          sessionId: `session-${index}`,
+          templateId: "template-1",
+          status: "Done",
+          start: new Date(2026, 7, 20 + index, 8),
+        },
+      ),
+    );
+    const currentSession = sessions[1];
+    const currentActivity = currentSession?.activities[0];
+    const currentSet = currentActivity?.mainSets[0];
+    if (!currentSession || !currentActivity || !currentSet) {
+      throw new Error("Expected bodyweight set fixture");
+    }
+
+    const result = buildExerciseInsights(
+      { name: "Program", programId: "program-1", sessions },
+      currentSession,
+      currentActivity,
+      currentSet,
+      exercise,
+    );
+
+    expect(result[0]?.points).toMatchObject([
+      {
+        reps: 8,
+        weightLbs: 0,
+        volumeLbs: 0,
+        completed: true,
+        notStarted: false,
+      },
+      {
+        reps: 12,
+        weightLbs: 0,
+        volumeLbs: 0,
+        completed: true,
+        notStarted: false,
+      },
+    ]);
   });
 
   it("keeps zero bars for missing, incomplete, and zero-rep historical sets", () => {
@@ -934,7 +1020,7 @@ describe("buildExerciseSetInsights", () => {
       throw new Error("Expected current set fixture");
     }
 
-    const result = buildExerciseSetInsights(
+    const result = buildExerciseInsights(
       { name: "Program", programId: "program-1", sessions },
       currentSession,
       currentActivity,
@@ -942,16 +1028,22 @@ describe("buildExerciseSetInsights", () => {
       exercise,
     );
 
-    expect(result.points[0]?.weightLbs).toBeCloseTo(22.046226218);
-    expect(result.points[0]?.volumeLbs).toBeCloseTo(110.23113109);
-    expect(result.points.slice(1, 4).map((point) => point.volumeLbs)).toEqual([
-      0, 0, 0,
-    ]);
-    expect(result.points[4]).toMatchObject({
+    const selectedInsights = result[1];
+    if (!selectedInsights) throw new Error("Expected selected set insights");
+
+    expect(selectedInsights.selected).toBe(true);
+    expect(selectedInsights.points[0]?.weightLbs).toBeCloseTo(22.046226218);
+    expect(selectedInsights.points[0]?.volumeLbs).toBeCloseTo(110.23113109);
+    expect(
+      selectedInsights.points.slice(1, 4).map((point) => point.volumeLbs),
+    ).toEqual([0, 0, 0]);
+    expect(selectedInsights.points[4]).toMatchObject({
       reps: 6,
       weightLbs: 100,
       volumeLbs: 600,
       current: true,
+      completed: false,
+      notStarted: false,
     });
   });
 });

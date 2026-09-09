@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   FlatList,
   ScrollView,
@@ -11,6 +12,12 @@ import type { ExerciseSetInsights } from "@activity-log/ui/utils";
 
 import Card from "./Card";
 import { DetailCardRow } from "./CardRow";
+import {
+  CollapsibleSectionBody,
+  CollapsibleSectionHeader,
+  useCollapsibleSectionScroll,
+} from "./CollapsibleSection";
+import { HelperText } from "./Typography";
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
@@ -22,10 +29,24 @@ const formatChartValue = (value: number) => {
   return numberFormatter.format(value);
 };
 
-function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
+function VolumeChart({
+  insights,
+  stack,
+}: {
+  insights: ExerciseSetInsights;
+  stack: { index: number; size: number };
+}) {
   const { width } = useWindowDimensions();
-  const values = insights.points.map((point) => point.volumeLbs);
-  const maxValue = Math.max(...values, 1);
+  const volumeValues = insights.points
+    .filter((point) => !point.notStarted)
+    .map((point) => point.volumeLbs);
+  const repOnlyValues = insights.points
+    .filter(
+      (point) => point.completed && point.reps > 0 && point.weightLbs <= 0,
+    )
+    .map((point) => point.reps);
+  const maxValue = Math.max(...volumeValues, 1);
+  const maxRepOnlyReps = Math.max(...repOnlyValues, 1);
   const chartWidth = Math.max(width - 80, 240);
   const yAxisWidth = 42;
   const plotWidth = chartWidth - yAxisWidth;
@@ -35,29 +56,37 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
   const initialScrollIndex = Math.max(currentPointIndex - 4, 0);
   const columnWidth = plotWidth / 5;
   const barWidth = Math.min(58, Math.max(columnWidth - 10, 34));
+  const setLabel = `${insights.setType} Set ${insights.setNumber}`;
 
   return (
     <Card
+      stack={stack}
       variants={["multiline"]}
       className="h-auto flex-col items-stretch gap-5 py-5"
     >
-      <View className="gap-1">
+      <View className="flex-row flex-wrap items-baseline justify-between gap-x-1.5">
         <Text
           selectable
           maxFontSizeMultiplier={2.5}
           className="text-foreground text-xl font-semibold"
         >
-          Volume History
+          {setLabel}
         </Text>
-        <Text maxFontSizeMultiplier={2} className="text-muted text-sm">
-          Progression of total volume (reps x weight) for this set over time.
-        </Text>
+        {insights.selected ? (
+          <Text
+            selectable
+            maxFontSizeMultiplier={2}
+            className="text-primary text-xl font-semibold"
+          >
+            Current
+          </Text>
+        ) : null}
       </View>
 
       <View style={{ width: chartWidth }}>
         <Text
           maxFontSizeMultiplier={1.5}
-          className="text-muted mb-1 text-xs font-medium"
+          className="text-muted mb-1 font-medium"
         >
           VOLUME (LBS)
         </Text>
@@ -95,6 +124,7 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
             <FlatList
               data={insights.points}
               horizontal
+              nestedScrollEnabled
               showsHorizontalScrollIndicator={false}
               initialScrollIndex={initialScrollIndex}
               initialNumToRender={7}
@@ -109,11 +139,19 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
                 index,
               })}
               renderItem={({ item: point }) => {
-                const barHeight =
-                  point.volumeLbs > 0
+                const repOnly =
+                  point.completed && point.reps > 0 && point.weightLbs <= 0;
+                const barHeight = repOnly
+                  ? Math.max((point.reps / maxRepOnlyReps) * maxBarHeight, 24)
+                  : point.volumeLbs > 0
                     ? Math.max((point.volumeLbs / maxValue) * maxBarHeight, 58)
                     : 0;
                 const dateLabel = point.date ? format(point.date, "M/d") : "--";
+                const accessibilityLabel = point.notStarted
+                  ? `${dateLabel}, current session, not started`
+                  : repOnly
+                    ? `${dateLabel}${point.current ? ", current session" : ""}, ${point.feedback ?? "no difficulty"}, ${numberFormatter.format(point.reps)} reps, no recorded weight`
+                    : `${dateLabel}${point.current ? ", current session" : ""}, ${point.feedback ?? "no difficulty"}, ${numberFormatter.format(point.reps)} reps at ${numberFormatter.format(point.weightLbs)} pounds, ${numberFormatter.format(point.volumeLbs)} pounds of volume`;
                 const feedbackTone =
                   point.feedback === "Easy"
                     ? {
@@ -129,12 +167,15 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
                           container: "bg-muted",
                           text: "text-muted-foreground",
                         };
+                const barClassName = point.current
+                  ? `${feedbackTone.container} items-center justify-center rounded-t px-0.5`
+                  : `${feedbackTone.container} items-center justify-center rounded-t px-0.5 opacity-70`;
 
                 return (
                   <View
                     key={point.sessionId}
                     accessible
-                    accessibilityLabel={`${dateLabel}${point.current ? ", current set" : ""}, ${point.feedback ?? "no difficulty"}, ${numberFormatter.format(point.reps)} reps at ${numberFormatter.format(point.weightLbs)} pounds, ${numberFormatter.format(point.volumeLbs)} pounds of volume`}
+                    accessibilityLabel={accessibilityLabel}
                     className="items-center"
                     style={{ width: columnWidth }}
                   >
@@ -142,13 +183,33 @@ function VolumeChart({ insights }: { insights: ExerciseSetInsights }) {
                       className="w-full items-center justify-end"
                       style={{ height: maxBarHeight }}
                     >
-                      {point.volumeLbs > 0 ? (
+                      {point.notStarted ? (
+                        <Text
+                          maxFontSizeMultiplier={1.5}
+                          adjustsFontSizeToFit
+                          numberOfLines={2}
+                          className="text-muted px-1 pb-1 text-center text-xs font-semibold"
+                          style={{ width: columnWidth }}
+                        >
+                          Not Started
+                        </Text>
+                      ) : repOnly ? (
                         <View
-                          className={
-                            point.current
-                              ? `${feedbackTone.container} items-center justify-center rounded-t px-0.5`
-                              : `${feedbackTone.container} items-center justify-center rounded-t px-0.5 opacity-70`
-                          }
+                          className={barClassName}
+                          style={{ width: barWidth, height: barHeight }}
+                        >
+                          <Text
+                            maxFontSizeMultiplier={1}
+                            adjustsFontSizeToFit
+                            numberOfLines={1}
+                            className={`${feedbackTone.text} text-[10px] font-bold tabular-nums`}
+                          >
+                            {numberFormatter.format(point.reps)} reps
+                          </Text>
+                        </View>
+                      ) : point.volumeLbs > 0 ? (
+                        <View
+                          className={barClassName}
                           style={{ width: barWidth, height: barHeight }}
                         >
                           <Text
@@ -224,35 +285,65 @@ export default function ExerciseInsights({
 }: {
   exerciseName: string;
   sessionName: string;
-  insights: ExerciseSetInsights;
+  insights: ExerciseSetInsights[];
 }) {
-  const setLabel = `${insights.setType} Set ${insights.setNumber}`;
+  const [volumeHistoryCollapsed, setVolumeHistoryCollapsed] = useState(false);
+  const collapsibleSectionScroll = useCollapsibleSectionScroll();
+
+  const toggleVolumeHistory = () => {
+    collapsibleSectionScroll.prepareSectionToggle();
+    setVolumeHistoryCollapsed((collapsed) => !collapsed);
+  };
 
   return (
     <ScrollView
       className="flex-1"
-      contentContainerClassName="px-5 pt-36 pb-18 gap-10"
+      contentContainerClassName="px-5 pt-36 pb-18 gap-3"
+      onLayout={collapsibleSectionScroll.onListLayout}
+      onScroll={collapsibleSectionScroll.onScroll}
+      scrollEventThrottle={16}
     >
       <View>
         <DetailCardRow
           label="Exercise"
           value={exerciseName}
           cardVariants={["multiline"]}
-          stack={{ index: 0, size: 3 }}
-        />
-        <DetailCardRow
-          label="Set"
-          value={setLabel}
-          stack={{ index: 1, size: 3 }}
+          stack={{ index: 0, size: 2 }}
         />
         <DetailCardRow
           label="Session"
           value={sessionName}
           cardVariants={["multiline"]}
-          stack={{ index: 2, size: 3 }}
+          stack={{ index: 1, size: 2 }}
         />
       </View>
-      <VolumeChart insights={insights} />
+      <View>
+        <CollapsibleSectionHeader
+          title="Volume History"
+          collapsed={volumeHistoryCollapsed}
+          titleClassName="leading-tight"
+          onPress={toggleVolumeHistory}
+        />
+        <CollapsibleSectionBody collapsed={volumeHistoryCollapsed}>
+          <View>
+            {insights.map((setInsights, index) => (
+              <VolumeChart
+                key={`${setInsights.setType}-${setInsights.setNumber}`}
+                insights={setInsights}
+                stack={{ index, size: insights.length }}
+              />
+            ))}
+            <View>
+              <HelperText className="mb-0 leading-tight">
+                Progression of total volume per set over time.
+              </HelperText>
+              <HelperText className="mt-0 leading-tight">
+                Volume = weight x reps
+              </HelperText>
+            </View>
+          </View>
+        </CollapsibleSectionBody>
+      </View>
     </ScrollView>
   );
 }
