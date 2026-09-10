@@ -15,6 +15,7 @@ export default function AppLayout() {
         headerShadowVisible: false,
         headerLargeTitleShadowVisible: false,
         headerTintColor: primaryColor,
+        headerBackButtonDisplayMode: "minimal",
         contentStyle: { backgroundColor },
         headerTransparent: true,
       }}
