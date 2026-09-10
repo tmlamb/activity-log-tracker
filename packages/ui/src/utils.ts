@@ -459,7 +459,7 @@ export const plannedRepsFromTemplateActivity = (activity: Activity) => {
 
   if (!actualReps.count) return activity.reps;
 
-  return Math.ceil(actualReps.total / actualReps.count);
+  return Math.round(actualReps.total / actualReps.count);
 };
 
 export const plannedSessionFromTemplate = (

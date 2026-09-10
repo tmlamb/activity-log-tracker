@@ -117,17 +117,18 @@ describe("stringifyLoad", () => {
 });
 
 describe("plannedRepsFromTemplateActivity", () => {
-  it("averages only completed main sets with positive reps", () => {
+  it("rounds the average of completed main sets with positive reps", () => {
     const activity = createActivity([
       createWorkoutSet("done-1", { status: "Done", actualReps: 8 }),
       createWorkoutSet("incomplete", {
         status: "Incomplete",
         actualReps: 100,
       }),
-      createWorkoutSet("done-2", { status: "Done", actualReps: 11 }),
+      createWorkoutSet("done-2", { status: "Done", actualReps: 9 }),
+      createWorkoutSet("done-3", { status: "Done", actualReps: 8 }),
     ]);
 
-    expect(plannedRepsFromTemplateActivity(activity)).toBe(10);
+    expect(plannedRepsFromTemplateActivity(activity)).toBe(8);
   });
 });
 
