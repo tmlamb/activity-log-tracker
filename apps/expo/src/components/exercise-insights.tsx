@@ -142,23 +142,42 @@ export default function ExerciseInsights({
   sessionName: string;
   insights: ExerciseSetInsights[];
 }) {
-  const [volumeHistoryCollapsed, setVolumeHistoryCollapsed] = useState(false);
+  const currentSetType = insights.find(
+    (setInsights) => setInsights.selected,
+  )?.setType;
+  const warmupSetInsights = insights.filter(
+    (setInsights) => setInsights.setType === "Warmup",
+  );
+  const mainSetInsights = insights.filter(
+    (setInsights) => setInsights.setType === "Main",
+  );
+  const [warmupSetsCollapsed, setWarmupSetsCollapsed] = useState(
+    currentSetType === "Main",
+  );
+  const [mainSetsCollapsed, setMainSetsCollapsed] = useState(
+    currentSetType === "Warmup",
+  );
   const collapsibleSectionScroll = useCollapsibleSectionScroll();
 
-  const toggleVolumeHistory = () => {
+  const toggleWarmupSets = () => {
     collapsibleSectionScroll.prepareSectionToggle();
-    setVolumeHistoryCollapsed((collapsed) => !collapsed);
+    setWarmupSetsCollapsed((collapsed) => !collapsed);
+  };
+
+  const toggleMainSets = () => {
+    collapsibleSectionScroll.prepareSectionToggle();
+    setMainSetsCollapsed((collapsed) => !collapsed);
   };
 
   return (
     <ScrollView
       className="flex-1"
-      contentContainerClassName="px-5 pt-36 pb-18 gap-3"
+      contentContainerClassName="px-5 pt-36 pb-18 gap-0"
       onLayout={collapsibleSectionScroll.onListLayout}
       onScroll={collapsibleSectionScroll.onScroll}
       scrollEventThrottle={16}
     >
-      <View>
+      <View className="mb-3">
         <DetailCardRow
           label="Exercise"
           value={exerciseName}
@@ -172,30 +191,43 @@ export default function ExerciseInsights({
           stack={{ index: 1, size: 2 }}
         />
       </View>
+      {warmupSetInsights.length ? (
+        <View>
+          <CollapsibleSectionHeader
+            title="Warmup Sets"
+            collapsed={warmupSetsCollapsed}
+            titleClassName="leading-tight"
+            onPress={toggleWarmupSets}
+          />
+          <CollapsibleSectionBody collapsed={warmupSetsCollapsed}>
+            <View>
+              {warmupSetInsights.map((setInsights, index) => (
+                <VolumeChart
+                  key={`${setInsights.setType}-${setInsights.setNumber}`}
+                  insights={setInsights}
+                  stack={{ index, size: warmupSetInsights.length }}
+                />
+              ))}
+            </View>
+          </CollapsibleSectionBody>
+        </View>
+      ) : null}
       <View>
         <CollapsibleSectionHeader
-          title="Volume History"
-          collapsed={volumeHistoryCollapsed}
+          title="Main Sets"
+          collapsed={mainSetsCollapsed}
           titleClassName="leading-tight"
-          onPress={toggleVolumeHistory}
+          onPress={toggleMainSets}
         />
-        <CollapsibleSectionBody collapsed={volumeHistoryCollapsed}>
+        <CollapsibleSectionBody collapsed={mainSetsCollapsed}>
           <View>
-            {insights.map((setInsights, index) => (
+            {mainSetInsights.map((setInsights, index) => (
               <VolumeChart
                 key={`${setInsights.setType}-${setInsights.setNumber}`}
                 insights={setInsights}
-                stack={{ index, size: insights.length }}
+                stack={{ index, size: mainSetInsights.length }}
               />
             ))}
-            <View>
-              <HelperText className="mb-0 leading-tight">
-                Progression of total volume per set over time.
-              </HelperText>
-              <HelperText className="mt-0 leading-tight">
-                Volume = weight x reps
-              </HelperText>
-            </View>
           </View>
         </CollapsibleSectionBody>
       </View>
