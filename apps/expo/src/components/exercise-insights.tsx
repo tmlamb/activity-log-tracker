@@ -13,7 +13,6 @@ import {
   CollapsibleSectionHeader,
   useCollapsibleSectionScroll,
 } from "./CollapsibleSection";
-import { HelperText } from "./Typography";
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
