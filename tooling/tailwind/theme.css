@@ -17,8 +17,8 @@
   --warning-foreground: oklch(0.13 0.02 260);
   --destructive: oklch(0.55 0.2 25);
   --destructive-foreground: oklch(1 0 0);
-  --info: oklch(0.72 0.15 155);
-  --info-foreground: oklch(0.13 0.02 260);
+  --info: oklch(0.54 0.15 155);
+  --info-foreground: oklch(1 0 0);
   --plate-chart-primary: oklch(0.49 0.19 230);
   --plate-chart-info: oklch(0.54 0.15 155);
   --plate-chart-warning: oklch(0.54 0.15 85);
