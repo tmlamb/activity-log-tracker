@@ -200,7 +200,7 @@ export default function ExerciseInsights({
             onPress={toggleWarmupSets}
           />
           <CollapsibleSectionBody collapsed={warmupSetsCollapsed}>
-            <View>
+            <View className="mb-3">
               {warmupSetInsights.map((setInsights, index) => (
                 <VolumeChart
                   key={`${setInsights.setType}-${setInsights.setNumber}`}
