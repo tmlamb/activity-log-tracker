@@ -274,7 +274,7 @@ describe("template series deloads", () => {
     expect(templateSessionForPlanning([first, latest], latest)).toBe(latest);
   });
 
-  it("ignores a more recent incomplete session when planning from a template", () => {
+  it("plans from a more recent incomplete session in the template series", () => {
     const first = completedSession("first", 1);
     const latestCompleted = completedSession("latest-completed", 2);
     const incomplete = completedSession("incomplete", 3, undefined, {
@@ -286,7 +286,7 @@ describe("template series deloads", () => {
         [first, latestCompleted, incomplete],
         incomplete,
       ),
-    ).toBe(latestCompleted);
+    ).toBe(incomplete);
   });
 
   it("projects incomplete sets using metrics from the completed sets", () => {

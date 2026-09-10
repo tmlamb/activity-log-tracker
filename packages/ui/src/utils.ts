@@ -549,6 +549,17 @@ const getCompletedTemplateSeries = (
     sessions,
   );
 
+const getTerminalTemplateSeries = (
+  sessions: readonly Session[],
+  session: Session,
+) =>
+  orderSessionsChronologically(
+    getTemplateSeries(sessions, session).filter((item) =>
+      isSessionTerminalStatus(item.status),
+    ),
+    sessions,
+  );
+
 const getPreviousCompletedNonDeloadSession = (
   sessions: readonly Session[],
   session: Session,
@@ -578,7 +589,7 @@ export const templateSessionForPlanning = (
   selectedSession: Session,
 ) => {
   return (
-    [...getCompletedTemplateSeries(sessions, selectedSession)]
+    [...getTerminalTemplateSeries(sessions, selectedSession)]
       .reverse()
       .find((session) => !session.deload) ?? selectedSession
   );
