@@ -10,6 +10,7 @@ import Animated, {
 import MaskedView from "@react-native-masked-view/masked-view";
 import { twMerge } from "tailwind-merge";
 
+import type { CardGlassEffectStyle } from "./CardGlassBackground";
 import Card from "./Card";
 import PressableThemed from "./PressableThemed";
 import { AnimatedTextStyled } from "./Styled";
@@ -24,7 +25,7 @@ interface BottomActionBarProps {
   disabled?: boolean;
   className?: string;
   buttonClassName?: string;
-  glassVisible?: boolean;
+  glassEffectStyle?: CardGlassEffectStyle;
   textStyle?: React.ComponentProps<typeof AnimatedTextStyled>["style"];
   visible?: boolean;
   animationDuration?: number;
@@ -37,7 +38,7 @@ export default function BottomActionBar({
   disabled = false,
   className,
   buttonClassName,
-  glassVisible = true,
+  glassEffectStyle = { style: "regular", animate: false },
   textStyle,
   visible = true,
   animationDuration = defaultAnimationDuration,
@@ -136,10 +137,7 @@ export default function BottomActionBar({
           <Card
             variants={["glass"]}
             layout={null}
-            glassEffectStyle={{
-              style: glassVisible ? "clear" : "none",
-              animate: false,
-            }}
+            glassEffectStyle={glassEffectStyle}
             nativeGlassButton={{
               label,
               onPress,

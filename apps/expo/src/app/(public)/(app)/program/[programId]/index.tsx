@@ -330,6 +330,7 @@ function ProgramDetailScreenContent({
         label="Plan Workout Session"
         accessibilityLabel={`Plan new workout session for ${program.name}`}
         className="absolute bottom-0 z-10 w-full"
+        glassEffectStyle={{ style: "regular", animate: false }}
         onPress={() =>
           router.push(
             `/(public)/(app)/program/${program.programId}/session/form`,
