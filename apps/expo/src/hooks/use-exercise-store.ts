@@ -93,8 +93,12 @@ export const createDefaultMuscleGroups = () =>
     ),
   ).sort((a, b) => a.localeCompare(b));
 
-interface ExerciseStore {
+export interface ExerciseStoreData {
   exercises: Pick<Exercise, "name" | "loadKind" | "primaryMuscles">[];
+}
+
+interface ExerciseStore extends ExerciseStoreData {
+  replaceExerciseData: (data: ExerciseStoreData) => void;
   resetExercises: () => void;
 }
 
@@ -102,6 +106,9 @@ const useExerciseStore = create<ExerciseStore>()(
   persist(
     (set) => ({
       exercises: createDefaultExercises(),
+      replaceExerciseData: (data: ExerciseStoreData) => {
+        set({ exercises: data.exercises });
+      },
       resetExercises: () => {
         set({ exercises: createDefaultExercises() });
       },

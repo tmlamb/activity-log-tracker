@@ -92,6 +92,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ],
       "expo-status-bar",
       "expo-sqlite",
+      "expo-sharing",
     ],
   };
 };
