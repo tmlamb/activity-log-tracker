@@ -10,6 +10,7 @@ import useExerciseStore from "~/hooks/use-exercise-store";
 import usePendingSelection from "~/hooks/use-pending-selection";
 import useWorkoutStore from "~/hooks/use-workout-store";
 import {
+  InvalidActivityLogBackupError,
   parseActivityLogBackup,
   serializeActivityLogBackup,
 } from "~/utils/app-data-backup";
@@ -17,6 +18,11 @@ import {
   downloadBackupFile,
   pickBackupFileContents,
 } from "~/utils/backup-file";
+import {
+  beginActivityLogRestore,
+  commitActivityLogRestore,
+  rollbackActivityLogRestore,
+} from "~/utils/backup-restore-transaction";
 
 export default function SupportScreen() {
   const router = useRouter();
@@ -71,18 +77,36 @@ export default function SupportScreen() {
     };
     const previousExerciseData = { exercises: exerciseState.exercises };
 
+    let restoreStarted = false;
+
     try {
+      beginActivityLogRestore();
+      restoreStarted = true;
       exerciseState.replaceExerciseData(stores["exercise-storage"]);
       workoutState.replaceWorkoutData(stores["workout-storage"]);
-    } catch {
-      let rollbackSucceeded = true;
-
-      try {
-        workoutState.replaceWorkoutData(previousWorkoutData);
-        exerciseState.replaceExerciseData(previousExerciseData);
-      } catch {
-        rollbackSucceeded = false;
+      if (!commitActivityLogRestore()) {
+        throw new Error("The data restore could not be committed.");
       }
+    } catch {
+      let rollbackSucceeded = !restoreStarted;
+
+      if (restoreStarted) {
+        rollbackSucceeded = true;
+
+        try {
+          workoutState.replaceWorkoutData(previousWorkoutData);
+        } catch {
+          rollbackSucceeded = false;
+        }
+
+        try {
+          exerciseState.replaceExerciseData(previousExerciseData);
+        } catch {
+          rollbackSucceeded = false;
+        }
+      }
+
+      if (!rollbackActivityLogRestore()) rollbackSucceeded = false;
 
       Alert.alert(
         "Restore Failed",
@@ -101,12 +125,11 @@ export default function SupportScreen() {
   };
 
   const restoreBackupData = async () => {
-    setActiveAction("restore");
-
     try {
       const contents = await pickBackupFileContents();
       if (contents == null) return;
 
+      setActiveAction("restore");
       const stores = parseActivityLogBackup(contents);
 
       Alert.alert(
@@ -121,10 +144,12 @@ export default function SupportScreen() {
           },
         ],
       );
-    } catch {
+    } catch (error) {
       Alert.alert(
         "Restore Failed",
-        "The selected file is not a valid Activity Log backup. No app data was changed.",
+        error instanceof InvalidActivityLogBackupError
+          ? "The selected file is not a valid Activity Log backup. No app data was changed."
+          : "The selected backup could not be opened. No app data was changed. Please try again.",
       );
     } finally {
       setActiveAction(undefined);
@@ -150,7 +175,7 @@ export default function SupportScreen() {
           <PrimaryCardAction
             label="Backup Data"
             accessibilityLabel="Backup app data"
-            accessibilityHint="Downloads a JSON backup containing all workout and exercise data."
+            accessibilityHint="Creates a JSON backup containing all workout and exercise data, then opens sharing options."
             disabled={activeAction != null}
             onPress={() => void backupData()}
             stack={{ index: 0, size: 2 }}
@@ -158,6 +183,7 @@ export default function SupportScreen() {
           <PrimaryCardAction
             label="Restore Backup Data"
             labelClassName="text-destructive"
+            cardVariants={["multiline"]}
             accessibilityLabel="Restore backup data"
             accessibilityHint="Opens the file picker to select an Activity Log JSON backup."
             disabled={activeAction != null}

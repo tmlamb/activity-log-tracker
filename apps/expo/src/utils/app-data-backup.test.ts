@@ -21,6 +21,7 @@ const stores: ActivityLogBackupStores = {
           {
             name: "Day One",
             sessionId: "session-1",
+            templateId: "template-1",
             deload: false,
             start: sessionStart,
             end: sessionEnd,
@@ -71,6 +72,8 @@ const stores: ActivityLogBackupStores = {
         barbellId: "barbell-1",
         oneRepMax: { value: 225, unit: "lbs" },
         primaryMuscles: ["Quads"],
+        notes: "Keep the chest tall.",
+        deleted: false,
       },
     ],
     equipment: {
