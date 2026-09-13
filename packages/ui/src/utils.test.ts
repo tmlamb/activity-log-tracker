@@ -1155,6 +1155,120 @@ describe("buildProgramInsights", () => {
         volumeLbs: 250,
         hardSets: 0,
         easySets: 0,
+        pending: {
+          sets: 0,
+          reps: 0,
+          volumeLbs: 0,
+          hardSets: 0,
+          easySets: 0,
+        },
+      },
+    ]);
+  });
+
+  it("separates completed and pending work within the same week", () => {
+    const exercise: Exercise = {
+      exerciseId: "exercise-1",
+      name: "Bench Press",
+      loadKind: "BARBELL",
+      primaryMuscles: ["Chest"],
+    };
+    const activeActivity = createActivity([
+      createWorkoutSet("active-done", {
+        status: "Done",
+        actualReps: 8,
+        weight: { value: 100, unit: "lbs" },
+        feedback: "Hard",
+      }),
+      createWorkoutSet("active-ready", {
+        status: "Ready",
+        actualReps: 6,
+        weight: { value: 110, unit: "lbs" },
+      }),
+      createWorkoutSet("active-planned", {
+        weight: { value: 120, unit: "lbs" },
+      }),
+      createWorkoutSet("active-incomplete", {
+        status: "Incomplete",
+        actualReps: 100,
+        weight: { value: 1_000, unit: "lbs" },
+      }),
+    ]);
+    const incompleteActivity = createActivity([
+      createWorkoutSet("incomplete-session-done", {
+        status: "Done",
+        actualReps: 5,
+        weight: { value: 100, unit: "lbs" },
+        feedback: "Easy",
+      }),
+      createWorkoutSet("incomplete-session-planned", {
+        weight: { value: 1_000, unit: "lbs" },
+      }),
+    ]);
+    const terminalActivity = createActivity([
+      createWorkoutSet("done-session-ready", {
+        status: "Ready",
+        weight: { value: 1_000, unit: "lbs" },
+      }),
+    ]);
+    const plannedActivity = createActivity([
+      createWorkoutSet("planned-session-set", {
+        weight: { value: 50, unit: "lbs" },
+      }),
+    ]);
+    const program: Program = {
+      name: "Strength",
+      programId: "program-1",
+      sessions: [
+        createSession(createActivity([]), {
+          sessionId: "anchor",
+          status: "Done",
+          start: new Date(2026, 7, 24, 8),
+        }),
+        createSession(activeActivity, {
+          sessionId: "active",
+          start: new Date(2026, 8, 7, 8),
+        }),
+        createSession(incompleteActivity, {
+          sessionId: "incomplete",
+          status: "Incomplete",
+          start: new Date(2026, 8, 7, 9),
+        }),
+        createSession(terminalActivity, {
+          sessionId: "done",
+          status: "Done",
+          start: new Date(2026, 8, 7, 10),
+        }),
+        createSession(plannedActivity, {
+          sessionId: "planned",
+          status: "Planned",
+          start: undefined,
+        }),
+      ],
+    };
+
+    const result = buildProgramInsights(
+      program,
+      [exercise],
+      new Date(2026, 8, 7, 12),
+    );
+
+    expect(result.weeks).toHaveLength(3);
+    expect(result.weeks[2]?.muscleGroups).toEqual([
+      {
+        muscleGroup: "Chest",
+        sets: 2,
+        reps: 13,
+        volumeLbs: 1_300,
+        hardSets: 1,
+        easySets: 1,
+        pending: {
+          sets: 2,
+          reps: 20,
+          volumeLbs: 1_700,
+          hardSets: 0,
+          easySets: 0,
+        },
       },
     ]);
   });
@@ -1208,21 +1322,51 @@ describe("buildProgramInsights", () => {
     expect(result.weeks[3]).toMatchObject({ week: 4, muscleGroups: [] });
   });
 
-  it("returns no program weeks when sessions have not started", () => {
+  it("projects an unstarted program using planned percentage loads", () => {
+    const exercise: Exercise = {
+      exerciseId: "exercise-1",
+      name: "Dumbbell Press",
+      loadKind: "WEIGHT_PAIR",
+      oneRepMax: { value: 100, unit: "kg" },
+      primaryMuscles: ["Chest"],
+    };
+    const activity = {
+      ...createActivity([createWorkoutSet("planned")]),
+      load: { type: "PERCENT" as const, value: 0.5 },
+    };
     const program: Program = {
       name: "Strength",
       programId: "program-1",
       sessions: [
-        createSession(createActivity([]), {
+        createSession(activity, {
           start: undefined,
           status: "Planned",
         }),
       ],
     };
 
-    expect(buildProgramInsights(program, [])).toEqual({
-      muscleGroups: [],
-      weeks: [],
+    const result = buildProgramInsights(
+      program,
+      [exercise],
+      new Date(2026, 7, 24, 12),
+    );
+
+    expect(result.muscleGroups).toEqual(["Chest"]);
+    expect(result.weeks).toHaveLength(1);
+    expect(result.weeks[0]?.muscleGroups[0]).toMatchObject({
+      muscleGroup: "Chest",
+      sets: 0,
+      reps: 0,
+      volumeLbs: 0,
+      pending: {
+        sets: 1,
+        reps: 10,
+        hardSets: 0,
+        easySets: 0,
+      },
     });
+    expect(result.weeks[0]?.muscleGroups[0]?.pending.volumeLbs).toBeCloseTo(
+      10 * 50 * 2.2046226218 * 2,
+    );
   });
 });

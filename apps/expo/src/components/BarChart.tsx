@@ -26,6 +26,10 @@ export type BarChartDisplay =
       heightRatio?: number;
       minimumHeight?: number;
       dotted?: boolean;
+      pending?: {
+        value: number;
+        lines: BarChartLine[];
+      };
     }
   | { type: "empty"; label: string }
   | { type: "message"; label: string };
@@ -143,6 +147,15 @@ export default function BarChart({
               const tone =
                 display.type === "bar" ? (display.tone ?? "primary") : null;
               const dotted = display.type === "bar" && display.dotted;
+              const pending =
+                display.type === "bar" && display.pending?.value
+                  ? display.pending
+                  : undefined;
+              const pendingValue = Math.min(
+                Math.max(pending?.value ?? 0, 0),
+                Math.max(point.value, 0),
+              );
+              const completedValue = Math.max(point.value - pendingValue, 0);
               const barHeight =
                 display.type === "bar"
                   ? Math.max(
@@ -151,8 +164,27 @@ export default function BarChart({
                       display.minimumHeight ?? 58,
                     )
                   : 0;
+              const minimumSegmentHeight = Math.min(18, barHeight / 2);
+              const pendingHeight = pendingValue
+                ? completedValue > 0
+                  ? Math.min(
+                      Math.max(
+                        (pendingValue / point.value) * barHeight,
+                        minimumSegmentHeight,
+                      ),
+                      barHeight - minimumSegmentHeight,
+                    )
+                  : barHeight
+                : 0;
+              const completedHeight = barHeight - pendingHeight;
               const barClassName = tone
-                ? `${dotted ? `${toneClasses[tone].border} border-2 border-dotted` : toneClasses[tone].container} items-center justify-end rounded-t px-0.5 pb-0.5${point.faded ? " opacity-70" : ""}`
+                ? `${dotted ? `${toneClasses[tone].border} border-2 border-dotted` : toneClasses[tone].container} items-center justify-end rounded-t px-0.5 pb-0.5`
+                : "";
+              const pendingClassName = tone
+                ? `${toneClasses[tone].border} items-center justify-end rounded-t border-2 border-dotted px-0.5 pb-0.5`
+                : "";
+              const completedClassName = tone
+                ? `${toneClasses[tone].container} items-center justify-end px-0.5 pb-0.5`
                 : "";
 
               return (
@@ -179,20 +211,70 @@ export default function BarChart({
                       </Text>
                     ) : display.type === "bar" && tone ? (
                       <View
-                        className={barClassName}
+                        className={point.faded ? "opacity-70" : undefined}
                         style={{ width: barWidth, height: barHeight }}
                       >
-                        {display.lines.map((line, index) => (
-                          <Text
-                            key={`${point.key}-${index}`}
-                            maxFontSizeMultiplier={1}
-                            adjustsFontSizeToFit
-                            numberOfLines={1}
-                            className={`${dotted ? toneClasses[tone].outlinedText : toneClasses[tone].text} text-[10px] ${line.strong ? "font-bold" : "font-semibold"} ${line.tabularNumbers === false ? "" : "tabular-nums"}`}
+                        {pendingValue && pending ? (
+                          <>
+                            <View
+                              className={pendingClassName}
+                              style={{
+                                width: barWidth,
+                                height: pendingHeight,
+                              }}
+                            >
+                              {pending.lines.map((line, index) => (
+                                <Text
+                                  key={`${point.key}-pending-${index}`}
+                                  maxFontSizeMultiplier={1}
+                                  adjustsFontSizeToFit
+                                  numberOfLines={1}
+                                  className={`${toneClasses[tone].outlinedText} text-[10px] ${line.strong ? "font-bold" : "font-semibold"} ${line.tabularNumbers === false ? "" : "tabular-nums"}`}
+                                >
+                                  {line.text}
+                                </Text>
+                              ))}
+                            </View>
+                            {completedValue > 0 ? (
+                              <View
+                                className={completedClassName}
+                                style={{
+                                  width: barWidth,
+                                  height: completedHeight,
+                                }}
+                              >
+                                {display.lines.map((line, index) => (
+                                  <Text
+                                    key={`${point.key}-completed-${index}`}
+                                    maxFontSizeMultiplier={1}
+                                    adjustsFontSizeToFit
+                                    numberOfLines={1}
+                                    className={`${toneClasses[tone].text} text-[10px] ${line.strong ? "font-bold" : "font-semibold"} ${line.tabularNumbers === false ? "" : "tabular-nums"}`}
+                                  >
+                                    {line.text}
+                                  </Text>
+                                ))}
+                              </View>
+                            ) : null}
+                          </>
+                        ) : (
+                          <View
+                            className={barClassName}
+                            style={{ width: barWidth, height: barHeight }}
                           >
-                            {line.text}
-                          </Text>
-                        ))}
+                            {display.lines.map((line, index) => (
+                              <Text
+                                key={`${point.key}-${index}`}
+                                maxFontSizeMultiplier={1}
+                                adjustsFontSizeToFit
+                                numberOfLines={1}
+                                className={`${dotted ? toneClasses[tone].outlinedText : toneClasses[tone].text} text-[10px] ${line.strong ? "font-bold" : "font-semibold"} ${line.tabularNumbers === false ? "" : "tabular-nums"}`}
+                              >
+                                {line.text}
+                              </Text>
+                            ))}
+                          </View>
+                        )}
                       </View>
                     ) : display.type === "empty" ? (
                       <View

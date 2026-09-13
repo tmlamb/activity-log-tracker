@@ -128,14 +128,19 @@ function TrendChart({ insights }: { insights: ProgramInsightsData }) {
     const muscleMetrics = week.muscleGroups.find(
       (candidate) => candidate.muscleGroup === muscleGroup,
     );
-    const value = muscleMetrics?.[metric] ?? 0;
+    const completedValue = muscleMetrics?.[metric] ?? 0;
+    const pendingValue = muscleMetrics?.pending[metric] ?? 0;
+    const value = completedValue + pendingValue;
     const emphasized = index === insights.weeks.length - 1;
 
     return {
       key: String(week.week),
       value,
       label: `W${week.week}`,
-      accessibilityLabel: `Week ${week.week}, ${muscleGroup}, ${formatMetricValue(value)} ${metricOption.valueLabel}`,
+      accessibilityLabel:
+        pendingValue > 0
+          ? `Week ${week.week}, ${muscleGroup}, ${formatMetricValue(completedValue)} completed ${metricOption.valueLabel}, ${formatMetricValue(pendingValue)} pending ${metricOption.valueLabel}, ${formatMetricValue(value)} projected total ${metricOption.valueLabel}`
+          : `Week ${week.week}, ${muscleGroup}, ${formatMetricValue(value)} ${metricOption.valueLabel}`,
       emphasized,
       faded: !emphasized,
       display:
@@ -143,12 +148,28 @@ function TrendChart({ insights }: { insights: ProgramInsightsData }) {
           ? {
               type: "bar",
               tone: "primary",
-              lines: [
-                {
-                  text: formatBarChartValue(value),
-                  strong: true,
-                },
-              ],
+              lines:
+                completedValue > 0
+                  ? [
+                      {
+                        text: formatBarChartValue(completedValue),
+                        strong: true,
+                      },
+                    ]
+                  : [],
+              ...(pendingValue > 0
+                ? {
+                    pending: {
+                      value: pendingValue,
+                      lines: [
+                        {
+                          text: formatBarChartValue(pendingValue),
+                          strong: true,
+                        },
+                      ],
+                    },
+                  }
+                : {}),
             }
           : { type: "empty", label: "0" },
     };

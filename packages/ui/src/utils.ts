@@ -111,6 +111,7 @@ export interface ProgramInsightMetrics {
 
 export interface ProgramInsightMuscleGroup extends ProgramInsightMetrics {
   muscleGroup: MuscleGroup;
+  pending: ProgramInsightMetrics;
 }
 
 export interface ProgramInsightWeek {
@@ -781,16 +782,22 @@ export const buildProgramInsights = (
   exercises: readonly Exercise[],
   now = new Date(),
 ): ProgramInsights => {
-  const sessions = program.sessions
-    .filter((session): session is Session & { start: Date } =>
-      isValidDate(session.start),
+  const startedSessions = program.sessions
+    .filter(
+      (session): session is Session & { start: Date } =>
+        session.status !== "Planned" && isValidDate(session.start),
     )
     .sort((a, b) => a.start.getTime() - b.start.getTime());
-  const firstSession = sessions[0];
+  const firstSession = startedSessions[0];
+  const hasPlannedSessions = program.sessions.some(
+    (session) => session.status === "Planned",
+  );
 
-  if (!firstSession) return { muscleGroups: [], weeks: [] };
+  if (!firstSession && (!hasPlannedSessions || !isValidDate(now))) {
+    return { muscleGroups: [], weeks: [] };
+  }
 
-  const programStart = normalizedLocalDate(firstSession.start);
+  const programStart = normalizedLocalDate(firstSession?.start ?? now);
   const exercisesById = new Map(
     exercises.map((exercise) => [exercise.exerciseId, exercise]),
   );
@@ -802,10 +809,20 @@ export const buildProgramInsights = (
   const currentWeek = isValidDate(now)
     ? weekAndDayNumbersFromStart(programStart, now).week
     : 0;
-  let lastWeek = Math.max(currentWeek, 0);
+  let lastWeek = Math.max(currentWeek, 1);
 
-  sessions.forEach((session) => {
-    const { week } = weekAndDayNumbersFromStart(programStart, session.start);
+  program.sessions.forEach((session) => {
+    const sessionDate =
+      session.status === "Planned"
+        ? isValidDate(now)
+          ? now
+          : undefined
+        : isValidDate(session.start)
+          ? session.start
+          : undefined;
+    if (!sessionDate) return;
+
+    const { week } = weekAndDayNumbersFromStart(programStart, sessionDate);
     if (week < 1) return;
     lastWeek = Math.max(lastWeek, week);
 
@@ -820,7 +837,12 @@ export const buildProgramInsights = (
         (workoutSet) =>
           workoutSet.status === "Done" && (workoutSet.actualReps ?? 0) > 0,
       );
-      if (!completedSets.length) return;
+      const pendingSets = isSessionTerminalStatus(session.status)
+        ? []
+        : activity.mainSets.filter(
+            (workoutSet) => workoutSet.status === "Planned",
+          );
+      if (!completedSets.length && !pendingSets.length) return;
 
       const weekMuscleGroups =
         weeklyMuscleGroups.get(week) ??
@@ -840,7 +862,15 @@ export const buildProgramInsights = (
           volumeLbs: 0,
           hardSets: 0,
           easySets: 0,
+          pending: {
+            sets: 0,
+            reps: 0,
+            volumeLbs: 0,
+            hardSets: 0,
+            easySets: 0,
+          },
         };
+        const weightMultiplier = exercise.loadKind === "WEIGHT_PAIR" ? 2 : 1;
 
         completedSets.forEach((workoutSet) => {
           const reps = workoutSet.actualReps ?? 0;
@@ -850,13 +880,32 @@ export const buildProgramInsights = (
               ? kilogramsToPounds(weight.value)
               : weight.value
             : 0;
-          const weightMultiplier = exercise.loadKind === "WEIGHT_PAIR" ? 2 : 1;
 
           metrics.sets += 1;
           metrics.reps += reps;
           metrics.volumeLbs += reps * weightLbs * weightMultiplier;
           metrics.hardSets += workoutSet.feedback === "Hard" ? 1 : 0;
           metrics.easySets += workoutSet.feedback === "Easy" ? 1 : 0;
+        });
+
+        pendingSets.forEach((workoutSet) => {
+          const reps = Math.max(activity.reps, 0);
+          const weight =
+            workoutSet.weight ??
+            plannedWeightForWorkoutSet(
+              activity,
+              workoutSet,
+              exercise.oneRepMax,
+            );
+          const weightLbs = weight
+            ? weight.unit === "kg"
+              ? kilogramsToPounds(weight.value)
+              : weight.value
+            : 0;
+
+          metrics.pending.sets += 1;
+          metrics.pending.reps += reps;
+          metrics.pending.volumeLbs += reps * weightLbs * weightMultiplier;
         });
 
         weekMuscleGroups.set(muscleGroupKey, metrics);
