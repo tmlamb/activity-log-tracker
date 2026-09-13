@@ -49,8 +49,6 @@ interface WeekSection {
   sectionId: string;
   title: string;
   week: number;
-  showDay: boolean;
-  showHeader: boolean;
   collapsed: boolean;
   sessionCount: number;
   data: WeekSectionItem[];
@@ -82,11 +80,10 @@ function ProgramDetailScreenContent({
   const orderedByStart = _.orderBy(program.sessions, ["start"], ["asc"]);
   const programStart =
     orderedByStart.find((session) => session.start)?.start ?? now;
-  const plannedSessions = _.orderBy(
-    program.sessions.filter((session) => session.status === "Planned"),
-    [(session) => session.lastActivityAt?.getTime() ?? 0],
-    ["desc"],
-  );
+  // Sessions are appended to the program when they are created.
+  const plannedSessions = program.sessions
+    .filter((session) => session.status === "Planned")
+    .reverse();
 
   const getSessionWeekAndDay = (session: Session) =>
     weekAndDayNumbersFromStart(programStart, session.start ?? now);
@@ -120,11 +117,13 @@ function ProgramDetailScreenContent({
     (section) => section.week === currentWeek,
   );
 
-  if (!currentWeekSection) {
+  if (currentWeekSection) {
+    currentWeekSection.sessions.unshift(...plannedSessions);
+  } else {
     weekSections.push({
       title: `Week ${currentWeek}`,
       week: currentWeek,
-      sessions: [],
+      sessions: plannedSessions,
     });
   }
 
@@ -162,37 +161,16 @@ function ProgramDetailScreenContent({
         sectionId,
         title: `${title}${isCurrent ? " (Now)" : ""}: ${getWeekDateRange(week)}`,
         week,
-        showDay: true,
-        showHeader: true,
         collapsed,
         sessionCount: sessions.length,
         data,
       };
     },
   );
-  const plannedSection: WeekSection | undefined = plannedSessions.length
-    ? (() => {
-        return {
-          sectionId: "planned",
-          title: "Planned",
-          week: 0,
-          showDay: false,
-          showHeader: false,
-          collapsed: false,
-          sessionCount: plannedSessions.length,
-          data: [{ week: 0, collapsed: false, sessions: plannedSessions }],
-        };
-      })()
-    : undefined;
-  const sections = plannedSection
-    ? [plannedSection, ...weeklySections]
-    : weeklySections;
+  const sections = weeklySections;
   const initialSectionCount = Math.min(
     sections.length,
-    (plannedSection ? 1 : 0) +
-      currentWeekSectionIndex +
-      1 +
-      initialCollapsedWeekHeadersToRender,
+    currentWeekSectionIndex + 1 + initialCollapsedWeekHeadersToRender,
   );
   // SectionList virtualizes each section header and footer as separate cells.
   const initialNumToRender = sections
@@ -262,8 +240,6 @@ function ProgramDetailScreenContent({
           </>
         }
         renderSectionHeader={({ section }) => {
-          if (!section.showHeader) return null;
-
           return (
             <View>
               {section.sessionCount ? (
@@ -281,15 +257,13 @@ function ProgramDetailScreenContent({
             </View>
           );
         }}
-        renderItem={({ item: { collapsed, sessions }, section }) => (
-          <CollapsibleSectionBody
-            collapsed={collapsed}
-            contentClassName={section.showHeader ? undefined : "pt-6"}
-          >
+        renderItem={({ item: { collapsed, sessions } }) => (
+          <CollapsibleSectionBody collapsed={collapsed}>
             {sessions.map((session, index) => {
-              const day = section.showDay
-                ? getSessionWeekAndDay(session).day
-                : undefined;
+              const day =
+                session.status === "Planned"
+                  ? undefined
+                  : getSessionWeekAndDay(session).day;
 
               return (
                 <Link

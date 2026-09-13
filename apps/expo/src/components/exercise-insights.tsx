@@ -36,9 +36,12 @@ function VolumeChart({
   const setLabel = `${insights.setType} Set ${insights.setNumber}`;
   const chartPoints: BarChartPoint[] = insights.points.map((point) => {
     const repOnly = point.completed && point.reps > 0 && point.weightLbs <= 0;
+    const hasPlannedWeight = point.notStarted && point.weightLbs > 0;
     const dateLabel = point.date ? format(point.date, "M/d") : "--";
     const accessibilityLabel = point.notStarted
-      ? `${dateLabel}, current session, not started`
+      ? hasPlannedWeight
+        ? `${dateLabel}, current session, not started, ${numberFormatter.format(point.reps)} planned reps at ${numberFormatter.format(point.weightLbs)} pounds, ${numberFormatter.format(point.volumeLbs)} pounds of planned volume`
+        : `${dateLabel}, current session, not started`
       : repOnly
         ? `${dateLabel}${point.current ? ", current session" : ""}, ${point.feedback ?? "no difficulty"}, ${numberFormatter.format(point.reps)} reps, no recorded weight`
         : `${dateLabel}${point.current ? ", current session" : ""}, ${point.feedback ?? "no difficulty"}, ${numberFormatter.format(point.reps)} reps at ${numberFormatter.format(point.weightLbs)} pounds, ${numberFormatter.format(point.volumeLbs)} pounds of volume`;
@@ -48,48 +51,66 @@ function VolumeChart({
         : point.feedback === "Hard"
           ? "primary"
           : "muted";
-    const display: BarChartPoint["display"] = point.notStarted
-      ? { type: "message", label: "Not Started" }
-      : repOnly
-        ? {
-            type: "bar",
-            tone,
-            heightRatio: point.reps / maxRepOnlyReps,
-            minimumHeight: 24,
-            lines: [
-              {
-                text: `${numberFormatter.format(point.reps)} reps`,
-                strong: true,
-              },
-            ],
-          }
-        : point.volumeLbs > 0
+    const display: BarChartPoint["display"] = hasPlannedWeight
+      ? {
+          type: "bar",
+          tone: "muted",
+          dotted: true,
+          lines: [
+            {
+              text: `${numberFormatter.format(point.reps)} reps`,
+              strong: true,
+            },
+            {
+              text: `${numberFormatter.format(point.weightLbs)} lbs`,
+            },
+            {
+              text: "Pending",
+              tabularNumbers: false,
+            },
+          ],
+        }
+      : point.notStarted
+        ? { type: "message", label: "Not Started" }
+        : repOnly
           ? {
               type: "bar",
               tone,
+              heightRatio: point.reps / maxRepOnlyReps,
+              minimumHeight: 24,
               lines: [
                 {
                   text: `${numberFormatter.format(point.reps)} reps`,
                   strong: true,
                 },
-                {
-                  text: `${numberFormatter.format(point.weightLbs)} lbs`,
-                },
-                ...(point.feedback === "Easy" || point.feedback === "Hard"
-                  ? [
-                      {
-                        text: point.feedback,
-                        tabularNumbers: false,
-                      },
-                    ]
-                  : []),
               ],
             }
-          : { type: "empty", label: "0 reps" };
+          : point.volumeLbs > 0
+            ? {
+                type: "bar",
+                tone,
+                lines: [
+                  {
+                    text: `${numberFormatter.format(point.reps)} reps`,
+                    strong: true,
+                  },
+                  {
+                    text: `${numberFormatter.format(point.weightLbs)} lbs`,
+                  },
+                  {
+                    text:
+                      point.feedback === "Easy" || point.feedback === "Hard"
+                        ? point.feedback
+                        : " ",
+                    tabularNumbers: false,
+                  },
+                ],
+              }
+            : { type: "empty", label: "0 reps" };
 
     return {
       key: point.sessionId,
-      value: point.notStarted ? 0 : point.volumeLbs,
+      value: point.volumeLbs,
       label: dateLabel,
       accessibilityLabel,
       emphasized: point.current,

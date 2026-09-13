@@ -27,6 +27,11 @@ export interface ActivityLogBackupStores {
 }
 
 const dateSchema = z.iso.datetime().transform((value) => new Date(value));
+const legacyNumberSchema = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim() ? Number(value) : value,
+  z.number(),
+);
 const weightSchema = z.object({
   value: z.number(),
   unit: z.enum(["lbs", "kg"]),
@@ -44,7 +49,7 @@ const activitySchema = z.object({
   activityId: z.string(),
   reps: z.number(),
   load: z.object({
-    value: z.number(),
+    value: legacyNumberSchema,
     type: z.enum(["PERCENT", "RPE"]),
   }),
   rest: z.number(),

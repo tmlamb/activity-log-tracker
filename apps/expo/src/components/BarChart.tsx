@@ -25,6 +25,7 @@ export type BarChartDisplay =
       tone?: BarChartTone;
       heightRatio?: number;
       minimumHeight?: number;
+      dotted?: boolean;
     }
   | { type: "empty"; label: string }
   | { type: "message"; label: string };
@@ -45,18 +46,27 @@ export interface BarChartProps {
   initialScrollIndex?: number;
 }
 
-const toneClasses: Record<BarChartTone, { container: string; text: string }> = {
+const toneClasses: Record<
+  BarChartTone,
+  { container: string; text: string; border: string; outlinedText: string }
+> = {
   primary: {
     container: "bg-primary",
     text: "text-primary-foreground",
+    border: "border-primary",
+    outlinedText: "text-primary",
   },
   info: {
     container: "bg-info",
     text: "text-info-foreground",
+    border: "border-info",
+    outlinedText: "text-info",
   },
   muted: {
     container: "bg-muted",
     text: "text-muted-foreground",
+    border: "border-muted",
+    outlinedText: "text-muted",
   },
 };
 
@@ -132,6 +142,7 @@ export default function BarChart({
               const { display } = point;
               const tone =
                 display.type === "bar" ? (display.tone ?? "primary") : null;
+              const dotted = display.type === "bar" && display.dotted;
               const barHeight =
                 display.type === "bar"
                   ? Math.max(
@@ -141,7 +152,7 @@ export default function BarChart({
                     )
                   : 0;
               const barClassName = tone
-                ? `${toneClasses[tone].container} items-center justify-center rounded-t px-0.5${point.faded ? " opacity-70" : ""}`
+                ? `${dotted ? `${toneClasses[tone].border} border-2 border-dotted` : toneClasses[tone].container} items-center justify-end rounded-t px-0.5 pb-0.5${point.faded ? " opacity-70" : ""}`
                 : "";
 
               return (
@@ -177,7 +188,7 @@ export default function BarChart({
                             maxFontSizeMultiplier={1}
                             adjustsFontSizeToFit
                             numberOfLines={1}
-                            className={`${toneClasses[tone].text} text-[10px] ${line.strong ? "font-bold" : "font-semibold"} ${line.tabularNumbers === false ? "" : "tabular-nums"}`}
+                            className={`${dotted ? toneClasses[tone].outlinedText : toneClasses[tone].text} text-[10px] ${line.strong ? "font-bold" : "font-semibold"} ${line.tabularNumbers === false ? "" : "tabular-nums"}`}
                           >
                             {line.text}
                           </Text>

@@ -127,6 +127,29 @@ describe("Activity Log backups", () => {
     );
   });
 
+  it("normalizes legacy string load values", () => {
+    const backup = JSON.parse(serializeActivityLogBackup(stores)) as {
+      stores: {
+        "workout-storage": {
+          programs: {
+            sessions: { activities: { load: { value: number | string } }[] }[];
+          }[];
+        };
+      };
+    };
+    const activity =
+      backup.stores["workout-storage"].programs[0]?.sessions[0]?.activities[0];
+    if (!activity) throw new Error("Expected activity fixture");
+    activity.load.value = "8";
+
+    const parsed = parseActivityLogBackup(JSON.stringify(backup));
+
+    expect(
+      parsed["workout-storage"].programs[0]?.sessions[0]?.activities[0]?.load
+        .value,
+    ).toBe(8);
+  });
+
   it("rejects malformed JSON", () => {
     expect(() => parseActivityLogBackup("{")).toThrow(
       InvalidActivityLogBackupError,
