@@ -1,5 +1,7 @@
 import { FlatList, Text, useWindowDimensions, View } from "react-native";
 
+import { getBarChartTickValues } from "./bar-chart-axis";
+
 const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 });
@@ -46,6 +48,7 @@ export interface BarChartPoint {
 
 export interface BarChartProps {
   valueAxisLabel: string;
+  valueAxisTickInterval?: number;
   points: readonly BarChartPoint[];
   initialScrollIndex?: number;
 }
@@ -76,6 +79,7 @@ const toneClasses: Record<
 
 export default function BarChart({
   valueAxisLabel,
+  valueAxisTickInterval,
   points,
   initialScrollIndex = 0,
 }: BarChartProps) {
@@ -85,12 +89,16 @@ export default function BarChart({
   const yAxisWidth = 42;
   const plotWidth = chartWidth - yAxisWidth;
   const maxBarHeight = 128;
+  const tickLabelHeight = 16;
   const labelAxisHeight = 32;
   const columnWidth = plotWidth / 5;
   const barWidth = Math.min(58, Math.max(columnWidth - 10, 34));
   const boundedInitialScrollIndex = points.length
     ? Math.min(Math.max(initialScrollIndex, 0), points.length - 1)
     : undefined;
+  const valueAxisTicks = getBarChartTickValues(maxValue, valueAxisTickInterval);
+  const valueAxisPosition = (value: number) =>
+    (1 - value / maxValue) * maxBarHeight;
 
   return (
     <View style={{ width: chartWidth }}>
@@ -99,13 +107,21 @@ export default function BarChart({
       </Text>
       <View className="flex-row">
         <View style={{ width: yAxisWidth }}>
-          <View className="justify-between" style={{ height: maxBarHeight }}>
-            {[maxValue, maxValue / 2, 0].map((value) => (
+          <View className="relative" style={{ height: maxBarHeight }}>
+            {valueAxisTicks.map((value) => (
               <Text
                 key={value}
                 maxFontSizeMultiplier={1.5}
                 numberOfLines={1}
                 className="text-muted pr-2 text-right text-xs tabular-nums"
+                style={{
+                  position: "absolute",
+                  top: Math.min(
+                    Math.max(valueAxisPosition(value) - tickLabelHeight / 2, 0),
+                    maxBarHeight - tickLabelHeight,
+                  ),
+                  width: yAxisWidth,
+                }}
               >
                 {formatBarChartValue(value)}
               </Text>
@@ -117,12 +133,16 @@ export default function BarChart({
         <View className="relative overflow-hidden" style={{ width: plotWidth }}>
           <View
             pointerEvents="none"
-            className="absolute top-0 right-0 left-0 justify-between"
+            className="absolute top-0 right-0 left-0"
             style={{ height: maxBarHeight }}
           >
-            <View className="border-border border-t" />
-            <View className="border-border border-t" />
-            <View className="border-border border-t" />
+            {valueAxisTicks.map((value) => (
+              <View
+                key={value}
+                className="border-border absolute right-0 left-0 border-t"
+                style={{ top: valueAxisPosition(value) }}
+              />
+            ))}
           </View>
 
           <FlatList

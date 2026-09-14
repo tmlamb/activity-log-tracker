@@ -30,6 +30,10 @@ function VolumeChart({
       (point) => point.completed && point.reps > 0 && point.weightLbs <= 0,
     )
     .map((point) => point.reps);
+  const hasWeightedBars = insights.points.some(
+    (point) => point.volumeLbs > 0 || (point.notStarted && point.weightLbs > 0),
+  );
+  const usesRepsAxis = repOnlyValues.length > 0 && !hasWeightedBars;
   const maxRepOnlyReps = Math.max(...repOnlyValues, 1);
   const currentPointIndex = insights.points.findIndex((point) => point.current);
   const initialScrollIndex = Math.max(currentPointIndex - 4, 0);
@@ -110,7 +114,7 @@ function VolumeChart({
 
     return {
       key: point.sessionId,
-      value: point.volumeLbs,
+      value: usesRepsAxis && repOnly ? point.reps : point.volumeLbs,
       label: dateLabel,
       accessibilityLabel,
       emphasized: point.current,
@@ -145,7 +149,8 @@ function VolumeChart({
       </View>
 
       <BarChart
-        valueAxisLabel="VOLUME (LBS)"
+        valueAxisLabel={usesRepsAxis ? "REPS" : "VOLUME (LBS)"}
+        valueAxisTickInterval={usesRepsAxis ? 5 : undefined}
         points={chartPoints}
         initialScrollIndex={initialScrollIndex}
       />
