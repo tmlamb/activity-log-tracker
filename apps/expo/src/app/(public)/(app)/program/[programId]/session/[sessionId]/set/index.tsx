@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Keyboard, TextInput as RNTextInput, Text, View } from "react-native";
+import {
+  Keyboard,
+  Platform,
+  TextInput as RNTextInput,
+  Text,
+  View,
+} from "react-native";
+import { useNativeVariable } from "react-native-css";
 import {
   KeyboardAwareScrollView,
   KeyboardExtender,
@@ -11,7 +18,6 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import {
-  Link,
   Redirect,
   Stack,
   useFocusEffect,
@@ -47,7 +53,7 @@ import { HelperText } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
 const actionAnimationDuration = 250;
-const keyboardDismissTimeout = 500;
+const keyboardDismissStartTimeout = 100;
 
 const decimalTextToNumber = (text: string) => {
   if (!text || text === ".") return undefined;
@@ -130,6 +136,7 @@ function WorkoutSetDetailScreenContent({
   startSession: WorkoutStore["startSession"];
 }) {
   const router = useRouter();
+  const primaryColor = useNativeVariable("--primary") as string;
   const [initialWeight] = useState(workoutSet.weight);
 
   const targetWeight =
@@ -308,21 +315,19 @@ function WorkoutSetDetailScreenContent({
       ? `Start ${workoutSet.type.toLowerCase()} set`
       : `Complete ${workoutSet.type.toLowerCase()} set`;
 
-  const dismissKeyboardBeforeNavigation = useCallback(async () => {
-    const dismissActiveInput = () => {
-      RNTextInput.State.blurTextInput(
-        RNTextInput.State.currentlyFocusedInput(),
-      );
-      Keyboard.dismiss();
-    };
+  const dismissKeyboard = useCallback(() => {
+    RNTextInput.State.blurTextInput(RNTextInput.State.currentlyFocusedInput());
+    Keyboard.dismiss();
+  }, []);
 
+  const dismissKeyboardBeforePop = useCallback(async () => {
     if (!isKeyboardVisible && !isKeyboardOverlayVisible) {
-      dismissActiveInput();
+      dismissKeyboard();
       return;
     }
 
     await new Promise<void>((resolve) => {
-      const subscription = Keyboard.addListener("keyboardDidHide", () => {
+      const subscription = Keyboard.addListener("keyboardWillHide", () => {
         clearTimeout(timeout);
         subscription.remove();
         resolve();
@@ -330,10 +335,17 @@ function WorkoutSetDetailScreenContent({
       const timeout = setTimeout(() => {
         subscription.remove();
         resolve();
-      }, keyboardDismissTimeout);
-      dismissActiveInput();
+      }, keyboardDismissStartTimeout);
+      dismissKeyboard();
     });
-  }, [isKeyboardOverlayVisible, isKeyboardVisible]);
+  }, [dismissKeyboard, isKeyboardOverlayVisible, isKeyboardVisible]);
+
+  const onInsightsPress = () => {
+    dismissKeyboard();
+    router.push(
+      `/(public)/(app)/program/${program.programId}/session/${session.sessionId}/set/insights?activityId=${activity.activityId}&workoutSetId=${workoutSet.workoutSetId}`,
+    );
+  };
 
   const onActionPress = async () => {
     if (isStartable) {
@@ -373,7 +385,7 @@ function WorkoutSetDetailScreenContent({
         },
       );
     }
-    await dismissKeyboardBeforeNavigation();
+    await dismissKeyboardBeforePop();
     router.back();
   };
 
@@ -517,31 +529,51 @@ function WorkoutSetDetailScreenContent({
         options={{
           title: title,
           headerBackButtonDisplayMode: "minimal",
-          headerRight: hasTemplateHistory
-            ? () => (
-                <Link
-                  href={`/(public)/(app)/program/${program.programId}/session/${session.sessionId}/set/insights?activityId=${activity.activityId}&workoutSetId=${workoutSet.workoutSetId}`}
-                  asChild
-                >
-                  <HeaderIconAction
-                    className="rounded-full"
-                    accessibilityLabel={`View insights for ${exercise.name}`}
-                  >
-                    <Text
-                      maxFontSizeMultiplier={2.5}
-                      className="text-primary leading-none"
-                    >
-                      <MaterialCommunityIcons
-                        name="chart-timeline-variant-shimmer"
-                        size={24}
-                      />
-                    </Text>
-                  </HeaderIconAction>
-                </Link>
-              )
-            : undefined,
         }}
       />
+      <Stack.Toolbar placement="right">
+        {hasTemplateHistory ? (
+          <Stack.Toolbar.View>
+            <HeaderIconAction
+              className="rounded-full"
+              accessibilityLabel={`View insights for ${exercise.name}`}
+              onPress={onInsightsPress}
+            >
+              <Text
+                maxFontSizeMultiplier={2.5}
+                className="text-primary leading-none"
+              >
+                <MaterialCommunityIcons
+                  name="chart-timeline-variant-shimmer"
+                  size={24}
+                />
+              </Text>
+            </HeaderIconAction>
+          </Stack.Toolbar.View>
+        ) : null}
+        {isKeyboardOverlayVisible ? (
+          Platform.OS === "ios" ? (
+            <Stack.Toolbar.Button
+              icon="checkmark"
+              variant="prominent"
+              tintColor={primaryColor}
+              separateBackground
+              accessibilityLabel="Dismiss keyboard"
+              onPress={dismissKeyboard}
+            />
+          ) : (
+            <Stack.Toolbar.View>
+              <HeaderIconAction
+                className="bg-primary rounded-full"
+                accessibilityLabel="Dismiss keyboard"
+                onPress={dismissKeyboard}
+              >
+                <MaterialCommunityIcons name="check" size={24} color="white" />
+              </HeaderIconAction>
+            </Stack.Toolbar.View>
+          )
+        ) : null}
+      </Stack.Toolbar>
       <KeyboardAwareScrollView
         bottomOffset={40}
         className="flex-1"
