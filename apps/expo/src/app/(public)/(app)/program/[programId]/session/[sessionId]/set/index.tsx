@@ -575,7 +575,7 @@ function WorkoutSetDetailScreenContent({
         ) : null}
       </Stack.Toolbar>
       <KeyboardAwareScrollView
-        bottomOffset={40}
+        bottomOffset={30}
         className="flex-1"
         contentContainerClassName={twMerge(
           "px-5 pt-36",
