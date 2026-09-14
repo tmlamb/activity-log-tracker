@@ -16,7 +16,6 @@ export default function PublicLayout() {
   return (
     <Stack
       screenOptions={{
-        gestureEnabled: false,
         headerTitleAlign: "center",
         headerShadowVisible: false,
         contentStyle: { backgroundColor },

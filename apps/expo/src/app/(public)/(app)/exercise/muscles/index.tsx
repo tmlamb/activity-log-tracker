@@ -16,6 +16,7 @@ import { PrimaryCardAction } from "~/components/CardRow";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import InventoryCounterInputRow from "~/components/InventoryCounterInputRow";
 import { HelperText, SectionHeading } from "~/components/Typography";
+import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
 interface FormData {
@@ -27,7 +28,12 @@ export default function ExerciseMusclesScreen() {
   const { muscleGroups, updateMuscleGroups } = useWorkoutStore(
     (state) => state,
   );
-  const { control, getValues, handleSubmit } = useForm<FormData>({
+  const {
+    control,
+    getValues,
+    handleSubmit,
+    formState: { isDirty },
+  } = useForm<FormData>({
     defaultValues: {
       muscleGroups: muscleGroups.map((name) => ({
         muscleGroupId: uuidv4(),
@@ -35,6 +41,7 @@ export default function ExerciseMusclesScreen() {
       })),
     },
   });
+  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
   const { fields, append, remove } = useFieldArray({
     control,
     name: "muscleGroups",
@@ -51,7 +58,7 @@ export default function ExerciseMusclesScreen() {
     updateMuscleGroups(
       data.muscleGroups.map((muscleGroup) => muscleGroup.name),
     );
-    router.back();
+    leaveWithoutWarning(() => router.back());
   };
 
   return (

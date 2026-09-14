@@ -30,6 +30,7 @@ import PressableThemed from "~/components/PressableThemed";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText, SectionHeading } from "~/components/Typography";
+import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
 const decimalTextToNumber = (text: string) => {
@@ -96,7 +97,13 @@ export default function ExerciseFormScreen() {
       : "",
   );
 
-  const { control, handleSubmit, setError, setValue } = useForm<Exercise>({
+  const {
+    control,
+    handleSubmit,
+    setError,
+    setValue,
+    formState: { isDirty },
+  } = useForm<Exercise>({
     defaultValues: {
       name: exercise?.name ?? presetName ?? "",
       loadKind: defaultLoadKind,
@@ -108,6 +115,7 @@ export default function ExerciseFormScreen() {
       notes: exercise?.notes ?? undefined,
     },
   });
+  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
   const selectedLoadKind = useWatch({ control, name: "loadKind" });
   const selectedBarbellId = useWatch({ control, name: "barbellId" });
   const selectedName = useWatch({ control, name: "name" });
@@ -125,7 +133,7 @@ export default function ExerciseFormScreen() {
         (barbell) => barbell.barbellId === selectedBarbellId,
       )
     ) {
-      setValue("barbellId", heaviestBarbell.barbellId);
+      setValue("barbellId", heaviestBarbell.barbellId, { shouldDirty: true });
     }
   }, [
     equipment.barbells,
@@ -229,7 +237,7 @@ export default function ExerciseFormScreen() {
       throw error;
     }
 
-    router.back();
+    leaveWithoutWarning(() => router.back());
   };
 
   return (
@@ -515,7 +523,7 @@ export default function ExerciseFormScreen() {
               confirmText="Delete Exercise"
               onConfirm={() => {
                 deleteExercise(exercise.exerciseId);
-                router.back();
+                leaveWithoutWarning(() => router.back());
               }}
               cardVariants={["square"]}
             >

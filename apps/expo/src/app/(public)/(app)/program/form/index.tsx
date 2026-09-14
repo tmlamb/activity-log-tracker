@@ -12,6 +12,7 @@ import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import { HelperText } from "~/components/Typography";
+import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
 export default function ProgramFormScreen() {
@@ -23,9 +24,13 @@ export default function ProgramFormScreen() {
   const program = programs.find((p) => p.programId === programId);
 
   type FormData = Pick<Program, "name">;
-  const { control, handleSubmit, getValues } = useForm<FormData>({
-    defaultValues: { name: program?.name },
-  });
+  const {
+    control,
+    handleSubmit,
+    getValues,
+    formState: { isDirty },
+  } = useForm<FormData>({ defaultValues: { name: program?.name } });
+  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
 
   const isEdit = !!program;
 
@@ -35,7 +40,7 @@ export default function ProgramFormScreen() {
     } else {
       addProgram({ name: data.name, programId: uuidv4(), sessions: [] });
     }
-    router.back();
+    leaveWithoutWarning(() => router.back());
   };
 
   return (
@@ -101,7 +106,7 @@ export default function ProgramFormScreen() {
             confirmText="Delete Program"
             onConfirm={() => {
               deleteProgram(program.programId);
-              router.back();
+              leaveWithoutWarning(() => router.back());
             }}
           >
             Delete This Program

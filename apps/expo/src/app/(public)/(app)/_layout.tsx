@@ -9,7 +9,6 @@ export default function AppLayout() {
   return (
     <Stack
       screenOptions={{
-        gestureEnabled: false,
         headerTitleAlign: "center",
         headerTitleStyle: { color: foregroundColor },
         headerShadowVisible: false,
@@ -53,10 +52,6 @@ export default function AppLayout() {
           headerBackButtonDisplayMode: "minimal",
         }}
       />
-      <Stack.Screen
-        name="equipment/index"
-        options={{ title: "Manage Equipment" }}
-      />
       <Stack.Screen name="support/index" options={{ title: "Support" }} />
       <Stack.Screen
         name="exercise/settings/index"
@@ -69,6 +64,10 @@ export default function AppLayout() {
         options={{ title: "Manage Muscles" }}
       />
       {/* Modals */}
+      <Stack.Screen
+        name="equipment/index"
+        options={{ title: "Manage Equipment", presentation: "modal" }}
+      />
       <Stack.Screen
         name="program/form/index"
         options={{ title: "Add Program", presentation: "modal" }}

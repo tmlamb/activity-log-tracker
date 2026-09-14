@@ -56,6 +56,7 @@ import SwitchThemed from "~/components/SwitchThemed";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText } from "~/components/Typography";
 import usePendingSelection from "~/hooks/use-pending-selection";
+import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
 const activityListTransition = LinearTransition.duration(220);
@@ -201,6 +202,7 @@ function SessionFormScreenContent({
   const fieldArray = useFieldArray({ control, name: "activities" });
   const { fields, append, remove, swap } = fieldArray;
   const { isDirty } = formState;
+  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
   const persistedActivityIds = new Set(
     session?.activities.map((activity) => activity.activityId) ?? [],
   );
@@ -361,13 +363,17 @@ function SessionFormScreenContent({
 
     if (pendingSession.session.status === "Planned") {
       clearPendingSession();
-      void router.replace(
-        `/(public)/(app)/program/${programId}/session/form?sessionId=${pendingSession.session.sessionId}`,
-      );
+      leaveWithoutWarning(() => {
+        void router.replace(
+          `/(public)/(app)/program/${programId}/session/form?sessionId=${pendingSession.session.sessionId}`,
+        );
+      });
       return;
     }
 
-    reset(plannedSessionFromTemplate(pendingSession.session, uuidv4));
+    reset(plannedSessionFromTemplate(pendingSession.session, uuidv4), {
+      keepDefaultValues: true,
+    });
     queueMicrotask(() => {
       setTemplateSourceSession(pendingSession.session);
       setFromType("Template");
@@ -441,7 +447,7 @@ function SessionFormScreenContent({
       });
       setTemplateSourceSession(undefined);
     }
-    router.back();
+    leaveWithoutWarning(() => router.back());
   };
 
   const handleCompleteSession = () => {
@@ -475,7 +481,11 @@ function SessionFormScreenContent({
                 end: new Date(),
                 status: "Done",
               });
-              router.dismissTo(`/(public)/(app)/program/${program.programId}`);
+              leaveWithoutWarning(() =>
+                router.dismissTo(
+                  `/(public)/(app)/program/${program.programId}`,
+                ),
+              );
             })();
           },
         },
@@ -1173,8 +1183,10 @@ function SessionFormScreenContent({
               confirmText="Delete Session"
               onConfirm={() => {
                 deleteSession(program.programId, session.sessionId);
-                router.back();
-                router.back();
+                leaveWithoutWarning(() => {
+                  router.back();
+                  router.back();
+                });
               }}
               accessibilityLabel={`Delete Workout Session with name ${session.name}`}
               cardVariants={["square"]}
@@ -1213,7 +1225,7 @@ function SessionFormScreenContent({
                     })),
                   })),
                 });
-                router.back();
+                leaveWithoutWarning(() => router.back());
               }}
               accessibilityLabel={`Reset Workout Session with name ${session.name}`}
               cardVariants={["square"]}

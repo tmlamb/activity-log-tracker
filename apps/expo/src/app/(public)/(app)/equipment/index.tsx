@@ -19,6 +19,7 @@ import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import InventoryCounterInputRow from "~/components/InventoryCounterInputRow";
 import { HelperText, SectionHeading } from "~/components/Typography";
+import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 import useWorkoutStore, {
   createDefaultEquipment,
 } from "~/hooks/use-workout-store";
@@ -102,10 +103,17 @@ export default function EquipmentScreen() {
   const { equipment, updateEquipment } = useWorkoutStore((state) => state);
   const defaultValues = normalizeEquipmentFormData(equipment);
 
-  const { control, getValues, handleSubmit, reset, setValue } =
-    useForm<FormData>({
-      defaultValues,
-    });
+  const {
+    control,
+    getValues,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { isDirty },
+  } = useForm<FormData>({
+    defaultValues,
+  });
+  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
 
   const {
     fields: barbellFields,
@@ -146,7 +154,7 @@ export default function EquipmentScreen() {
         }))
         .sort((a, b) => a.value - b.value),
     });
-    router.back();
+    leaveWithoutWarning(() => router.back());
   };
 
   const changePlateQuantity = (index: number, delta: number) => {
