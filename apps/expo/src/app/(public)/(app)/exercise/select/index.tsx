@@ -23,11 +23,16 @@ import {
 import { SelectableCardRow } from "~/components/CardRow";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
-import { LegendListStyled } from "~/components/Styled";
+import { LegendSectionListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
 import useExerciseStore from "~/hooks/use-exercise-store";
 import usePendingSelection from "~/hooks/use-pending-selection";
 import useWorkoutStore from "~/hooks/use-workout-store";
+
+interface ExerciseSection {
+  key: "used" | "unused";
+  data: Partial<Exercise>[];
+}
 
 export default function ExerciseSelectScreen() {
   const { activityId, currentExerciseId } = useLocalSearchParams<{
@@ -81,6 +86,20 @@ export default function ExerciseSelectScreen() {
   const filteredUnusedExercises = filteredAvailableExercises.filter(
     (ae) => !usedExerciseNames.has(normalizeExerciseName(ae.name)),
   ) as Partial<Exercise>[];
+  const exerciseSections: ExerciseSection[] = [];
+
+  if (sortedFilteredUsedExercises.length > 0) {
+    exerciseSections.push({
+      key: "used",
+      data: sortedFilteredUsedExercises,
+    });
+  }
+  if (filteredUnusedExercises.length > 0) {
+    exerciseSections.push({
+      key: "unused",
+      data: filteredUnusedExercises,
+    });
+  }
 
   const getExerciseFormHref = (exercise: Partial<Exercise>): Href => {
     const exerciseName = exercise.name;
@@ -191,72 +210,44 @@ export default function ExerciseSelectScreen() {
           />
         </Stack.Toolbar>
       </Host>
-      <LegendListStyled
+      <LegendSectionListStyled
         className="flex-1"
         contentContainerClassName="px-5 py-5"
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         recycleItems={false}
         maintainVisibleContentPosition={false}
-        data={sortedFilteredUsedExercises}
-        keyExtractor={(item) => item.exerciseId}
-        renderItem={({ item, index }) => (
+        sections={exerciseSections}
+        extraData={selected?.exerciseId ?? selected?.name}
+        stickySectionHeadersEnabled={false}
+        keyExtractor={(item) => item.exerciseId ?? item.name ?? ""}
+        renderSectionHeader={({ section }) =>
+          section.key === "unused" ? (
+            <View pointerEvents="none">
+              <SectionHeading placement="inlineInset">
+                More Exercises
+              </SectionHeading>
+            </View>
+          ) : null
+        }
+        renderItem={({ item, index, section }) => (
           <Animated.View entering={FadeIn} exiting={FadeOut}>
             <SelectableCardRow
               title={item.name}
               cardVariants={["multiline"]}
               selected={item.name === selected?.name}
-              onPress={() => setSelected(item)}
+              onPress={() => setSelected(item as Exercise)}
               trailingAccessory={renderExerciseInfoButton(item)}
               stack={{
                 index,
-                size: sortedFilteredUsedExercises.length,
+                size: section.data.length,
               }}
               cardClassName={
-                index === sortedFilteredUsedExercises.length - 1
-                  ? "mb-6"
-                  : undefined
+                index === section.data.length - 1 ? "mb-6" : undefined
               }
             />
           </Animated.View>
         )}
-        ListFooterComponent={
-          <View>
-            {filteredUnusedExercises.length > 0 && (
-              <>
-                <View pointerEvents="none">
-                  <SectionHeading placement="inlineInset">
-                    More Exercises
-                  </SectionHeading>
-                </View>
-                {filteredUnusedExercises.map((item, index) => (
-                  <Animated.View
-                    key={item.exerciseId ?? item.name ?? ""}
-                    entering={FadeIn}
-                    exiting={FadeOut}
-                  >
-                    <SelectableCardRow
-                      title={item.name}
-                      cardVariants={["multiline"]}
-                      selected={item.name === selected?.name}
-                      onPress={() => setSelected(item as Exercise)}
-                      trailingAccessory={renderExerciseInfoButton(item)}
-                      stack={{
-                        index,
-                        size: filteredUnusedExercises.length,
-                      }}
-                      cardClassName={
-                        index === filteredUnusedExercises.length - 1
-                          ? "mb-6"
-                          : undefined
-                      }
-                    />
-                  </Animated.View>
-                ))}
-              </>
-            )}
-          </View>
-        }
       />
     </>
   );

@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import Animated from "react-native-reanimated";
 import { BlurView } from "expo-blur";
 import { LegendList } from "@legendapp/list/react-native";
+import { SectionList as LegendSectionList } from "@legendapp/list/section-list";
 import { styled } from "nativewind";
 
 export const AnimatedViewStyled = styled(
@@ -20,3 +21,10 @@ export const LegendListStyled = styled(
     contentContainerClassName: "contentContainerStyle",
   },
 ) as unknown as typeof LegendList;
+export const LegendSectionListStyled = styled(
+  LegendSectionList as unknown as ComponentType<Record<string, unknown>>,
+  {
+    className: "style",
+    contentContainerClassName: "contentContainerStyle",
+  },
+) as unknown as typeof LegendSectionList;
