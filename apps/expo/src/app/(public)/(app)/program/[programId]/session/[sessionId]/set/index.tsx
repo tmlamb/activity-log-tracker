@@ -10,6 +10,7 @@ import { useNativeVariable } from "react-native-css";
 import {
   KeyboardAwareScrollView,
   KeyboardExtender,
+  KeyboardStickyView,
   useKeyboardState,
 } from "react-native-keyboard-controller";
 import Animated, {
@@ -24,6 +25,15 @@ import {
   useLocalSearchParams,
   useRouter,
 } from "expo-router";
+import { Button, Host } from "@expo/ui";
+import {
+  accessibilityLabel as accessibilityLabelModifier,
+  buttonBorderShape,
+  buttonStyle,
+  controlSize,
+  font,
+  labelStyle,
+} from "@expo/ui/swift-ui/modifiers";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { add, subMinutes } from "date-fns";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -389,32 +399,36 @@ function WorkoutSetDetailScreenContent({
     router.back();
   };
 
-  const renderActionBar = () => {
-    if (!shouldRenderAction) {
-      return null;
+  const renderKeyboardAction = () => {
+    if (Platform.OS === "ios") {
+      return (
+        <Host matchContents ignoreSafeArea="all" seedColor={primaryColor}>
+          <Button
+            label={actionLabel}
+            disabled={!isActionVisible}
+            onPress={onActionPress}
+            modifiers={[
+              accessibilityLabelModifier(actionAccessibilityLabel),
+              buttonBorderShape("capsule"),
+              buttonStyle("glass"),
+              controlSize("large"),
+              font({ weight: "medium" }),
+            ]}
+          />
+        </Host>
+      );
     }
 
-    return (
-      <BottomActionBar
-        label={actionLabel}
-        accessibilityLabel={actionAccessibilityLabel}
-        visible={isActionVisible}
-        onPress={onActionPress}
-      />
-    );
-  };
-
-  const renderKeyboardExtenderAction = () => {
     return (
       <PressableThemed
         accessibilityLabel={actionAccessibilityLabel}
         disabled={!isActionVisible}
         onPress={onActionPress}
-        className="h-[53px] items-center justify-center px-10"
+        className="h-[48px] items-center justify-center"
       >
         <Text
           maxFontSizeMultiplier={2.5}
-          className="text-primary text-center text-xl"
+          className="text-primary text-center text-xl font-semibold"
         >
           {actionLabel}
         </Text>
@@ -555,7 +569,7 @@ function WorkoutSetDetailScreenContent({
           Platform.OS === "ios" ? (
             <Stack.Toolbar.Button
               icon="checkmark"
-              variant="prominent"
+              variant="done"
               tintColor={primaryColor}
               separateBackground
               accessibilityLabel="Dismiss keyboard"
@@ -575,7 +589,7 @@ function WorkoutSetDetailScreenContent({
         ) : null}
       </Stack.Toolbar>
       <KeyboardAwareScrollView
-        bottomOffset={30}
+        bottomOffset={Platform.OS === "ios" && shouldRenderAction ? 86 : 30}
         className="flex-1"
         contentContainerClassName={twMerge(
           "px-5 pt-36",
@@ -820,22 +834,49 @@ function WorkoutSetDetailScreenContent({
           </Animated.View>
         </AnimatedViewStyled>
       </KeyboardAwareScrollView>
-      {shouldRenderAction && !isKeyboardOverlayVisible ? (
+      <BottomActionBar
+        label={actionLabel}
+        accessibilityLabel={actionAccessibilityLabel}
+        hidden={!isActionVisible || isKeyboardOverlayVisible}
+        onPress={onActionPress}
+      />
+      {/* KeyboardExtender reparents its content, which crashes SwiftUI hosts on iOS. */}
+      {Platform.OS === "ios" ? (
+        shouldRenderAction ? (
+          <KeyboardStickyView
+            pointerEvents={
+              isKeyboardOverlayVisible && isActionVisible ? "box-none" : "none"
+            }
+            style={{
+              position: "absolute",
+              right: 0,
+              bottom: 0,
+              left: 0,
+              zIndex: 10,
+              opacity: isKeyboardOverlayVisible && isActionVisible ? 1 : 0,
+            }}
+          >
+            <View
+              style={{
+                height: 72,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {renderKeyboardAction()}
+            </View>
+          </KeyboardStickyView>
+        ) : null
+      ) : (
         <View
-          className="absolute bottom-0 z-10 w-full"
+          className="absolute right-0 bottom-0 left-0 h-0"
           pointerEvents="box-none"
         >
-          {renderActionBar()}
+          <KeyboardExtender enabled={shouldRenderAction}>
+            {renderKeyboardAction()}
+          </KeyboardExtender>
         </View>
-      ) : null}
-      <View
-        className="absolute right-0 bottom-0 left-0 h-0"
-        pointerEvents="box-none"
-      >
-        <KeyboardExtender enabled={shouldRenderAction}>
-          {renderKeyboardExtenderAction()}
-        </KeyboardExtender>
-      </View>
+      )}
     </>
   );
 }

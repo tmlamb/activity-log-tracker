@@ -1,7 +1,7 @@
 {
   "name": "@activity-log/expo",
   "private": true,
-  "version": "2.1.5",
+  "version": "2.1.6",
   "main": "index.ts",
   "scripts": {
     "clean": "git clean -xdf .cache .expo .turbo android ios node_modules",
@@ -23,7 +23,6 @@
     "@expo/ui": "~57.0.18",
     "@expo/vector-icons": "^15.1.1",
     "@legendapp/list": "^2.0.14",
-    "@react-native-masked-view/masked-view": "^0.3.2",
     "date-fns": "4.1.0",
     "expo": "~57.0.22",
     "expo-application": "~57.0.3",
@@ -53,7 +52,6 @@
     "react-hook-form": "7.62.0",
     "react-native": "~0.86.3",
     "react-native-css": "3.0.7",
-    "react-native-easing-gradient": "^1.1.1",
     "react-native-gesture-handler": "~2.32.0",
     "react-native-get-random-values": "~1.11.0",
     "react-native-keyboard-controller": "^1.21.9",

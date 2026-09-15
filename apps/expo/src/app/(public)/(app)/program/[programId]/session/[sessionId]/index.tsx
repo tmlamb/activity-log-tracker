@@ -534,8 +534,7 @@ function SessionDetailScreenContent({
         <BottomActionBar
           label="Complete Workout Session"
           accessibilityLabel="Complete workout session"
-          className="absolute bottom-0 z-10 w-full"
-          visible={completable}
+          hidden={!completable}
           onPress={() => {
             completeSession(program.programId, {
               ...session,
