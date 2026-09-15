@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import Animated from "react-native-reanimated";
 import { BlurView } from "expo-blur";
+import { LegendList } from "@legendapp/list/react-native";
 import { styled } from "nativewind";
 
 export const AnimatedViewStyled = styled(
@@ -12,3 +13,10 @@ export const AnimatedTextStyled = styled(
 export const BlurViewStyled = styled(
   BlurView as ComponentType,
 ) as typeof BlurView;
+export const LegendListStyled = styled(
+  LegendList as unknown as ComponentType<Record<string, unknown>>,
+  {
+    className: "style",
+    contentContainerClassName: "contentContainerStyle",
+  },
+) as unknown as typeof LegendList;

@@ -1,8 +1,9 @@
-import { FlatList, View } from "react-native";
+import { View } from "react-native";
 import { Link, Stack } from "expo-router";
 
 import { NavigationCardRow } from "~/components/CardRow";
 import { HeaderPlusAction } from "~/components/HeaderAction";
+import { LegendListStyled } from "~/components/Styled";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
 export default function ProgramSettingsScreen() {
@@ -22,8 +23,10 @@ export default function ProgramSettingsScreen() {
           ),
         }}
       />
-      <FlatList
+      <LegendListStyled
         contentContainerClassName="px-5 pt-36"
+        recycleItems={false}
+        maintainVisibleContentPosition={false}
         data={programs}
         keyExtractor={(item) => item.programId}
         renderItem={({ index, item }) => (

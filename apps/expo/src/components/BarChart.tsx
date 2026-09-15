@@ -1,6 +1,7 @@
-import { FlatList, Text, useWindowDimensions, View } from "react-native";
+import { Text, useWindowDimensions, View } from "react-native";
 
 import { getBarChartTickValues } from "./bar-chart-axis";
+import { LegendListStyled } from "./Styled";
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
@@ -145,23 +146,18 @@ export default function BarChart({
             ))}
           </View>
 
-          <FlatList
+          <LegendListStyled
             data={points}
             horizontal
             nestedScrollEnabled
             showsHorizontalScrollIndicator={false}
             initialScrollIndex={boundedInitialScrollIndex}
-            initialNumToRender={7}
-            maxToRenderPerBatch={10}
-            windowSize={5}
+            recycleItems={false}
+            maintainVisibleContentPosition={false}
             style={{ width: plotWidth }}
             contentContainerClassName="items-end"
             keyExtractor={(point) => point.key}
-            getItemLayout={(_, index) => ({
-              length: columnWidth,
-              offset: columnWidth * index,
-              index,
-            })}
+            getFixedItemSize={() => columnWidth}
             renderItem={({ item: point }) => {
               const { display } = point;
               const tone =

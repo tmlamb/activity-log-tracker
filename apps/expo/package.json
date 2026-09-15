@@ -22,7 +22,7 @@
     "@activity-log/ui": "workspace:*",
     "@expo/ui": "~57.0.18",
     "@expo/vector-icons": "^15.1.1",
-    "@legendapp/list": "^2.0.14",
+    "@legendapp/list": "^3.3.11",
     "date-fns": "4.1.0",
     "expo": "~57.0.22",
     "expo-application": "~57.0.3",

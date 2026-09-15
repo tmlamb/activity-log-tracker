@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { FlatList } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import _ from "lodash";
 
@@ -11,6 +10,7 @@ import {
 
 import { SelectableCardRow } from "~/components/CardRow";
 import { HeaderTextAction } from "~/components/HeaderAction";
+import { LegendListStyled } from "~/components/Styled";
 import { HelperText } from "~/components/Typography";
 import usePendingSelection from "~/hooks/use-pending-selection";
 import useWorkoutStore from "~/hooks/use-workout-store";
@@ -76,9 +76,11 @@ export default function SessionSelectScreen() {
           ),
         }}
       />
-      <FlatList
+      <LegendListStyled
         className="flex-1"
         contentContainerClassName="pt-26 px-5 pb-18"
+        recycleItems={false}
+        maintainVisibleContentPosition={false}
         data={sessionsSorted}
         keyExtractor={(item) => item.sessionId}
         ListHeaderComponent={

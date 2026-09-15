@@ -1,6 +1,6 @@
 import type { Href } from "expo-router";
 import { useState } from "react";
-import { FlatList, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useNativeVariable } from "react-native-css";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -12,7 +12,6 @@ import type { Exercise } from "@activity-log/ui/utils";
 import "react-native-get-random-values";
 
 import _ from "lodash";
-import { twMerge } from "tailwind-merge";
 import { v4 as uuidv4 } from "uuid";
 
 import {
@@ -24,6 +23,7 @@ import {
 import { SelectableCardRow } from "~/components/CardRow";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
+import { LegendListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
 import useExerciseStore from "~/hooks/use-exercise-store";
 import usePendingSelection from "~/hooks/use-pending-selection";
@@ -191,11 +191,13 @@ export default function ExerciseSelectScreen() {
           />
         </Stack.Toolbar>
       </Host>
-      <FlatList
+      <LegendListStyled
         className="flex-1"
-        contentContainerClassName={twMerge("px-5 py-5")}
+        contentContainerClassName="px-5 py-5"
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
+        recycleItems={false}
+        maintainVisibleContentPosition={false}
         data={sortedFilteredUsedExercises}
         keyExtractor={(item) => item.exerciseId}
         renderItem={({ item, index }) => (

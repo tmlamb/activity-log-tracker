@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { FlatList } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 
@@ -11,6 +10,7 @@ import {
 
 import { NavigationCardRow } from "~/components/CardRow";
 import { HeaderPlusAction, HeaderTextAction } from "~/components/HeaderAction";
+import { LegendListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
 import useExerciseStore from "~/hooks/use-exercise-store";
 import useWorkoutStore from "~/hooks/use-workout-store";
@@ -86,11 +86,13 @@ export default function ExerciseSettingsScreen() {
         }}
       />
       {/* Add Exercise button */}
-      <FlatList
+      <LegendListStyled
         className="flex-1"
         contentContainerClassName="px-5"
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
+        recycleItems={false}
+        maintainVisibleContentPosition={false}
         data={exerciseList}
         keyExtractor={(item) => item.exerciseId ?? item.name ?? ""}
         ListHeaderComponent={
