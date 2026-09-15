@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SectionList, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import {
   Link,
   Redirect,
@@ -24,6 +24,7 @@ import {
 } from "~/components/CollapsibleSection";
 import { HeaderIconAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
+import { LegendSectionListStyled } from "~/components/Styled";
 import {
   HelperText,
   ScreenHeading,
@@ -37,7 +38,6 @@ const sessionStatusOrder: Record<Session["status"], number> = {
   Done: 2,
   Incomplete: 2,
 };
-const initialCollapsedWeekHeadersToRender = 18;
 
 interface WeekSectionItem {
   week: number;
@@ -46,9 +46,8 @@ interface WeekSectionItem {
 }
 
 interface WeekSection {
-  sectionId: string;
+  key: string;
   title: string;
-  week: number;
   collapsed: boolean;
   sessionCount: number;
   data: WeekSectionItem[];
@@ -155,27 +154,17 @@ function ProgramDetailScreenContent({
         : collapsedByDefault;
       const collapsed = collapsedFromState;
       const isCurrent = week === currentWeek;
-      const data: WeekSectionItem[] = [{ week, collapsed, sessions }];
 
       return {
-        sectionId,
+        key: sectionId,
         title: `${title}${isCurrent ? " (Now)" : ""}: ${getWeekDateRange(week)}`,
-        week,
         collapsed,
         sessionCount: sessions.length,
-        data,
+        data: [{ week, collapsed, sessions }],
       };
     },
   );
   const sections = weeklySections;
-  const initialSectionCount = Math.min(
-    sections.length,
-    currentWeekSectionIndex + 1 + initialCollapsedWeekHeadersToRender,
-  );
-  // SectionList virtualizes each section header and footer as separate cells.
-  const initialNumToRender = sections
-    .slice(0, initialSectionCount)
-    .reduce((cellCount, section) => cellCount + section.data.length + 2, 0);
 
   return (
     <View className="flex-1">
@@ -204,12 +193,13 @@ function ProgramDetailScreenContent({
           ),
         }}
       />
-      <SectionList
+      <LegendSectionListStyled
         contentContainerClassName="px-5 pt-36 pb-36"
         sections={sections}
         extraData={sectionCollapseOverrides}
-        initialNumToRender={initialNumToRender}
         keyExtractor={(item) => `week-${item.week}`}
+        recycleItems={false}
+        maintainVisibleContentPosition={{ data: false, size: true }}
         stickySectionHeadersEnabled={false}
         ListHeaderComponent={
           <>
@@ -247,7 +237,7 @@ function ProgramDetailScreenContent({
                   title={section.title}
                   collapsed={section.collapsed}
                   titleClassName="leading-tight"
-                  onPress={() => toggleSectionCollapsed(section.sectionId)}
+                  onPress={() => toggleSectionCollapsed(section.key)}
                 />
               ) : (
                 <SectionHeading placement="inline" className="mx-5 pt-3 pb-2">
