@@ -121,6 +121,7 @@ interface CollapsibleSectionBodyProps {
   className?: string;
   contentClassName?: string;
   onContentLayout?: (height: number) => void;
+  premeasureCollapsedContent?: boolean;
 }
 
 export function CollapsibleSectionBody({
@@ -129,11 +130,15 @@ export function CollapsibleSectionBody({
   className,
   contentClassName,
   onContentLayout,
+  premeasureCollapsedContent = true,
 }: CollapsibleSectionBodyProps) {
   const [initiallyCollapsed] = useState(collapsed);
   const [contentHeight, setContentHeight] = useState(0);
-  // Mount hidden content after visible siblings, then retain its measured layout.
-  const deferredContentReady = useDeferredValue(true, !initiallyCollapsed);
+  // Optionally mount hidden content after visible siblings, then retain its layout.
+  const deferredContentReady = useDeferredValue(
+    premeasureCollapsedContent,
+    premeasureCollapsedContent && !initiallyCollapsed,
+  );
   const shouldRenderContent =
     contentHeight > 0 || !collapsed || deferredContentReady;
   const expansionProgress = useSharedValue(collapsed ? 0 : 1);

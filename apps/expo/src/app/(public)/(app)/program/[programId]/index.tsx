@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Text, View } from "react-native";
 import {
   Link,
@@ -20,11 +20,10 @@ import { DetailCardRow, NavigationCardRow } from "~/components/CardRow";
 import {
   CollapsibleSectionBody,
   CollapsibleSectionHeader,
-  useCollapsibleSectionScroll,
 } from "~/components/CollapsibleSection";
 import { HeaderIconAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
-import { LegendSectionListStyled } from "~/components/Styled";
+import { LegendListStyled } from "~/components/Styled";
 import {
   HelperText,
   ScreenHeading,
@@ -39,18 +38,125 @@ const sessionStatusOrder: Record<Session["status"], number> = {
   Incomplete: 2,
 };
 
-interface WeekSectionItem {
-  week: number;
-  collapsed: boolean;
+interface WeekListItem {
+  key: string;
+  title: string;
+  collapsedByDefault: boolean;
   sessions: Session[];
 }
 
-interface WeekSection {
-  key: string;
-  title: string;
-  collapsed: boolean;
-  sessionCount: number;
-  data: WeekSectionItem[];
+interface WeekRowProps {
+  collapseOverriddenInitially: boolean;
+  getSessionWeekAndDay: (session: Session) => { day: number; week: number };
+  isProgramEmpty: boolean;
+  onCollapseOverrideChange: (sectionId: string, overridden: boolean) => void;
+  programId: string;
+  weekItem: WeekListItem;
+}
+
+interface WeekSessionsProps {
+  getSessionWeekAndDay: (session: Session) => { day: number; week: number };
+  isProgramEmpty: boolean;
+  programId: string;
+  sessions: Session[];
+}
+
+function WeekSessions({
+  getSessionWeekAndDay,
+  isProgramEmpty,
+  programId,
+  sessions,
+}: WeekSessionsProps) {
+  return (
+    <>
+      {sessions.map((session, index) => {
+        const day =
+          session.status === "Planned"
+            ? undefined
+            : getSessionWeekAndDay(session).day;
+
+        return (
+          <Link
+            key={session.sessionId}
+            href={`/(public)/(app)/program/${programId}/session/${session.sessionId}`}
+            asChild
+          >
+            <NavigationCardRow
+              title={session.name}
+              leadingText={day == null ? undefined : `Day ${day}`}
+              cardVariants={["multiline"]}
+              stack={{ index, size: sessions.length }}
+              cardClassName={index === sessions.length - 1 ? "mb-3" : undefined}
+              trailingText={session.status}
+              trailingTextClassName={
+                session.status === "Ready"
+                  ? "text-primary"
+                  : session.status === "Incomplete"
+                    ? "text-warning"
+                    : "text-muted"
+              }
+              accessibilityLabel={`Navigate to ${day == null ? "planned" : `Day ${day}`} session ${session.name}, status ${session.status}`}
+            />
+          </Link>
+        );
+      })}
+      {isProgramEmpty && (
+        <HelperText className="mb-6">
+          Start tracking your exercises by planning a session.
+        </HelperText>
+      )}
+    </>
+  );
+}
+
+function WeekRow({
+  collapseOverriddenInitially,
+  getSessionWeekAndDay,
+  isProgramEmpty,
+  onCollapseOverrideChange,
+  programId,
+  weekItem,
+}: WeekRowProps) {
+  const [collapseOverridden, setCollapseOverridden] = useState(
+    collapseOverriddenInitially,
+  );
+  const collapsed = collapseOverridden
+    ? !weekItem.collapsedByDefault
+    : weekItem.collapsedByDefault;
+
+  const toggleCollapsed = () => {
+    const nextCollapseOverridden = !collapseOverridden;
+    onCollapseOverrideChange(weekItem.key, nextCollapseOverridden);
+    setCollapseOverridden(nextCollapseOverridden);
+  };
+
+  return (
+    <View>
+      {weekItem.sessions.length ? (
+        <CollapsibleSectionHeader
+          title={weekItem.title}
+          collapsed={collapsed}
+          titleClassName="leading-tight"
+          onPress={toggleCollapsed}
+        />
+      ) : (
+        <SectionHeading placement="inline" className="mx-5 pt-3 pb-2">
+          {weekItem.title}
+        </SectionHeading>
+      )}
+      <CollapsibleSectionBody
+        collapsed={collapsed}
+        premeasureCollapsedContent={false}
+      >
+        <WeekSessions
+          getSessionWeekAndDay={getSessionWeekAndDay}
+          isProgramEmpty={isProgramEmpty}
+          programId={programId}
+          sessions={weekItem.sessions}
+        />
+      </CollapsibleSectionBody>
+    </View>
+  );
 }
 
 export default function ProgramDetailScreen() {
@@ -71,10 +177,7 @@ function ProgramDetailScreenContent({
   program: WorkoutStore["programs"][number];
 }) {
   const router = useRouter();
-  const collapsibleSectionScroll = useCollapsibleSectionScroll();
-  const [sectionCollapseOverrides, setSectionCollapseOverrides] = useState<
-    Set<string>
-  >(() => new Set());
+  const sectionCollapseOverrides = useRef(new Set<string>());
   const now = new Date();
   const orderedByStart = _.orderBy(program.sessions, ["start"], ["asc"]);
   const programStart =
@@ -132,39 +235,31 @@ function ProgramDetailScreenContent({
     (section) => section.week === currentWeek,
   );
 
-  const toggleSectionCollapsed = (sectionId: string) => {
-    collapsibleSectionScroll.prepareSectionToggle();
-    setSectionCollapseOverrides((current) => {
-      const next = new Set(current);
-      if (next.has(sectionId)) {
-        next.delete(sectionId);
-      } else {
-        next.add(sectionId);
-      }
-      return next;
-    });
+  const setSectionCollapseOverride = (
+    sectionId: string,
+    overridden: boolean,
+  ) => {
+    if (overridden) {
+      sectionCollapseOverrides.current.add(sectionId);
+    } else {
+      sectionCollapseOverrides.current.delete(sectionId);
+    }
   };
 
-  const weeklySections: WeekSection[] = weekSections.map(
+  const weeks: WeekListItem[] = weekSections.map(
     ({ title, week, sessions }, index) => {
       const sectionId = `week-${week}`;
       const collapsedByDefault = index > currentWeekSectionIndex;
-      const collapsedFromState = sectionCollapseOverrides.has(sectionId)
-        ? !collapsedByDefault
-        : collapsedByDefault;
-      const collapsed = collapsedFromState;
       const isCurrent = week === currentWeek;
 
       return {
         key: sectionId,
         title: `${title}${isCurrent ? " (Now)" : ""}: ${getWeekDateRange(week)}`,
-        collapsed,
-        sessionCount: sessions.length,
-        data: [{ week, collapsed, sessions }],
+        collapsedByDefault,
+        sessions,
       };
     },
   );
-  const sections = weeklySections;
 
   return (
     <View className="flex-1">
@@ -193,14 +288,12 @@ function ProgramDetailScreenContent({
           ),
         }}
       />
-      <LegendSectionListStyled
+      <LegendListStyled
         contentContainerClassName="px-5 pt-36 pb-36"
-        sections={sections}
-        extraData={sectionCollapseOverrides}
-        keyExtractor={(item) => `week-${item.week}`}
+        data={weeks}
+        keyExtractor={(item) => item.key}
         recycleItems={false}
         maintainVisibleContentPosition={{ data: false, size: true }}
-        stickySectionHeadersEnabled={false}
         ListHeaderComponent={
           <>
             <DetailCardRow
@@ -229,65 +322,17 @@ function ProgramDetailScreenContent({
             <ScreenHeading>Workout Sessions</ScreenHeading>
           </>
         }
-        renderSectionHeader={({ section }) => {
-          return (
-            <View>
-              {section.sessionCount ? (
-                <CollapsibleSectionHeader
-                  title={section.title}
-                  collapsed={section.collapsed}
-                  titleClassName="leading-tight"
-                  onPress={() => toggleSectionCollapsed(section.key)}
-                />
-              ) : (
-                <SectionHeading placement="inline" className="mx-5 pt-3 pb-2">
-                  {section.title}
-                </SectionHeading>
-              )}
-            </View>
-          );
-        }}
-        renderItem={({ item: { collapsed, sessions } }) => (
-          <CollapsibleSectionBody collapsed={collapsed}>
-            {sessions.map((session, index) => {
-              const day =
-                session.status === "Planned"
-                  ? undefined
-                  : getSessionWeekAndDay(session).day;
-
-              return (
-                <Link
-                  key={session.sessionId}
-                  href={`/(public)/(app)/program/${program.programId}/session/${session.sessionId}`}
-                  asChild
-                >
-                  <NavigationCardRow
-                    title={session.name}
-                    leadingText={day == null ? undefined : `Day ${day}`}
-                    cardVariants={["multiline"]}
-                    stack={{ index, size: sessions.length }}
-                    cardClassName={
-                      index === sessions.length - 1 ? "mb-3" : undefined
-                    }
-                    trailingText={session.status}
-                    trailingTextClassName={
-                      session.status === "Ready"
-                        ? "text-primary"
-                        : session.status === "Incomplete"
-                          ? "text-warning"
-                          : "text-muted"
-                    }
-                    accessibilityLabel={`Navigate to ${day == null ? "planned" : `Day ${day}`} session ${session.name}, status ${session.status}`}
-                  />
-                </Link>
-              );
-            })}
-            {program.sessions.length < 1 && (
-              <HelperText className="mb-6">
-                Start tracking your exercises by planning a session.
-              </HelperText>
+        renderItem={({ item: weekItem }) => (
+          <WeekRow
+            collapseOverriddenInitially={sectionCollapseOverrides.current.has(
+              weekItem.key,
             )}
-          </CollapsibleSectionBody>
+            getSessionWeekAndDay={getSessionWeekAndDay}
+            isProgramEmpty={program.sessions.length < 1}
+            onCollapseOverrideChange={setSectionCollapseOverride}
+            programId={program.programId}
+            weekItem={weekItem}
+          />
         )}
       />
       <BottomActionBar
