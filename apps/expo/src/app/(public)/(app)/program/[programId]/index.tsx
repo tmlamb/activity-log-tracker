@@ -9,7 +9,6 @@ import {
 } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { addDays, format, isSameMonth } from "date-fns";
-import _ from "lodash";
 
 import type { Session } from "@activity-log/ui/utils";
 import { weekAndDayNumbersFromStart } from "@activity-log/ui/utils";
@@ -30,13 +29,7 @@ import {
   SectionHeading,
 } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
-
-const sessionStatusOrder: Record<Session["status"], number> = {
-  Ready: 0,
-  Planned: 1,
-  Done: 2,
-  Incomplete: 2,
-};
+import { buildProgramWeeks } from "~/utils/program-weeks";
 
 interface WeekListItem {
   key: string;
@@ -179,13 +172,11 @@ function ProgramDetailScreenContent({
   const router = useRouter();
   const sectionCollapseOverrides = useRef(new Set<string>());
   const now = new Date();
-  const orderedByStart = _.orderBy(program.sessions, ["start"], ["asc"]);
-  const programStart =
-    orderedByStart.find((session) => session.start)?.start ?? now;
-  // Sessions are appended to the program when they are created.
-  const plannedSessions = program.sessions
-    .filter((session) => session.status === "Planned")
-    .reverse();
+  const {
+    currentWeek,
+    programStart,
+    weeks: programWeeks,
+  } = buildProgramWeeks(program.sessions, now);
 
   const getSessionWeekAndDay = (session: Session) =>
     weekAndDayNumbersFromStart(programStart, session.start ?? now);
@@ -198,40 +189,7 @@ function ProgramDetailScreenContent({
       : `${format(start, "MMM d")}-${format(end, "MMM d")}`;
   };
 
-  const weekSections: {
-    title: string;
-    week: number;
-    sessions: Session[];
-  }[] = _(orderedByStart.filter((session) => session.status !== "Planned"))
-    .groupBy((session) => getSessionWeekAndDay(session).week)
-    .map((data, week) => ({
-      title: `Week ${week}`,
-      week: Number(week),
-      sessions: _.sortBy(
-        [...data].reverse(),
-        (session) => sessionStatusOrder[session.status],
-      ),
-    }))
-    .value();
-
-  const { week: currentWeek } = weekAndDayNumbersFromStart(programStart, now);
-  const currentWeekSection = weekSections.find(
-    (section) => section.week === currentWeek,
-  );
-
-  if (currentWeekSection) {
-    currentWeekSection.sessions.unshift(...plannedSessions);
-  } else {
-    weekSections.push({
-      title: `Week ${currentWeek}`,
-      week: currentWeek,
-      sessions: plannedSessions,
-    });
-  }
-
-  weekSections.sort((a, b) => b.week - a.week);
-
-  const currentWeekSectionIndex = weekSections.findIndex(
+  const currentWeekSectionIndex = programWeeks.findIndex(
     (section) => section.week === currentWeek,
   );
 
@@ -246,15 +204,15 @@ function ProgramDetailScreenContent({
     }
   };
 
-  const weeks: WeekListItem[] = weekSections.map(
-    ({ title, week, sessions }, index) => {
+  const weeks: WeekListItem[] = programWeeks.map(
+    ({ week, sessions }, index) => {
       const sectionId = `week-${week}`;
       const collapsedByDefault = index > currentWeekSectionIndex;
       const isCurrent = week === currentWeek;
 
       return {
         key: sectionId,
-        title: `${title}${isCurrent ? " (Now)" : ""}: ${getWeekDateRange(week)}`,
+        title: `Week ${week}${isCurrent ? " (Now)" : ""}: ${getWeekDateRange(week)}`,
         collapsedByDefault,
         sessions,
       };
