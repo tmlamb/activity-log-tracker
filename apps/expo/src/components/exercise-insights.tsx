@@ -9,8 +9,7 @@ import BarChart from "./BarChart";
 import Card from "./Card";
 import { DetailCardRow } from "./CardRow";
 import {
-  CollapsibleSectionBody,
-  CollapsibleSectionHeader,
+  CollapsibleSection,
   useCollapsibleSectionScroll,
 } from "./CollapsibleSection";
 
@@ -184,14 +183,14 @@ export default function ExerciseInsights({
   );
   const collapsibleSectionScroll = useCollapsibleSectionScroll();
 
-  const toggleWarmupSets = () => {
+  const handleWarmupSetsCollapsedChange = (collapsed: boolean) => {
     collapsibleSectionScroll.prepareSectionToggle();
-    setWarmupSetsCollapsed((collapsed) => !collapsed);
+    setWarmupSetsCollapsed(collapsed);
   };
 
-  const toggleMainSets = () => {
+  const handleMainSetsCollapsedChange = (collapsed: boolean) => {
     collapsibleSectionScroll.prepareSectionToggle();
-    setMainSetsCollapsed((collapsed) => !collapsed);
+    setMainSetsCollapsed(collapsed);
   };
 
   return (
@@ -217,45 +216,41 @@ export default function ExerciseInsights({
         />
       </View>
       {warmupSetInsights.length ? (
-        <View>
-          <CollapsibleSectionHeader
-            title="Warmup Sets"
-            collapsed={warmupSetsCollapsed}
-            titleClassName="leading-tight"
-            onPress={toggleWarmupSets}
-          />
-          <CollapsibleSectionBody collapsed={warmupSetsCollapsed}>
-            <View className="mb-3">
-              {warmupSetInsights.map((setInsights, index) => (
-                <VolumeChart
-                  key={`${setInsights.setType}-${setInsights.setNumber}`}
-                  insights={setInsights}
-                  stack={{ index, size: warmupSetInsights.length }}
-                />
-              ))}
-            </View>
-          </CollapsibleSectionBody>
-        </View>
-      ) : null}
-      <View>
-        <CollapsibleSectionHeader
-          title="Main Sets"
-          collapsed={mainSetsCollapsed}
+        <CollapsibleSection
+          title="Warmup Sets"
+          collapsed={warmupSetsCollapsed}
+          onCollapsedChange={handleWarmupSetsCollapsedChange}
           titleClassName="leading-tight"
-          onPress={toggleMainSets}
-        />
-        <CollapsibleSectionBody collapsed={mainSetsCollapsed}>
-          <View>
-            {mainSetInsights.map((setInsights, index) => (
+          premeasureCollapsedContent
+        >
+          <View className="mb-3">
+            {warmupSetInsights.map((setInsights, index) => (
               <VolumeChart
                 key={`${setInsights.setType}-${setInsights.setNumber}`}
                 insights={setInsights}
-                stack={{ index, size: mainSetInsights.length }}
+                stack={{ index, size: warmupSetInsights.length }}
               />
             ))}
           </View>
-        </CollapsibleSectionBody>
-      </View>
+        </CollapsibleSection>
+      ) : null}
+      <CollapsibleSection
+        title="Main Sets"
+        collapsed={mainSetsCollapsed}
+        onCollapsedChange={handleMainSetsCollapsedChange}
+        titleClassName="leading-tight"
+        premeasureCollapsedContent
+      >
+        <View>
+          {mainSetInsights.map((setInsights, index) => (
+            <VolumeChart
+              key={`${setInsights.setType}-${setInsights.setNumber}`}
+              insights={setInsights}
+              stack={{ index, size: mainSetInsights.length }}
+            />
+          ))}
+        </View>
+      </CollapsibleSection>
     </ScrollView>
   );
 }
