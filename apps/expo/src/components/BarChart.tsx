@@ -97,6 +97,7 @@ export default function BarChart({
   const boundedInitialScrollIndex = points.length
     ? Math.min(Math.max(initialScrollIndex, 0), points.length - 1)
     : undefined;
+  const itemLayoutVersion = `${chartWidth}:${maxValue}`;
   const valueAxisTicks = getBarChartTickValues(maxValue, valueAxisTickInterval);
   const valueAxisPosition = (value: number) =>
     (1 - value / maxValue) * maxBarHeight;
@@ -148,6 +149,7 @@ export default function BarChart({
 
           <LegendListStyled
             data={points}
+            extraData={itemLayoutVersion}
             horizontal
             nestedScrollEnabled
             showsHorizontalScrollIndicator={false}

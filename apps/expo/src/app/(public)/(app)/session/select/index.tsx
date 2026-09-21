@@ -37,6 +37,9 @@ export default function SessionSelectScreen() {
     .value();
 
   const [selected, setSelected] = useState<Session | undefined>();
+  const rowStateVersion = `${selected?.sessionId ?? ""}:${sessionsSorted
+    .map((session) => session.sessionId)
+    .join(":")}`;
 
   const handleDone = () => {
     if (!selected) return;
@@ -82,7 +85,7 @@ export default function SessionSelectScreen() {
         recycleItems={false}
         maintainVisibleContentPosition={false}
         data={sessionsSorted}
-        extraData={selected?.sessionId}
+        extraData={rowStateVersion}
         keyExtractor={(item) => item.sessionId}
         ListHeaderComponent={
           sessionsSorted.length > 0 ? (

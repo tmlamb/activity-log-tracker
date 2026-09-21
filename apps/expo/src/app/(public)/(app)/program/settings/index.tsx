@@ -28,6 +28,7 @@ export default function ProgramSettingsScreen() {
         recycleItems={false}
         maintainVisibleContentPosition={false}
         data={programs}
+        extraData={programs.length}
         keyExtractor={(item) => item.programId}
         renderItem={({ index, item }) => (
           <Link

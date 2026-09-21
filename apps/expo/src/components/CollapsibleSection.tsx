@@ -141,6 +141,8 @@ export function CollapsibleSectionBody({
   );
   const shouldRenderContent =
     contentHeight > 0 || !collapsed || deferredContentReady;
+  const isContentAbsolute =
+    contentHeight > 0 && (collapsed || initiallyCollapsed);
   const expansionProgress = useSharedValue(collapsed ? 0 : 1);
   const bodyStyle = useAnimatedStyle(() =>
     contentHeight > 0
@@ -182,9 +184,7 @@ export function CollapsibleSectionBody({
       <Animated.View
         className={twMerge(
           "w-full",
-          contentHeight > 0 || collapsed || initiallyCollapsed
-            ? "absolute right-0 left-0"
-            : undefined,
+          isContentAbsolute ? "absolute right-0 left-0" : undefined,
           contentClassName,
         )}
         onLayout={handleContentLayout}
