@@ -16,10 +16,7 @@ import { weekAndDayNumbersFromStart } from "@activity-log/ui/utils";
 import type { WorkoutStore } from "~/hooks/use-workout-store";
 import BottomActionBar from "~/components/BottomActionBar";
 import { DetailCardRow, NavigationCardRow } from "~/components/CardRow";
-import {
-  CollapsibleSectionBody,
-  CollapsibleSectionHeader,
-} from "~/components/CollapsibleSection";
+import { CollapsibleSection } from "~/components/CollapsibleSection";
 import { HeaderIconAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
 import { LegendListStyled } from "~/components/Styled";
@@ -117,37 +114,37 @@ function WeekRow({
     ? !weekItem.collapsedByDefault
     : weekItem.collapsedByDefault;
 
-  const toggleCollapsed = () => {
-    const nextCollapseOverridden = !collapseOverridden;
+  const handleCollapsedChange = (nextCollapsed: boolean) => {
+    const nextCollapseOverridden =
+      nextCollapsed !== weekItem.collapsedByDefault;
     onCollapseOverrideChange(weekItem.key, nextCollapseOverridden);
     setCollapseOverridden(nextCollapseOverridden);
   };
 
-  return (
+  const sessions = (
+    <WeekSessions
+      getSessionWeekAndDay={getSessionWeekAndDay}
+      isProgramEmpty={isProgramEmpty}
+      programId={programId}
+      sessions={weekItem.sessions}
+    />
+  );
+
+  return weekItem.sessions.length ? (
+    <CollapsibleSection
+      title={weekItem.title}
+      collapsed={collapsed}
+      onCollapsedChange={handleCollapsedChange}
+      titleClassName="leading-tight"
+    >
+      {sessions}
+    </CollapsibleSection>
+  ) : (
     <View>
-      {weekItem.sessions.length ? (
-        <CollapsibleSectionHeader
-          title={weekItem.title}
-          collapsed={collapsed}
-          titleClassName="leading-tight"
-          onPress={toggleCollapsed}
-        />
-      ) : (
-        <SectionHeading placement="inline" className="mx-5 pt-3 pb-2">
-          {weekItem.title}
-        </SectionHeading>
-      )}
-      <CollapsibleSectionBody
-        collapsed={collapsed}
-        premeasureCollapsedContent={false}
-      >
-        <WeekSessions
-          getSessionWeekAndDay={getSessionWeekAndDay}
-          isProgramEmpty={isProgramEmpty}
-          programId={programId}
-          sessions={weekItem.sessions}
-        />
-      </CollapsibleSectionBody>
+      <SectionHeading placement="inline" className="mx-5 pt-3 pb-2">
+        {weekItem.title}
+      </SectionHeading>
+      {sessions}
     </View>
   );
 }

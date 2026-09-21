@@ -11,7 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { LayoutAnimation } from "react-native";
+import { LayoutAnimation, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -193,5 +193,60 @@ export function CollapsibleSectionBody({
         {shouldRenderContent ? children : null}
       </Animated.View>
     </Animated.View>
+  );
+}
+
+interface CollapsibleSectionProps {
+  title: string;
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
+  children: React.ReactNode;
+  containerClassName?: string;
+  headerClassName?: string;
+  titleClassName?: string;
+  chevronClassName?: string;
+  bodyClassName?: string;
+  bodyContentClassName?: string;
+  accessibilityLabel?: string;
+  onContentLayout?: (height: number) => void;
+  premeasureCollapsedContent?: boolean;
+}
+
+export function CollapsibleSection({
+  title,
+  collapsed,
+  onCollapsedChange,
+  children,
+  containerClassName,
+  headerClassName,
+  titleClassName,
+  chevronClassName,
+  bodyClassName,
+  bodyContentClassName,
+  accessibilityLabel,
+  onContentLayout,
+  premeasureCollapsedContent = false,
+}: CollapsibleSectionProps) {
+  return (
+    <View className={containerClassName}>
+      <CollapsibleSectionHeader
+        title={title}
+        collapsed={collapsed}
+        onPress={() => onCollapsedChange(!collapsed)}
+        className={headerClassName}
+        titleClassName={titleClassName}
+        chevronClassName={chevronClassName}
+        accessibilityLabel={accessibilityLabel}
+      />
+      <CollapsibleSectionBody
+        collapsed={collapsed}
+        className={bodyClassName}
+        contentClassName={bodyContentClassName}
+        onContentLayout={onContentLayout}
+        premeasureCollapsedContent={premeasureCollapsedContent}
+      >
+        {children}
+      </CollapsibleSectionBody>
+    </View>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, SectionList, Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import {
   Link,
@@ -31,14 +31,11 @@ import type { WorkoutStore } from "~/hooks/use-workout-store";
 import BottomActionBar from "~/components/BottomActionBar";
 import Card from "~/components/Card";
 import { DetailCardRow, NavigationCardRow } from "~/components/CardRow";
-import {
-  CollapsibleSectionBody,
-  CollapsibleSectionHeader,
-  useCollapsibleSectionScroll,
-} from "~/components/CollapsibleSection";
+import { CollapsibleSection } from "~/components/CollapsibleSection";
 import ElapsedTime from "~/components/ElapsedTime";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
+import { LegendListStyled } from "~/components/Styled";
 import SwitchThemed from "~/components/SwitchThemed";
 import { HelperText, ScreenHeading } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
@@ -114,18 +111,12 @@ interface WorkoutSetCardProps {
   completionTextColumnWidth?: number;
 }
 
-interface ExerciseSectionItem {
-  activityId: string;
-  collapsed: boolean;
-  workoutSets: WorkoutSetCardProps[];
-}
-
-interface ExerciseSection {
+interface ExerciseListItem {
   title: string;
   activityId: string;
   allSetsDone: boolean;
   collapsed: boolean;
-  data: ExerciseSectionItem[];
+  workoutSets: WorkoutSetCardProps[];
 }
 
 function WorkoutSetCard({
@@ -183,11 +174,9 @@ function WorkoutSetCard({
   );
 }
 
-function ExerciseSectionBody({
-  collapsed,
+function ExerciseWorkoutSets({
   workoutSets,
 }: {
-  collapsed: boolean;
   workoutSets: WorkoutSetCardProps[];
 }) {
   const completionTextColumnWidth = Math.max(
@@ -200,22 +189,18 @@ function ExerciseSectionBody({
     ),
   );
 
-  return (
-    <CollapsibleSectionBody collapsed={collapsed}>
-      {workoutSets.map((item) => (
-        <WorkoutSetCard
-          key={item.workoutSet.workoutSetId}
-          workoutSet={item.workoutSet}
-          activity={item.activity}
-          session={item.session}
-          program={item.program}
-          title={item.title}
-          index={item.index}
-          completionTextColumnWidth={completionTextColumnWidth || undefined}
-        />
-      ))}
-    </CollapsibleSectionBody>
-  );
+  return workoutSets.map((item) => (
+    <WorkoutSetCard
+      key={item.workoutSet.workoutSetId}
+      workoutSet={item.workoutSet}
+      activity={item.activity}
+      session={item.session}
+      program={item.program}
+      title={item.title}
+      index={item.index}
+      completionTextColumnWidth={completionTextColumnWidth || undefined}
+    />
+  ));
 }
 
 export default function SessionDetailScreen() {
@@ -257,9 +242,6 @@ function SessionDetailScreenContent({
   updateSession: WorkoutStore["updateSession"];
 }) {
   const router = useRouter();
-  const sectionListRef =
-    useRef<SectionList<ExerciseSectionItem, ExerciseSection>>(null);
-  const collapsibleSectionScroll = useCollapsibleSectionScroll();
   const [collapsedActivityIds, setCollapsedActivityIds] = useState<Set<string>>(
     () => getCompletedActivityIds(session.activities),
   );
@@ -297,14 +279,13 @@ function SessionDetailScreenContent({
     );
   };
 
-  const toggleActivityCollapsed = (activityId: string) => {
-    collapsibleSectionScroll.prepareSectionToggle();
+  const setActivityCollapsed = (activityId: string, collapsed: boolean) => {
     setCollapsedActivityIds((current) => {
       const next = new Set(current);
-      if (next.has(activityId)) {
-        next.delete(activityId);
-      } else {
+      if (collapsed) {
         next.add(activityId);
+      } else {
+        next.delete(activityId);
       }
       return next;
     });
@@ -350,7 +331,7 @@ function SessionDetailScreenContent({
     [] as WorkoutSet[],
   );
 
-  const sections = session.activities.map<ExerciseSection>(
+  const activities = session.activities.map<ExerciseListItem>(
     (activity, actIndex) => {
       const allSetsDone = areAllActivitySetsDone(activity);
       const collapsed = collapsedActivityIds.has(activity.activityId);
@@ -386,7 +367,7 @@ function SessionDetailScreenContent({
         activityId: activity.activityId,
         allSetsDone,
         collapsed,
-        data: [{ activityId: activity.activityId, collapsed, workoutSets }],
+        workoutSets,
       };
     },
   );
@@ -416,16 +397,13 @@ function SessionDetailScreenContent({
         }}
       />
       <View className="flex-1">
-        <SectionList
-          ref={sectionListRef}
+        <LegendListStyled
           className="flex-1"
-          sections={sections}
-          onLayout={collapsibleSectionScroll.onListLayout}
-          onScroll={collapsibleSectionScroll.onScroll}
-          scrollEventThrottle={16}
+          data={activities}
           contentContainerClassName="pt-36 px-5 pb-24"
           keyExtractor={(item) => item.activityId}
-          stickySectionHeadersEnabled={false}
+          recycleItems={false}
+          maintainVisibleContentPosition={{ data: false, size: true }}
           ListHeaderComponent={
             <Animated.View layout={LinearTransition.duration(500)}>
               <DetailCardRow
@@ -497,28 +475,26 @@ function SessionDetailScreenContent({
             </Animated.View>
           }
           extraData={collapsedActivityIds}
-          renderSectionHeader={({
-            section: { activityId, allSetsDone, collapsed, title },
-          }) => (
-            <CollapsibleSectionHeader
-              title={title}
-              collapsed={collapsed}
+          renderItem={({ item }) => (
+            <CollapsibleSection
+              title={item.title}
+              collapsed={item.collapsed}
+              onCollapsedChange={(collapsed) =>
+                setActivityCollapsed(item.activityId, collapsed)
+              }
               titleClassName={
-                allSetsDone
+                item.allSetsDone
                   ? "text-muted leading-tight"
                   : "text-foreground leading-tight"
               }
               chevronClassName={
-                collapsed && !allSetsDone ? "text-primary" : "text-muted"
+                item.collapsed && !item.allSetsDone
+                  ? "text-primary"
+                  : "text-muted"
               }
-              onPress={() => toggleActivityCollapsed(activityId)}
-            />
-          )}
-          renderItem={({ item }) => (
-            <ExerciseSectionBody
-              collapsed={item.collapsed}
-              workoutSets={item.workoutSets}
-            />
+            >
+              <ExerciseWorkoutSets workoutSets={item.workoutSets} />
+            </CollapsibleSection>
           )}
           ListFooterComponent={
             <HelperText>
