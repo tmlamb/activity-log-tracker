@@ -1,8 +1,9 @@
-import { Platform, SectionList } from "react-native";
+import { Platform } from "react-native";
 import { Link, Stack, useRouter } from "expo-router";
 import _ from "lodash";
 
 import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
+import { LegendListStyled } from "~/components/Styled";
 import { HelperText, SectionHeading } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
 
@@ -57,24 +58,27 @@ export default function DashboardScreen() {
           ))}
         </Stack.Toolbar.Menu>
       </Stack.Toolbar>
-      <SectionList
+      <LegendListStyled
+        className="flex-1"
         keyExtractor={(program) => program.programId}
         bounces={true}
         contentContainerClassName="px-5"
         contentInsetAdjustmentBehavior="automatic"
-        sections={[{ title: "Workout Programs", data: programs }]}
-        stickySectionHeadersEnabled={false}
-        renderSectionHeader={({ section: { data } }) =>
-          data.length ? (
+        recycleItems={false}
+        maintainVisibleContentPosition={false}
+        data={programs}
+        extraData={programs.length}
+        ListHeaderComponent={
+          programs.length ? (
             <SectionHeading className="mt-2">Workout Programs</SectionHeading>
           ) : null
         }
-        renderItem={({ index, item, section }) => (
+        renderItem={({ index, item }) => (
           <Link href={`/(public)/(app)/program/${item.programId}`} asChild>
             <NavigationCardRow
               title={item.name}
               cardVariants={["multiline"]}
-              stack={{ index, size: section.data.length }}
+              stack={{ index, size: programs.length }}
               accessibilityLabel={`Navigate to Workout Program ${item.name}`}
             />
           </Link>
