@@ -1,14 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Text, useWindowDimensions, View } from "react-native";
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import { FadeOut } from "react-native-reanimated";
 
 import { getBarChartTickValues } from "./bar-chart-axis";
-import { LegendListStyled } from "./Styled";
+import { AnimatedViewStyled, LegendListStyled } from "./Styled";
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
@@ -109,22 +104,9 @@ export default function BarChart({
   const valueAxisPosition = (value: number) =>
     (1 - value / maxValue) * maxBarHeight;
   const [chartLoaded, setChartLoaded] = useState(false);
-  const chartOpacity = useSharedValue(0);
-  const chartStyle = useAnimatedStyle(() => ({
-    opacity: chartOpacity.value,
-  }));
-
-  useEffect(() => {
-    if (!chartLoaded) return;
-
-    chartOpacity.value = withTiming(1, {
-      duration: 220,
-      easing: Easing.out(Easing.quad),
-    });
-  }, [chartLoaded, chartOpacity]);
 
   return (
-    <Animated.View style={[{ width: chartWidth }, chartStyle]}>
+    <View className="relative" style={{ width: chartWidth }}>
       <Text maxFontSizeMultiplier={1.5} className="text-muted mb-1 font-medium">
         {valueAxisLabel}
       </Text>
@@ -349,6 +331,13 @@ export default function BarChart({
           />
         </View>
       </View>
-    </Animated.View>
+      {!chartLoaded ? (
+        <AnimatedViewStyled
+          pointerEvents="none"
+          exiting={FadeOut.duration(220)}
+          className="bg-card absolute top-0 right-0 bottom-0 left-0"
+        />
+      ) : null}
+    </View>
   );
 }
