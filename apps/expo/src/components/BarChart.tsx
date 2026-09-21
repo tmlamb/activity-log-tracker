@@ -1,4 +1,11 @@
+import { useEffect, useState } from "react";
 import { Text, useWindowDimensions, View } from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import { getBarChartTickValues } from "./bar-chart-axis";
 import { LegendListStyled } from "./Styled";
@@ -101,9 +108,23 @@ export default function BarChart({
   const valueAxisTicks = getBarChartTickValues(maxValue, valueAxisTickInterval);
   const valueAxisPosition = (value: number) =>
     (1 - value / maxValue) * maxBarHeight;
+  const [chartLoaded, setChartLoaded] = useState(false);
+  const chartOpacity = useSharedValue(0);
+  const chartStyle = useAnimatedStyle(() => ({
+    opacity: chartOpacity.value,
+  }));
+
+  useEffect(() => {
+    if (!chartLoaded) return;
+
+    chartOpacity.value = withTiming(1, {
+      duration: 220,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [chartLoaded, chartOpacity]);
 
   return (
-    <View style={{ width: chartWidth }}>
+    <Animated.View style={[{ width: chartWidth }, chartStyle]}>
       <Text maxFontSizeMultiplier={1.5} className="text-muted mb-1 font-medium">
         {valueAxisLabel}
       </Text>
@@ -156,6 +177,7 @@ export default function BarChart({
             initialScrollIndex={boundedInitialScrollIndex}
             recycleItems={false}
             maintainVisibleContentPosition={false}
+            onLoad={() => setChartLoaded(true)}
             style={{ width: plotWidth }}
             contentContainerClassName="items-end"
             keyExtractor={(point) => point.key}
@@ -327,6 +349,6 @@ export default function BarChart({
           />
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
