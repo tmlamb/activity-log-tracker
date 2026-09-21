@@ -10,10 +10,16 @@ import {
 
 import { NavigationCardRow } from "~/components/CardRow";
 import { HeaderPlusAction, HeaderTextAction } from "~/components/HeaderAction";
-import { LegendListStyled } from "~/components/Styled";
+import { LegendSectionListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
 import useExerciseStore from "~/hooks/use-exercise-store";
 import useWorkoutStore from "~/hooks/use-workout-store";
+
+interface ExerciseSection {
+  key: "used" | "available";
+  title: string;
+  data: Partial<Exercise>[];
+}
 
 export default function ExerciseSettingsScreen() {
   const { parentRoute } = useLocalSearchParams<{ parentRoute?: string }>();
@@ -41,14 +47,32 @@ export default function ExerciseSettingsScreen() {
       : true,
   );
 
-  const exerciseList = sortRecordsByName([...filteredUsedExercises]).concat(
-    filteredAvailableExercises.filter(
-      (ae) => !storedExerciseNames.has(normalizeExerciseName(ae.name)),
-    ),
+  const sortedFilteredUsedExercises = sortRecordsByName([
+    ...filteredUsedExercises,
+  ]) as Partial<Exercise>[];
+  const filteredUnusedExercises = filteredAvailableExercises.filter(
+    (ae) => !storedExerciseNames.has(normalizeExerciseName(ae.name)),
   ) as Partial<Exercise>[];
+  const exerciseSections: ExerciseSection[] = [];
 
-  const filteredUnusedExercises = exerciseList.slice(
-    filteredUsedExercises.length,
+  if (sortedFilteredUsedExercises.length > 0) {
+    exerciseSections.push({
+      key: "used",
+      title: "Your Exercises",
+      data: sortedFilteredUsedExercises,
+    });
+  }
+  if (filteredUnusedExercises.length > 0 || exerciseSections.length === 0) {
+    exerciseSections.push({
+      key: "available",
+      title: "Available Exercises",
+      data: filteredUnusedExercises,
+    });
+  }
+
+  const exerciseCount = exerciseSections.reduce(
+    (count, section) => count + section.data.length,
+    0,
   );
 
   return (
@@ -69,7 +93,7 @@ export default function ExerciseSettingsScreen() {
           headerRight: () => (
             <Link href="/(public)/(app)/exercise/form" asChild>
               <HeaderPlusAction
-                disabled={exerciseList.length > 1000}
+                disabled={exerciseCount > 1000}
                 accessibilityLabel="Navigate to Create Exercise Form"
               />
             </Link>
@@ -86,25 +110,22 @@ export default function ExerciseSettingsScreen() {
         }}
       />
       {/* Add Exercise button */}
-      <LegendListStyled
+      <LegendSectionListStyled
         className="flex-1"
         contentContainerClassName="px-5"
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         recycleItems={false}
         maintainVisibleContentPosition={false}
-        data={exerciseList}
+        sections={exerciseSections}
+        stickySectionHeadersEnabled={false}
         keyExtractor={(item) => item.exerciseId ?? item.name ?? ""}
-        ListHeaderComponent={
-          <>
-            <SectionHeading className="leading-snug">
-              {filteredUsedExercises.length > 0
-                ? "Your Exercises"
-                : "Available Exercises"}
-            </SectionHeading>
-          </>
-        }
-        renderItem={({ item, index }) => (
+        renderSectionHeader={({ section }) => (
+          <SectionHeading className="leading-snug">
+            {section.title}
+          </SectionHeading>
+        )}
+        renderItem={({ item, index, section }) => (
           <Animated.View entering={FadeIn} exiting={FadeOut}>
             <Link
               href={
@@ -118,35 +139,16 @@ export default function ExerciseSettingsScreen() {
                 title={item.name}
                 cardVariants={["multiline"]}
                 stack={{
-                  index:
-                    filteredUsedExercises.length > 0 &&
-                    index >= filteredUsedExercises.length
-                      ? index - filteredUsedExercises.length
-                      : index,
-                  size:
-                    filteredUsedExercises.length > 0 &&
-                    index >= filteredUsedExercises.length
-                      ? filteredUnusedExercises.length
-                      : filteredUsedExercises.length || exerciseList.length,
+                  index,
+                  size: section.data.length,
                 }}
                 cardClassName={
-                  (filteredUsedExercises.length > 0 &&
-                    index === filteredUsedExercises.length - 1) ||
-                  index === exerciseList.length - 1
-                    ? "mb-6"
-                    : undefined
+                  index === section.data.length - 1 ? "mb-6" : undefined
                 }
                 titleClassName="shrink pr-0"
                 accessibilityLabel={`Navigate to Edit Exercise with name ${item.name}`}
               />
             </Link>
-            {filteredUsedExercises.length > 0 &&
-              index === filteredUsedExercises.length - 1 &&
-              filteredAvailableExercises.length > 0 && (
-                <SectionHeading className="leading-snug">
-                  Available Exercises
-                </SectionHeading>
-              )}
           </Animated.View>
         )}
       />
