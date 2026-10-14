@@ -394,16 +394,17 @@ export const buildExerciseInsights = (
           ? activity.mainSets[setIndex]
           : activity.warmupSets[setIndex]
         : undefined;
-      const completed = workoutSet?.status === "Done";
-      const notStarted = current && workoutSet?.status === "Planned";
       const actualReps = workoutSet?.actualReps ?? 0;
-      const reps =
-        !workoutSet || workoutSet.status === "Incomplete"
-          ? 0
-          : current
-            ? actualReps > 0
-              ? actualReps
-              : Math.max(activity?.reps ?? 0, 0)
+      const completed = workoutSet?.status === "Done";
+      const notStarted = current && !!workoutSet && actualReps <= 0;
+      const reps = !workoutSet
+        ? 0
+        : current
+          ? actualReps > 0
+            ? actualReps
+            : Math.max(activity?.reps ?? 0, 0)
+          : workoutSet.status === "Incomplete"
+            ? 0
             : workoutSet.status === "Done" && actualReps > 0
               ? actualReps
               : 0;

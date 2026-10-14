@@ -936,6 +936,40 @@ describe("buildExerciseInsights", () => {
     ]);
   });
 
+  it("treats a current active set without actual reps as pending", () => {
+    const currentSession = createSession(
+      createActivity([
+        createWorkoutSet("active", {
+          status: "Ready",
+          weight: { value: 100, unit: "lbs" },
+        }),
+      ]),
+      { templateId: "template-1" },
+    );
+    const currentActivity = currentSession.activities[0];
+    const currentSet = currentActivity?.mainSets[0];
+    if (!currentActivity || !currentSet) {
+      throw new Error("Expected current set fixture");
+    }
+
+    const result = buildExerciseInsights(
+      { name: "Program", programId: "program-1", sessions: [currentSession] },
+      currentSession,
+      currentActivity,
+      currentSet,
+      exercise,
+    );
+
+    expect(result[0]?.points[0]).toMatchObject({
+      reps: 10,
+      weightLbs: 100,
+      volumeLbs: 1000,
+      current: true,
+      completed: false,
+      notStarted: true,
+    });
+  });
+
   it("keeps zero bars for missing, incomplete, and zero-rep historical sets", () => {
     const matchingActivity = (
       activityId: string,

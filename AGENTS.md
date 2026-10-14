@@ -1,2 +1,3 @@
 - For most tasks, check for other similar code and try to follow the conventions used in this app so that things stay consistent.
 - If you are working on a task and see similar code that has a bug or code smell, don't repeat the mistake, but check with operator before making an improvement.
+- Before completing a code change, run the affected package's lint, format check, typecheck, and tests. Report the exact commands and any failures.
