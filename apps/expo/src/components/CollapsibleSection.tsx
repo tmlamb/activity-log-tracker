@@ -141,8 +141,14 @@ export function CollapsibleSectionBody({
   );
   const shouldRenderContent =
     contentHeight > 0 || !collapsed || deferredContentReady;
-  const isContentAbsolute =
-    contentHeight > 0 && (collapsed || initiallyCollapsed);
+  // After measuring, keep content independent of the body's animated height so
+  // wrapped text isn't remeasured against the collapsed height when expanding.
+  const isContentAbsolute = contentHeight > 0;
+  // Reserve space in the same React commit that makes the content absolute,
+  // before Reanimated applies its height on the UI thread.
+  const initialBodyStyle = isContentAbsolute
+    ? { height: initiallyCollapsed ? 0 : contentHeight }
+    : undefined;
   const expansionProgress = useSharedValue(collapsed ? 0 : 1);
   const bodyStyle = useAnimatedStyle(() =>
     contentHeight > 0
@@ -179,7 +185,7 @@ export function CollapsibleSectionBody({
   return (
     <Animated.View
       className={twMerge("w-full overflow-hidden", className)}
-      style={bodyStyle}
+      style={[initialBodyStyle, bodyStyle]}
     >
       <Animated.View
         className={twMerge(
