@@ -31,11 +31,13 @@ import type { WorkoutStore } from "~/hooks/use-workout-store";
 import BottomActionBar from "~/components/BottomActionBar";
 import Card from "~/components/Card";
 import { DetailCardRow, NavigationCardRow } from "~/components/CardRow";
-import { CollapsibleSection } from "~/components/CollapsibleSection";
+import {
+  CollapsibleSection,
+  CollapsibleSectionList,
+} from "~/components/CollapsibleSection";
 import ElapsedTime from "~/components/ElapsedTime";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
-import { LegendListStyled } from "~/components/Styled";
 import SwitchThemed from "~/components/SwitchThemed";
 import { HelperText, ScreenHeading } from "~/components/Typography";
 import useWorkoutStore from "~/hooks/use-workout-store";
@@ -397,13 +399,11 @@ function SessionDetailScreenContent({
         }}
       />
       <View className="flex-1">
-        <LegendListStyled
+        <CollapsibleSectionList
           className="flex-1"
           data={activities}
           contentContainerClassName="pt-36 px-5 pb-24"
           keyExtractor={(item) => item.activityId}
-          recycleItems={false}
-          maintainVisibleContentPosition={{ data: false, size: true }}
           ListHeaderComponent={
             <Animated.View layout={LinearTransition.duration(500)}>
               <DetailCardRow

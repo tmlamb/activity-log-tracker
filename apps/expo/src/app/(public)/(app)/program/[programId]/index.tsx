@@ -16,10 +16,12 @@ import { weekAndDayNumbersFromStart } from "@activity-log/ui/utils";
 import type { WorkoutStore } from "~/hooks/use-workout-store";
 import BottomActionBar from "~/components/BottomActionBar";
 import { DetailCardRow, NavigationCardRow } from "~/components/CardRow";
-import { CollapsibleSection } from "~/components/CollapsibleSection";
+import {
+  CollapsibleSection,
+  CollapsibleSectionList,
+} from "~/components/CollapsibleSection";
 import { HeaderIconAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
-import { LegendListStyled } from "~/components/Styled";
 import {
   HelperText,
   ScreenHeading,
@@ -244,12 +246,11 @@ function ProgramDetailScreenContent({
           ),
         }}
       />
-      <LegendListStyled
+      <CollapsibleSectionList
+        className="flex-1"
         contentContainerClassName="px-5 pt-36 pb-36"
         data={weeks}
         keyExtractor={(item) => item.key}
-        recycleItems={false}
-        maintainVisibleContentPosition={{ data: false, size: true }}
         ListHeaderComponent={
           <>
             <DetailCardRow

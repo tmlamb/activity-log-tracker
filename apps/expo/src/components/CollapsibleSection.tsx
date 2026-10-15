@@ -4,6 +4,7 @@ import type {
   NativeSyntheticEvent,
 } from "react-native";
 import {
+  use,
   useCallback,
   useDeferredValue,
   useEffect,
@@ -13,19 +14,22 @@ import {
 } from "react";
 import { LayoutAnimation, View } from "react-native";
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { AntDesign } from "@expo/vector-icons";
 import { twMerge } from "tailwind-merge";
 
-import PressableThemed from "./PressableThemed";
-import { SectionHeading } from "./Typography";
+import { CollapsibleListItemContext } from "./collapsible-list-context";
+import { CollapsibleListSection } from "./collapsible-list-section";
+import {
+  collapseAnimationDuration,
+  collapseAnimationEasing,
+} from "./collapsible-section-animation";
+import { CollapsibleSectionHeader } from "./collapsible-section-header";
 
-const collapseAnimationDuration = 320;
-const collapseAnimationEasing = Easing.bezier(0.22, 0, 0, 1);
+export { CollapsibleSectionHeader } from "./collapsible-section-header";
+export { CollapsibleSectionList } from "./collapsible-section-list";
 
 export function useCollapsibleSectionScroll() {
   const scrollOffsetRef = useRef(0);
@@ -58,63 +62,6 @@ export function useCollapsibleSectionScroll() {
   );
 }
 
-interface CollapsibleSectionHeaderProps {
-  title: string;
-  collapsed: boolean;
-  onPress: () => void;
-  className?: string;
-  titleClassName?: string;
-  chevronClassName?: string;
-  accessibilityLabel?: string;
-}
-
-export function CollapsibleSectionHeader({
-  title,
-  collapsed,
-  onPress,
-  className,
-  titleClassName,
-  chevronClassName,
-  accessibilityLabel,
-}: CollapsibleSectionHeaderProps) {
-  const chevronRotation = useSharedValue(collapsed ? 0 : 90);
-  const chevronStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${chevronRotation.value}deg` }],
-  }));
-
-  useEffect(() => {
-    chevronRotation.value = withTiming(collapsed ? 0 : 90, { duration: 180 });
-  }, [chevronRotation, collapsed]);
-
-  return (
-    <PressableThemed
-      className={twMerge(
-        "mx-5 flex-row items-center justify-between pt-3 pb-2",
-        className,
-      )}
-      onPress={onPress}
-      accessibilityLabel={
-        accessibilityLabel ?? `${collapsed ? "Expand" : "Collapse"} ${title}`
-      }
-      accessibilityState={{ expanded: !collapsed }}
-    >
-      <SectionHeading
-        placement="inline"
-        className={twMerge("flex-1 pr-3", titleClassName)}
-      >
-        {title}
-      </SectionHeading>
-      <Animated.Text
-        maxFontSizeMultiplier={2.5}
-        className={twMerge("text-muted", chevronClassName)}
-        style={chevronStyle}
-      >
-        <AntDesign name="right" size={15} />
-      </Animated.Text>
-    </PressableThemed>
-  );
-}
-
 interface CollapsibleSectionBodyProps {
   collapsed: boolean;
   children: React.ReactNode;
@@ -143,7 +90,9 @@ export function CollapsibleSectionBody({
     contentHeight > 0 || !collapsed || deferredContentReady;
   // After measuring, keep content independent of the body's animated height so
   // wrapped text isn't remeasured against the collapsed height when expanding.
-  const isContentAbsolute = contentHeight > 0;
+  // A cold open must measure behind a zero-height clip, never briefly enter
+  // normal flow at full height before its animation starts.
+  const isContentAbsolute = initiallyCollapsed || contentHeight > 0;
   // Reserve space in the same React commit that makes the content absolute,
   // before Reanimated applies its height on the UI thread.
   const initialBodyStyle = isContentAbsolute
@@ -202,7 +151,7 @@ export function CollapsibleSectionBody({
   );
 }
 
-interface CollapsibleSectionProps {
+export interface CollapsibleSectionProps {
   title: string;
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
@@ -218,7 +167,21 @@ interface CollapsibleSectionProps {
   premeasureCollapsedContent?: boolean;
 }
 
-export function CollapsibleSection({
+export function CollapsibleSection(props: CollapsibleSectionProps) {
+  const listItem = use(CollapsibleListItemContext);
+
+  return listItem ? (
+    <CollapsibleListSection
+      {...props}
+      itemKey={listItem.itemKey}
+      listLayout={listItem.layout}
+    />
+  ) : (
+    <StandaloneCollapsibleSection {...props} />
+  );
+}
+
+function StandaloneCollapsibleSection({
   title,
   collapsed,
   onCollapsedChange,
