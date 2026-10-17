@@ -6,6 +6,7 @@ import type { ActivityLogBackupStores } from "~/utils/app-data-backup";
 import { PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
+import { HelperText } from "~/components/Typography";
 import useExerciseStore from "~/hooks/use-exercise-store";
 import usePendingSelection from "~/hooks/use-pending-selection";
 import useWorkoutStore from "~/hooks/use-workout-store";
@@ -23,6 +24,7 @@ import {
   commitActivityLogRestore,
   rollbackActivityLogRestore,
 } from "~/utils/backup-restore-transaction";
+import { version as appVersion } from "../../../../../package.json";
 
 export default function SupportScreen() {
   const router = useRouter();
@@ -170,42 +172,47 @@ export default function SupportScreen() {
           ),
         }}
       />
-      <ScrollView contentContainerClassName="px-5 pt-34 gap-6 pb-18">
-        <View>
-          <PrimaryCardAction
-            label="Backup Data"
-            accessibilityLabel="Backup app data"
-            accessibilityHint="Creates a JSON backup containing all workout and exercise data, then opens sharing options."
-            disabled={activeAction != null}
-            onPress={() => void backupData()}
-            stack={{ index: 0, size: 2 }}
-          />
-          <PrimaryCardAction
-            label="Restore Backup Data"
-            labelClassName="text-destructive"
-            cardVariants={["multiline"]}
-            accessibilityLabel="Restore backup data"
-            accessibilityHint="Opens the file picker to select an Activity Log JSON backup."
-            disabled={activeAction != null}
-            onPress={() => void restoreBackupData()}
-            stack={{ index: 1, size: 2 }}
-          />
+      <ScrollView contentContainerClassName="px-5 pt-34 gap-6 justify-between flex-1 pb-18">
+        <View className="gap-6">
+          <View>
+            <PrimaryCardAction
+              label="Backup Data"
+              accessibilityLabel="Backup app data"
+              accessibilityHint="Creates a JSON backup containing all workout and exercise data, then opens sharing options."
+              disabled={activeAction != null}
+              onPress={() => void backupData()}
+              stack={{ index: 0, size: 2 }}
+            />
+            <PrimaryCardAction
+              label="Restore Backup Data"
+              labelClassName="text-destructive"
+              cardVariants={["multiline"]}
+              accessibilityLabel="Restore backup data"
+              accessibilityHint="Opens the file picker to select an Activity Log JSON backup."
+              disabled={activeAction != null}
+              onPress={() => void restoreBackupData()}
+              stack={{ index: 1, size: 2 }}
+            />
+          </View>
+          <View>
+            <ConfirmButton
+              accessibilityLabel="Reset all app data"
+              title="Reset App Data?"
+              message="This will permanently delete all workout programs, sessions, exercises, and equipment settings. Equipment will be restored to the default barbell and plate inventory."
+              confirmText="Reset App Data"
+              onConfirm={() => {
+                resetExercises();
+                resetWorkoutStore();
+                router.back();
+              }}
+            >
+              Reset App Data
+            </ConfirmButton>
+          </View>
         </View>
-        <View>
-          <ConfirmButton
-            accessibilityLabel="Reset all app data"
-            title="Reset App Data?"
-            message="This will permanently delete all workout programs, sessions, exercises, and equipment settings. Equipment will be restored to the default barbell and plate inventory."
-            confirmText="Reset App Data"
-            onConfirm={() => {
-              resetExercises();
-              resetWorkoutStore();
-              router.back();
-            }}
-          >
-            Reset App Data
-          </ConfirmButton>
-        </View>
+        <HelperText placement="blockStart" className="text-center" selectable>
+          v{appVersion}
+        </HelperText>
       </ScrollView>
     </>
   );
