@@ -148,4 +148,21 @@ describe("collapsible list native end space", () => {
     space.finish(id);
     expect(render).not.toHaveBeenCalled();
   });
+
+  it("keeps native measurements authoritative when completion beats the final layout event", () => {
+    const { space, state } = setup();
+    space.prepare(true, 300, true);
+    space.onLayout(300);
+    space.release();
+    space.finish(state().id);
+
+    // LegendList still reports 300 until the queued zero-height event arrives.
+    expect(space.getMeasuredHeight()).toBe(300);
+    space.prepare(true, 300, true);
+    expect(state()).toMatchObject({ height: 600, ready: false });
+    space.onLayout(0);
+    expect(space.canCommit()).toBe(false);
+    space.onLayout(600);
+    expect(space.canCommit()).toBe(true);
+  });
 });

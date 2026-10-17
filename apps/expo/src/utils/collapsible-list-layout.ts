@@ -30,6 +30,7 @@ export function createCollapsibleListLayout() {
   let nextTransitionId = 0;
 
   return {
+    // Returns whether the pending queue changed and needs a preparation pass.
     prepare(
       itemKey: string,
       size: ListItemSize,
@@ -38,13 +39,17 @@ export function createCollapsibleListLayout() {
     ) {
       // A rapid second tap supersedes a queued toggle, but an interrupted native
       // animation keeps its lease until its completion/cancellation callback.
+      let cancelledPending = false;
       for (const [id, change] of changes) {
-        if (change.itemKey === itemKey && change.pending) changes.delete(id);
+        if (change.itemKey === itemKey && change.pending) {
+          changes.delete(id);
+          cancelledPending = true;
+        }
       }
 
       if (!snapshot || Math.abs(snapshot.previousHeight - size.height) < 0.5) {
         commit(0);
-        return;
+        return cancelledPending;
       }
 
       const { itemKeys, startBuffered, endBuffered, scrollLength } = snapshot;
@@ -78,6 +83,7 @@ export function createCollapsibleListLayout() {
           ...itemKeys.slice(endBuffered + 1, endBuffered + followingCount + 1),
         ],
       });
+      return true;
     },
 
     commitPending(setItemSize: (itemKey: string, size: ListItemSize) => void) {

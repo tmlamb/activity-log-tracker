@@ -32,6 +32,7 @@ export function useCollapsibleListLayout(
 ) {
   const [changes] = useState(createCollapsibleListLayout);
   const [retainedKeys, setRetainedKeys] = useState<string[]>([]);
+  const [preparationVersion, setPreparationVersion] = useState(0);
   const [endReserve, setEndReserve] = useState(initialCollapsibleEndSpace);
   const [endSpace] = useState(() =>
     createCollapsibleListEndSpace(setEndReserve),
@@ -83,6 +84,7 @@ export function useCollapsibleListLayout(
     (itemKey: string) => {
       if (changes.cancelItem(itemKey)) {
         prepareEndSpace();
+        setPreparationVersion((version) => version + 1);
         publishRetainedKeys();
       }
     },
@@ -99,7 +101,7 @@ export function useCollapsibleListLayout(
       const index = state?.indexByKey(itemKey);
       const previousHeight =
         state && index != null ? state.sizeAtIndex(index) : 0;
-      changes.prepare(
+      const pendingChanged = changes.prepare(
         itemKey,
         {
           // Preserve the row's own padding, margins and header measurement.
@@ -129,7 +131,11 @@ export function useCollapsibleListLayout(
             }
           : undefined,
       );
+      // A measured no-op can update its section locally, but must not keep
+      // restarting another header's native prewarming window.
+      if (!pendingChanged) return;
       prepareEndSpace();
+      setPreparationVersion((version) => version + 1);
       publishRetainedKeys();
     },
     [changes, endSpace, itemKeys, prepareEndSpace, publishRetainedKeys, ref],
@@ -138,8 +144,8 @@ export function useCollapsibleListLayout(
   useLayoutEffect(() => {
     if (!changes.snapshot().pending || !endReserve.ready) return;
 
-    // Let the retained window reach native before changing any endpoint. Both
-    // the list positions and the section height then change in the same batch.
+    // Only new preparations restart this window; finishing an older animation
+    // can release retained rows without postponing the pending header toggle.
     let commitFrame: number | undefined;
     const mountFrame = requestAnimationFrame(() => {
       commitFrame = requestAnimationFrame(() => {
@@ -162,11 +168,13 @@ export function useCollapsibleListLayout(
   }, [
     animating,
     changes,
-    endReserve.ready,
+    // Observe the acknowledgement object, not just its boolean: React can batch
+    // ready -> waiting -> ready after an aborted commit. That still needs a retry.
+    endReserve,
     endSpace,
+    preparationVersion,
     prepareEndSpace,
     ref,
-    retainedKeys,
   ]);
 
   useEffect(() => {

@@ -75,7 +75,9 @@ export function createCollapsibleListEndSpace(
 
     finish: (id: number) => {
       if (space.id !== id || space.phase !== "releasing") return;
-      measuredHeight = 0;
+      // Completion can reach JS before the final native layout event. Preserve
+      // the last reported height so our geometry stays consistent with LegendList
+      // and a rapid next tap does not wait for a deduplicated measurement.
       publish({ id, phase: "idle", height: 0, ready: true });
     },
 

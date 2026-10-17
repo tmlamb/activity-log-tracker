@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { View } from "react-native";
+import { PixelRatio, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { useSyncLayout } from "@legendapp/list/react-native";
@@ -19,6 +19,9 @@ import { collapsibleSectionLayoutTransition } from "./collapsible-section-animat
 import { CollapsibleSectionHeader } from "./collapsible-section-header";
 
 const animateBodyLayout = collapsibleSectionLayoutTransition.build();
+// Native rounding can change a reported height by one physical pixel as a row
+// moves. Feeding those values back into its height creates a measurement loop.
+const contentLayoutEpsilon = 1 / PixelRatio.get() + 0.01;
 
 interface CollapsibleListSectionProps extends CollapsibleSectionProps {
   itemKey: string;
@@ -146,8 +149,17 @@ export function CollapsibleListSection({
   const handleContentLayout = (event: LayoutChangeEvent) => {
     const height = event.nativeEvent.layout.height;
     onContentLayout?.(height);
-    if (height > 0) measuredContentHeight.current = height;
-    if (height <= 0 || height === contentHeight) return;
+    const previousMeasurement = measuredContentHeight.current;
+    if (
+      height <= 0 ||
+      (previousMeasurement != null &&
+        Math.abs(height - previousMeasurement) <= contentLayoutEpsilon)
+    ) {
+      return;
+    }
+    // Compare to the last accepted natural height, including while its endpoint
+    // is pending. Do not let ignored samples move that baseline a pixel at a time.
+    measuredContentHeight.current = height;
     const nextCollapsed = pendingCollapsed ?? collapsed;
 
     const commit = (id: number) => {
