@@ -150,7 +150,10 @@ export function CollapsibleSectionList<ItemT>({
         }
         onMetricsChange={onMetricsChange}
         recycleItems={false}
-        maintainVisibleContentPosition={{ data: false, size: true }}
+        // EndReserve prevents a collapsing row from clamping the scroll range.
+        // Letting LegendList also retain the visible position can instead move
+        // the entire page down after a shrink, leaving a gap at the top.
+        maintainVisibleContentPosition={{ data: false, size: false }}
       />
     </CollapsibleListItemContext>
   );

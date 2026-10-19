@@ -35,14 +35,14 @@ export default function SupportScreen() {
   const resetWorkoutStore = useWorkoutStore((state) => state.resetWorkoutStore);
   const nativeVersion = Application.nativeApplicationVersion ?? "Unknown";
   const nativeBuild = Application.nativeBuildVersion ?? "Unknown";
-  const updateId = __DEV__
-    ? "Development server"
-    : (Updates.updateId ??
+  const updateIdentifier = __DEV__
+    ? "dev"
+    : (Updates.updateId?.slice(-8) ??
       (Updates.isEnabled
         ? Updates.isEmbeddedLaunch
-          ? "Embedded"
-          : "Unknown"
-        : "Unavailable"));
+          ? "embedded"
+          : "unknown"
+        : "unavailable"));
   const updateDetails = [
     Updates.channel ? `Channel ${Updates.channel}` : null,
     Updates.runtimeVersion ? `Runtime ${Updates.runtimeVersion}` : null,
@@ -230,13 +230,10 @@ export default function SupportScreen() {
         </View>
         <View className="items-center gap-1">
           <HelperText placement="blockStart" className="text-center" selectable>
-            App v{appVersion}
+            App v{appVersion}_{updateIdentifier}
           </HelperText>
           <HelperText placement="blockStart" className="text-center" selectable>
             Installed v{nativeVersion} ({nativeBuild})
-          </HelperText>
-          <HelperText placement="blockStart" className="text-center" selectable>
-            Update {updateId}
           </HelperText>
           {updateDetails ? (
             <HelperText

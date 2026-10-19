@@ -143,7 +143,7 @@ describe("CollapsibleSectionList public API", () => {
       expect.objectContaining({
         itemLayoutAnimation: transition,
         recycleItems: false,
-        maintainVisibleContentPosition: { data: false, size: true },
+        maintainVisibleContentPosition: { data: false, size: false },
       }),
     );
     expect(listRender.mock.calls[0]?.[0].ListFooterComponent).toBeDefined();
