@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Alert, ScrollView, View } from "react-native";
+import * as Application from "expo-application";
 import { Stack, useRouter } from "expo-router";
+import * as Updates from "expo-updates";
 
 import type { ActivityLogBackupStores } from "~/utils/app-data-backup";
 import { PrimaryCardAction } from "~/components/CardRow";
@@ -31,6 +33,22 @@ export default function SupportScreen() {
   const [activeAction, setActiveAction] = useState<"backup" | "restore">();
   const resetExercises = useExerciseStore((state) => state.resetExercises);
   const resetWorkoutStore = useWorkoutStore((state) => state.resetWorkoutStore);
+  const nativeVersion = Application.nativeApplicationVersion ?? "Unknown";
+  const nativeBuild = Application.nativeBuildVersion ?? "Unknown";
+  const updateId = __DEV__
+    ? "Development server"
+    : (Updates.updateId ??
+      (Updates.isEnabled
+        ? Updates.isEmbeddedLaunch
+          ? "Embedded"
+          : "Unknown"
+        : "Unavailable"));
+  const updateDetails = [
+    Updates.channel ? `Channel ${Updates.channel}` : null,
+    Updates.runtimeVersion ? `Runtime ${Updates.runtimeVersion}` : null,
+  ]
+    .filter((value): value is string => value != null)
+    .join(" / ");
 
   const backupData = async () => {
     setActiveAction("backup");
@@ -210,9 +228,26 @@ export default function SupportScreen() {
             </ConfirmButton>
           </View>
         </View>
-        <HelperText placement="blockStart" className="text-center" selectable>
-          v{appVersion}
-        </HelperText>
+        <View className="items-center gap-1">
+          <HelperText placement="blockStart" className="text-center" selectable>
+            App v{appVersion}
+          </HelperText>
+          <HelperText placement="blockStart" className="text-center" selectable>
+            Installed v{nativeVersion} ({nativeBuild})
+          </HelperText>
+          <HelperText placement="blockStart" className="text-center" selectable>
+            Update {updateId}
+          </HelperText>
+          {updateDetails ? (
+            <HelperText
+              placement="blockStart"
+              className="text-center"
+              selectable
+            >
+              {updateDetails}
+            </HelperText>
+          ) : null}
+        </View>
       </ScrollView>
     </>
   );
