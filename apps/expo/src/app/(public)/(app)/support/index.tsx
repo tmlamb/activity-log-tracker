@@ -230,7 +230,7 @@ export default function SupportScreen() {
         </View>
         <View className="items-center gap-1">
           <HelperText placement="blockStart" className="text-center" selectable>
-            App v{appVersion}_{updateIdentifier}
+            App v{appVersion}+{updateIdentifier}
           </HelperText>
           <HelperText placement="blockStart" className="text-center" selectable>
             Installed v{nativeVersion} ({nativeBuild})
