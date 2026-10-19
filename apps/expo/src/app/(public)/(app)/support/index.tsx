@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Alert, ScrollView, View } from "react-native";
-import * as Application from "expo-application";
 import { Stack, useRouter } from "expo-router";
 import * as Updates from "expo-updates";
 
@@ -33,22 +32,14 @@ export default function SupportScreen() {
   const [activeAction, setActiveAction] = useState<"backup" | "restore">();
   const resetExercises = useExerciseStore((state) => state.resetExercises);
   const resetWorkoutStore = useWorkoutStore((state) => state.resetWorkoutStore);
-  const nativeVersion = Application.nativeApplicationVersion ?? "Unknown";
-  const nativeBuild = Application.nativeBuildVersion ?? "Unknown";
   const updateIdentifier = __DEV__
     ? "dev"
-    : (Updates.updateId?.slice(-8) ??
+    : (Updates.updateId?.slice(-4) ??
       (Updates.isEnabled
         ? Updates.isEmbeddedLaunch
           ? "embedded"
           : "unknown"
         : "unavailable"));
-  const updateDetails = [
-    Updates.channel ? `Channel ${Updates.channel}` : null,
-    Updates.runtimeVersion ? `Runtime ${Updates.runtimeVersion}` : null,
-  ]
-    .filter((value): value is string => value != null)
-    .join(" / ");
 
   const backupData = async () => {
     setActiveAction("backup");
@@ -230,20 +221,8 @@ export default function SupportScreen() {
         </View>
         <View className="items-center gap-1">
           <HelperText placement="blockStart" className="text-center" selectable>
-            App v{appVersion}+{updateIdentifier}
+            v{appVersion}+{updateIdentifier}
           </HelperText>
-          <HelperText placement="blockStart" className="text-center" selectable>
-            Installed v{nativeVersion} ({nativeBuild})
-          </HelperText>
-          {updateDetails ? (
-            <HelperText
-              placement="blockStart"
-              className="text-center"
-              selectable
-            >
-              {updateDetails}
-            </HelperText>
-          ) : null}
         </View>
       </ScrollView>
     </>
