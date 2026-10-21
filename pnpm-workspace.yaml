@@ -6,7 +6,7 @@ packages:
 catalog:
   "@eslint/js": 9.39.1
   "@tailwindcss/postcss": 4.2.4
-  "@types/node": 22.18.12
+  "@types/node": 24.19.2
   eslint: 9.39.1
   prettier: 3.6.2
   tailwindcss: 4.2.4
@@ -21,12 +21,10 @@ catalogs:
 
 linkWorkspacePackages: true
 
-onlyBuiltDependencies:
-  - "@tailwindcss/oxide"
-  - esbuild
-
-ignoredBuiltDependencies:
-  - core-js-pure
+allowBuilds:
+  "@tailwindcss/oxide": true
+  core-js-pure: false
+  esbuild: true
 
 overrides:
   lightningcss: 1.30.1
