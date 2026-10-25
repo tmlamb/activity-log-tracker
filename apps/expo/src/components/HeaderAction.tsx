@@ -69,7 +69,7 @@ export function HeaderPlusAction(
 ) {
   return (
     <HeaderIconAction {...props}>
-      <Text maxFontSizeMultiplier={2.5} className="text-primary leading-none">
+      <Text maxFontSizeMultiplier={2.5} className="text-primary">
         <AntDesign name="plus" size={26} />
       </Text>
     </HeaderIconAction>

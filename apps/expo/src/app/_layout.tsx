@@ -1,10 +1,10 @@
 import "../global.css";
 
 import { useEffect } from "react";
-import { AppState } from "react-native";
+import { AppState, useColorScheme } from "react-native";
 import { useNativeVariable } from "react-native-css";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { Stack } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
@@ -19,6 +19,7 @@ SplashScreen.setOptions({ fade: true, duration: 400 });
 const sessionCleanupIntervalMs = 60 * 1000;
 
 export default function RootLayout() {
+  const colorScheme = useColorScheme();
   const hasHydrated = useWorkoutStore((state) => state.hasHydrated);
   const backgroundColor = useNativeVariable("--background") as string;
 
@@ -75,17 +76,19 @@ export default function RootLayout() {
   }
 
   const app = (
-    <KeyboardProvider preload={false}>
-      <StatusBar style="auto" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor },
-        }}
-      >
-        <Stack.Screen name="(public)" />
-      </Stack>
-    </KeyboardProvider>
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <KeyboardProvider preload={false}>
+        <StatusBar style="auto" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor },
+          }}
+        >
+          <Stack.Screen name="(public)" />
+        </Stack>
+      </KeyboardProvider>
+    </ThemeProvider>
   );
 
   return posthog ? (

@@ -267,7 +267,8 @@ export default function ExerciseFormScreen() {
       <KeyboardAwareScrollView
         bottomOffset={40}
         className="flex-1"
-        contentContainerClassName={twMerge("pt-26 pb-18 gap-10")}
+        contentContainerClassName={twMerge("pb-18 gap-10")}
+        contentInsetAdjustmentBehavior="automatic"
       >
         <View>
           <Controller

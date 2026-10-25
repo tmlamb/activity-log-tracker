@@ -248,7 +248,11 @@ export default function ProgramInsights({
   const hasTrendData = insights.muscleGroups.length > 0;
 
   return (
-    <ScrollView className="flex-1" contentContainerClassName="px-5 pt-36 pb-18">
+    <ScrollView
+      className="flex-1"
+      contentContainerClassName="px-5 pb-18"
+      contentInsetAdjustmentBehavior="automatic"
+    >
       <DetailCardRow
         label="Program"
         value={programName}

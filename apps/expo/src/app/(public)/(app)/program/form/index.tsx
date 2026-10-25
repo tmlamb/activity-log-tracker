@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 
@@ -67,7 +67,11 @@ export default function ProgramFormScreen() {
         }}
       />
 
-      <View className="flex-1 gap-10 pt-26">
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="gap-10 pb-18"
+        contentInsetAdjustmentBehavior="automatic"
+      >
         <View>
           <Controller
             name="name"
@@ -112,7 +116,7 @@ export default function ProgramFormScreen() {
             Delete This Program
           </ConfirmButton>
         )}
-      </View>
+      </ScrollView>
     </>
   );
 }

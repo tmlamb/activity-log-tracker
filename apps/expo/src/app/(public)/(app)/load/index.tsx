@@ -119,7 +119,11 @@ export default function LoadScreen() {
       />
 
       <KeyboardAvoidingView className="flex-1" behavior="padding">
-        <ScrollView className="flex-1" contentContainerClassName="pt-26 gap-10">
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="gap-10"
+          contentInsetAdjustmentBehavior="automatic"
+        >
           {/* Type selector: RPE / %1RM */}
           <Controller
             name="type"

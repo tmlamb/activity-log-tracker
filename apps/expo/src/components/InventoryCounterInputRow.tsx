@@ -130,7 +130,7 @@ export default function InventoryCounterInputRow({
             accessible={false}
             pointerEvents="none"
             onLayout={handleInputTextLayout}
-            className="text-foreground absolute text-xl leading-normal font-semibold opacity-0"
+            className="text-foreground absolute text-xl/[normal] font-semibold opacity-0"
           >
             {measuredInputText}
           </Text>
@@ -139,7 +139,7 @@ export default function InventoryCounterInputRow({
               <Text
                 accessible={false}
                 pointerEvents="none"
-                className="text-muted text-xl leading-normal font-semibold"
+                className="text-muted text-xl/[normal] font-semibold"
               >
                 {placeholder}
               </Text>
@@ -153,7 +153,7 @@ export default function InventoryCounterInputRow({
               maxLength={maxLength}
               selectTextOnFocus
               keyboardType={keyboardType}
-              className="text-foreground absolute inset-0 h-10 w-full py-0 text-xl leading-normal font-semibold"
+              className="text-foreground absolute inset-0 h-10 w-full py-0 text-xl/[normal] font-semibold"
               style={{ paddingVertical: 0 }}
               textAlignVertical="center"
               numberOfLines={1}

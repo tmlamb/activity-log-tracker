@@ -232,10 +232,7 @@ function ProgramDetailScreenContent({
                 className="rounded-full"
                 accessibilityLabel={`View insights for ${program.name}`}
               >
-                <Text
-                  maxFontSizeMultiplier={2.5}
-                  className="text-primary leading-none"
-                >
+                <Text maxFontSizeMultiplier={2.5} className="text-primary">
                   <MaterialCommunityIcons
                     name="chart-timeline-variant-shimmer"
                     size={24}
@@ -248,7 +245,8 @@ function ProgramDetailScreenContent({
       />
       <CollapsibleSectionList
         className="flex-1"
-        contentContainerClassName="px-5 pt-36 pb-36"
+        contentContainerClassName="px-5 pb-36"
+        contentInsetAdjustmentBehavior="automatic"
         data={weeks}
         keyExtractor={(item) => item.key}
         ListHeaderComponent={

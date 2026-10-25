@@ -552,10 +552,7 @@ function WorkoutSetDetailScreenContent({
               accessibilityLabel={`View insights for ${exercise.name}`}
               onPress={onInsightsPress}
             >
-              <Text
-                maxFontSizeMultiplier={2.5}
-                className="text-primary leading-none"
-              >
+              <Text maxFontSizeMultiplier={2.5} className="text-primary">
                 <MaterialCommunityIcons
                   name="chart-timeline-variant-shimmer"
                   size={24}
@@ -591,9 +588,10 @@ function WorkoutSetDetailScreenContent({
         bottomOffset={Platform.OS === "ios" && shouldRenderAction ? 86 : 30}
         className="flex-1"
         contentContainerClassName={twMerge(
-          "px-5 pt-36",
+          "px-5",
           isKeyboardOverlayVisible ? "pb-18" : "pb-36",
         )}
+        contentInsetAdjustmentBehavior="automatic"
       >
         <AnimatedViewStyled className="gap-10" layout={LinearTransition}>
           <View>

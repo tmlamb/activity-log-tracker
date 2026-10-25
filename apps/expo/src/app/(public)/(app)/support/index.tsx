@@ -181,7 +181,11 @@ export default function SupportScreen() {
           ),
         }}
       />
-      <ScrollView contentContainerClassName="px-5 pt-34 gap-6 justify-between flex-1 pb-18">
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="grow px-5 gap-6 justify-between pb-18"
+        contentInsetAdjustmentBehavior="automatic"
+      >
         <View className="gap-6">
           <View>
             <PrimaryCardAction

@@ -21,6 +21,9 @@ import type { variantClasses } from "./Card";
 import Card from "./Card";
 import { AnimatedViewStyled } from "./Styled";
 
+// Fixed leading shifts the iOS single-line baseline; use native font metrics.
+const singleLineTextClassName = "text-xl/[normal] tracking-normal";
+
 // When text in an input is right-justified, trailing whitespace is visually ignored.
 // &nbsp; (\u00a0) does not behave this way, so we swap them in.
 const nbspReplace = (str: string) => str.replace(/\u0020/g, "\u00a0");
@@ -290,7 +293,7 @@ export default function TextInputThemed({
             <Text
               maxFontSizeMultiplier={2}
               className={twMerge(
-                "text-xl leading-loose tracking-normal",
+                singleLineTextClassName,
                 value ? "text-foreground" : "text-muted",
               )}
               style={{ paddingLeft, textAlign }}
@@ -306,7 +309,8 @@ export default function TextInputThemed({
           onBlur={onBlur}
           value={value}
           className={twMerge(
-            "text-foreground placeholder:text-muted z-20 flex-1 flex-row items-center justify-center text-xl leading-loose tracking-normal",
+            "text-foreground placeholder:text-muted z-20 flex-1 flex-row items-center justify-center",
+            singleLineTextClassName,
             textInputClassName,
           )}
           style={{

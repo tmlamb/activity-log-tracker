@@ -197,19 +197,6 @@ export default function ExerciseSelectScreen() {
         onSearchButtonPress={() => setSearchFilter("")}
         hideNavigationBar={false}
       />
-      <Host ignoreSafeArea="all">
-        <Stack.Toolbar placement="bottom">
-          <Stack.Toolbar.SearchBarSlot />
-          <Stack.Toolbar.Spacer />
-          <Stack.Toolbar.Button
-            icon="plus"
-            accessibilityLabel="Add exercise"
-            onPress={() => router.push("/(public)/(app)/exercise/form")}
-            tintColor={primaryColor}
-            separateBackground
-          />
-        </Stack.Toolbar>
-      </Host>
       <LegendSectionListStyled
         className="flex-1"
         contentContainerClassName="px-5 py-5"
@@ -249,6 +236,19 @@ export default function ExerciseSelectScreen() {
           </Animated.View>
         )}
       />
+      <Host ignoreSafeArea="all">
+        <Stack.Toolbar placement="bottom">
+          <Stack.Toolbar.SearchBarSlot />
+          <Stack.Toolbar.Spacer />
+          <Stack.Toolbar.Button
+            icon="plus"
+            accessibilityLabel="Add exercise"
+            onPress={() => router.push("/(public)/(app)/exercise/form")}
+            tintColor={primaryColor}
+            separateBackground
+          />
+        </Stack.Toolbar>
+      </Host>
     </>
   );
 }

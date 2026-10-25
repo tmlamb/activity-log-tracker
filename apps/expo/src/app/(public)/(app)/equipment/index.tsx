@@ -223,7 +223,8 @@ export default function EquipmentScreen() {
       <KeyboardAwareScrollView
         bottomOffset={40}
         className="flex-1"
-        contentContainerClassName="px-5 pt-26 pb-18"
+        contentContainerClassName="px-5 pb-18"
+        contentInsetAdjustmentBehavior="automatic"
       >
         <Animated.View layout={LinearTransition} className="gap-6">
           <HelperText placement="blockStart">

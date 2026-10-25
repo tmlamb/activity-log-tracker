@@ -81,7 +81,8 @@ export default function SessionSelectScreen() {
       />
       <LegendListStyled
         className="flex-1"
-        contentContainerClassName="pt-26 px-5 pb-18"
+        contentContainerClassName="px-5 pb-18"
+        contentInsetAdjustmentBehavior="automatic"
         recycleItems={false}
         maintainVisibleContentPosition={false}
         data={sessionsSorted}

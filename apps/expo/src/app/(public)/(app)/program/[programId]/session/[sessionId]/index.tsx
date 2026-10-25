@@ -402,7 +402,8 @@ function SessionDetailScreenContent({
         <CollapsibleSectionList
           className="flex-1"
           data={activities}
-          contentContainerClassName="pt-36 px-5 pb-24"
+          contentContainerClassName="px-5 pb-24"
+          contentInsetAdjustmentBehavior="automatic"
           keyExtractor={(item) => item.activityId}
           ListHeaderComponent={
             <Animated.View layout={LinearTransition.duration(500)}>
