@@ -137,6 +137,7 @@ export function CollapsibleSectionList<ItemT>({
         {...scrollProps}
         ref={listRef}
         data={rows}
+        estimatedItemSize={48}
         keyExtractor={(row) => row.key}
         getItemType={(row) => row.type}
         renderItem={renderRow}

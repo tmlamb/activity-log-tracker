@@ -67,6 +67,7 @@ export default function DashboardScreen() {
         recycleItems={false}
         maintainVisibleContentPosition={false}
         data={programs}
+        estimatedItemSize={53}
         extraData={programs.length}
         ListHeaderComponent={
           programs.length ? (

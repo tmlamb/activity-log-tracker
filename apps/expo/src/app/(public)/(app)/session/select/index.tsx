@@ -86,6 +86,7 @@ export default function SessionSelectScreen() {
         recycleItems={false}
         maintainVisibleContentPosition={false}
         data={sessionsSorted}
+        estimatedItemSize={53}
         extraData={rowStateVersion}
         keyExtractor={(item) => item.sessionId}
         ListHeaderComponent={

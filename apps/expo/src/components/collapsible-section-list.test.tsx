@@ -13,6 +13,7 @@ interface NativeListProps {
   data: unknown[];
   keyExtractor: (item: unknown) => string;
   renderItem: (info: { item: unknown }) => ReactNode;
+  estimatedItemSize: number;
   ListHeaderComponent?: ReactNode;
   ListFooterComponent?: ReactNode;
   onMetricsChange: unknown;
@@ -141,6 +142,7 @@ describe("CollapsibleSectionList public API", () => {
     ]);
     expect(listRender).toHaveBeenCalledWith(
       expect.objectContaining({
+        estimatedItemSize: 48,
         itemLayoutAnimation: transition,
         recycleItems: false,
         maintainVisibleContentPosition: { data: false, size: false },
