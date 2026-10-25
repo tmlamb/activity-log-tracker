@@ -183,7 +183,7 @@ export default function SupportScreen() {
       />
       <ScrollView
         className="flex-1"
-        contentContainerClassName="grow px-5 gap-6 justify-between pb-18"
+        contentContainerClassName="grow px-5 pt-5 gap-6 justify-between pb-18"
         contentInsetAdjustmentBehavior="automatic"
       >
         <View className="gap-6">

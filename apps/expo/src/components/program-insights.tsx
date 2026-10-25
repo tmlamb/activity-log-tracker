@@ -250,7 +250,7 @@ export default function ProgramInsights({
   return (
     <ScrollView
       className="flex-1"
-      contentContainerClassName="px-5 pb-18"
+      contentContainerClassName="px-5 pt-5 pb-18"
       contentInsetAdjustmentBehavior="automatic"
     >
       <DetailCardRow

@@ -25,7 +25,7 @@ export default function ProgramSettingsScreen() {
       />
       <LegendListStyled
         className="flex-1"
-        contentContainerClassName="px-5"
+        contentContainerClassName="px-5 pt-5"
         contentInsetAdjustmentBehavior="automatic"
         recycleItems={false}
         maintainVisibleContentPosition={false}

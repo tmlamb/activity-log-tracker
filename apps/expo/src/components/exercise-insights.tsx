@@ -196,7 +196,7 @@ export default function ExerciseInsights({
   return (
     <ScrollView
       className="flex-1"
-      contentContainerClassName="px-5 pb-18 gap-0"
+      contentContainerClassName="px-5 pt-5 pb-18 gap-0"
       contentInsetAdjustmentBehavior="automatic"
       onLayout={collapsibleSectionScroll.onListLayout}
       onScroll={collapsibleSectionScroll.onScroll}

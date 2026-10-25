@@ -588,7 +588,7 @@ function WorkoutSetDetailScreenContent({
         bottomOffset={Platform.OS === "ios" && shouldRenderAction ? 86 : 30}
         className="flex-1"
         contentContainerClassName={twMerge(
-          "px-5",
+          "px-5 pt-5",
           isKeyboardOverlayVisible ? "pb-18" : "pb-36",
         )}
         contentInsetAdjustmentBehavior="automatic"

@@ -86,7 +86,7 @@ export default function ExerciseMusclesScreen() {
       <KeyboardAwareScrollView
         bottomOffset={40}
         className="flex-1"
-        contentContainerClassName="px-5 pb-18"
+        contentContainerClassName="px-5 pt-5 pb-18"
         contentInsetAdjustmentBehavior="automatic"
       >
         <Animated.View layout={LinearTransition} className="gap-6">

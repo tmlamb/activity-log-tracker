@@ -603,7 +603,7 @@ function SessionFormScreenContent({
       <KeyboardAwareScrollView
         bottomOffset={40}
         className="flex-1"
-        contentContainerClassName="gap-10 pb-18"
+        contentContainerClassName="pt-5 gap-10 pb-18"
         contentInsetAdjustmentBehavior="automatic"
         enabled={isFocused}
       >

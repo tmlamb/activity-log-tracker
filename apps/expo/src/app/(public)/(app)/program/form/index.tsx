@@ -69,7 +69,7 @@ export default function ProgramFormScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-10 pb-18"
+        contentContainerClassName="pt-5 gap-10 pb-18"
         contentInsetAdjustmentBehavior="automatic"
       >
         <View>

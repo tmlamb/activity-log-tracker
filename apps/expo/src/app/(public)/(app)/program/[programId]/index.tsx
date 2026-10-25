@@ -245,7 +245,7 @@ function ProgramDetailScreenContent({
       />
       <CollapsibleSectionList
         className="flex-1"
-        contentContainerClassName="px-5 pb-36"
+        contentContainerClassName="px-5 pt-5 pb-36"
         contentInsetAdjustmentBehavior="automatic"
         data={weeks}
         keyExtractor={(item) => item.key}

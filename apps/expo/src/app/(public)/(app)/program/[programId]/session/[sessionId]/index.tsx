@@ -402,7 +402,7 @@ function SessionDetailScreenContent({
         <CollapsibleSectionList
           className="flex-1"
           data={activities}
-          contentContainerClassName="px-5 pb-24"
+          contentContainerClassName="px-5 pt-5 pb-24"
           contentInsetAdjustmentBehavior="automatic"
           keyExtractor={(item) => item.activityId}
           ListHeaderComponent={
