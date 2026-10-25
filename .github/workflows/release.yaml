@@ -183,7 +183,7 @@ jobs:
 
       - name: Publish Production App Update
         if: steps.version-tag.outputs.skip-update != 'true' && steps.version-change.outputs.result == 'patch'
-        run: cd apps/expo && APP_ENV=production eas update --environment production --branch production --message "$APP_VERSION"
+        run: cd apps/expo && APP_ENV=production eas update --platform ios --environment production --branch production --message "$APP_VERSION"
 
   build-production:
     name: Build Production Mobile App

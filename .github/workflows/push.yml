@@ -211,7 +211,7 @@ jobs:
         run: pnpm install
 
       - name: Publish Preview App Update
-        run: cd apps/expo && APP_ENV=preview eas update --environment preview --branch preview --message "${{ github.sha }}"
+        run: cd apps/expo && APP_ENV=preview eas update --platform ios --environment preview --branch preview --message "${{ github.sha }}"
 
   build-preview:
     name: Build Preview Mobile App
