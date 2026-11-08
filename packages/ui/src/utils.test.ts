@@ -770,6 +770,43 @@ describe("buildExerciseInsights", () => {
     oneRepMax: { value: 200, unit: "lbs" },
   };
 
+  it("inserts zero points for each missed calendar week between sessions", () => {
+    const sessions = [new Date(2026, 11, 30), new Date(2027, 0, 20)].map(
+      (start, index) =>
+        createSession(
+          createActivity([
+            createWorkoutSet(`set-${index}`, {
+              status: "Done",
+              actualReps: 10,
+              weight: { value: 100, unit: "lbs" },
+            }),
+          ]),
+          { sessionId: `session-${index}`, templateId: "template-1", start },
+        ),
+    );
+    const currentSession = sessions[1];
+    const currentActivity = currentSession?.activities[0];
+    const currentSet = currentActivity?.mainSets[0];
+    if (!currentSession || !currentActivity || !currentSet) {
+      throw new Error("Expected current set fixture");
+    }
+
+    const result = buildExerciseInsights(
+      { name: "Program", programId: "program-1", sessions },
+      currentSession,
+      currentActivity,
+      currentSet,
+      exercise,
+    );
+
+    expect(result[0]?.points).toMatchObject([
+      { sessionId: "session-0", volumeLbs: 1000 },
+      { date: new Date(2027, 0, 3), reps: 0, volumeLbs: 0, current: false },
+      { date: new Date(2027, 0, 10), reps: 0, volumeLbs: 0, current: false },
+      { sessionId: "session-1", volumeLbs: 1000, current: true },
+    ]);
+  });
+
   it("compares the same set position across the complete template series", () => {
     const sessions = Array.from({ length: 6 }, (_, index) => {
       const current = index === 3;

@@ -1,4 +1,10 @@
-import { addDays, differenceInCalendarDays } from "date-fns";
+import {
+  addDays,
+  addWeeks,
+  differenceInCalendarDays,
+  differenceInCalendarWeeks,
+  startOfWeek,
+} from "date-fns";
 
 export interface Weight {
   value: number;
@@ -439,7 +445,29 @@ export const buildExerciseInsights = (
       };
     });
 
-    return { ...setInsights, points };
+    const pointsWithMissingWeeks = points.flatMap((point, index) => {
+      const previous = points[index - 1];
+      if (!previous?.date || !point.date) return [point];
+
+      const weekGap = differenceInCalendarWeeks(point.date, previous.date);
+      const previousWeek = startOfWeek(previous.date);
+      const missingWeeks = Array.from(
+        { length: Math.max(weekGap - 1, 0) },
+        (_, weekIndex): ExerciseSetInsightPoint => ({
+          sessionId: `missing-week-${previous.sessionId}-${point.sessionId}-${weekIndex}`,
+          date: addWeeks(previousWeek, weekIndex + 1),
+          reps: 0,
+          weightLbs: 0,
+          volumeLbs: 0,
+          current: false,
+          completed: false,
+          notStarted: false,
+        }),
+      );
+      return [...missingWeeks, point];
+    });
+
+    return { ...setInsights, points: pointsWithMissingWeeks };
   });
 };
 
