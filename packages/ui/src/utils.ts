@@ -841,7 +841,8 @@ export const buildProgramInsights = (
       const pendingSets = isSessionTerminalStatus(session.status)
         ? []
         : activity.mainSets.filter(
-            (workoutSet) => workoutSet.status === "Planned",
+            (workoutSet) =>
+              workoutSet.status === "Planned" || workoutSet.status === "Ready",
           );
       if (!completedSets.length && !pendingSets.length) return;
 

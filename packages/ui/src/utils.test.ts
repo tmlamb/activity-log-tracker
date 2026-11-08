@@ -1297,14 +1297,72 @@ describe("buildProgramInsights", () => {
         hardSets: 1,
         easySets: 1,
         pending: {
-          sets: 2,
-          reps: 20,
-          volumeLbs: 1_700,
+          sets: 3,
+          reps: 30,
+          volumeLbs: 2_800,
           hardSets: 0,
           easySets: 0,
         },
       },
     ]);
+  });
+
+  it("includes the last ready set as pending until it is completed", () => {
+    const exercise: Exercise = {
+      exerciseId: "exercise-1",
+      name: "Bench Press",
+      loadKind: "BARBELL",
+      primaryMuscles: ["Chest"],
+    };
+    const activity = createActivity([
+      createWorkoutSet("done", {
+        status: "Done",
+        actualReps: 10,
+        weight: { value: 100, unit: "lbs" },
+      }),
+      createWorkoutSet("ready", {
+        status: "Ready",
+        weight: { value: 100, unit: "lbs" },
+      }),
+    ]);
+    const session = createSession(activity, { start: new Date(2026, 7, 30) });
+    const program: Program = {
+      name: "Strength",
+      programId: "program-1",
+      sessions: [
+        createSession(createActivity([]), {
+          sessionId: "anchor",
+          status: "Done",
+          start: new Date(2026, 7, 24),
+        }),
+        session,
+      ],
+    };
+    const now = new Date(2026, 7, 30, 12);
+
+    expect(
+      buildProgramInsights(program, [exercise], now).weeks[0]?.muscleGroups[0],
+    ).toMatchObject({
+      sets: 1,
+      volumeLbs: 1_000,
+      pending: { sets: 1, reps: 10, volumeLbs: 1_000 },
+    });
+
+    activity.mainSets[1] = {
+      ...createWorkoutSet("ready", {
+        status: "Done",
+        actualReps: 10,
+        weight: { value: 100, unit: "lbs" },
+      }),
+      type: "Main",
+    };
+    expect(
+      buildProgramInsights(program, [exercise], now).weeks[0]?.muscleGroups[0],
+    ).toMatchObject({
+      sets: 2,
+      volumeLbs: 2_000,
+      pending: { sets: 0, reps: 0, volumeLbs: 0 },
+    });
   });
 
   it("ignores sets that cannot be assigned to a muscle group", () => {
