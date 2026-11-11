@@ -58,6 +58,10 @@ import { HelperText } from "~/components/Typography";
 import usePendingSelection from "~/hooks/use-pending-selection";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 import useWorkoutStore from "~/hooks/use-workout-store";
+import {
+  fallbackSetWeight,
+  numberToWorkoutSetArray,
+} from "~/utils/workout-set-count";
 
 const activityListTransition = LinearTransition.duration(220);
 const activityEditorCardClassName =
@@ -74,47 +78,6 @@ export interface SessionFormData {
   status: Session["status"];
   activities: Activity[];
 }
-
-const numberToWorkoutSetArray = <
-  T extends {
-    workoutSetId: string;
-    type: string;
-    status: string;
-    start?: Date;
-    end?: Date;
-    actualReps?: number;
-    feedback: string;
-  },
->(
-  length: number,
-  current: T[],
-  type: "Warmup" | "Main",
-  session?: Session,
-): T[] => {
-  const newArray = [...current];
-  const sessionIsTerminal = session
-    ? isSessionTerminalStatus(session.status)
-    : false;
-  if (length < current.length) {
-    newArray.splice(length, newArray.length - length);
-  } else if (length > newArray.length) {
-    newArray.push(
-      ...Array.from(Array(length - newArray.length)).map(
-        () =>
-          ({
-            workoutSetId: uuidv4(),
-            type,
-            status: sessionIsTerminal ? "Incomplete" : "Planned",
-            start: sessionIsTerminal ? session?.end : undefined,
-            end: sessionIsTerminal ? session?.end : undefined,
-            actualReps: 0,
-            feedback: "Neutral",
-          }) as T,
-      ),
-    );
-  }
-  return newArray;
-};
 
 export default function SessionFormScreen() {
   const { programId, sessionId } = useLocalSearchParams<{
@@ -224,6 +187,21 @@ function SessionFormScreenContent({
   const watchName = useWatch({ control, name: "name" });
   const watchActivities = useWatch({ control, name: "activities" });
   const showRenameTemplateInput = session != null && watchName !== session.name;
+
+  const templateWeightSources = [
+    ...(session ? [session] : []),
+    ...(templateSourceSession
+      ? [templateSourceSession]
+      : session?.templateId
+        ? sessions
+            .filter(
+              (item) =>
+                item.templateId === session.templateId &&
+                item.sessionId !== session.sessionId,
+            )
+            .reverse()
+        : []),
+  ];
 
   // Consume pending selection store (populated by exercise/select, load, session/select modals)
   const {
@@ -917,9 +895,18 @@ function SessionFormScreenContent({
                                     Number(v),
                                     watchActivities[index]?.warmupSets ?? [],
                                     "Warmup",
+                                    uuidv4,
                                     session
                                       ? { ...session, end: getValues("end") }
                                       : undefined,
+                                    fallbackSetWeight(
+                                      getValues("activities"),
+                                      index,
+                                      "Warmup",
+                                      templateWeightSources,
+                                    ),
+                                    getValues(`activities.${index}.load`)
+                                      .type === "RPE",
                                   ),
                                 )
                               }
@@ -962,9 +949,18 @@ function SessionFormScreenContent({
                                     Number(v),
                                     watchActivities[index]?.mainSets ?? [],
                                     "Main",
+                                    uuidv4,
                                     session
                                       ? { ...session, end: getValues("end") }
                                       : undefined,
+                                    fallbackSetWeight(
+                                      getValues("activities"),
+                                      index,
+                                      "Main",
+                                      templateWeightSources,
+                                    ),
+                                    getValues(`activities.${index}.load`)
+                                      .type === "RPE",
                                   ),
                                 )
                               }
