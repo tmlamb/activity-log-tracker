@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, ScrollView, Text, View } from "react-native";
+import { KeyboardAvoidingView, ScrollView, View } from "react-native";
 import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
 import type { Load } from "@activity-log/ui/utils";
 
+import { Text } from "~/components/font-scale-text";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import { AnimatedViewStyled } from "~/components/Styled";

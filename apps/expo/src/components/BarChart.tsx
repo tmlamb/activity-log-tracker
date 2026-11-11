@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Text, useWindowDimensions, View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { FadeOut } from "react-native-reanimated";
 
 import { getBarChartTickValues } from "./bar-chart-axis";
+import { Text } from "./font-scale-text";
 import { AnimatedViewStyled, LegendListStyled } from "./Styled";
 
 const numberFormatter = new Intl.NumberFormat("en-US", {

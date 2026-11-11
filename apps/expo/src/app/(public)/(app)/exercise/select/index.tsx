@@ -1,6 +1,6 @@
 import type { Href } from "expo-router";
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { useNativeVariable } from "react-native-css";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -8,6 +8,8 @@ import { Host } from "@expo/ui";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import type { Exercise } from "@activity-log/ui/utils";
+
+import { Text } from "~/components/font-scale-text";
 
 import "react-native-get-random-values";
 

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Modal, Platform, Pressable, Text, View } from "react-native";
+import { Modal, Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@expo/ui/community/datetime-picker";
 import { format } from "date-fns";
 
 import type { variantClasses } from "./Card";
 import { NavigationCardRow } from "./CardRow";
+import { Text } from "./font-scale-text";
 import { HeaderTextAction } from "./HeaderAction";
 
 type DateTimeInputMode = "date" | "time";

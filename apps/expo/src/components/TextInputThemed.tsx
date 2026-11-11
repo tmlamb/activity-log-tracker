@@ -12,13 +12,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 import { FadeInRight, FadeOutRight } from "react-native-reanimated";
 import Feather from "@expo/vector-icons/Feather";
 import { twMerge } from "tailwind-merge";
 
 import type { variantClasses } from "./Card";
 import Card from "./Card";
+import { Text } from "./font-scale-text";
 import { AnimatedViewStyled } from "./Styled";
 
 // Fixed leading shifts the iOS single-line baseline; use native font metrics.

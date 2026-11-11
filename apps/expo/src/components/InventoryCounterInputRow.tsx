@@ -1,10 +1,11 @@
 import type { KeyboardTypeOptions, LayoutChangeEvent } from "react-native";
 import { useRef, useState } from "react";
-import { Alert, Pressable, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, TextInput, View } from "react-native";
 import { Entypo, Feather } from "@expo/vector-icons";
 import { twMerge } from "tailwind-merge";
 
 import Card from "./Card";
+import { Text } from "./font-scale-text";
 import PressableThemed from "./PressableThemed";
 
 function assignRef<T>(ref: React.Ref<T> | undefined, value: T | null) {

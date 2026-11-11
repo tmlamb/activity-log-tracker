@@ -10,6 +10,7 @@ import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { PostHogProvider } from "posthog-react-native";
 
+import { FontScaleProvider } from "~/components/font-scale-text";
 import useWorkoutStore from "~/hooks/use-workout-store";
 import { captureException, posthog } from "~/utils/posthog";
 
@@ -79,14 +80,16 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <KeyboardProvider preload={false}>
         <StatusBar style="auto" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor },
-          }}
-        >
-          <Stack.Screen name="(public)" />
-        </Stack>
+        <FontScaleProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor },
+            }}
+          >
+            <Stack.Screen name="(public)" />
+          </Stack>
+        </FontScaleProvider>
       </KeyboardProvider>
     </ThemeProvider>
   );

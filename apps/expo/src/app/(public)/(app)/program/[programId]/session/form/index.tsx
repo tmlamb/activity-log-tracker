@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { Alert, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
   FadeInLeft,
@@ -28,6 +28,8 @@ import type {
   Session,
   WarmupSet,
 } from "@activity-log/ui/utils";
+
+import { Text } from "~/components/font-scale-text";
 
 import "react-native-get-random-values";
 

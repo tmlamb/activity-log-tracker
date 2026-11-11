@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 
 import type {
@@ -11,6 +11,7 @@ import type { BarChartPoint } from "./BarChart";
 import BarChart, { formatBarChartValue } from "./BarChart";
 import Card from "./Card";
 import { DetailCardRow } from "./CardRow";
+import { Text } from "./font-scale-text";
 import PressableThemed from "./PressableThemed";
 
 type MetricKey = keyof ProgramInsightMetrics;

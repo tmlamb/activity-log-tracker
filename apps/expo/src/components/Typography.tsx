@@ -1,6 +1,7 @@
 import type { TextProps } from "react-native";
-import { Text } from "react-native";
 import { twMerge } from "tailwind-merge";
+
+import { Text } from "./font-scale-text";
 
 type TypographyProps = TextProps & {
   className?: string;

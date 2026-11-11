@@ -1,7 +1,8 @@
-import { Alert, Text } from "react-native";
+import { Alert } from "react-native";
 
 import type { variantClasses } from "./Card";
 import Card from "./Card";
+import { Text } from "./font-scale-text";
 import PressableThemed from "./PressableThemed";
 
 interface Props {

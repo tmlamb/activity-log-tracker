@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { format } from "date-fns";
 
 import type { ExerciseSetInsights } from "@activity-log/ui/utils";
@@ -12,6 +12,7 @@ import {
   CollapsibleSection,
   useCollapsibleSectionScroll,
 } from "./CollapsibleSection";
+import { Text } from "./font-scale-text";
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { useNativeVariable } from "react-native-css";
 import Animated, {
   FadeInDown,
@@ -12,6 +12,7 @@ import { twMerge } from "tailwind-merge";
 
 import type { variantClasses } from "./Card";
 import Card from "./Card";
+import { Text } from "./font-scale-text";
 import PressableThemed from "./PressableThemed";
 import { AnimatedTextStyled } from "./Styled";
 

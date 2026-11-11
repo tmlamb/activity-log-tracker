@@ -1,8 +1,8 @@
 import type { PressableProps } from "react-native";
-import { Text } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { twMerge } from "tailwind-merge";
 
+import { Text } from "./font-scale-text";
 import PressableThemed from "./PressableThemed";
 
 interface HeaderTextActionProps extends PressableProps {

@@ -1,6 +1,6 @@
 import type { PressableProps } from "react-native";
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -11,6 +11,7 @@ import { twMerge } from "tailwind-merge";
 
 import type { variantClasses } from "./Card";
 import Card from "./Card";
+import { AnimatedText, Text } from "./font-scale-text";
 import PressableThemed from "./PressableThemed";
 
 interface CardRowStack {
@@ -229,7 +230,7 @@ export function NavigationCardRow({
             ) : null}
             {trailingText != null ? (
               animateTrailingText ? (
-                <Animated.Text
+                <AnimatedText
                   key={trailingTextAnimationKey}
                   entering={FadeIn.duration(250)}
                   exiting={FadeOut.duration(250)}
@@ -240,7 +241,7 @@ export function NavigationCardRow({
                   )}
                 >
                   {trailingText}
-                </Animated.Text>
+                </AnimatedText>
               ) : (
                 <Text
                   maxFontSizeMultiplier={2.5}

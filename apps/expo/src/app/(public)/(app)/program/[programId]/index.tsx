@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import {
   Link,
   Redirect,
@@ -20,6 +20,7 @@ import {
   CollapsibleSection,
   CollapsibleSectionList,
 } from "~/components/CollapsibleSection";
+import { Text } from "~/components/font-scale-text";
 import { HeaderIconAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
 import {

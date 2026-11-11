@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { Alert, View } from "react-native";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import {
   Link,
@@ -36,6 +36,7 @@ import {
   CollapsibleSectionList,
 } from "~/components/CollapsibleSection";
 import ElapsedTime from "~/components/ElapsedTime";
+import { Text } from "~/components/font-scale-text";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
 import SwitchThemed from "~/components/SwitchThemed";

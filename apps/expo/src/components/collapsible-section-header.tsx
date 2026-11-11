@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import Animated, {
+import {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -7,6 +7,7 @@ import Animated, {
 import { AntDesign } from "@expo/vector-icons";
 import { twMerge } from "tailwind-merge";
 
+import { AnimatedText } from "./font-scale-text";
 import PressableThemed from "./PressableThemed";
 import { SectionHeading } from "./Typography";
 
@@ -56,13 +57,13 @@ export function CollapsibleSectionHeader({
       >
         {title}
       </SectionHeading>
-      <Animated.Text
+      <AnimatedText
         maxFontSizeMultiplier={2.5}
         className={twMerge("text-muted", chevronClassName)}
         style={chevronStyle}
       >
         <AntDesign name="right" size={15} />
-      </Animated.Text>
+      </AnimatedText>
     </PressableThemed>
   );
 }

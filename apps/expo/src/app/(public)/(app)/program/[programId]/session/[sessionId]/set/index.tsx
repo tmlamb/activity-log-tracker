@@ -3,7 +3,6 @@ import {
   Keyboard,
   Platform,
   TextInput as RNTextInput,
-  Text,
   View,
 } from "react-native";
 import { useNativeVariable } from "react-native-css";
@@ -50,6 +49,7 @@ import BottomActionBar from "~/components/BottomActionBar";
 import { DetailCardRow } from "~/components/CardRow";
 import DumbbellChart from "~/components/DumbbellChart";
 import ElapsedTime from "~/components/ElapsedTime";
+import { Text } from "~/components/font-scale-text";
 import { HeaderIconAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PlateChart from "~/components/PlateChart";

@@ -5,12 +5,13 @@ import type {
   TextInputKeyPressEvent,
 } from "react-native";
 import { useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { FadeInDown, FadeOutDown } from "react-native-reanimated";
 import { twMerge } from "tailwind-merge";
 
 import type { variantClasses } from "./Card";
 import Card from "./Card";
+import { Text } from "./font-scale-text";
 import { AnimatedViewStyled } from "./Styled";
 
 const inputLineHeight = 22;

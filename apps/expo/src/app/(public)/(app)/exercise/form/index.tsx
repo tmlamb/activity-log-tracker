@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import Animated, {
   FadeInUp,
   FadeOutUp,
@@ -14,6 +14,8 @@ import {
   exerciseNamesMatch,
   normalizeMuscleGroups,
 } from "@activity-log/ui/utils";
+
+import { Text } from "~/components/font-scale-text";
 
 import "react-native-get-random-values";
 
