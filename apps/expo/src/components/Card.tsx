@@ -53,7 +53,7 @@ export default function Card({
 }: CardProps) {
   const isGlass = variants.includes("glass");
   const contentClassName =
-    "relative h-full w-full flex-row items-center justify-between gap-2 px-5 py-4";
+    "relative h-full w-full flex-row items-center justify-between gap-2 px-5";
   const nativeContentClassName =
     "relative w-full flex-row items-center justify-between gap-2 px-2";
 
@@ -61,7 +61,7 @@ export default function Card({
     isGlass ? "overflow-hidden" : "bg-card",
     isGlass ? "h-[53px]" : "h-[53px]",
     "w-full rounded-4xl",
-    isGlass ? "" : "flex-row items-center justify-between gap-2 px-5 py-4",
+    isGlass ? "" : "flex-row items-center justify-between gap-2 px-5",
     ...variants.map((variant) => variantClasses[variant]),
     stack
       ? [

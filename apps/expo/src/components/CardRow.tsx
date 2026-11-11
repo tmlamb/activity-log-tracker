@@ -26,6 +26,7 @@ interface DetailCardRowProps {
   className?: string;
   labelClassName?: string;
   valueClassName?: string;
+  valueMaxFontSizeMultiplier?: number;
   valueNumberOfLines?: number;
   trailingAccessory?: React.ReactNode;
 }
@@ -38,6 +39,7 @@ export function DetailCardRow({
   className,
   labelClassName,
   valueClassName,
+  valueMaxFontSizeMultiplier = 2.5,
   valueNumberOfLines,
   trailingAccessory,
 }: DetailCardRowProps) {
@@ -59,7 +61,7 @@ export function DetailCardRow({
               {label}
             </Text>
             <Text
-              maxFontSizeMultiplier={2.5}
+              maxFontSizeMultiplier={valueMaxFontSizeMultiplier}
               className={twMerge(
                 "text-muted max-w-full shrink-0 pb-0.5 text-left text-xl leading-tight",
                 valueClassName,
@@ -86,7 +88,7 @@ export function DetailCardRow({
         {label}
       </Text>
       <Text
-        maxFontSizeMultiplier={2.5}
+        maxFontSizeMultiplier={valueMaxFontSizeMultiplier}
         className={twMerge(
           "text-muted flex-1 text-right text-xl",
           valueClassName,
@@ -104,6 +106,7 @@ interface NavigationCardRowProps extends PressableProps {
   title: React.ReactNode;
   leadingText?: React.ReactNode;
   leadingTextClassName?: string;
+  leadingTextAllowFontScaling?: boolean;
   stack?: CardRowStack;
   cardVariants?: (keyof typeof variantClasses)[];
   className?: string;
@@ -126,6 +129,7 @@ export function NavigationCardRow({
   title,
   leadingText,
   leadingTextClassName,
+  leadingTextAllowFontScaling,
   stack,
   cardVariants,
   className,
@@ -166,6 +170,7 @@ export function NavigationCardRow({
         {leadingText != null ? (
           <View className="min-w-0 flex-1 flex-row items-start gap-4">
             <Text
+              allowFontScaling={leadingTextAllowFontScaling}
               maxFontSizeMultiplier={2.5}
               className={twMerge(
                 "text-muted shrink-0 self-center text-xl",
@@ -198,9 +203,9 @@ export function NavigationCardRow({
                   }
                 >
                   <Text
-                    maxFontSizeMultiplier={2.5}
+                    maxFontSizeMultiplier={1}
                     className={twMerge(
-                      "text-muted text-left text-lg leading-none",
+                      "text-muted text-left text-lg leading-[20px]",
                       centerTextClassName,
                     )}
                     numberOfLines={1}
@@ -209,9 +214,9 @@ export function NavigationCardRow({
                   </Text>
                   {centerTextLines[1] != null ? (
                     <Text
-                      maxFontSizeMultiplier={2.5}
+                      maxFontSizeMultiplier={1}
                       className={twMerge(
-                        "text-muted text-left text-lg leading-none",
+                        "text-muted text-left text-lg leading-[20px]",
                         centerTextClassName,
                       )}
                       numberOfLines={1}
@@ -305,14 +310,14 @@ export function PrimaryCardAction({
       >
         {icon != null ? (
           <Text
-            maxFontSizeMultiplier={2.5}
+            maxFontSizeMultiplier={1.2}
             className={twMerge("text-primary text-xl", iconClassName)}
           >
             {icon}
           </Text>
         ) : null}
         <Text
-          maxFontSizeMultiplier={2.5}
+          maxFontSizeMultiplier={2}
           className={twMerge(
             "text-primary text-xl",
             icon ? "px-3" : null,

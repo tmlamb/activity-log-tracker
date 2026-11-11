@@ -82,7 +82,7 @@ export default function SegmentedInputThemed<T extends string>({
           >
             <View className="h-full justify-center">
               <Text
-                maxFontSizeMultiplier={2}
+                allowFontScaling={false}
                 numberOfLines={1}
                 className={twMerge(
                   error
@@ -107,7 +107,7 @@ export default function SegmentedInputThemed<T extends string>({
             pointerEvents="none"
           >
             <Text
-              maxFontSizeMultiplier={2}
+              allowFontScaling={false}
               numberOfLines={1}
               className={twMerge(
                 error
@@ -183,7 +183,7 @@ export default function SegmentedInputThemed<T extends string>({
                   )}
                 >
                   <Text
-                    maxFontSizeMultiplier={2.5}
+                    allowFontScaling={false}
                     numberOfLines={1}
                     className={twMerge(
                       selected

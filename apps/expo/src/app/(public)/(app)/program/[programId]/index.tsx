@@ -77,6 +77,7 @@ function WeekSessions({
               title={session.name}
               leadingText={day == null ? undefined : `Day ${day}`}
               leadingTextClassName="w-[46px] tabular-nums"
+              leadingTextAllowFontScaling={false}
               cardVariants={["multiline"]}
               stack={{ index, size: sessions.length }}
               cardClassName={index === sessions.length - 1 ? "mb-3" : undefined}

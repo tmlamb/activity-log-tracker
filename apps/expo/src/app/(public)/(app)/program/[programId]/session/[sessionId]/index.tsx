@@ -149,6 +149,8 @@ function WorkoutSetCard({
     >
       <NavigationCardRow
         title={title}
+        cardVariants={["multiline"]}
+        titleClassName="py-3"
         stack={{
           index,
           size: activity.mainSets.length + activity.warmupSets.length,
@@ -422,6 +424,7 @@ function SessionDetailScreenContent({
                   <DetailCardRow
                     label="Start Time"
                     value={format(session.start, "MMM do,  hh:mm aa")}
+                    valueMaxFontSizeMultiplier={1.25}
                     stack={{ index: 1, size: summaryCardCount }}
                   />
                   <ElapsedTime
