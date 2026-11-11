@@ -612,6 +612,7 @@ function SessionFormScreenContent({
             label="Plan From"
             value={fromType}
             accessibilityLabel="Choose session source"
+            animateOnPress={false}
             cardVariants={["square"]}
             compact
             options={[

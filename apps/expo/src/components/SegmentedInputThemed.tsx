@@ -1,10 +1,19 @@
+import { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
-import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
+import { useNativeVariable } from "react-native-css";
+import Animated, {
+  FadeInDown,
+  FadeOutDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { twMerge } from "tailwind-merge";
 
 import type { variantClasses } from "./Card";
 import Card from "./Card";
 import PressableThemed from "./PressableThemed";
+import { AnimatedTextStyled } from "./Styled";
 
 interface SegmentedOption<T extends string> {
   label: string;
@@ -13,21 +22,43 @@ interface SegmentedOption<T extends string> {
   tone?: "primary" | "muted" | "destructive" | "info";
 }
 
-const selectedOptionToneClasses = {
-  primary: { container: "bg-primary", text: "text-primary-foreground" },
-  muted: { container: "bg-muted", text: "text-muted-foreground" },
-  info: { container: "bg-info", text: "text-info-foreground" },
-  destructive: {
-    container: "bg-destructive",
-    text: "text-destructive-foreground",
-  },
-};
+const slideDuration = 475;
+const colorDuration = 700;
+
+function OptionLabel({
+  label,
+  color,
+  selected,
+}: {
+  label: string;
+  color: string;
+  selected: boolean;
+}) {
+  const animatedColor = useSharedValue(color);
+  const style = useAnimatedStyle(() => ({ color: animatedColor.value }));
+
+  useEffect(() => {
+    animatedColor.set(withTiming(color, { duration: colorDuration }));
+  }, [animatedColor, color]);
+
+  return (
+    <AnimatedTextStyled
+      allowFontScaling={false}
+      numberOfLines={1}
+      className={twMerge("text-xl", selected && "font-bold")}
+      style={style}
+    >
+      {label}
+    </AnimatedTextStyled>
+  );
+}
 
 interface SegmentedInputThemedProps<T extends string> {
   label: string;
   value?: T;
   options: SegmentedOption<T>[];
   onChange: (value: T) => void;
+  animateOnPress?: boolean;
   error?: string;
   className?: string;
   labelContainerClassName?: string;
@@ -48,6 +79,7 @@ export default function SegmentedInputThemed<T extends string>({
   value,
   options,
   onChange,
+  animateOnPress = true,
   error,
   className,
   labelContainerClassName,
@@ -60,6 +92,100 @@ export default function SegmentedInputThemed<T extends string>({
   stack,
 }: SegmentedInputThemedProps<T>) {
   const hasThreeOptions = options.length >= 3;
+  const primaryColor = useNativeVariable("--primary") as string;
+  const mutedColor = useNativeVariable("--muted") as string;
+  const infoColor = useNativeVariable("--info") as string;
+  const destructiveColor = useNativeVariable("--destructive") as string;
+  const foregroundColor = useNativeVariable("--foreground") as string;
+  const primaryForeground = useNativeVariable("--primary-foreground") as string;
+  const mutedForeground = useNativeVariable("--muted-foreground") as string;
+  const infoForeground = useNativeVariable("--info-foreground") as string;
+  const destructiveForeground = useNativeVariable(
+    "--destructive-foreground",
+  ) as string;
+  const colors = {
+    primary: primaryColor,
+    muted: mutedColor,
+    info: infoColor,
+    destructive: destructiveColor,
+  };
+  const selectedIndex = options.findIndex((option) => option.value === value);
+  const selectedOption = options[selectedIndex];
+  const selectedColor = colors[selectedOption?.tone ?? "primary"];
+  const foregroundColors = {
+    primary: primaryForeground,
+    muted: mutedForeground,
+    info: infoForeground,
+    destructive: destructiveForeground,
+  };
+  const square = cardVariants?.includes("square") ?? false;
+  const [layouts, setLayouts] = useState<
+    Record<string, { x: number; width: number }>
+  >({});
+  const selectedLayout = selectedOption
+    ? layouts[selectedOption.value]
+    : undefined;
+  const initialized = useRef(false);
+  const pressedTarget = useRef<{
+    value: T;
+    x: number;
+    width: number;
+    color: string;
+    radius: number;
+  } | null>(null);
+  const highlightX = useSharedValue(0);
+  const highlightWidth = useSharedValue(0);
+  const highlightColor = useSharedValue(selectedColor);
+  const highlightRadius = useSharedValue(0);
+  const highlightStyle = useAnimatedStyle(() => ({
+    width: highlightWidth.value,
+    transform: [{ translateX: highlightX.value }],
+    backgroundColor: highlightColor.value,
+    borderTopRightRadius: highlightRadius.value,
+    borderBottomRightRadius: highlightRadius.value,
+  }));
+
+  useEffect(() => {
+    if (!selectedLayout) return;
+    const radius = !square && selectedIndex === options.length - 1 ? 24 : 0;
+    const pressed = pressedTarget.current;
+    pressedTarget.current = null;
+    if (
+      pressed &&
+      pressed.value === value &&
+      pressed.x === selectedLayout.x &&
+      pressed.width === selectedLayout.width &&
+      pressed.color === selectedColor &&
+      pressed.radius === radius
+    ) {
+      return;
+    }
+    if (!initialized.current) {
+      highlightX.set(selectedLayout.x);
+      highlightWidth.set(selectedLayout.width);
+      highlightColor.set(selectedColor);
+      highlightRadius.set(radius);
+      initialized.current = true;
+      return;
+    }
+    highlightX.set(withTiming(selectedLayout.x, { duration: slideDuration }));
+    highlightWidth.set(
+      withTiming(selectedLayout.width, { duration: slideDuration }),
+    );
+    highlightColor.set(withTiming(selectedColor, { duration: colorDuration }));
+    highlightRadius.set(withTiming(radius, { duration: slideDuration }));
+  }, [
+    highlightColor,
+    highlightRadius,
+    highlightWidth,
+    highlightX,
+    options.length,
+    selectedColor,
+    selectedIndex,
+    selectedLayout,
+    square,
+    value,
+  ]);
 
   return (
     <View>
@@ -152,54 +278,89 @@ export default function SegmentedInputThemed<T extends string>({
             optionsClassName,
           )}
         >
+          {selectedLayout ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                { position: "absolute", top: 4, bottom: 4, left: 0 },
+                highlightStyle,
+              ]}
+            />
+          ) : null}
           {options.map((option) => {
             const selected = value === option.value;
-            const isLastOption =
-              option.value === options[options.length - 1]?.value;
 
             return (
-              <PressableThemed
+              <View
                 key={option.value}
-                className="flex-1 flex-row items-stretch"
-                onPress={() => onChange(option.value)}
-                accessibilityRole="radio"
-                accessibilityLabel={option.accessibilityLabel ?? option.label}
-                accessibilityState={{ checked: selected }}
+                className="flex-1"
+                onLayout={(event) => {
+                  const { x, width } = event.nativeEvent.layout;
+                  setLayouts((previous) => {
+                    const current = previous[option.value];
+                    return current?.x === x && current.width === width
+                      ? previous
+                      : { ...previous, [option.value]: { x, width } };
+                  });
+                }}
               >
-                <View
-                  className={twMerge(
-                    hasThreeOptions
-                      ? "h-full w-full items-center justify-center px-1.5 py-2"
-                      : "h-full w-full items-center justify-center px-3 py-2",
-                    selected
-                      ? selectedOptionToneClasses[option.tone ?? "primary"]
-                          .container
-                      : "bg-transparent",
-                    cardVariants?.includes("square")
-                      ? "rounded-none"
-                      : isLastOption
-                        ? "rounded-tr-3xl rounded-br-3xl"
-                        : "rounded-none",
-                  )}
+                <PressableThemed
+                  className="h-full flex-row items-stretch"
+                  onPress={() => {
+                    const layout = layouts[option.value];
+                    if (
+                      animateOnPress &&
+                      initialized.current &&
+                      layout &&
+                      (option.value !== value || pressedTarget.current)
+                    ) {
+                      const color = colors[option.tone ?? "primary"];
+                      const radius =
+                        !square && option === options[options.length - 1]
+                          ? 24
+                          : 0;
+                      pressedTarget.current =
+                        option.value === value
+                          ? null
+                          : { value: option.value, ...layout, color, radius };
+                      highlightX.set(
+                        withTiming(layout.x, { duration: slideDuration }),
+                      );
+                      highlightWidth.set(
+                        withTiming(layout.width, { duration: slideDuration }),
+                      );
+                      highlightColor.set(
+                        withTiming(color, { duration: colorDuration }),
+                      );
+                      highlightRadius.set(
+                        withTiming(radius, { duration: slideDuration }),
+                      );
+                    }
+                    onChange(option.value);
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityLabel={option.accessibilityLabel ?? option.label}
+                  accessibilityState={{ checked: selected }}
                 >
-                  <Text
-                    allowFontScaling={false}
-                    numberOfLines={1}
+                  <View
                     className={twMerge(
-                      selected
-                        ? twMerge(
-                            selectedOptionToneClasses[option.tone ?? "primary"]
-                              .text,
-                            "font-bold",
-                          )
-                        : "text-foreground",
-                      hasThreeOptions ? "text-xl" : "text-xl",
+                      hasThreeOptions
+                        ? "h-full w-full items-center justify-center px-1.5 py-2"
+                        : "h-full w-full items-center justify-center px-3 py-2",
                     )}
                   >
-                    {option.label}
-                  </Text>
-                </View>
-              </PressableThemed>
+                    <OptionLabel
+                      label={option.label}
+                      selected={selected}
+                      color={
+                        selected
+                          ? foregroundColors[option.tone ?? "primary"]
+                          : foregroundColor
+                      }
+                    />
+                  </View>
+                </PressableThemed>
+              </View>
             );
           })}
         </View>
