@@ -17,16 +17,20 @@ import {
   exerciseNamesMatch,
   completeSession as finalizeSession,
   isSessionTerminalStatus,
-  normalizeExerciseName,
-  normalizeMuscleGroups,
   normalizeSingleLineText,
   reconcileCompletedWorkoutSet as reconcileWorkoutSet,
 } from "@activity-log/ui/utils";
 
 import {
-  createDefaultExercises,
-  createDefaultMuscleGroups,
-} from "./use-exercise-store";
+  createDefaultWorkoutStoreData,
+  migrateSavedExerciseMuscles,
+  normalizeEquipment,
+  normalizeExerciseMuscles,
+  normalizeMuscleCatalog,
+  normalizeSessionDeloads,
+} from "~/data/legacy/workout-defaults";
+
+export { createDefaultEquipment } from "~/data/legacy/workout-defaults";
 
 export interface WorkoutStore {
   programs: Program[];
@@ -91,80 +95,6 @@ export type WorkoutStoreData = Pick<
   WorkoutStore,
   "programs" | "exercises" | "equipment" | "muscleGroups"
 >;
-
-export const createDefaultEquipment = (): Equipment => ({
-  barbells: [
-    { value: 25, unit: "lbs", barbellId: "1" },
-    { value: 35, unit: "lbs", barbellId: "2" },
-    { value: 45, unit: "lbs", barbellId: "3" },
-  ],
-  plates: [
-    { value: 2.5, unit: "lbs", plateId: "1", quantity: 2 },
-    { value: 5, unit: "lbs", plateId: "2", quantity: 2 },
-    { value: 10, unit: "lbs", plateId: "3", quantity: 4 },
-    { value: 25, unit: "lbs", plateId: "4", quantity: 2 },
-    { value: 35, unit: "lbs", plateId: "5", quantity: 2 },
-    { value: 45, unit: "lbs", plateId: "6", quantity: 8 },
-  ],
-});
-
-const normalizeEquipment = (equipment: Partial<Equipment> = {}): Equipment => ({
-  barbells: equipment.barbells ?? [],
-  plates: equipment.plates ?? [],
-});
-
-const normalizeExerciseMuscles = (exercise: Exercise): Exercise => {
-  const legacyExercise = exercise as Exercise & { primaryMuscle?: string };
-  const primaryMuscles = exercise.primaryMuscles ?? [
-    legacyExercise.primaryMuscle,
-  ];
-
-  return {
-    ...exercise,
-    primaryMuscles: normalizeMuscleGroups(primaryMuscles),
-  };
-};
-
-const migrateSavedExerciseMuscles = (exercises: Exercise[]) => {
-  const presetMusclesByName = new Map(
-    createDefaultExercises().map((exercise) => [
-      normalizeExerciseName(exercise.name),
-      exercise.primaryMuscles,
-    ]),
-  );
-
-  return exercises.map((exercise) => {
-    const normalizedExercise = normalizeExerciseMuscles(exercise);
-    const presetMuscles = presetMusclesByName.get(
-      normalizeExerciseName(exercise.name),
-    );
-
-    return exercise.primaryMuscles === undefined &&
-      (normalizedExercise.primaryMuscles?.length ?? 0) === 0 &&
-      presetMuscles
-      ? { ...normalizedExercise, primaryMuscles: presetMuscles }
-      : normalizedExercise;
-  });
-};
-
-const normalizeSessionDeloads = (programs: Program[]) =>
-  programs.map((program) => ({
-    ...program,
-    sessions: program.sessions.map((session) => ({
-      ...session,
-      deload: session.deload === true,
-    })),
-  }));
-
-const createDefaultWorkoutStoreData = (): WorkoutStoreData => ({
-  programs: [],
-  exercises: [],
-  equipment: createDefaultEquipment(),
-  muscleGroups: createDefaultMuscleGroups(),
-});
-
-const normalizeMuscleCatalog = (muscleGroups: readonly unknown[]) =>
-  normalizeMuscleGroups(muscleGroups).sort((a, b) => a.localeCompare(b));
 
 const reviveDates = (key: string, value: unknown): unknown =>
   (key === "start" || key === "end" || key === "lastActivityAt") &&

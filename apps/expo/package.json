@@ -23,6 +23,7 @@
     "@expo/ui": "~57.0.26",
     "@expo/vector-icons": "^15.1.1",
     "@legendapp/list": "^3.3.11",
+    "@tanstack/react-query": "^5.107.1",
     "date-fns": "4.1.0",
     "expo": "~57.0.31",
     "expo-application": "~57.0.3",

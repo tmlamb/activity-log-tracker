@@ -236,6 +236,9 @@ importers:
       '@legendapp/list':
         specifier: ^3.3.11
         version: 3.3.11(react-dom@19.2.3(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.14)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      '@tanstack/react-query':
+        specifier: ^5.107.1
+        version: 5.107.1(@types/react@19.2.14)(react@19.2.3)
       date-fns:
         specifier: 4.1.0
         version: 4.1.0
@@ -2292,6 +2295,18 @@ packages:
 
   '@tailwindcss/postcss@4.2.4':
     resolution: {integrity: sha512-wgAVj6nUWAolAu8YFvzT2cTBIElWHkjZwFYovF+xsqKsW2ADxM/X2opxj5NsF/qVccAOjRNe8X2IdPzMsWyHTg==}
+
+  '@tanstack/query-core@5.107.1':
+    resolution: {integrity: sha512-PSyAik11oQBEVOiVy5hjZWHmoUqOXqK1WYy4v55mcxozEfKaQgpUMsgnXhWjuESzSht8JfzqMS1m6M/9CpNgvg==}
+
+  '@tanstack/react-query@5.107.1':
+    resolution: {integrity: sha512-udCOOLp3ZAheUrIHLCe+ZZge6nr2ZUrGMSWcCuXsjY1Bf2JeeE09oxst97PILiCY6N8xo/7bIo3Hvz13zh06FA==}
+    peerDependencies:
+      '@types/react': ^18 || ^19
+      react: ^18 || ^19
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
 
   '@turbo/darwin-64@2.10.12':
     resolution: {integrity: sha512-9nKgKoF6ZOUsM+or0OtNf+TTJSfGvDNP7ZFv/ZGWVwOSCkumyctQiTeHwB4UNljHTnC41AqylgbunLDHoccNrA==}
@@ -7235,6 +7250,15 @@ snapshots:
       '@tailwindcss/oxide': 4.2.4
       postcss: 8.5.14
       tailwindcss: 4.2.4
+
+  '@tanstack/query-core@5.107.1': {}
+
+  '@tanstack/react-query@5.107.1(@types/react@19.2.14)(react@19.2.3)':
+    dependencies:
+      '@tanstack/query-core': 5.107.1
+      react: 19.2.3
+    optionalDependencies:
+      '@types/react': 19.2.14
 
   '@turbo/darwin-64@2.10.12':
     optional: true
