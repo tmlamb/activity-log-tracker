@@ -5,6 +5,7 @@ import type { Equipment } from "@activity-log/ui/utils";
 
 import type { WorkoutChange } from "./cache/invalidation";
 import type { openApplicationDatabase } from "./database/connections";
+import type { ProgramWeekRequest } from "./domain/program-timeline";
 import type { ExerciseInput } from "./repositories/exercises";
 import type {
   SessionDraft,
@@ -17,6 +18,7 @@ import type {
 } from "./repositories/sets";
 import { invalidateWorkoutChange } from "./cache/invalidation";
 import { workoutKeys } from "./cache/keys";
+import { buildProgramOverview } from "./domain/program-timeline";
 import {
   listExercisePresets,
   listMuscleCatalog,
@@ -32,6 +34,11 @@ import {
   setExerciseDeleted,
   setExerciseNotes,
 } from "./repositories/exercises";
+import {
+  getProgramHeader,
+  getProgramWeekPage,
+  readProgramTimeline,
+} from "./repositories/program-timeline";
 import {
   createProgram,
   deleteProgram,
@@ -49,6 +56,7 @@ import {
   deleteSession,
   setSessionDeload,
 } from "./repositories/session-lifecycle";
+import { getSetExecutionContext } from "./repositories/set-context";
 import {
   completeSetAndAdvance,
   reconcileTerminalSet,
@@ -111,6 +119,27 @@ export function createWorkoutService(
 
   return {
     listPrograms: () => read(listProgramSummaries),
+    programHeader: (programId: string) =>
+      read((transaction) => getProgramHeader(transaction, programId)),
+    programOverview: (programId: string) => {
+      const nowMs = now();
+      return read((transaction) =>
+        readProgramTimeline(transaction, programId),
+      ).then((facts) =>
+        facts ? buildProgramOverview(facts.anchor, facts.dates, nowMs) : null,
+      );
+    },
+    programWeek: (
+      programId: string,
+      request: Omit<ProgramWeekRequest, "nowMs">,
+    ) => {
+      const nowMs = now();
+      return read((transaction) =>
+        getProgramWeekPage(transaction, programId, { ...request, nowMs }),
+      );
+    },
+    setContext: (reference: SetReference) =>
+      read((transaction) => getSetExecutionContext(transaction, reference)),
     templateChoices: (programId: string) =>
       read((transaction) => listTemplateChoices(transaction, programId)),
     resolveTemplateChoice: (programId: string, sessionId: string) =>
@@ -376,7 +405,7 @@ export function createWorkoutService(
         programId,
         sessionId,
         added: true,
-        affectsOtherSessions: false,
+        affectsOtherSessions: true,
       });
       cache.removeQueries({
         queryKey: workoutKeys.session(generation, programId, sessionId),

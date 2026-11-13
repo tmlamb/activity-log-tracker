@@ -79,9 +79,99 @@ describe("workout data service", () => {
       await expect(service.listPrograms()).rejects.toThrow(
         "dataset has changed",
       );
+      await expect(service.programHeader("p")).rejects.toThrow(
+        "dataset has changed",
+      );
+      await expect(service.programOverview("p")).rejects.toThrow(
+        "dataset has changed",
+      );
+      await expect(service.programWeek("p", { week: 1 })).rejects.toThrow(
+        "dataset has changed",
+      );
+      await expect(
+        service.setContext({
+          programId: "p",
+          sessionId: "s",
+          activityId: "a",
+          setId: "set",
+        }),
+      ).rejects.toThrow("dataset has changed");
       expect(
         db.prepare("SELECT count(*) AS count FROM programs").get(),
       ).toEqual({ count: 0 });
+    } finally {
+      cache.clear();
+      db.close();
+    }
+  });
+
+  it("exposes header, overview, paginated weeks, and selected-set reads through the generation boundary", async () => {
+    const { db, cache, service } = setup();
+    try {
+      db.exec(`INSERT INTO programs VALUES ('p', 'Program', 0);
+        INSERT INTO sessions(program_id, id, name, position, status, deload)
+          VALUES ('p', 's', 'Selected', 0, 'Planned', 0);
+        INSERT INTO activities(program_id, session_id, id, position)
+          VALUES ('p', 's', 'a', 0);
+        INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback)
+          VALUES ('p', 's', 'a', 'set', 'Main', 0, 'Planned', 'Neutral');`);
+      expect(await service.programHeader("p")).toEqual({
+        id: "p",
+        name: "Program",
+      });
+      expect(await service.programOverview("p")).toMatchObject({
+        programId: "p",
+        sessionCount: 1,
+        currentWeek: 1,
+        weeks: [{ week: 1, sessionCount: 1 }],
+      });
+      expect(
+        (await service.programWeek("p", { week: 1 }))?.items.map(
+          ({ id }) => id,
+        ),
+      ).toEqual(["s"]);
+      expect(
+        await service.setContext({
+          programId: "p",
+          sessionId: "s",
+          activityId: "a",
+          setId: "set",
+        }),
+      ).toMatchObject({ exercise: null, isStartable: true });
+    } finally {
+      cache.clear();
+      db.close();
+    }
+  });
+
+  it("invalidates surviving lineage contexts when a preceding session is deleted", async () => {
+    const { db, cache, service } = setup();
+    try {
+      db.exec(`INSERT INTO programs VALUES ('p', 'Program', 0);
+        INSERT INTO session_lineages VALUES ('p', 'lineage');
+        INSERT INTO sessions(program_id, id, lineage_id, name, position, status, deload)
+          VALUES ('p', 'previous', 'lineage', 'Previous', 0, 'Done', 0),
+                 ('p', 's', 'lineage', 'Selected', 1, 'Planned', 0);
+        INSERT INTO activities(program_id, session_id, id, position) VALUES ('p', 's', 'a', 0);
+        INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback)
+          VALUES ('p', 's', 'a', 'set', 'Main', 0, 'Planned', 'Neutral');`);
+      const reference = {
+        programId: "p",
+        sessionId: "s",
+        activityId: "a",
+        setId: "set",
+      };
+      const key = [...workoutKeys.setContexts(1, "p", "s"), "a", "set"];
+      const before = await service.setContext(reference);
+      expect(before?.hasTemplateHistory).toBe(true);
+      cache.setQueryData(key, before);
+      await service.deleteSession("p", "previous", 0);
+      await vi.waitFor(() =>
+        expect(cache.getQueryState(key)?.isInvalidated).toBe(true),
+      );
+      expect((await service.setContext(reference))?.hasTemplateHistory).toBe(
+        false,
+      );
     } finally {
       cache.clear();
       db.close();

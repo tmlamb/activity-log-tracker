@@ -956,4 +956,64 @@ The current delivery workflows target iOS; Android delivery and verification mus
 - Representative large-history performance meets agreed budgets.
 - All package checks and native release gates pass.
 
-**Implementation status:** foundational schema, connection and transaction infrastructure, and legacy-source parsing have been started. Conversion, application cutover, and release verification remain incomplete; the existing persisted stores remain authoritative.
+## 15. Current implementation checkpoint — November 13, 2026
+
+The existing persisted stores remain authoritative in the running application. The ordered checklist above tracks complete migration requirements; partially implemented tasks remain unchecked.
+
+### Implemented groundwork
+
+- **Database infrastructure:** schema version 1, scoped constraints and indexes, private reader/writer connections, serialized transaction jobs, and real SQLite host tests.
+- **Conversion pipeline:** asynchronous native source capture, restore undo-journal interpretation, immutable source archiving, deterministic normalization/repair, atomic population, close/reopen verification, restart handling, and an external cutover receipt. Host tests cover these paths, including a checked-in portable-backup fixture; native interruption and upgrade validation remain release gates.
+- **Repositories and commands:** programs, saved exercises, presets, muscles, equipment, template choices and planning-source resolution, session drafts, session completion/deletion/deload, inactivity cleanup, and set recording/Start/Complete/Advance/reconciliation. This is not yet complete behavioral-parity coverage.
+- **Cache/service foundations:** TanStack Query v5 is installed; generation-scoped keys, scoped invalidation, cancellation of obsolete reads, and generation checks wrap repository access.
+- **Program read projections:** a separate program header, compact week/count metadata, and local-calendar week pages with keyset cursors and a maximum page size of 100. Grouping and ordering retain the existing Planned/Ready/terminal, undated-session, and reverse-position tie-breaking behavior. Metadata reads compact session dates/counts; page reads never load activity/set graphs. Week metadata formatting runs after the read transaction closes.
+- **Set-execution projection:** the selected set/activity, live exercise attributes, first main set, percentage/RPE weight targets, and Start/Complete/template-history policy facts. This uses two bounded result queries and does not reconstruct a session or lineage history. Exercise notes remain a separate cache concern. Deleting a preceding lineage session invalidates surviving contexts that depend on its existence.
+
+The new projection tests check legacy ordering/target parity, null/recovered records, stale timeline cursors, exclusive local-week boundaries, generation rejection, deletion invalidation, constant query/result counts, and actual `EXPLAIN QUERY PLAN` output with 1,000 additional historical sessions.
+
+### Next implementation work
+
+1. Complete the remaining session-policy, editor/planning-hint, program-analytics, and exercise-series projections, including explicit partial-result treatment for unknown measurements.
+2. Connect focused query observers, bounded retained pages, foreground maintenance, calendar/timezone refresh, and generation replacement to the application lifecycle.
+3. Add asynchronous form controllers and migrate startup and screens to the final data service.
+4. Complete portable backup v2, restore/reset barriers, retained-source cleanup/retention, and conversion-report/recovery access.
+5. Remove the obsolete persisted stores after every consumer has moved, then complete native upgrade/fault and device-performance gates.
+
+### Architecture notes for future cloud sync
+
+React Query manages cached asynchronous projections; device-to-cloud replication needs its own durable protocol. A future shared package can expose domain/portable-data contracts and validation without coupling callers to native connections or React hooks. SQLite and a future server datastore can implement the same logical model while retaining separate physical schemas and migrations.
+
+Drizzle could add schema-derived types and query-construction checks, but it would not replace transaction ownership, conversion verification, cache publication, or sync conflict handling. The current implementation continues to use the plan's typed-SQL repository approach. Package extraction and a sync-specific schema/protocol should be evaluated when the backend requirements are defined; local content revisions and dataset generations are not a multi-device conflict-resolution protocol.
+
+### Device-testing readiness
+
+**Not yet ready to test the new architecture through the app UI.** Startup and screen consumers still use the legacy stores, so launching the app on a device currently exercises that architecture. The next meaningful device checkpoint is a bootstrap-gated application whose screens use the new queries and commands, with replacement/recovery operations coordinated around the same datastore.
+
+The exported-backup conversion dry run in section 12 is available now. It exercises conversion and verification on a computer; it does not establish native upgrade or new-screen readiness.
+
+### Verification at this checkpoint
+
+Run from the repository root with Node **24.22.0** on `PATH` and pnpm **12.14.0**:
+
+| Command                                                         | Result                                |
+| --------------------------------------------------------------- | ------------------------------------- |
+| `pnpm --filter @activity-log/expo lint`                         | Passed                                |
+| `pnpm --filter @activity-log/expo format`                       | Passed                                |
+| `pnpm --filter @activity-log/expo typecheck`                    | Passed                                |
+| `pnpm --filter @activity-log/expo test`                         | 38 files; 131 tests passed, 1 skipped |
+| `pnpm --filter @activity-log/ui lint`                           | Passed                                |
+| `pnpm --filter @activity-log/ui format`                         | Passed                                |
+| `pnpm --filter @activity-log/ui typecheck`                      | Passed                                |
+| `pnpm --filter @activity-log/ui test`                           | 50 tests passed                       |
+| `pnpm exec prettier --check docs/sqlite-data-migration-plan.md` | Passed                                |
+| `git diff --check`                                              | Passed                                |
+
+The skipped test requires an operator-supplied backup through `ACTIVITY_LOG_MIGRATION_BACKUP`; the checked-in backup fixture passed. No required package checks failed.
+
+Additional local-calendar verification:
+
+```bash
+TZ=America/Chicago pnpm --filter @activity-log/expo exec vitest run src/data/repositories/program-timeline.test.ts src/data/repositories/set-context.test.ts src/data/workout-service.test.ts
+```
+
+Result: **16 tests passed** across three files, including the week boundary spanning the spring DST transition. These are host checks, not native device performance measurements.
