@@ -12,6 +12,10 @@ export interface PopulationTransaction {
     sql: string,
     ...parameters: SqlValue[]
   ): Promise<{ changes: number }>;
+  prepareAsync(sql: string): Promise<{
+    executeAsync(...parameters: SqlValue[]): Promise<unknown>;
+    finalizeAsync(): Promise<void>;
+  }>;
 }
 
 interface TableSpec {
@@ -187,8 +191,16 @@ export async function populateLegacyData(
     if (count?.count !== 0)
       throw new Error(`The target table ${table} is not empty.`);
     const sql = `INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`;
-    for (const row of rows)
-      await transaction.runAsync(sql, ...values(row, columns));
+    if (rows.length > 0) {
+      const statement = await transaction.prepareAsync(sql);
+      try {
+        for (const row of rows) {
+          await statement.executeAsync(...values(row, columns));
+        }
+      } finally {
+        await statement.finalizeAsync();
+      }
+    }
   }
   await transaction.runAsync(
     "INSERT INTO conversion_reports(snapshot_id, converter_version, report) VALUES (?, 1, ?)",

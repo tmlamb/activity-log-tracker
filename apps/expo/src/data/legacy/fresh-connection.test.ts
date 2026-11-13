@@ -18,6 +18,14 @@ function adapter(db: DatabaseSync) {
       ),
     getAllAsync: <T>(sql: string) =>
       Promise.resolve(db.prepare(sql).all() as T[]),
+    prepareAsync: (sql: string) => {
+      const statement = db.prepare(sql);
+      return Promise.resolve({
+        executeAsync: (...parameters: (string | number | null)[]) =>
+          Promise.resolve(statement.run(...parameters)),
+        finalizeAsync: () => Promise.resolve(),
+      });
+    },
     runAsync: (sql: string, ...parameters: (string | number | null)[]) =>
       Promise.resolve({
         changes: Number(db.prepare(sql).run(...parameters).changes),

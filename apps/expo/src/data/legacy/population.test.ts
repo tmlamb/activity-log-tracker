@@ -15,6 +15,14 @@ function adapter(db: DatabaseSync) {
       ),
     getAllAsync: <T>(sql: string) =>
       Promise.resolve(db.prepare(sql).all() as T[]),
+    prepareAsync: (sql: string) => {
+      const statement = db.prepare(sql);
+      return Promise.resolve({
+        executeAsync: (...parameters: (string | number | null)[]) =>
+          Promise.resolve(statement.run(...parameters)),
+        finalizeAsync: () => Promise.resolve(),
+      });
+    },
     runAsync: (sql: string, ...parameters: (string | number | null)[]) =>
       Promise.resolve({
         changes: Number(db.prepare(sql).run(...parameters).changes),
@@ -141,16 +149,24 @@ describe("conversion population", () => {
     const db = setup();
     try {
       const transaction = adapter(db);
+      let finalized = false;
       const failing = {
         ...transaction,
-        runAsync: (sql: string, ...parameters: (string | number | null)[]) =>
+        prepareAsync: (sql: string) =>
           sql.startsWith("INSERT INTO workout_sets")
-            ? Promise.reject(new Error("disk full"))
-            : transaction.runAsync(sql, ...parameters),
+            ? Promise.resolve({
+                executeAsync: () => Promise.reject(new Error("disk full")),
+                finalizeAsync: () => {
+                  finalized = true;
+                  return Promise.resolve();
+                },
+              })
+            : transaction.prepareAsync(sql),
       };
       db.exec("BEGIN IMMEDIATE");
       await expect(populateLegacyData(failing, 1)).rejects.toThrow("disk full");
       db.exec("ROLLBACK");
+      expect(finalized).toBe(true);
       expect(
         db.prepare("SELECT count(*) AS count FROM programs").get(),
       ).toEqual({ count: 0 });

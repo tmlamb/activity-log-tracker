@@ -15,6 +15,7 @@
     "format": "prettier --check . --ignore-path ../../.gitignore --ignore-path .prettierignore",
     "lint": "eslint --flag unstable_native_nodejs_ts_config",
     "test": "vitest run",
+    "test:migration": "vitest run src/data/legacy/backup-conversion.test.ts",
     "typecheck": "tsc --noEmit",
     "expo:fix": "expo install --check"
   },

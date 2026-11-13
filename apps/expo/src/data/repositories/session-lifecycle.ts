@@ -139,3 +139,42 @@ export async function cleanupInactiveSessions(
   }
   return expired;
 }
+
+export async function setSessionDeload(
+  transaction: LifecycleTransaction,
+  programId: string,
+  sessionId: string,
+  deload: boolean,
+  nowMs: number,
+) {
+  const result = await transaction.runAsync(
+    `UPDATE sessions SET deload = ?, last_activity_at_ms = ?, revision = revision + 1
+     WHERE program_id = ? AND id = ?`,
+    Number(deload),
+    nowMs,
+    programId,
+    sessionId,
+  );
+  if (result.changes !== 1) throw new Error("Session not found.");
+}
+
+export async function deleteSession(
+  transaction: LifecycleTransaction,
+  programId: string,
+  sessionId: string,
+  baseRevision: number,
+) {
+  const current = await transaction.getFirstAsync<{ revision: number }>(
+    "SELECT revision FROM sessions WHERE program_id = ? AND id = ?",
+    programId,
+    sessionId,
+  );
+  if (!current) throw new Error("Session not found.");
+  if (current.revision !== baseRevision)
+    throw new Error("The session changed. Reload before deleting.");
+  await transaction.runAsync(
+    "DELETE FROM sessions WHERE program_id = ? AND id = ?",
+    programId,
+    sessionId,
+  );
+}

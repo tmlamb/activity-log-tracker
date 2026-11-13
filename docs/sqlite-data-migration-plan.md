@@ -828,6 +828,23 @@ pnpm --filter @activity-log/ui test
 
 Native integration, upgrade, crash, and performance verification are additional release gates.
 
+### Run a conversion dry run on an exported backup
+
+The conversion dry run is available before the application cutover:
+
+1. Export an official JSON backup from the app's Support screen and copy it to the computer running this repository.
+2. From the repository root, using Node 24 and the configured pnpm version, run:
+
+   ```bash
+   ACTIVITY_LOG_MIGRATION_BACKUP="/absolute/path/to/backup.json" pnpm --filter @activity-log/expo test:migration
+   ```
+
+3. Confirm that **“converts and verifies the supplied backup”** passes rather than being skipped. The output includes record counts, repair categories, remapped-ID count, and elapsed time.
+
+The check imports a copy into a temporary SQLite database, closes and reopens it, verifies every converted row against the reconstructed source, and checks source/target entity counts. It removes the temporary database afterward and does not open the installed app's datastore.
+
+This tests conversion from an official version-1 portable backup, not direct native-store capture, interrupted mobile migration, the new screens, or device performance. Those remain separate release gates. The backup parser applies the existing portable-format normalization before conversion.
+
 ## 13. Ordered implementation tasks
 
 1. [ ] **Freeze the migration specification and fixtures.**

@@ -253,3 +253,78 @@ export async function saveSetRecording(
     sessionId,
   );
 }
+
+/** Reconcile a terminal session's edited reps without reopening the session. */
+export async function reconcileTerminalSet(
+  transaction: SetTransaction,
+  reference: SetReference,
+  actualReps: number | null,
+  nowMs: number,
+): Promise<boolean> {
+  if (
+    (actualReps !== null && !Number.isFinite(actualReps)) ||
+    !Number.isFinite(nowMs)
+  ) {
+    throw new Error("Workout set values must be finite numbers.");
+  }
+  const current = await transaction.getFirstAsync<{
+    sessionStatus: Status;
+    sessionEndMs: number | null;
+    setStatus: Status;
+    actualReps: number | null;
+    startMs: number | null;
+    endMs: number | null;
+  }>(
+    `SELECT session.status AS sessionStatus, session.end_ms AS sessionEndMs,
+       workout_set.status AS setStatus, workout_set.actual_reps AS actualReps,
+       workout_set.start_ms AS startMs, workout_set.end_ms AS endMs
+     FROM workout_sets workout_set
+     JOIN sessions session ON session.program_id = workout_set.program_id
+       AND session.id = workout_set.session_id
+     WHERE workout_set.program_id = ? AND workout_set.session_id = ?
+       AND workout_set.activity_id = ? AND workout_set.id = ?`,
+    reference.programId,
+    reference.sessionId,
+    reference.activityId,
+    reference.setId,
+  );
+  if (
+    !current ||
+    (current.sessionStatus !== "Done" && current.sessionStatus !== "Incomplete")
+  )
+    return false;
+  const status = (actualReps ?? 0) > 0 ? "Done" : "Incomplete";
+  if (Object.is(current.actualReps, actualReps) && current.setStatus === status)
+    return false;
+  const sessionEnd = current.sessionEndMs ?? nowMs;
+  let startMs = current.startMs;
+  let endMs = current.endMs;
+  if (status === "Done" && current.setStatus !== "Done") {
+    endMs = current.endMs ?? sessionEnd;
+    startMs =
+      current.startMs !== null && current.startMs <= endMs
+        ? current.startMs
+        : endMs;
+  }
+  await transaction.runAsync(
+    `UPDATE workout_sets SET actual_reps = ?, status = ?, start_ms = ?, end_ms = ?
+     WHERE program_id = ? AND session_id = ? AND activity_id = ? AND id = ?`,
+    actualReps,
+    status,
+    startMs,
+    endMs,
+    reference.programId,
+    reference.sessionId,
+    reference.activityId,
+    reference.setId,
+  );
+  await transaction.runAsync(
+    `UPDATE sessions SET end_ms = COALESCE(end_ms, ?), last_activity_at_ms = ?, revision = revision + 1
+     WHERE program_id = ? AND id = ?`,
+    sessionEnd,
+    nowMs,
+    reference.programId,
+    reference.sessionId,
+  );
+  return true;
+}

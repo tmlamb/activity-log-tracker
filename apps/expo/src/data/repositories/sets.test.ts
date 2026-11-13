@@ -2,7 +2,12 @@ import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 import { SCHEMA_V1 } from "../database/schema";
-import { completeSetAndAdvance, saveSetRecording, startSet } from "./sets";
+import {
+  completeSetAndAdvance,
+  reconcileTerminalSet,
+  saveSetRecording,
+  startSet,
+} from "./sets";
 
 function adapter(db: DatabaseSync) {
   return {
@@ -193,6 +198,53 @@ describe("transactional workout set actions", () => {
       expect(
         db.prepare("SELECT status FROM workout_sets WHERE id = 'other'").get(),
       ).toEqual({ status: "Planned" });
+    } finally {
+      db.close();
+    }
+  });
+});
+
+describe("terminal set reconciliation", () => {
+  it("reconciles edited reps and preserves terminal session status", async () => {
+    const db = setup("Incomplete");
+    try {
+      db.exec(
+        "UPDATE sessions SET end_ms = 600 WHERE id = 's'; UPDATE workout_sets SET status = 'Incomplete', actual_reps = 0, start_ms = NULL, end_ms = NULL WHERE id = 'k'",
+      );
+      expect(await reconcileTerminalSet(adapter(db), reference, 5, 1000)).toBe(
+        true,
+      );
+      db.exec("COMMIT");
+      expect(
+        db
+          .prepare(
+            "SELECT status, actual_reps, start_ms, end_ms FROM workout_sets WHERE id = 'k'",
+          )
+          .get(),
+      ).toEqual({ status: "Done", actual_reps: 5, start_ms: 600, end_ms: 600 });
+      expect(
+        db.prepare("SELECT status, last_activity_at_ms FROM sessions").get(),
+      ).toEqual({ status: "Incomplete", last_activity_at_ms: 1000 });
+    } finally {
+      db.close();
+    }
+  });
+
+  it("does not write unchanged values or reconcile an active session", async () => {
+    const db = setup("Done");
+    try {
+      db.exec("UPDATE workout_sets SET actual_reps = 5 WHERE id = 'k'");
+      expect(await reconcileTerminalSet(adapter(db), reference, 5, 1000)).toBe(
+        false,
+      );
+      db.exec("UPDATE sessions SET status = 'Ready'");
+      expect(await reconcileTerminalSet(adapter(db), reference, 0, 1000)).toBe(
+        false,
+      );
+      db.exec("COMMIT");
+      expect(db.prepare("SELECT revision FROM sessions").get()).toEqual({
+        revision: 0,
+      });
     } finally {
       db.close();
     }

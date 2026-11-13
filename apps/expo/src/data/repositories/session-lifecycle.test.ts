@@ -2,7 +2,12 @@ import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 import { SCHEMA_V1 } from "../database/schema";
-import { cleanupInactiveSessions, completeSession } from "./session-lifecycle";
+import {
+  cleanupInactiveSessions,
+  completeSession,
+  deleteSession,
+  setSessionDeload,
+} from "./session-lifecycle";
 
 function adapter(db: DatabaseSync) {
   return {
@@ -126,6 +131,30 @@ describe("session lifecycle", () => {
           last_activity_at_ms: null,
         },
       ]);
+    } finally {
+      db.close();
+    }
+  });
+});
+
+describe("session metadata operations", () => {
+  it("updates deload and protects against deleting a stale revision", async () => {
+    const db = setup();
+    try {
+      await setSessionDeload(adapter(db), "p", "s", true, 1000);
+      await expect(deleteSession(adapter(db), "p", "s", 0)).rejects.toThrow(
+        "session changed",
+      );
+      expect(
+        db
+          .prepare("SELECT deload, revision, last_activity_at_ms FROM sessions")
+          .get(),
+      ).toEqual({ deload: 1, revision: 1, last_activity_at_ms: 1000 });
+      await deleteSession(adapter(db), "p", "s", 1);
+      db.exec("COMMIT");
+      expect(
+        db.prepare("SELECT count(*) AS count FROM workout_sets").get(),
+      ).toEqual({ count: 0 });
     } finally {
       db.close();
     }

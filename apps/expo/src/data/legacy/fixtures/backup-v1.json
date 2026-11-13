@@ -1,0 +1,83 @@
+{
+  "format": "activity-log-tracker-backup",
+  "version": 1,
+  "createdAt": "2026-01-01T12:00:00.000Z",
+  "stores": {
+    "workout-storage": {
+      "programs": [
+        {
+          "programId": "program-1",
+          "name": "Strength",
+          "sessions": [
+            {
+              "sessionId": "session-1",
+              "templateId": "template-1",
+              "name": "First session",
+              "deload": false,
+              "status": "Done",
+              "start": "2025-01-01T12:00:00.000Z",
+              "end": "2025-01-01T13:00:00.000Z",
+              "lastActivityAt": "2025-01-01T13:00:00.000Z",
+              "activities": [
+                {
+                  "activityId": "activity-1",
+                  "exerciseId": "exercise-1",
+                  "reps": 5,
+                  "load": { "type": "RPE", "value": 8 },
+                  "rest": 2,
+                  "warmupSets": [
+                    {
+                      "workoutSetId": "warmup-1",
+                      "type": "Warmup",
+                      "status": "Done",
+                      "feedback": "Easy",
+                      "actualReps": 5,
+                      "weight": { "value": 45, "unit": "lbs" }
+                    }
+                  ],
+                  "mainSets": [
+                    {
+                      "workoutSetId": "main-1",
+                      "type": "Main",
+                      "status": "Done",
+                      "feedback": "Hard",
+                      "actualReps": 5,
+                      "weight": { "value": 100, "unit": "kg" }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "exercises": [
+        {
+          "exerciseId": "exercise-1",
+          "name": "Squat",
+          "loadKind": "BARBELL",
+          "barbellId": "barbell-1",
+          "primaryMuscles": ["Quads"],
+          "notes": "A saved note",
+          "deleted": true
+        }
+      ],
+      "equipment": {
+        "barbells": [{ "barbellId": "barbell-1", "value": 45, "unit": "lbs" }],
+        "plates": [
+          { "plateId": "plate-1", "value": 10, "unit": "kg", "quantity": 3 }
+        ]
+      },
+      "muscleGroups": ["Quads"]
+    },
+    "exercise-storage": {
+      "exercises": [
+        {
+          "name": "Custom exercise",
+          "loadKind": "SINGLE_WEIGHT",
+          "primaryMuscles": ["Chest"]
+        }
+      ]
+    }
+  }
+}
