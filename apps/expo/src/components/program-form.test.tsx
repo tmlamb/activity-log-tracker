@@ -3,10 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ApplicationDataRuntime } from "~/data/react/application-data";
+import ProgramFormScreen from "~/app/(public)/(app)/program/form/index";
 import { workoutKeys } from "~/data/cache/keys";
 import { createWorkoutQueryClient } from "~/data/cache/query-client";
 import { ApplicationDataProvider } from "~/data/react/application-data";
-import { SQLiteProgramForm } from "./sqlite-program-form";
 
 const environment = vi.hoisted(() => ({
   programId: "p",
@@ -60,13 +60,13 @@ function setup() {
   return { cache, runtime };
 }
 
-describe("SQLite program editor initialization", () => {
+describe("program editor initialization", () => {
   it("waits for an edit seed rather than mounting a blank draft", () => {
     environment.programId = "p";
     const { cache, runtime } = setup();
     const output = renderToStaticMarkup(
       <ApplicationDataProvider runtime={runtime}>
-        <SQLiteProgramForm runtime={runtime} />
+        <ProgramFormScreen />
       </ApplicationDataProvider>,
     );
     expect(output).toContain("Loading workout data");
@@ -83,7 +83,7 @@ describe("SQLite program editor initialization", () => {
     });
     const output = renderToStaticMarkup(
       <ApplicationDataProvider runtime={runtime}>
-        <SQLiteProgramForm runtime={runtime} />
+        <ProgramFormScreen />
       </ApplicationDataProvider>,
     );
     expect(output).toContain('value="Existing program"');

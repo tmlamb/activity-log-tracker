@@ -202,15 +202,6 @@ export function createWorkoutService(
       const data = buildPortableDataV2(facts);
       return serializePortableBackupV2(data, createdAtMs);
     },
-    conversionReport: () =>
-      read((transaction) =>
-        transaction.getFirstAsync<{
-          report: string;
-          verifiedAt: number | null;
-        }>(
-          "SELECT report, verified_at AS verifiedAt FROM conversion_reports ORDER BY id DESC LIMIT 1",
-        ),
-      ),
     resetApplicationData: async () => {
       const nextGeneration = await write((transaction) =>
         resetApplicationData(transaction, generation),

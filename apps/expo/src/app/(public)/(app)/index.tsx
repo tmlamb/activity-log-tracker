@@ -4,7 +4,7 @@ import { Link, Stack, useRouter } from "expo-router";
 import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import type { ProgramSummary } from "~/data/repositories/programs";
 import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
-import { SQLiteQueryStatus } from "~/components/sqlite-query-status";
+import { QueryStatus } from "~/components/query-status";
 import { LegendListStyled } from "~/components/Styled";
 import { HelperText, SectionHeading } from "~/components/Typography";
 import { useApplicationDataRuntime } from "~/data/react/application-data";
@@ -12,17 +12,14 @@ import { useProgramSummaries } from "~/data/react/program-queries";
 
 export default function DashboardScreen() {
   const runtime = useApplicationDataRuntime();
-  return <SQLiteDashboard runtime={runtime} />;
+  return <Dashboard runtime={runtime} />;
 }
 
-function SQLiteDashboard({ runtime }: { runtime: ApplicationDataRuntime }) {
+function Dashboard({ runtime }: { runtime: ApplicationDataRuntime }) {
   const query = useProgramSummaries(runtime);
   if (query.data === undefined)
     return (
-      <SQLiteQueryStatus
-        error={query.isError}
-        onRetry={() => void query.refetch()}
-      />
+      <QueryStatus error={query.isError} onRetry={() => void query.refetch()} />
     );
   return <DashboardContent programs={query.data} />;
 }

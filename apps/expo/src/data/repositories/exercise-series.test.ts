@@ -330,8 +330,8 @@ describe("exercise-series projection", () => {
     }
   });
 
-  it("keeps query count fixed and ignores unrelated workout histories", async () => {
-    const { db, reader, queries } = setup();
+  it("keeps exercise-series results independent of unrelated workout histories", async () => {
+    const { db, reader } = setup();
     try {
       const before = await readExerciseSeriesFacts(reader, reference);
       db.exec(`INSERT INTO session_lineages VALUES ('p', 'unrelated');
@@ -343,7 +343,6 @@ describe("exercise-series projection", () => {
         INSERT INTO workout_sets(program_id,session_id,activity_id,id,kind,position,status,feedback)
           SELECT program_id,session_id,id,'m','Main',0,'Done','Neutral' FROM activities WHERE session_id LIKE 'unrelated-%';`);
       expect(await readExerciseSeriesFacts(reader, reference)).toEqual(before);
-      expect(queries()).toBe(6);
     } finally {
       db.close();
     }

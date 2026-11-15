@@ -16,7 +16,7 @@ export type ApplicationDataRuntime = Awaited<
 >;
 const RuntimeContext = createContext<ApplicationDataRuntime | null>(null);
 
-/** The root will mount this only after the complete SQLite cutover is ready. */
+/** Provide the active application data runtime and its query cache. */
 export function ApplicationDataProvider({
   runtime,
   children,
@@ -36,10 +36,6 @@ export function ApplicationDataProvider({
       </QueryClientProvider>
     </RuntimeContext>
   );
-}
-
-export function useOptionalApplicationDataRuntime() {
-  return use(RuntimeContext);
 }
 
 export function useApplicationDataRuntime() {

@@ -3,17 +3,17 @@ import { Redirect, useLocalSearchParams } from "expo-router";
 
 import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import ProgramInsights from "~/components/program-insights";
-import { SQLiteQueryStatus } from "~/components/sqlite-query-status";
+import { QueryStatus } from "~/components/query-status";
 import { useApplicationDataRuntime } from "~/data/react/application-data";
 import { presentProgramInsights } from "~/data/react/insight-presenters";
 import { useProgramInsights } from "~/data/react/insight-queries";
 
 export default function ProgramInsightsScreen() {
   const runtime = useApplicationDataRuntime();
-  return <SQLiteProgramInsights runtime={runtime} />;
+  return <ProgramInsightsContent runtime={runtime} />;
 }
 
-function SQLiteProgramInsights({
+function ProgramInsightsContent({
   runtime,
 }: {
   runtime: ApplicationDataRuntime;
@@ -26,10 +26,7 @@ function SQLiteProgramInsights({
   );
   if (query.data === undefined)
     return (
-      <SQLiteQueryStatus
-        error={query.isError}
-        onRetry={() => void query.refetch()}
-      />
+      <QueryStatus error={query.isError} onRetry={() => void query.refetch()} />
     );
   if (!query.data || !insights) return <Redirect href="/(public)/(app)" />;
   return (

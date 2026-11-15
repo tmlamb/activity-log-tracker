@@ -37,8 +37,8 @@ import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PressableThemed from "~/components/PressableThemed";
+import { QueryStatus } from "~/components/query-status";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
-import { SQLiteQueryStatus } from "~/components/sqlite-query-status";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText, SectionHeading } from "~/components/Typography";
 import {
@@ -98,10 +98,10 @@ function sqliteExerciseInput(data: Exercise): ExerciseInput {
 
 export default function ExerciseFormScreen() {
   const runtime = useApplicationDataRuntime();
-  return <SQLiteExerciseForm runtime={runtime} />;
+  return <ExerciseFormContent runtime={runtime} />;
 }
 
-function SQLiteExerciseForm({ runtime }: { runtime: ApplicationDataRuntime }) {
+function ExerciseFormContent({ runtime }: { runtime: ApplicationDataRuntime }) {
   const { exerciseId } = useLocalSearchParams<{ exerciseId?: string }>();
   const snapshot = useApplicationDataSnapshot(runtime);
   const library = useExerciseLibrary(runtime);
@@ -115,7 +115,7 @@ function SQLiteExerciseForm({ runtime }: { runtime: ApplicationDataRuntime }) {
     (exerciseId !== undefined && usage.data === undefined);
   if (isLoading)
     return (
-      <SQLiteQueryStatus
+      <QueryStatus
         error={
           library.isError ||
           equipment.isError ||

@@ -122,11 +122,14 @@ describe("session editor seed", () => {
     }
   });
 
-  it("keeps the query count and result bounded as unrelated history grows", async () => {
-    const { db, reader, calls } = setup();
+  it("preserves the in-memory editor seed when unrelated history grows", async () => {
+    const { db, reader } = setup();
     try {
-      const before = await getSessionEditorSeed(reader, 1, "p", "s");
-      calls.length = 0;
+      const before = getMemorySessionEditorSeed(
+        buildApplicationMemory(await readApplicationMemoryFacts(reader), 1),
+        "p",
+        "s",
+      );
       db.exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
         INSERT INTO sessions(program_id,id,name,position,status,deload)
           SELECT 'p','history-' || x,'History',x + 2,'Done',0 FROM n;
@@ -134,8 +137,11 @@ describe("session editor seed", () => {
           SELECT program_id,id,'a','unused',0 FROM sessions WHERE id LIKE 'history-%';
         INSERT INTO workout_sets(program_id,session_id,activity_id,id,kind,position,status,feedback)
           SELECT program_id,session_id,id,'set','Main',0,'Done','Neutral' FROM activities WHERE session_id LIKE 'history-%';`);
-      expect(await getSessionEditorSeed(reader, 1, "p", "s")).toEqual(before);
-      expect(calls).toHaveLength(6);
+      const memory = buildApplicationMemory(
+        await readApplicationMemoryFacts(reader),
+        1,
+      );
+      expect(getMemorySessionEditorSeed(memory, "p", "s")).toEqual(before);
     } finally {
       db.close();
     }

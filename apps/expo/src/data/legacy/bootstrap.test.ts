@@ -39,11 +39,18 @@ function harness() {
   const keys = new Map<string, string>();
   let opens = 0;
   let failReceipt = false;
+  let failRemoval = false;
   const storage = {
     getItemAsync: (key: string) => Promise.resolve(keys.get(key) ?? null),
     setItemAsync: (key: string, value: string) => {
       if (failReceipt) return Promise.reject(new Error("receipt write failed"));
       keys.set(key, value);
+      return Promise.resolve();
+    },
+    removeItemAsync: (key: string) => {
+      if (failRemoval)
+        return Promise.reject(new Error("legacy removal failed"));
+      keys.delete(key);
       return Promise.resolve();
     },
   };
@@ -69,6 +76,9 @@ function harness() {
     failReceipt: (value: boolean) => {
       failReceipt = value;
     },
+    failRemoval: (value: boolean) => {
+      failRemoval = value;
+    },
   };
 }
 
@@ -85,6 +95,20 @@ describe("legacy conversion bootstrap", () => {
           },
         }),
       );
+      test.keys.set(
+        "exercise-storage",
+        JSON.stringify({ version: 2, state: { exercises: [] } }),
+      );
+      test.keys.set(
+        "activity-log-restore-transaction",
+        JSON.stringify({
+          version: 1,
+          stores: {
+            "workout-storage": test.keys.get("workout-storage"),
+            "exercise-storage": test.keys.get("exercise-storage"),
+          },
+        }),
+      );
       const first = await bootstrapLegacyConversion(test.options);
       expect(test.opens()).toBe(2);
       expect(
@@ -96,6 +120,14 @@ describe("legacy conversion bootstrap", () => {
       expect(
         JSON.parse(test.keys.get("activity-log-sqlite-cutover") ?? "null"),
       ).toEqual({ version: 1, databaseId: "database-id" });
+      expect(test.keys.has("workout-storage")).toBe(false);
+      expect(test.keys.has("exercise-storage")).toBe(false);
+      expect(test.keys.has("activity-log-restore-transaction")).toBe(false);
+      expect(
+        test.db
+          .prepare("SELECT count(*) AS count FROM conversion_snapshots")
+          .get(),
+      ).toEqual({ count: 0 });
       await first.close();
       test.keys.set("workout-storage", "invalid stale legacy data");
       await bootstrapLegacyConversion(test.options);
@@ -125,7 +157,7 @@ describe("legacy conversion bootstrap", () => {
         test.db
           .prepare("SELECT count(*) AS count FROM conversion_snapshots")
           .get(),
-      ).toEqual({ count: 1 });
+      ).toEqual({ count: 0 });
       expect(test.keys.has("activity-log-sqlite-cutover")).toBe(true);
     } finally {
       test.db.close();
@@ -166,7 +198,7 @@ describe("legacy conversion bootstrap", () => {
       await test.write((transaction) =>
         resetApplicationData(transaction, generation.generation),
       );
-      expect(test.keys.get("workout-storage")).toBe(legacy);
+      expect(test.keys.has("workout-storage")).toBe(false);
       await bootstrapLegacyConversion(test.options);
       expect(
         test.db.prepare("SELECT count(*) AS count FROM programs").get(),
@@ -179,6 +211,54 @@ describe("legacy conversion bootstrap", () => {
           .prepare("SELECT count(*) AS count FROM conversion_snapshots")
           .get(),
       ).toEqual({ count: 0 });
+    } finally {
+      test.db.close();
+    }
+  });
+
+  it("retries failed legacy cleanup without repeating conversion", async () => {
+    const test = harness();
+    try {
+      test.keys.set(
+        "workout-storage",
+        JSON.stringify({
+          version: 2,
+          state: {
+            programs: [{ programId: "p", name: "Saved", sessions: [] }],
+          },
+        }),
+      );
+      test.failRemoval(true);
+      await expect(bootstrapLegacyConversion(test.options)).rejects.toThrow(
+        "legacy removal failed",
+      );
+      expect(test.keys.has("workout-storage")).toBe(true);
+      expect(
+        test.db.prepare("SELECT state FROM bootstrap_state").get(),
+      ).toEqual({ state: "ready" });
+      test.failRemoval(false);
+      await bootstrapLegacyConversion(test.options);
+      expect(test.keys.has("workout-storage")).toBe(false);
+      expect(test.db.prepare("SELECT name FROM programs").get()).toEqual({
+        name: "Saved",
+      });
+      expect(
+        test.db
+          .prepare("SELECT count(*) AS count FROM conversion_snapshots")
+          .get(),
+      ).toEqual({ count: 0 });
+    } finally {
+      test.db.close();
+    }
+  });
+
+  it("retains the legacy source when conversion fails", async () => {
+    const test = harness();
+    try {
+      test.keys.set("workout-storage", "invalid-json");
+      await expect(bootstrapLegacyConversion(test.options)).rejects.toThrow();
+      expect(test.keys.get("workout-storage")).toBe("invalid-json");
+      expect(test.keys.has("activity-log-sqlite-cutover")).toBe(false);
     } finally {
       test.db.close();
     }

@@ -1,7 +1,7 @@
 import { createApplicationDataRuntime } from "./application-runtime";
 import { openMigratedApplicationData } from "./legacy/native-bootstrap";
 
-/** Activate only after all routes use the SQLite data layer. */
+/** Open the application's native data runtime. */
 export function openNativeApplicationDataRuntime(
   onCacheError: (error: unknown) => void,
 ) {

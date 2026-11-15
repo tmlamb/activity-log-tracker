@@ -3,7 +3,18 @@ import { act, create } from "react-test-renderer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ApplicationDataRuntime } from "~/data/react/application-data";
-import { SQLiteSetScreen } from "./sqlite-set-screen";
+import WorkoutSetDetailScreen from "~/app/(public)/(app)/program/[programId]/session/[sessionId]/set/index";
+import { createWorkoutQueryClient } from "~/data/cache/query-client";
+import { ApplicationDataProvider } from "~/data/react/application-data";
+
+const cache = createWorkoutQueryClient();
+function SetScreen({ runtime }: { runtime: ApplicationDataRuntime }) {
+  return (
+    <ApplicationDataProvider runtime={{ ...runtime, cache }}>
+      <WorkoutSetDetailScreen />
+    </ApplicationDataProvider>
+  );
+}
 
 const env = vi.hoisted(() => ({
   back: vi.fn(),
@@ -281,7 +292,7 @@ beforeEach(() => {
   env.kind = "Main";
 });
 
-describe("SQLite set screen interactions", () => {
+describe("set screen interactions", () => {
   it("keeps warmup targets and recording inputs in the original card groups", async () => {
     env.kind = "Warmup";
     const service = { patchSet: vi.fn(), setExerciseNotes: vi.fn() };
@@ -292,7 +303,7 @@ describe("SQLite set screen interactions", () => {
     } as unknown as ApplicationDataRuntime;
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SQLiteSetScreen runtime={runtime} />);
+      renderer = create(<SetScreen runtime={runtime} />);
       await Promise.resolve();
     });
     if (!renderer) throw new Error("Renderer not created");
@@ -343,7 +354,7 @@ describe("SQLite set screen interactions", () => {
     } as unknown as ApplicationDataRuntime;
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SQLiteSetScreen runtime={runtime} />);
+      renderer = create(<SetScreen runtime={runtime} />);
       await Promise.resolve();
     });
     if (!renderer) throw new Error("Renderer not created");
@@ -395,7 +406,7 @@ describe("SQLite set screen interactions", () => {
     } as unknown as ApplicationDataRuntime;
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SQLiteSetScreen runtime={runtime} />);
+      renderer = create(<SetScreen runtime={runtime} />);
       await Promise.resolve();
     });
     if (!renderer) throw new Error("Renderer not created");
@@ -444,7 +455,7 @@ describe("SQLite set screen interactions", () => {
     } as unknown as ApplicationDataRuntime;
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SQLiteSetScreen runtime={runtime} />);
+      renderer = create(<SetScreen runtime={runtime} />);
       await Promise.resolve();
     });
     if (!renderer) throw new Error("Renderer not created");
@@ -485,7 +496,7 @@ describe("SQLite set screen interactions", () => {
     } as unknown as ApplicationDataRuntime;
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SQLiteSetScreen runtime={runtime} />);
+      renderer = create(<SetScreen runtime={runtime} />);
       await Promise.resolve();
     });
     await act(async () => {
@@ -515,7 +526,7 @@ describe("SQLite set screen interactions", () => {
     } as unknown as ApplicationDataRuntime;
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SQLiteSetScreen runtime={runtime} />);
+      renderer = create(<SetScreen runtime={runtime} />);
       await Promise.resolve();
     });
     if (!renderer) throw new Error("Renderer not created");

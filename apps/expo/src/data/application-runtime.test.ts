@@ -158,6 +158,10 @@ describe("application data runtime", () => {
         keys.set(key, value);
         return Promise.resolve();
       },
+      removeItemAsync: (key: string) => {
+        keys.delete(key);
+        return Promise.resolve();
+      },
     };
     let runtime:
       | Awaited<ReturnType<typeof createApplicationDataRuntime>>
@@ -175,7 +179,7 @@ describe("application data runtime", () => {
         onCacheError: vi.fn(),
       });
       expect(opens).toBe(2);
-      expect(keys.get("workout-storage")).toBe(legacy);
+      expect(keys.has("workout-storage")).toBe(false);
       expect(keys.has("activity-log-sqlite-cutover")).toBe(true);
       expect(
         await runtime.getSnapshot().service.sessionDetail("p", "s"),

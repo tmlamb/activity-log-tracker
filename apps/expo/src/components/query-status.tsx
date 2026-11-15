@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { PrimaryCardAction } from "./CardRow";
 import { HelperText } from "./Typography";
 
-export function SQLiteQueryStatus({
+export function QueryStatus({
   error,
   onRetry,
 }: {

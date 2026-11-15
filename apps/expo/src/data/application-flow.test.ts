@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import { URL } from "node:url";
+import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it, vi } from "vitest";
 
 import type { openApplicationDatabase } from "./database/connections";
@@ -82,6 +82,10 @@ describe("SQLite application flow", () => {
       getItemAsync: (key: string) => Promise.resolve(keys.get(key) ?? null),
       setItemAsync: (key: string, value: string) => {
         keys.set(key, value);
+        return Promise.resolve();
+      },
+      removeItemAsync: (key: string) => {
+        keys.delete(key);
         return Promise.resolve();
       },
     };
@@ -199,7 +203,7 @@ describe("SQLite application flow", () => {
       expect(
         parsePortableBackupV2(await service.exportBackupV2()).data,
       ).toEqual(before);
-      expect(keys.get("workout-storage")).toBe(workout);
+      expect(keys.has("workout-storage")).toBe(false);
     } finally {
       await runtime?.close();
       rmSync(directory, { recursive: true, force: true });

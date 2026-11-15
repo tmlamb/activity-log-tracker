@@ -11,7 +11,7 @@ import {
 import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import { NavigationCardRow } from "~/components/CardRow";
 import { HeaderPlusAction, HeaderTextAction } from "~/components/HeaderAction";
-import { SQLiteQueryStatus } from "~/components/sqlite-query-status";
+import { QueryStatus } from "~/components/query-status";
 import { LegendSectionListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
 import { useApplicationDataRuntime } from "~/data/react/application-data";
@@ -32,21 +32,14 @@ interface ExerciseSection {
 
 export default function ExerciseSettingsScreen() {
   const runtime = useApplicationDataRuntime();
-  return <SQLiteExerciseSettings runtime={runtime} />;
+  return <ExerciseSettings runtime={runtime} />;
 }
 
-function SQLiteExerciseSettings({
-  runtime,
-}: {
-  runtime: ApplicationDataRuntime;
-}) {
+function ExerciseSettings({ runtime }: { runtime: ApplicationDataRuntime }) {
   const query = useExerciseLibrary(runtime);
   if (query.data === undefined)
     return (
-      <SQLiteQueryStatus
-        error={query.isError}
-        onRetry={() => void query.refetch()}
-      />
+      <QueryStatus error={query.isError} onRetry={() => void query.refetch()} />
     );
   return (
     <ExerciseSettingsContent

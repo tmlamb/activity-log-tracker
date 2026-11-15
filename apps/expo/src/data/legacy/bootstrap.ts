@@ -20,6 +20,7 @@ interface ManagedDatabase {
 interface LegacyStorage {
   getItemAsync(key: string): Promise<string | null>;
   setItemAsync(key: string, value: string): Promise<unknown>;
+  removeItemAsync(key: string): Promise<unknown>;
 }
 
 interface BootstrapRow {
@@ -132,6 +133,16 @@ export async function bootstrapLegacyConversion<
         JSON.stringify({ version: 1, databaseId: state.database_id }),
       );
     }
+    for (const key of [
+      "workout-storage",
+      "exercise-storage",
+      "activity-log-restore-transaction",
+    ]) {
+      await options.storage.removeItemAsync(key);
+    }
+    await database.write((transaction) =>
+      transaction.runAsync("DELETE FROM conversion_snapshots"),
+    );
     return database;
   } catch (error) {
     await database?.close();

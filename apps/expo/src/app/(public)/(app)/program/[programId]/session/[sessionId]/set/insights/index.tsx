@@ -3,17 +3,17 @@ import { Redirect, useLocalSearchParams } from "expo-router";
 
 import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import ExerciseInsights from "~/components/exercise-insights";
-import { SQLiteQueryStatus } from "~/components/sqlite-query-status";
+import { QueryStatus } from "~/components/query-status";
 import { useApplicationDataRuntime } from "~/data/react/application-data";
 import { presentExerciseInsights } from "~/data/react/insight-presenters";
 import { useExerciseSeries } from "~/data/react/insight-queries";
 
 export default function ExerciseInsightsScreen() {
   const runtime = useApplicationDataRuntime();
-  return <SQLiteExerciseInsights runtime={runtime} />;
+  return <ExerciseInsightsContent runtime={runtime} />;
 }
 
-function SQLiteExerciseInsights({
+function ExerciseInsightsContent({
   runtime,
 }: {
   runtime: ApplicationDataRuntime;
@@ -37,10 +37,7 @@ function SQLiteExerciseInsights({
   );
   if (query.data === undefined)
     return (
-      <SQLiteQueryStatus
-        error={query.isError}
-        onRetry={() => void query.refetch()}
-      />
+      <QueryStatus error={query.isError} onRetry={() => void query.refetch()} />
     );
   if (!query.data || !insights) return <Redirect href="/(public)/(app)" />;
   return (

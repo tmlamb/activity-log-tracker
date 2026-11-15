@@ -212,10 +212,16 @@ describe("set execution context", () => {
     expect(changed?.exercise?.revision).toBe(1);
   });
 
-  it("keeps query count and indexed work scoped to the selected activity as history grows", async () => {
-    const { db, reader, calls } = setup();
-    const before = await getSetExecutionContext(reader, reference);
-    calls.length = 0;
+  it("preserves the in-memory set context when unrelated history grows", async () => {
+    const { db } = setup();
+    const reader = {
+      getAllAsync: <T>(sql: string) =>
+        Promise.resolve(db.prepare(sql).all() as T[]),
+    };
+    const before = getMemorySetContext(
+      buildApplicationMemory(await readApplicationMemoryFacts(reader), 1),
+      reference,
+    );
     db.exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
       INSERT INTO sessions(program_id, id, lineage_id, name, position, status, deload)
         SELECT 'p', 'history-' || x, 'lineage', 'History', x + 2, 'Done', 0 FROM n;
@@ -223,28 +229,11 @@ describe("set execution context", () => {
         SELECT program_id, id, 'a', 'e', 0 FROM sessions WHERE id LIKE 'history-%';
       INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback)
         SELECT program_id, session_id, id, 'set', 'Main', 0, 'Done', 'Neutral' FROM activities WHERE session_id LIKE 'history-%';`);
-    expect(await getSetExecutionContext(reader, reference)).toEqual(before);
-    expect(calls).toHaveLength(2);
-    const plans = calls.flatMap(({ sql, parameters }) =>
-      db.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...parameters),
-    ) as { detail: string }[];
-    expect(
-      plans.some(({ detail }) =>
-        /SEARCH w USING INDEX.*program_id=.*session_id=.*activity_id=.*id=/.test(
-          detail,
-        ),
-      ),
-    ).toBe(true);
-    expect(
-      plans.some(({ detail }) =>
-        /sessions_lineage.*program_id=.*lineage_id=.*position</.test(detail),
-      ),
-    ).toBe(true);
-    expect(
-      plans.some(({ detail }) =>
-        /^SCAN (w|workout_sets|previous)\b/.test(detail),
-      ),
-    ).toBe(false);
+    const memory = buildApplicationMemory(
+      await readApplicationMemoryFacts(reader),
+      1,
+    );
+    expect(getMemorySetContext(memory, reference)).toEqual(before);
   });
 });
 

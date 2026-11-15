@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { DatabaseSync } from "node:sqlite";
 import { URL } from "node:url";
+import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 import { migrateSchema } from "./migrations";

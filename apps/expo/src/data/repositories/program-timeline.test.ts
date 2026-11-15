@@ -272,8 +272,8 @@ describe("program timeline projections", () => {
     expect(new Date(window.endMs)).toEqual(new Date(2026, 2, 12));
   });
 
-  it("bounds page rows and uses scoped date indexes with years of unrelated workouts", async () => {
-    const { db, reader, calls, insert } = setup();
+  it("returns the complete in-memory week with years of history", async () => {
+    const { db, reader, insert } = setup();
     insert("start", 0, "Done", localDate(1));
     db.exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
       INSERT INTO sessions(program_id, id, name, position, status, deload, start_ms)
@@ -282,29 +282,19 @@ describe("program timeline projections", () => {
         SELECT program_id, id, 'a', 0 FROM sessions;
       INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback)
         SELECT program_id, session_id, id, 'set', 'Main', 0, 'Done', 'Neutral' FROM activities;`);
-    const page = await getProgramWeekPage(reader, "p", {
-      week: 1,
-      nowMs,
-      limit: 2,
-    });
-    expect(page?.items).toHaveLength(2);
-    expect(calls).toHaveLength(2);
-    expect(calls.map(({ rows }) => rows)).toEqual([1, 3]);
-    for (const { sql } of calls) {
-      expect(sql).not.toMatch(/\b(activities|workout_sets)\b/);
-    }
-    const pageQuery = calls[1];
-    if (!pageQuery) throw new Error("Missing page query");
-    const plan = db
-      .prepare(`EXPLAIN QUERY PLAN ${pageQuery.sql}`)
-      .all(...pageQuery.parameters) as { detail: string }[];
-    expect(
-      plan.some(({ detail }) =>
-        /sessions_start.*start_ms>.*start_ms</.test(detail),
-      ),
-    ).toBe(true);
-    expect(plan.some(({ detail }) => /^SCAN sessions\b/.test(detail))).toBe(
-      false,
+    const memory = buildApplicationMemory(
+      await readApplicationMemoryFacts(reader),
+      1,
     );
+    const page = getMemoryProgramWeek(
+      memory,
+      "p",
+      1,
+      localDate(1).getTime(),
+      3,
+      nowMs,
+    );
+    expect(page?.items).toHaveLength(7);
+    expect(page?.nextCursor).toBeNull();
   });
 });

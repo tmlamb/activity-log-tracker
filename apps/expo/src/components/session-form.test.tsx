@@ -3,8 +3,19 @@ import { act, create } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ApplicationDataRuntime } from "~/data/react/application-data";
+import SessionFormScreen from "~/app/(public)/(app)/program/[programId]/session/form/index";
+import { createWorkoutQueryClient } from "~/data/cache/query-client";
+import { ApplicationDataProvider } from "~/data/react/application-data";
 import { useSelectionHandoff } from "~/data/react/selection-handoff";
-import { SQLiteSessionForm } from "./sqlite-session-form";
+
+const cache = createWorkoutQueryClient();
+function SessionForm({ runtime }: { runtime: ApplicationDataRuntime }) {
+  return (
+    <ApplicationDataProvider runtime={{ ...runtime, cache }}>
+      <SessionFormScreen />
+    </ApplicationDataProvider>
+  );
+}
 
 const env = vi.hoisted(() => ({
   focused: true,
@@ -202,7 +213,7 @@ beforeEach(() => {
 });
 afterEach(() => useSelectionHandoff.setState({ entries: {} }));
 
-describe("SQLite session editor interactions", () => {
+describe("session editor interactions", () => {
   it("shows the original plan-source selector before opening a new session editor", async () => {
     env.sessionCount = 1;
     const snapshot = { generation: 1, service: {} };
@@ -212,7 +223,7 @@ describe("SQLite session editor interactions", () => {
     } as unknown as ApplicationDataRuntime;
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SQLiteSessionForm runtime={runtime} />);
+      renderer = create(<SessionForm runtime={runtime} />);
       await Promise.resolve();
     });
     if (!renderer) throw new Error("Renderer not created");
@@ -261,7 +272,7 @@ describe("SQLite session editor interactions", () => {
     } as unknown as ApplicationDataRuntime;
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SQLiteSessionForm runtime={runtime} />);
+      renderer = create(<SessionForm runtime={runtime} />);
       await Promise.resolve();
     });
     if (!renderer) throw new Error("Renderer not created");
@@ -296,7 +307,7 @@ describe("SQLite session editor interactions", () => {
     if (!entry) throw new Error("Missing selection request");
     await act(async () => {
       env.focused = false;
-      renderer?.update(<SQLiteSessionForm runtime={runtime} />);
+      renderer?.update(<SessionForm runtime={runtime} />);
       await Promise.resolve();
     });
     await act(async () => {
@@ -309,7 +320,7 @@ describe("SQLite session editor interactions", () => {
     });
     await act(async () => {
       env.focused = true;
-      renderer?.update(<SQLiteSessionForm runtime={runtime} />);
+      renderer?.update(<SessionForm runtime={runtime} />);
       await Promise.resolve();
     });
     expect(
@@ -358,7 +369,7 @@ describe("SQLite session editor interactions", () => {
     } as unknown as ApplicationDataRuntime;
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SQLiteSessionForm runtime={runtime} />);
+      renderer = create(<SessionForm runtime={runtime} />);
       await Promise.resolve();
     });
     if (!renderer) throw new Error("Renderer not created");

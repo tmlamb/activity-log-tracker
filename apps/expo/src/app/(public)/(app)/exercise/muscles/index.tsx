@@ -18,7 +18,7 @@ import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import { PrimaryCardAction } from "~/components/CardRow";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import InventoryCounterInputRow from "~/components/InventoryCounterInputRow";
-import { SQLiteQueryStatus } from "~/components/sqlite-query-status";
+import { QueryStatus } from "~/components/query-status";
 import { HelperText, SectionHeading } from "~/components/Typography";
 import {
   useApplicationDataRuntime,
@@ -33,18 +33,15 @@ interface FormData {
 
 export default function ExerciseMusclesScreen() {
   const runtime = useApplicationDataRuntime();
-  return <SQLiteMuscleScreen runtime={runtime} />;
+  return <MuscleScreenContent runtime={runtime} />;
 }
 
-function SQLiteMuscleScreen({ runtime }: { runtime: ApplicationDataRuntime }) {
+function MuscleScreenContent({ runtime }: { runtime: ApplicationDataRuntime }) {
   const snapshot = useApplicationDataSnapshot(runtime);
   const query = useMuscleCatalog(runtime);
   if (query.data === undefined)
     return (
-      <SQLiteQueryStatus
-        error={query.isError}
-        onRetry={() => void query.refetch()}
-      />
+      <QueryStatus error={query.isError} onRetry={() => void query.refetch()} />
     );
   return (
     <MuscleEditor

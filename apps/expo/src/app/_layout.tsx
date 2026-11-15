@@ -10,8 +10,8 @@ import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { PostHogProvider } from "posthog-react-native";
 
+import { ApplicationDataBootstrap } from "~/components/application-data-bootstrap";
 import { FontScaleProvider } from "~/components/font-scale-text";
-import { SQLiteBootstrap } from "~/components/sqlite-bootstrap";
 import { captureException, posthog } from "~/utils/posthog";
 
 SplashScreen.preventAutoHideAsync().catch(captureException);
@@ -28,7 +28,7 @@ export default function RootLayout() {
       <KeyboardProvider preload={false}>
         <StatusBar style="auto" />
         <FontScaleProvider>
-          <SQLiteBootstrap>
+          <ApplicationDataBootstrap>
             <Stack
               screenOptions={{
                 headerShown: false,
@@ -37,7 +37,7 @@ export default function RootLayout() {
             >
               <Stack.Screen name="(public)" />
             </Stack>
-          </SQLiteBootstrap>
+          </ApplicationDataBootstrap>
         </FontScaleProvider>
       </KeyboardProvider>
     </ThemeProvider>

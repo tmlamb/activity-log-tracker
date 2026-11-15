@@ -2,8 +2,7 @@ import type { PropsWithChildren, ReactNode } from "react";
 import { act, create } from "react-test-renderer";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
-import { SQLiteSessionDetail } from "./sqlite-session-detail";
+import SessionDetailScreen from "~/app/(public)/(app)/program/[programId]/session/[sessionId]/index";
 
 const env = vi.hoisted(() => ({
   focused: true,
@@ -56,9 +55,13 @@ vi.mock("expo-router", () => ({
   useLocalSearchParams: () => ({ programId: "p", sessionId: "s" }),
   useRouter: () => ({ dismissTo: vi.fn() }),
 }));
-vi.mock("~/data/react/application-data", () => ({
-  useApplicationDataSnapshot: () => env.snapshot,
-}));
+vi.mock("~/data/react/application-data", () => {
+  const runtime = { getSnapshot: () => env.snapshot };
+  return {
+    useApplicationDataRuntime: () => runtime,
+    useApplicationDataSnapshot: () => env.snapshot,
+  };
+});
 vi.mock("~/data/react/session-queries", async () => {
   const { useIsFocused } = await import("expo-router/react-navigation");
   return {
@@ -101,7 +104,7 @@ vi.mock("./HeaderAction", () => ({ HeaderTextAction: () => null }));
 vi.mock("./PressableThemed", () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
-vi.mock("./sqlite-query-status", () => ({ SQLiteQueryStatus: () => null }));
+vi.mock("./query-status", () => ({ QueryStatus: () => null }));
 vi.mock("./SwitchThemed", () => ({ default: () => null }));
 vi.mock("./Typography", () => ({
   HelperText: ({ children }: PropsWithChildren) => <p>{children}</p>,
@@ -115,12 +118,9 @@ describe("session detail navigation", () => {
     ).IS_REACT_ACT_ENVIRONMENT = true;
     env.focused = true;
     env.renderList.mockClear();
-    const runtime = {
-      getSnapshot: () => env.snapshot,
-    } as unknown as ApplicationDataRuntime;
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SQLiteSessionDetail runtime={runtime} />);
+      renderer = create(<SessionDetailScreen />);
       await Promise.resolve();
     });
     const initialRenders = env.renderList.mock.calls.length;
@@ -136,7 +136,7 @@ describe("session detail navigation", () => {
       session: { ...env.seed.session, name: "Updated Session" },
     };
     await act(async () => {
-      renderer?.update(<SQLiteSessionDetail runtime={runtime} />);
+      renderer?.update(<SessionDetailScreen />);
       await Promise.resolve();
     });
     expect(env.renderList).toHaveBeenCalledTimes(initialRenders + 1);
@@ -159,13 +159,10 @@ describe("session detail navigation", () => {
         lastActivityAtMs: 10_000_000 - 30 * 60 * 1000 + 1000,
       },
     };
-    const runtime = {
-      getSnapshot: () => env.snapshot,
-    } as unknown as ApplicationDataRuntime;
     let renderer: ReturnType<typeof create> | undefined;
     try {
       await act(async () => {
-        renderer = create(<SQLiteSessionDetail runtime={runtime} />);
+        renderer = create(<SessionDetailScreen />);
         await Promise.resolve();
       });
       expect(JSON.stringify(renderer?.toJSON())).not.toContain(

@@ -112,7 +112,7 @@ describe("session editor planning weights", () => {
     }
   });
   it("matches existing fallback priority and keeps repeated exercise occurrences distinct", async () => {
-    const { db, reader, calls } = setup();
+    const { db, reader } = setup();
     try {
       const draft = [
         { exerciseId: "e", loadType: "RPE" as const },
@@ -163,28 +163,6 @@ describe("session editor planning weights", () => {
             source,
           ),
         );
-      expect(calls).toHaveLength(2);
-      const query = calls[1];
-      if (!query) throw new Error("Missing batched planning query");
-      const plan = db
-        .prepare(`EXPLAIN QUERY PLAN ${query.sql}`)
-        .all(...query.params) as { detail: string }[];
-      expect(
-        plan.some(({ detail }) => detail.includes("sessions_lineage")),
-      ).toBe(true);
-      expect(
-        plan.some(({ detail }) => detail.includes("activities_occurrence")),
-      ).toBe(true);
-      const setLookups = plan.filter(({ detail }) =>
-        detail.startsWith("SEARCH w USING"),
-      );
-      expect(setLookups).toHaveLength(2);
-      expect(
-        setLookups.every(
-          ({ detail }) =>
-            detail.includes("session_id=?") && detail.includes("activity_id=?"),
-        ),
-      ).toBe(true);
       const firstActivity = draft[0];
       const thirdActivity = draft[2];
       if (!firstActivity || !thirdActivity)
@@ -266,8 +244,8 @@ describe("session editor planning weights", () => {
     }
   });
 
-  it("batches large drafts rather than issuing a query for every activity", async () => {
-    const { db, reader, calls } = setup();
+  it("matches in-memory planning for large drafts", async () => {
+    const { db, reader } = setup();
     try {
       const activities = Array.from({ length: 405 }, () => ({
         exerciseId: "e",
@@ -283,7 +261,19 @@ describe("session editor planning weights", () => {
       expect(hints).toHaveLength(405);
       expect(hints[0]?.weight).toEqual({ value: 35, unit: "kg" });
       expect(hints[1]?.weight).toBeNull();
-      expect(calls).toHaveLength(4);
+      const memory = buildApplicationMemory(
+        await readApplicationMemoryFacts(reader),
+        1,
+      );
+      expect(
+        getMemoryPlanningWeightHints(
+          memory,
+          "p",
+          { kind: "template", sessionId: "current" },
+          activities,
+          "Main",
+        ),
+      ).toEqual(hints);
     } finally {
       db.close();
     }

@@ -5,28 +5,21 @@ import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import type { ProgramSummary } from "~/data/repositories/programs";
 import { NavigationCardRow } from "~/components/CardRow";
 import { HeaderPlusAction } from "~/components/HeaderAction";
-import { SQLiteQueryStatus } from "~/components/sqlite-query-status";
+import { QueryStatus } from "~/components/query-status";
 import { LegendListStyled } from "~/components/Styled";
 import { useApplicationDataRuntime } from "~/data/react/application-data";
 import { useProgramSummaries } from "~/data/react/program-queries";
 
 export default function ProgramSettingsScreen() {
   const runtime = useApplicationDataRuntime();
-  return <SQLiteProgramSettings runtime={runtime} />;
+  return <ProgramSettings runtime={runtime} />;
 }
 
-function SQLiteProgramSettings({
-  runtime,
-}: {
-  runtime: ApplicationDataRuntime;
-}) {
+function ProgramSettings({ runtime }: { runtime: ApplicationDataRuntime }) {
   const query = useProgramSummaries(runtime);
   if (query.data === undefined)
     return (
-      <SQLiteQueryStatus
-        error={query.isError}
-        onRetry={() => void query.refetch()}
-      />
+      <QueryStatus error={query.isError} onRetry={() => void query.refetch()} />
     );
   return <ProgramSettingsContent programs={query.data} />;
 }

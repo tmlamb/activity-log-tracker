@@ -1,7 +1,7 @@
 import type { InfiniteData } from "@tanstack/react-query";
 import type { PropsWithChildren } from "react";
 import { useEffect, useState } from "react";
-import { Alert, AppState, ScrollView } from "react-native";
+import { AppState, ScrollView } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 
 import type {
@@ -12,7 +12,6 @@ import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import { openNativeApplicationDataRuntime } from "~/data/native-runtime";
 import { ApplicationDataProvider } from "~/data/react/application-data";
 import { createRuntimeLeaseManager } from "~/data/runtime-leases";
-import { downloadBackupFile } from "~/utils/backup-file";
 import { captureException } from "~/utils/posthog";
 import { PrimaryCardAction } from "./CardRow";
 import { Text } from "./font-scale-text";
@@ -124,11 +123,10 @@ function ActiveRuntime({
   );
 }
 
-export function SQLiteBootstrap({ children }: PropsWithChildren) {
+export function ApplicationDataBootstrap({ children }: PropsWithChildren) {
   const [attempt, setAttempt] = useState(0);
   const [runtime, setRuntime] = useState<ApplicationDataRuntime>();
   const [error, setError] = useState<unknown>();
-  const [exporting, setExporting] = useState(false);
   useEffect(() => {
     if (runtime || error !== undefined)
       void SplashScreen.hideAsync().catch(captureException);
@@ -170,37 +168,16 @@ export function SQLiteBootstrap({ children }: PropsWithChildren) {
         <HelperText selectable>
           {error instanceof Error
             ? error.message
-            : "The workout database could not be opened."}
+            : typeof error === "string"
+              ? error
+              : "The workout database could not be opened."}
         </HelperText>
         <PrimaryCardAction
           label="Try Again"
           accessibilityLabel="Retry opening workout data"
-          disabled={exporting}
           onPress={() => {
             setError(undefined);
             setAttempt((value) => value + 1);
-          }}
-        />
-        <PrimaryCardAction
-          label={exporting ? "Preparing…" : "Export Recovery Data"}
-          accessibilityLabel="Export recovery data"
-          disabled={exporting}
-          onPress={() => {
-            setExporting(true);
-            void import("~/data/legacy/native-recovery")
-              .then(({ exportNativeRecoveryData }) =>
-                exportNativeRecoveryData(),
-              )
-              .then((contents) =>
-                downloadBackupFile(contents, "activity-log-recovery.json"),
-              )
-              .catch(() =>
-                Alert.alert(
-                  "Export Failed",
-                  "Recovery data could not be exported. Please try again.",
-                ),
-              )
-              .finally(() => setExporting(false));
           }}
         />
       </ScrollView>

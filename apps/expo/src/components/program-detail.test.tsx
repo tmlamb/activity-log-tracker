@@ -3,9 +3,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ApplicationDataRuntime } from "~/data/react/application-data";
+import ProgramDetailScreen from "~/app/(public)/(app)/program/[programId]/index";
 import { createWorkoutQueryClient } from "~/data/cache/query-client";
 import { ApplicationDataProvider } from "~/data/react/application-data";
-import { SQLiteProgramDetail } from "./sqlite-program-detail";
 
 const { weekQuery } = vi.hoisted(() => ({ weekQuery: vi.fn() }));
 vi.mock("react-native", () => ({
@@ -90,7 +90,7 @@ vi.mock("./Typography", () => ({
   SectionHeading: ({ children }: PropsWithChildren) => <h2>{children}</h2>,
 }));
 
-describe("SQLite program timeline", () => {
+describe("program timeline", () => {
   it("renders the current week and does not mount queries for collapsed history", () => {
     weekQuery.mockReset();
     weekQuery.mockReturnValue({
@@ -115,7 +115,7 @@ describe("SQLite program timeline", () => {
     } as unknown as ApplicationDataRuntime;
     const output = renderToStaticMarkup(
       <ApplicationDataProvider runtime={runtime}>
-        <SQLiteProgramDetail runtime={runtime} />
+        <ProgramDetailScreen />
       </ApplicationDataProvider>,
     );
     expect(output).toContain("Week 2 (Now)");

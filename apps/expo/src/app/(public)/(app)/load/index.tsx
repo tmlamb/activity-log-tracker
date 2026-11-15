@@ -9,8 +9,8 @@ import type { Exercise, Load } from "@activity-log/ui/utils";
 import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import { Text } from "~/components/font-scale-text";
 import { HeaderTextAction } from "~/components/HeaderAction";
+import { QueryStatus } from "~/components/query-status";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
-import { SQLiteQueryStatus } from "~/components/sqlite-query-status";
 import { AnimatedViewStyled } from "~/components/Styled";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText, SectionHeading } from "~/components/Typography";
@@ -42,12 +42,12 @@ const percentStringToNum = (value: string) => {
 
 export default function LoadScreen() {
   const runtime = useApplicationDataRuntime();
-  return <SQLiteLoadScreen runtime={runtime} />;
+  return <LoadScreenContent runtime={runtime} />;
 }
 
 type LoadExercise = Pick<Exercise, "exerciseId" | "name" | "oneRepMax">;
 
-function SQLiteLoadScreen({ runtime }: { runtime: ApplicationDataRuntime }) {
+function LoadScreenContent({ runtime }: { runtime: ApplicationDataRuntime }) {
   const params = useLocalSearchParams<{
     requestId?: string;
     ownerId?: string;
@@ -70,7 +70,7 @@ function SQLiteLoadScreen({ runtime }: { runtime: ApplicationDataRuntime }) {
     return <Redirect href="/(public)/(app)" />;
   if (params.exerciseId && exercise.data === undefined)
     return (
-      <SQLiteQueryStatus
+      <QueryStatus
         error={exercise.isError}
         onRetry={() => void exercise.refetch()}
       />
