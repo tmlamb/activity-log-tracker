@@ -293,9 +293,6 @@ importers:
       expo-updates:
         specifier: ~57.0.26
         version: 57.0.26(expo-dev-client@57.0.20(expo@57.0.31)(react-native@0.86.3(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.14)(react@19.2.3)(supports-color@8.1.1)))(expo@57.0.31)(react-native@0.86.3(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.14)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)
-      immer:
-        specifier: ^10.1.1
-        version: 10.2.0
       lodash:
         specifier: ^4.17.21
         version: 4.18.1
@@ -393,6 +390,9 @@ importers:
       '@types/react-dom':
         specifier: catalog:react19
         version: 19.2.7(@types/react@19.2.14)
+      '@types/react-test-renderer':
+        specifier: 19.1.0
+        version: 19.1.0
       dotenv:
         specifier: 18.0.8
         version: 18.0.8
@@ -405,6 +405,9 @@ importers:
       prettier:
         specifier: 'catalog:'
         version: 3.6.2
+      react-test-renderer:
+        specifier: 19.2.3
+        version: 19.2.3(react@19.2.3)
       tailwindcss:
         specifier: 'catalog:'
         version: 4.2.4
@@ -4644,6 +4647,11 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  react-test-renderer@19.2.3:
+    resolution: {integrity: sha512-TMR1LnSFiWZMJkCgNf5ATSvAheTT2NvKIwiVwdBPHxjBI7n/JbWd4gaZ16DVd9foAXdvDz+sB5yxZTwMjPRxpw==}
+    peerDependencies:
+      react: ^19.2.3
 
   react@19.2.3:
     resolution: {integrity: sha512-Ku/hhYbVjOQnXDZFv2+RibmLFGwFdeeKHFcOTlrt7xplBnya5OGn/hIRDsqDiSUcfORsDC7MPxwork8jBwsIWA==}
@@ -8924,7 +8932,8 @@ snapshots:
 
   ignore@7.0.5: {}
 
-  immer@10.2.0: {}
+  immer@10.2.0:
+    optional: true
 
   import-fresh@3.3.1:
     dependencies:
@@ -9920,6 +9929,12 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       '@types/react': 19.2.14
+
+  react-test-renderer@19.2.3(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-is: 19.2.5
+      scheduler: 0.27.0
 
   react@19.2.3: {}
 

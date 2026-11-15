@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { Alert, View } from "react-native";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import {
@@ -8,26 +8,13 @@ import {
   useLocalSearchParams,
   useRouter,
 } from "expo-router";
+import { useIsFocused } from "expo-router/react-navigation";
 import { format } from "date-fns";
-import _ from "lodash";
 
 import type {
-  Activity,
-  MainSet,
-  Program,
-  Session,
-  WarmupSet,
-  WorkoutSet,
-} from "@activity-log/ui/utils";
-import {
-  canSetSessionDeload,
-  isDeloadCandidate,
-  isLatestCompletedSessionInTemplateSeries,
-  isSessionTerminalStatus,
-  SESSION_INACTIVITY_TIMEOUT_MS,
-} from "@activity-log/ui/utils";
-
-import type { WorkoutStore } from "~/hooks/use-workout-store";
+  SessionActivity,
+  SessionDetail,
+} from "~/data/repositories/session-detail";
 import BottomActionBar from "~/components/BottomActionBar";
 import Card from "~/components/Card";
 import { DetailCardRow, NavigationCardRow } from "~/components/CardRow";
@@ -41,348 +28,109 @@ import { HeaderTextAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
 import SwitchThemed from "~/components/SwitchThemed";
 import { HelperText, ScreenHeading } from "~/components/Typography";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import { completeSession, setSessionDeload } from "~/data/actions";
+import {
+  useSessionDeloadCandidate,
+  useSessionEditorSeed,
+} from "~/data/queries";
 
-const getActivityWorkoutSets = (activity: Activity): WorkoutSet[] => [
-  ...activity.warmupSets,
-  ...activity.mainSets,
-];
-
-const isWorkoutSetDone = (workoutSet: WorkoutSet) =>
-  workoutSet.status === "Done" && (workoutSet.actualReps ?? 0) > 0;
-
-const getCompletedSetTextLines = (workoutSet: WorkoutSet) => {
-  const { actualReps, weight } = workoutSet;
-  if (!isWorkoutSetDone(workoutSet) || actualReps == null) {
-    return undefined;
-  }
-
-  return weight?.value
-    ? ([`${weight.value} ${weight.unit}`, `${actualReps} reps`] as const)
-    : ([`${actualReps} reps`] as const);
+const completed = (
+  set: SessionDetail["activities"][number]["mainSets"][number],
+) => set.status === "Done" && (set.actualReps ?? 0) > 0;
+const allDone = (activity: SessionActivity) => {
+  const sets = [...activity.warmupSets, ...activity.mainSets];
+  return sets.length > 0 && sets.every(completed);
 };
-
-const sessionCleanupWarningDelayMs = SESSION_INACTIVITY_TIMEOUT_MS / 2;
-const completionTextCharacterWidth = 8;
-
-function SessionCleanupWarning({ session }: { session: Session }) {
-  const warningAt = session.lastActivityAt
-    ? session.lastActivityAt.getTime() + sessionCleanupWarningDelayMs
-    : undefined;
-  const [currentTime, setCurrentTime] = useState(0);
-  const visible =
-    session.status === "Ready" && warningAt != null && currentTime >= warningAt;
-
-  useEffect(() => {
-    if (session.status !== "Ready" || warningAt == null) return;
-
-    const delay = Math.max(0, warningAt - Date.now());
-    const timeout = setTimeout(
-      () => setCurrentTime(Math.max(Date.now(), warningAt)),
-      delay,
-    );
-    return () => clearTimeout(timeout);
-  }, [session.status, warningAt]);
-
-  return visible ? (
-    <HelperText>
-      Sessions left open without activity after 1 hour will automatically be
-      marked incomplete
-    </HelperText>
-  ) : null;
-}
-
-const areAllActivitySetsDone = (activity: Activity) => {
-  const workoutSets = getActivityWorkoutSets(activity);
-  return workoutSets.length > 0 && workoutSets.every(isWorkoutSetDone);
-};
-
-const getCompletedActivityIds = (activities: Activity[]) =>
-  new Set(
-    activities
-      .filter(areAllActivitySetsDone)
-      .map((activity) => activity.activityId),
-  );
-
-interface WorkoutSetCardProps {
-  workoutSet: WarmupSet | MainSet;
-  activity: Activity;
-  session: Session;
-  program: Program;
-  title: string;
-  index: number;
-  completionTextColumnWidth?: number;
-}
-
-interface ExerciseListItem {
-  title: string;
-  activityId: string;
-  allSetsDone: boolean;
-  collapsed: boolean;
-  workoutSets: WorkoutSetCardProps[];
-}
-
-function WorkoutSetCard({
-  workoutSet,
-  activity,
-  session,
-  program,
-  title,
-  index,
-  completionTextColumnWidth,
-}: WorkoutSetCardProps) {
-  const status =
-    workoutSet.status === "Planned" &&
-    (index === 0 ||
-      _.concat(
-        activity.warmupSets as WorkoutSet[],
-        activity.mainSets as WorkoutSet[],
-      ).find((ws) => ws.status === "Done")?.workoutSetId ===
-        workoutSet.workoutSetId)
-      ? "Ready"
-      : workoutSet.status;
-  const completedSetTextLines = getCompletedSetTextLines(workoutSet);
-
-  return (
-    <Link
-      href={`/(public)/(app)/program/${program.programId}/session/${session.sessionId}/set?workoutSetId=${workoutSet.workoutSetId}&activityId=${activity.activityId}&title=${encodeURIComponent(title)}`}
-      asChild
-    >
-      <NavigationCardRow
-        title={title}
-        cardVariants={["multiline"]}
-        titleClassName="py-3"
-        stack={{
-          index,
-          size: activity.mainSets.length + activity.warmupSets.length,
-        }}
-        cardClassName={
-          index === activity.mainSets.length + activity.warmupSets.length - 1
-            ? "mb-3"
-            : undefined
-        }
-        centerTextLines={completedSetTextLines}
-        centerTextColumnWidth={completionTextColumnWidth}
-        trailingText={status === "Planned" ? undefined : status}
-        trailingTextClassName={
-          status === "Ready"
-            ? "text-primary"
-            : status === "Incomplete"
-              ? "text-warning"
-              : "text-muted"
-        }
-        animateTrailingText
-        trailingTextAnimationKey={status}
-        accessibilityLabel={`Navigate to ${title}${completedSetTextLines ? `, completed with ${workoutSet.weight?.value} ${workoutSet.weight?.unit} for ${workoutSet.actualReps} reps` : ""}, current status: ${status}`}
-      />
-    </Link>
-  );
-}
-
-function ExerciseWorkoutSets({
-  workoutSets,
-}: {
-  workoutSets: WorkoutSetCardProps[];
-}) {
-  const completionTextColumnWidth = Math.max(
-    0,
-    ...workoutSets.flatMap(
-      ({ workoutSet }) =>
-        getCompletedSetTextLines(workoutSet)?.map(
-          (line) => line.length * completionTextCharacterWidth,
-        ) ?? [],
-    ),
-  );
-
-  return workoutSets.map((item) => (
-    <WorkoutSetCard
-      key={item.workoutSet.workoutSetId}
-      workoutSet={item.workoutSet}
-      activity={item.activity}
-      session={item.session}
-      program={item.program}
-      title={item.title}
-      index={item.index}
-      completionTextColumnWidth={completionTextColumnWidth || undefined}
-    />
-  ));
-}
 
 export default function SessionDetailScreen() {
   const { programId, sessionId } = useLocalSearchParams<{
     programId: string;
     sessionId: string;
   }>();
-  const { programs, exercises, completeSession, updateSession } =
-    useWorkoutStore((store) => store);
-  const program = programs.find((p) => p.programId === programId);
-  const session = program?.sessions.find((s) => s.sessionId === sessionId);
-
-  if (!program || !session) {
+  const seed = useSessionEditorSeed(programId, sessionId);
+  const session = seed?.session;
+  const candidate = useSessionDeloadCandidate(
+    programId,
+    sessionId,
+    !!seed?.policy?.canSetDeload &&
+      session?.status === "Done" &&
+      !session.deload,
+  );
+  if (!seed?.session || !seed.policy)
     return <Redirect href="/(public)/(app)" />;
-  }
-
   return (
-    <SessionDetailScreenContent
-      program={program}
-      session={session}
-      exercises={exercises}
-      completeSession={completeSession}
-      updateSession={updateSession}
+    <SessionContent
+      key={`${programId}:${sessionId}`}
+      session={seed.session}
+      policy={seed.policy}
+      candidate={candidate}
     />
   );
 }
 
-function SessionDetailScreenContent({
-  program,
+const SessionContent = memo(function SessionContent({
   session,
-  exercises,
-  completeSession,
-  updateSession,
+  policy,
+  candidate,
 }: {
-  program: Program;
-  session: Session;
-  exercises: WorkoutStore["exercises"];
-  completeSession: WorkoutStore["completeSession"];
-  updateSession: WorkoutStore["updateSession"];
+  session: SessionDetail;
+  policy: { canSetDeload: boolean; isLatestCompletedInLineage: boolean };
+  candidate: ReturnType<typeof useSessionDeloadCandidate>;
 }) {
   const router = useRouter();
-  const [collapsedActivityIds, setCollapsedActivityIds] = useState<Set<string>>(
-    () => getCompletedActivityIds(session.activities),
-  );
-  const autoCollapsedActivityIdsRef = useRef<Set<string>>(
-    getCompletedActivityIds(session.activities),
-  );
-  const sessionCanBeDeload = canSetSessionDeload(program.sessions, session);
-  const deloadInputIsEligible =
-    sessionCanBeDeload &&
-    (session.deload || isDeloadCandidate(program.sessions, session, exercises));
-  const deloadRequiresConfirmation =
-    session.status !== "Incomplete" &&
-    (session.status !== "Done" ||
-      isLatestCompletedSessionInTemplateSeries(program.sessions, session));
-  const [hasShownDeloadInput] = useState(() => deloadInputIsEligible);
-  const showDeloadInput = hasShownDeloadInput || deloadInputIsEligible;
-  const summaryCardCount = (session.start ? 3 : 1) + (showDeloadInput ? 1 : 0);
-
-  const handleDeloadValueChange = (deload: boolean) => {
-    const updateDeload = () =>
-      updateSession(program.programId, { ...session, deload });
-
-    if (!deload || !deloadRequiresConfirmation) {
-      updateDeload();
+  const changeDeload = (value: boolean) => {
+    const commit = () => {
+      try {
+        setSessionDeload(session.programId, session.id, value);
+      } catch {
+        Alert.alert("Save Failed", "The deload setting could not be saved.");
+      }
+    };
+    if (
+      value &&
+      session.status !== "Incomplete" &&
+      (session.status !== "Done" || policy.isLatestCompletedInLineage)
+    )
+      Alert.alert(
+        "Mark as Deload Session?",
+        "This session will be ignored when planning the next session from this template. The last completed non-deload session will be used instead.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Mark as Deload", onPress: commit },
+        ],
+      );
+    else commit();
+  };
+  const finish = () => {
+    let done: boolean;
+    try {
+      done = completeSession(session.programId, session.id);
+    } catch {
+      Alert.alert(
+        "Complete Failed",
+        "The session could not be completed. Please try again.",
+      );
       return;
     }
-
-    Alert.alert(
-      "Mark as Deload Session?",
-      "This session will be ignored when planning the next session from this template. The last completed non-deload session will be used instead.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Mark as Deload", onPress: updateDeload },
-      ],
-    );
-  };
-
-  const setActivityCollapsed = (activityId: string, collapsed: boolean) => {
-    setCollapsedActivityIds((current) => {
-      const next = new Set(current);
-      if (collapsed) {
-        next.add(activityId);
-      } else {
-        next.delete(activityId);
-      }
-      return next;
-    });
-  };
-
-  useEffect(() => {
-    const completedActivityIds = getCompletedActivityIds(session.activities);
-    const autoCollapsedActivityIds = autoCollapsedActivityIdsRef.current;
-    const newlyCompletedActivityIds = [...completedActivityIds].filter(
-      (activityId) => !autoCollapsedActivityIds.has(activityId),
-    );
-
-    autoCollapsedActivityIdsRef.current = new Set(
-      [...autoCollapsedActivityIds].filter((activityId) =>
-        completedActivityIds.has(activityId),
-      ),
-    );
-    newlyCompletedActivityIds.forEach((activityId) => {
-      autoCollapsedActivityIdsRef.current.add(activityId);
-    });
-
-    if (!newlyCompletedActivityIds.length) return;
-
-    setCollapsedActivityIds((current) => {
-      const next = new Set(current);
-      newlyCompletedActivityIds.forEach((activityId) => {
-        next.add(activityId);
-      });
-      return next;
-    });
-  }, [session.activities]);
-
-  const workoutSetsPending = _.reduce(
-    session.activities,
-    (result, activity) =>
-      _.concat(
-        result,
-        _.filter(
-          getActivityWorkoutSets(activity),
-          (workoutSet) => !isWorkoutSetDone(workoutSet),
-        ),
-      ),
-    [] as WorkoutSet[],
-  );
-
-  const activities = session.activities.map<ExerciseListItem>(
-    (activity, actIndex) => {
-      const allSetsDone = areAllActivitySetsDone(activity);
-      const collapsed = collapsedActivityIds.has(activity.activityId);
-      const workoutSets = _.concat<WorkoutSetCardProps>(
-        activity.warmupSets.map((ws, i) => ({
-          workoutSet: ws,
-          activity,
-          session,
-          program,
-          title: `Warmup Set ${i + 1}`,
-          index: i,
-        })),
-        activity.mainSets.map((ws, i) => ({
-          workoutSet: ws,
-          activity,
-          session,
-          program,
-          title: `Main Set ${i + 1}`,
-          index: activity.warmupSets.length + i,
-        })),
+    if (done)
+      router.dismissTo(
+        `/(public)/(app)/program/${encodeURIComponent(session.programId)}`,
       );
-
-      return {
-        title: (() => {
-          const exercise = exercises.find(
-            (e) => e.exerciseId === activity.exerciseId,
-          );
-
-          return exercise
-            ? `${exercise.name}${exercise.deleted ? " (Deleted)" : ""}`
-            : `Activity ${actIndex + 1}`;
-        })(),
-        activityId: activity.activityId,
-        allSetsDone,
-        collapsed,
-        workoutSets,
-      };
-    },
-  );
-
+    else
+      Alert.alert("Session Changed", "The session can no longer be completed.");
+  };
+  const setsPending = session.activities
+    .flatMap((activity) => [...activity.warmupSets, ...activity.mainSets])
+    .some((set) => !completed(set));
   const completable =
     session.status === "Incomplete" ||
-    (!workoutSetsPending.length &&
-      session.status === "Ready" &&
-      session.activities.length > 0);
-
+    (session.status === "Ready" &&
+      session.activities.length > 0 &&
+      !setsPending);
+  const showDeload =
+    policy.canSetDeload && (session.deload || candidate?.candidate === true);
+  const summarySize =
+    1 + (session.startMs !== null ? 2 : 0) + Number(showDeload);
   return (
     <>
       <Stack.Screen
@@ -390,7 +138,7 @@ function SessionDetailScreenContent({
           title: session.deload ? "Deload Session" : "Workout Session",
           headerRight: () => (
             <Link
-              href={`/(public)/(app)/program/${program.programId}/session/form?sessionId=${session.sessionId}`}
+              href={`/(public)/(app)/program/${encodeURIComponent(session.programId)}/session/form?sessionId=${encodeURIComponent(session.id)}`}
               asChild
             >
               <HeaderTextAction
@@ -404,10 +152,10 @@ function SessionDetailScreenContent({
       <View className="flex-1">
         <CollapsibleSectionList
           className="flex-1"
-          data={activities}
+          data={session.activities}
+          keyExtractor={(item) => item.id}
           contentContainerClassName="px-5 pt-5 pb-24"
           contentInsetAdjustmentBehavior="automatic"
-          keyExtractor={(item) => item.activityId}
           ListHeaderComponent={
             <Animated.View layout={LinearTransition.duration(500)}>
               <DetailCardRow
@@ -415,99 +163,99 @@ function SessionDetailScreenContent({
                 value={session.name}
                 cardVariants={["multiline"]}
                 stack={
-                  summaryCardCount > 1
-                    ? { index: 0, size: summaryCardCount }
-                    : undefined
+                  summarySize > 1 ? { index: 0, size: summarySize } : undefined
                 }
               />
-              {session.start && (
+              {session.startMs !== null && (
                 <>
                   <DetailCardRow
                     label="Start Time"
-                    value={format(session.start, "MMM do,  hh:mm aa")}
+                    value={format(
+                      new Date(session.startMs),
+                      "MMM do,  hh:mm aa",
+                    )}
                     valueMaxFontSizeMultiplier={1.25}
-                    stack={{ index: 1, size: summaryCardCount }}
+                    stack={{ index: 1, size: summarySize }}
                   />
                   <ElapsedTime
-                    start={session.start}
-                    end={session.end}
+                    start={new Date(session.startMs)}
+                    end={
+                      session.endMs === null
+                        ? undefined
+                        : new Date(session.endMs)
+                    }
                     status={session.status}
-                    stack={{ index: 2, size: summaryCardCount }}
+                    stack={{ index: 2, size: summarySize }}
                     showHours
                   />
                 </>
               )}
-              {showDeloadInput && (
-                <>
-                  <PressableThemed
-                    onPress={() => handleDeloadValueChange(!session.deload)}
-                    accessibilityRole="switch"
-                    accessibilityLabel="Deload session"
-                    accessibilityHint="Marks this workout as a deload session"
-                    accessibilityState={{ checked: session.deload }}
+              {showDeload && (
+                <PressableThemed
+                  accessibilityRole="switch"
+                  accessibilityLabel="Deload session"
+                  accessibilityHint="Marks this workout as a deload session"
+                  accessibilityState={{ checked: session.deload }}
+                  onPress={() => changeDeload(!session.deload)}
+                >
+                  <Card
+                    stack={{
+                      index: session.startMs !== null ? 3 : 1,
+                      size: summarySize,
+                    }}
                   >
-                    <Card
-                      stack={{
-                        index: session.start ? 3 : 1,
-                        size: summaryCardCount,
-                      }}
+                    <Text
+                      accessible={false}
+                      maxFontSizeMultiplier={2}
+                      className="text-muted text-xl tracking-tight"
                     >
-                      <Text
-                        accessible={false}
-                        maxFontSizeMultiplier={2}
-                        className="text-muted text-xl tracking-tight"
-                      >
-                        Deload
-                      </Text>
-                      <View
-                        accessible={false}
-                        accessibilityElementsHidden
-                        importantForAccessibility="no-hide-descendants"
-                        pointerEvents="none"
-                      >
-                        <SwitchThemed
-                          value={session.deload}
-                          onValueChange={handleDeloadValueChange}
-                          testID="session-deload-toggle"
-                        />
-                      </View>
-                    </Card>
-                  </PressableThemed>
-                </>
+                      Deload
+                    </Text>
+                    <View
+                      accessible={false}
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                      pointerEvents="none"
+                    >
+                      <SwitchThemed
+                        value={session.deload}
+                        onValueChange={changeDeload}
+                        testID="session-deload-toggle"
+                      />
+                    </View>
+                  </Card>
+                </PressableThemed>
               )}
-              {session.start && <SessionCleanupWarning session={session} />}
+              {candidate?.partial && (
+                <HelperText>
+                  Deload detection is unavailable because some workout details
+                  are missing.
+                </HelperText>
+              )}
+              <SessionCleanupWarning
+                status={session.status}
+                lastActivityAtMs={session.lastActivityAtMs}
+              />
               <ScreenHeading>Planned Exercises</ScreenHeading>
             </Animated.View>
           }
-          extraData={collapsedActivityIds}
-          renderItem={({ item }) => (
-            <CollapsibleSection
-              title={item.title}
-              collapsed={item.collapsed}
-              onCollapsedChange={(collapsed) =>
-                setActivityCollapsed(item.activityId, collapsed)
-              }
-              titleClassName={
-                item.allSetsDone
-                  ? "text-muted leading-tight"
-                  : "text-foreground leading-tight"
-              }
-              chevronClassName={
-                item.collapsed && !item.allSetsDone
-                  ? "text-primary"
-                  : "text-muted"
-              }
-            >
-              <ExerciseWorkoutSets workoutSets={item.workoutSets} />
-            </CollapsibleSection>
+          renderItem={({ item, index }) => (
+            <ActivityRow
+              activity={item}
+              index={index}
+              programId={session.programId}
+              sessionId={session.id}
+            />
           )}
           ListFooterComponent={
             <HelperText>
               {session.activities.length < 1
                 ? "Before continuing with this workout session, use the 'Edit' button to add exercises."
                 : session.activities.length > 1 ||
-                  isSessionTerminalStatus(session.status) ||
-                  "Use the 'Edit' button to add more exercises to the workout session."}
+                    session.status === "Done" ||
+                    session.status === "Incomplete"
+                  ? ""
+                  : "Use the 'Edit' button to add more exercises to the workout session."}
             </HelperText>
           }
           nestedScrollEnabled
@@ -516,16 +264,137 @@ function SessionDetailScreenContent({
           label="Complete Workout Session"
           accessibilityLabel="Complete workout session"
           hidden={!completable}
-          onPress={() => {
-            completeSession(program.programId, {
-              ...session,
-              status: "Done",
-              end: session.status === "Incomplete" ? session.end : new Date(),
-            });
-            router.dismissTo(`/(public)/(app)/program/${program.programId}`);
-          }}
+          onPress={finish}
         />
       </View>
     </>
+  );
+});
+
+/**
+ * One exercise's sets. Collapse state lives here, not in the screen: list rows
+ * re-render reliably for their own state, as on the program screen's weeks.
+ */
+function ActivityRow({
+  activity: item,
+  index,
+  programId,
+  sessionId,
+}: {
+  activity: SessionActivity;
+  index: number;
+  programId: string;
+  sessionId: string;
+}) {
+  const done = allDone(item);
+  const [collapsed, setCollapsed] = useState(done);
+  // Collapse an exercise automatically when its last set is completed.
+  const [wasDone, setWasDone] = useState(done);
+  if (done !== wasDone) {
+    setWasDone(done);
+    if (done) setCollapsed(true);
+  }
+  const sets = [...item.warmupSets, ...item.mainSets];
+  const completionWidth = Math.max(
+    0,
+    ...sets.flatMap((set) =>
+      completed(set)
+        ? (set.weightValue
+            ? [`${set.weightValue} ${set.weightUnit}`, `${set.actualReps} reps`]
+            : [`${set.actualReps} reps`]
+          ).map((line) => line.length * 8)
+        : [],
+    ),
+  );
+  const name = item.exerciseName
+    ? `${item.exerciseName}${item.exerciseDeleted ? " (Deleted)" : ""}`
+    : `Activity ${index + 1}`;
+  return (
+    <CollapsibleSection
+      title={name}
+      collapsed={collapsed}
+      titleClassName={
+        done ? "text-muted leading-tight" : "text-foreground leading-tight"
+      }
+      chevronClassName={collapsed && !done ? "text-primary" : "text-muted"}
+      onCollapsedChange={setCollapsed}
+    >
+      {sets.map((set, setIndex) => {
+        const title =
+          set.kind === "Warmup"
+            ? `Warmup Set ${item.warmupSets.findIndex((entry) => entry.id === set.id) + 1}`
+            : `Main Set ${item.mainSets.findIndex((entry) => entry.id === set.id) + 1}`;
+        const status =
+          set.status === "Planned" && setIndex === 0 ? "Ready" : set.status;
+        const lines = completed(set)
+          ? set.weightValue
+            ? ([
+                `${set.weightValue} ${set.weightUnit}`,
+                `${set.actualReps} reps`,
+              ] as const)
+            : ([`${set.actualReps} reps`] as const)
+          : undefined;
+        return (
+          <Link
+            key={set.id}
+            href={`/(public)/(app)/program/${encodeURIComponent(programId)}/session/${encodeURIComponent(sessionId)}/set?workoutSetId=${encodeURIComponent(set.id)}&activityId=${encodeURIComponent(item.id)}&title=${encodeURIComponent(title)}`}
+            asChild
+          >
+            <NavigationCardRow
+              title={title}
+              cardVariants={["multiline"]}
+              titleClassName="py-3"
+              stack={{ index: setIndex, size: sets.length }}
+              cardClassName={setIndex === sets.length - 1 ? "mb-3" : undefined}
+              centerTextLines={lines}
+              centerTextColumnWidth={completionWidth || undefined}
+              trailingText={status === "Planned" ? undefined : status}
+              trailingTextClassName={
+                status === "Ready"
+                  ? "text-primary"
+                  : status === "Incomplete"
+                    ? "text-warning"
+                    : "text-muted"
+              }
+              animateTrailingText
+              trailingTextAnimationKey={status}
+              accessibilityLabel={`Navigate to ${title}${lines ? `, completed with ${set.weightValue} ${set.weightUnit} for ${set.actualReps} reps` : ""}, current status: ${status}`}
+            />
+          </Link>
+        );
+      })}
+    </CollapsibleSection>
+  );
+}
+
+function SessionCleanupWarning({
+  status,
+  lastActivityAtMs,
+}: {
+  status: SessionDetail["status"];
+  lastActivityAtMs: number | null;
+}) {
+  const focused = useIsFocused();
+  const [clock, setClock] = useState(Date.now);
+  useEffect(() => {
+    if (!focused || status !== "Ready" || lastActivityAtMs === null) return;
+    const warningAt = lastActivityAtMs + 30 * 60 * 1000;
+    const timeout = setTimeout(
+      () => setClock(Date.now()),
+      Math.max(0, warningAt - Date.now()),
+    );
+    return () => clearTimeout(timeout);
+  }, [focused, status, lastActivityAtMs]);
+  if (
+    status !== "Ready" ||
+    lastActivityAtMs === null ||
+    clock < lastActivityAtMs + 30 * 60 * 1000
+  )
+    return null;
+  return (
+    <HelperText>
+      Sessions left open without activity after 1 hour will automatically be
+      marked incomplete
+    </HelperText>
   );
 }

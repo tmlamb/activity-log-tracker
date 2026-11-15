@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, ScrollView, View } from "react-native";
+import { Alert, KeyboardAvoidingView, ScrollView, View } from "react-native";
 import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
-import type { Load } from "@activity-log/ui/utils";
+import type { Exercise, Load } from "@activity-log/ui/utils";
 
 import { Text } from "~/components/font-scale-text";
 import { HeaderTextAction } from "~/components/HeaderAction";
@@ -12,8 +12,10 @@ import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import { AnimatedViewStyled } from "~/components/Styled";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText, SectionHeading } from "~/components/Typography";
-import usePendingSelection from "~/hooks/use-pending-selection";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import { setExerciseOneRepMax } from "~/data/actions";
+import { useExerciseDetail } from "~/data/queries";
+import { useSelectionHandoff } from "~/data/selection-handoff";
+import { useGeneration } from "~/data/store";
 
 type FormData = Partial<Load> & { oneRepMaxVal?: number };
 
@@ -34,18 +36,74 @@ const percentStringToNum = (value: string) => {
   return percentValue == null ? undefined : percentValue / 100;
 };
 
+type LoadExercise = Pick<Exercise, "exerciseId" | "name" | "oneRepMax">;
+
 export default function LoadScreen() {
-  const { activityId, exerciseId, loadType, loadValue } = useLocalSearchParams<{
-    activityId: string;
+  const params = useLocalSearchParams<{
+    requestId?: string;
+    ownerId?: string;
+    generation?: string;
+    activityId?: string;
     exerciseId?: string;
+  }>();
+  const generation = useGeneration();
+  const entry = useSelectionHandoff((state) =>
+    params.requestId ? state.entries[params.requestId] : undefined,
+  );
+  const record = useExerciseDetail(params.exerciseId);
+  if (
+    entry?.kind !== "load" ||
+    entry.ticket.ownerId !== params.ownerId ||
+    entry.ticket.activityId !== params.activityId ||
+    String(entry.ticket.generation) !== params.generation ||
+    entry.ticket.generation !== generation
+  )
+    return <Redirect href="/(public)/(app)" />;
+  const initial: LoadExercise | undefined = record
+    ? {
+        exerciseId: record.id,
+        name: record.name,
+        oneRepMax: record.oneRepMax ?? undefined,
+      }
+    : undefined;
+  const ticket = entry.ticket;
+  return (
+    <LoadEditor
+      key={ticket.requestId}
+      exercise={initial}
+      onDone={(load, max) => {
+        if (load.type === "PERCENT" && record && max)
+          setExerciseOneRepMax(
+            record.id,
+            { value: max, unit: record.oneRepMax?.unit ?? "lbs" },
+            record.oneRepMax,
+          );
+        if (
+          !useSelectionHandoff
+            .getState()
+            .complete(ticket, { kind: "load", load })
+        )
+          throw new Error("This selection request is no longer active.");
+      }}
+    />
+  );
+}
+
+function LoadEditor({
+  exercise: suppliedExercise,
+  onDone,
+}: {
+  exercise?: LoadExercise;
+  onDone: (load: Load, max: number | undefined) => void;
+}) {
+  const { loadType, loadValue } = useLocalSearchParams<{
     loadType?: string;
     loadValue?: string;
   }>();
   const router = useRouter();
-
-  const { exercises, updateExercise } = useWorkoutStore((state) => state);
-  const { setPendingLoad } = usePendingSelection();
-  const exercise = exercises.find((e) => e.exerciseId === exerciseId);
+  // Work from the exercise as it was when the screen opened.
+  const [exercise] = useState(suppliedExercise);
+  const [done] = useState(() => onDone);
   const [oneRepMaxInput, setOneRepMaxInput] = useState(
     exercise?.oneRepMax?.value && exercise.oneRepMax.value > 0
       ? String(exercise.oneRepMax.value)
@@ -81,20 +139,20 @@ export default function LoadScreen() {
     selectedType != null && selectedValue != null
       ? { type: selectedType, value: selectedValue }
       : undefined;
-
   const onSubmit = async () => {
-    if (!(await trigger("value"))) return;
-
-    if (selectedType === "PERCENT" && exercise && selectedOneRepMaxVal) {
-      updateExercise({
-        ...exercise,
-        oneRepMax: { value: selectedOneRepMaxVal, unit: "lbs" },
-      });
+    if (!(await trigger("value")) || !selected) return;
+    try {
+      done(selected, selectedOneRepMaxVal);
+      router.back();
+    } catch (error) {
+      Alert.alert(
+        "Save Failed",
+        error instanceof Error &&
+          error.message.startsWith("The one-rep max changed.")
+          ? "The one-rep max changed while this form was open. Your draft is still here; reopen the form before saving."
+          : "The load could not be saved. Please try again.",
+      );
     }
-    if (selected) {
-      setPendingLoad({ selectionKey: activityId, load: selected });
-    }
-    router.back();
   };
 
   return (
@@ -353,7 +411,7 @@ export default function LoadScreen() {
                       fieldState: { error },
                     }) => (
                       <TextInputThemed
-                        label="One Rep Max (lbs)"
+                        label={`One Rep Max (${exercise.oneRepMax?.unit ?? "lbs"})`}
                         onChangeText={(text) => {
                           setOneRepMaxInput(text);
                           onChange(decimalTextToNumber(text));
@@ -372,7 +430,7 @@ export default function LoadScreen() {
                         numeric
                         decimalPlaces={2}
                         error={error ? "Required" : undefined}
-                        accessibilityLabel="One Rep Max in pounds"
+                        accessibilityLabel={`One Rep Max in ${exercise.oneRepMax?.unit === "kg" ? "kilograms" : "pounds"}`}
                         cardVariants={["square"]}
                       />
                     )}

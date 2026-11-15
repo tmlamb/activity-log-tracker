@@ -12,20 +12,54 @@ import { NavigationCardRow } from "~/components/CardRow";
 import { HeaderPlusAction, HeaderTextAction } from "~/components/HeaderAction";
 import { LegendSectionListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
-import useExerciseStore from "~/hooks/use-exercise-store";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import { useExerciseLibrary } from "~/data/queries";
 
+interface ExerciseListItem {
+  name: string;
+  exerciseId?: string;
+  loadKind?: Exercise["loadKind"];
+  primaryMuscles?: string[];
+  deleted?: boolean;
+}
 interface ExerciseSection {
   key: "used" | "available";
   title: string;
-  data: Partial<Exercise>[];
+  data: ExerciseListItem[];
 }
 
 export default function ExerciseSettingsScreen() {
+  const library = useExerciseLibrary();
+  return (
+    <ExerciseSettingsContent
+      availableExercises={library.presets.map(
+        ({ name, loadKind, primaryMuscles }) => ({
+          name,
+          loadKind: loadKind ?? undefined,
+          primaryMuscles,
+        }),
+      )}
+      storedExercises={library.saved.map(
+        ({ id, name, loadKind, primaryMuscles, deleted }) => ({
+          exerciseId: id,
+          name,
+          loadKind: loadKind ?? undefined,
+          primaryMuscles,
+          deleted,
+        }),
+      )}
+    />
+  );
+}
+
+function ExerciseSettingsContent({
+  availableExercises,
+  storedExercises,
+}: {
+  availableExercises: ExerciseListItem[];
+  storedExercises: ExerciseListItem[];
+}) {
   const { parentRoute } = useLocalSearchParams<{ parentRoute?: string }>();
   const router = useRouter();
-  const availableExercises = useExerciseStore((state) => state.exercises);
-  const storedExercises = useWorkoutStore((state) => state.exercises);
   const usedExercises = storedExercises.filter((exercise) => !exercise.deleted);
   const storedExerciseNames = new Set(
     storedExercises.map((exercise) => normalizeExerciseName(exercise.name)),
@@ -49,10 +83,10 @@ export default function ExerciseSettingsScreen() {
 
   const sortedFilteredUsedExercises = sortRecordsByName([
     ...filteredUsedExercises,
-  ]) as Partial<Exercise>[];
+  ]);
   const filteredUnusedExercises = filteredAvailableExercises.filter(
     (ae) => !storedExerciseNames.has(normalizeExerciseName(ae.name)),
-  ) as Partial<Exercise>[];
+  );
   const exerciseSections: ExerciseSection[] = [];
 
   if (sortedFilteredUsedExercises.length > 0) {
@@ -119,7 +153,7 @@ export default function ExerciseSettingsScreen() {
         maintainVisibleContentPosition={false}
         sections={exerciseSections}
         stickySectionHeadersEnabled={false}
-        keyExtractor={(item) => item.exerciseId ?? item.name ?? ""}
+        keyExtractor={(item) => item.exerciseId ?? item.name}
         renderSectionHeader={({ section }) => (
           <SectionHeading className="leading-snug">
             {section.title}
@@ -129,9 +163,9 @@ export default function ExerciseSettingsScreen() {
           <Animated.View entering={FadeIn} exiting={FadeOut}>
             <Link
               href={
-                (item as Exercise).exerciseId
-                  ? `/(public)/(app)/exercise/form?exerciseId=${(item as Exercise).exerciseId}`
-                  : `/(public)/(app)/exercise/form?name=${encodeURIComponent(item.name ?? "")}${item.loadKind ? `&loadKind=${item.loadKind}` : ""}${item.primaryMuscles?.length ? `&primaryMuscles=${encodeURIComponent(JSON.stringify(item.primaryMuscles))}` : ""}`
+                item.exerciseId
+                  ? `/(public)/(app)/exercise/form?exerciseId=${encodeURIComponent(item.exerciseId)}`
+                  : `/(public)/(app)/exercise/form?name=${encodeURIComponent(item.name)}${item.loadKind ? `&loadKind=${item.loadKind}` : "&unknownLoadKind=1"}${item.primaryMuscles?.length ? `&primaryMuscles=${encodeURIComponent(JSON.stringify(item.primaryMuscles))}` : ""}`
               }
               asChild
             >

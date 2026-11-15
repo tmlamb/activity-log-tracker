@@ -23,8 +23,8 @@ interface SegmentedOption<T extends string> {
   tone?: "primary" | "muted" | "destructive" | "info";
 }
 
-const slideDuration = 400;
-const colorDuration = 600;
+const slideDuration = 200;
+const colorDuration = 300;
 
 function OptionLabel({
   label,

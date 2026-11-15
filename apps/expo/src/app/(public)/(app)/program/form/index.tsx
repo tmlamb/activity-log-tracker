@@ -1,53 +1,82 @@
-import { ScrollView, View } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Controller, useForm } from "react-hook-form";
-
-import type { Program } from "@activity-log/ui/utils";
-
 import "react-native-get-random-values";
 
+import { Alert, ScrollView, View } from "react-native";
+import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Controller, useForm } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
 
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import { HelperText } from "~/components/Typography";
+import { createProgram, deleteProgram, renameProgram } from "~/data/actions";
+import { useProgramHeader } from "~/data/queries";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
-import useWorkoutStore from "~/hooks/use-workout-store";
 
 export default function ProgramFormScreen() {
   const { programId } = useLocalSearchParams<{ programId?: string }>();
+  const program = useProgramHeader(programId);
+  if (programId !== undefined && !program)
+    return <Redirect href="/(public)/(app)/program/settings" />;
+  return (
+    <ProgramFormContent
+      key={programId ?? "new"}
+      programId={programId}
+      initialName={program?.name ?? ""}
+    />
+  );
+}
+
+function ProgramFormContent({
+  programId,
+  initialName,
+}: {
+  programId: string | undefined;
+  initialName: string;
+}) {
   const router = useRouter();
-  const { programs, addProgram, updateProgram, deleteProgram } =
-    useWorkoutStore((state) => state);
-
-  const program = programs.find((p) => p.programId === programId);
-
-  type FormData = Pick<Program, "name">;
   const {
     control,
     handleSubmit,
     getValues,
     formState: { isDirty },
-  } = useForm<FormData>({ defaultValues: { name: program?.name } });
-  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
+  } = useForm<{ name: string }>({ defaultValues: { name: initialName } });
+  const { leaveWithoutWarning, hasLeft } = useUnsavedChangesWarning(isDirty);
 
-  const isEdit = !!program;
-
-  const onSubmit = (data: FormData) => {
-    if (program) {
-      updateProgram({ ...program, name: data.name });
-    } else {
-      addProgram({ name: data.name, programId: uuidv4(), sessions: [] });
+  function save(name: string) {
+    if (hasLeft()) return;
+    try {
+      if (programId) renameProgram(programId, name);
+      else createProgram(uuidv4(), name);
+    } catch {
+      Alert.alert(
+        "Save Failed",
+        "Your changes could not be saved. Please try again.",
+      );
+      return;
     }
     leaveWithoutWarning(() => router.back());
-  };
+  }
+
+  function remove(id: string) {
+    if (hasLeft()) return;
+    try {
+      deleteProgram(id);
+    } catch {
+      Alert.alert(
+        "Delete Failed",
+        "The program could not be deleted. Please try again.",
+      );
+      return;
+    }
+    leaveWithoutWarning(() => router.back());
+  }
 
   return (
     <>
       <Stack.Screen
         options={{
-          headerTitle: isEdit ? "Edit Program" : "Add Program",
+          headerTitle: programId ? "Edit Program" : "Add Program",
           headerLeft: () => (
             <HeaderTextAction
               label="Cancel"
@@ -59,14 +88,13 @@ export default function ProgramFormScreen() {
           headerRight: () => (
             <HeaderTextAction
               label="Save"
-              onPress={handleSubmit(onSubmit)}
+              onPress={() => void handleSubmit((data) => save(data.name))()}
               accessibilityLabel="Save Workout Program"
               weight="bold"
             />
           ),
         }}
       />
-
       <ScrollView
         className="flex-1"
         contentContainerClassName="pt-5 gap-10 pb-18"
@@ -95,23 +123,22 @@ export default function ProgramFormScreen() {
               />
             )}
           />
-          {!isEdit && (
+          {!programId && (
             <HelperText>
-              {`Give your program a name like 'Strength Training' or 'Weightlifting'.`}
+              {
+                "Give your program a name like 'Strength Training' or 'Weightlifting'."
+              }
             </HelperText>
           )}
         </View>
-        {isEdit && (
+        {programId && (
           <ConfirmButton
             cardVariants={["square"]}
             accessibilityLabel={`Delete Workout Program with name ${getValues("name")}`}
             title="Delete Program?"
             message="This will permanently delete this workout program and its sessions."
             confirmText="Delete Program"
-            onConfirm={() => {
-              deleteProgram(program.programId);
-              leaveWithoutWarning(() => router.back());
-            }}
+            onConfirm={() => remove(programId)}
           >
             Delete This Program
           </ConfirmButton>

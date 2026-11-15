@@ -1,54 +1,33 @@
-import { useEffect, useState } from "react";
+import "react-native-get-random-values";
+
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
-  FadeInLeft,
   FadeInUp,
   FadeOutDown,
-  FadeOutLeft,
   FadeOutUp,
   LinearTransition,
 } from "react-native-reanimated";
-import {
-  Link,
-  Redirect,
-  Stack,
-  useLocalSearchParams,
-  useRouter,
-} from "expo-router";
+import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "expo-router/react-navigation";
 import { AntDesign, Entypo, Feather } from "@expo/vector-icons";
-import { add, differenceInMinutes } from "date-fns";
-import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
-
-import type {
-  Activity,
-  Exercise,
-  MainSet,
-  Session,
-  WarmupSet,
-} from "@activity-log/ui/utils";
-
-import { Text } from "~/components/font-scale-text";
-
-import "react-native-get-random-values";
-
 import { v4 as uuidv4 } from "uuid";
 
-import {
-  canSetSessionDeload,
-  isLatestCompletedSessionInTemplateSeries,
-  isSessionTerminalStatus,
-  plannedSessionFromTemplate,
-  shiftSessionStart,
-  stringifyLoad,
-} from "@activity-log/ui/utils";
-
-import type { WorkoutStore } from "~/hooks/use-workout-store";
+import type {
+  SessionDraft,
+  TemplateSource,
+} from "~/data/repositories/session-drafts";
+import type {
+  SessionEditorExercise,
+  SessionEditorSeed,
+} from "~/data/repositories/session-editor";
+import type { SelectionKind, SelectionTicket } from "~/data/selection-handoff";
 import Card from "~/components/Card";
 import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import DateTimeInputThemed from "~/components/DateTimeInputThemed";
+import { Text } from "~/components/font-scale-text";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PressableThemed from "~/components/PressableThemed";
@@ -57,506 +36,520 @@ import { AnimatedViewStyled } from "~/components/Styled";
 import SwitchThemed from "~/components/SwitchThemed";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText } from "~/components/Typography";
-import usePendingSelection from "~/hooks/use-pending-selection";
-import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
-import useWorkoutStore from "~/hooks/use-workout-store";
 import {
-  fallbackSetWeight,
-  numberToWorkoutSetArray,
-} from "~/utils/workout-set-count";
-
-const activityListTransition = LinearTransition.duration(220);
-const activityEditorCardClassName =
-  "h-auto flex-row items-stretch gap-0 rounded-none p-0";
-const activityEditorInputCardVariants: React.ComponentProps<
-  typeof TextInputThemed
->["cardVariants"] = ["square", "small", "transparent"];
-
-export interface SessionFormData {
-  name: string;
-  deload: boolean;
-  start?: Date;
-  end?: Date;
-  status: Session["status"];
-  activities: Activity[];
-}
+  createSession,
+  deleteSession,
+  resetSession,
+  saveAndCompleteSession,
+  saveSession,
+} from "~/data/actions";
+import {
+  draftFromSession,
+  newDraftActivity,
+  newDraftSet,
+  shiftDraftStart,
+} from "~/data/domain/session-editor-draft";
+import { useProgramSummaries, useSessionEditorSeed } from "~/data/queries";
+import { getSavedExercise } from "~/data/repositories/exercises";
+import { getPlanningWeightHints } from "~/data/repositories/planning-weights";
+import { getSessionEditorSeed } from "~/data/repositories/session-editor";
+import { createTemplateDraft } from "~/data/repositories/template-draft";
+import { resolveTemplateChoice } from "~/data/repositories/templates";
+import { useSelectionHandoff } from "~/data/selection-handoff";
+import { read, useGeneration } from "~/data/store";
+import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 
 export default function SessionFormScreen() {
   const { programId, sessionId } = useLocalSearchParams<{
     programId: string;
     sessionId?: string;
   }>();
-  const {
-    programs,
-    exercises,
-    addSession,
-    updateSession,
-    renameSessionsInTemplate,
-    completeSession,
-    deleteSession,
-  } = useWorkoutStore((store) => store);
-
-  const program = programs.find((p) => p.programId === programId);
-  const session = program?.sessions.find((s) => s.sessionId === sessionId);
-
-  if (!program) {
-    return <Redirect href="/(public)/(app)" />;
-  }
-
+  const seed = useSessionEditorSeed(programId, sessionId ?? null);
+  const programs = useProgramSummaries();
+  const program = programs.find((item) => item.id === programId);
+  if (!seed || !program) return <Redirect href="/(public)/(app)" />;
   return (
-    <SessionFormScreenContent
-      program={program}
-      session={session}
-      exercises={exercises}
-      addSession={addSession}
-      updateSession={updateSession}
-      renameSessionsInTemplate={renameSessionsInTemplate}
-      completeSession={completeSession}
-      deleteSession={deleteSession}
-      programId={programId}
+    <SessionEditor
+      key={`${programId}:${sessionId ?? "new"}`}
+      seed={seed}
+      sessionCount={program.sessionCount}
     />
   );
 }
 
-function SessionFormScreenContent({
-  program,
-  session,
-  exercises,
-  addSession,
-  updateSession,
-  renameSessionsInTemplate,
-  completeSession,
-  deleteSession,
-  programId,
+function NumberDraftInput({
+  label,
+  value,
+  onChange,
+  maxLength = 3,
+  stack,
+  compact = false,
+  error,
 }: {
-  program: WorkoutStore["programs"][number];
-  session?: Session;
-  exercises: WorkoutStore["exercises"];
-  addSession: WorkoutStore["addSession"];
-  updateSession: WorkoutStore["updateSession"];
-  renameSessionsInTemplate: WorkoutStore["renameSessionsInTemplate"];
-  completeSession: WorkoutStore["completeSession"];
-  deleteSession: WorkoutStore["deleteSession"];
-  programId: string;
+  label: string;
+  value: number | null;
+  onChange: (next: number | null) => void;
+  maxLength?: number;
+  stack?: { index: number; size: number };
+  compact?: boolean;
+  error?: string;
+}) {
+  const [text, setText] = useState(value === null ? "" : String(value));
+  return (
+    <TextInputThemed
+      label={label}
+      value={text}
+      keyboardType="number-pad"
+      numeric
+      maxLength={maxLength}
+      stack={stack}
+      error={error}
+      placeholder="0"
+      selectTextOnFocus
+      cardVariants={compact ? ["square", "small", "transparent"] : ["square"]}
+      onChangeText={(next) => {
+        setText(next);
+        const parsed = next.trim() ? Number(next) : NaN;
+        onChange(Number.isFinite(parsed) ? parsed : null);
+      }}
+      onBlur={() => {
+        const parsed = text.trim() ? Number(text) : NaN;
+        setText(Number.isFinite(parsed) ? String(parsed) : "");
+      }}
+    />
+  );
+}
+
+function SessionEditor({
+  seed,
+  sessionCount,
+}: {
+  seed: SessionEditorSeed;
+  sessionCount: number;
 }) {
   const router = useRouter();
-  const isFocused = useIsFocused();
-  const sessions = program.sessions;
-  const sessionIsTerminal = session
-    ? isSessionTerminalStatus(session.status)
-    : false;
-
-  const {
-    control,
-    handleSubmit,
-    getFieldState,
-    getValues,
-    reset,
-    setValue,
-    formState,
-  } = useForm<SessionFormData>({
-    defaultValues: {
-      name: session?.name ?? "",
-      deload: session?.deload ?? false,
-      start: session?.start ?? undefined,
-      end: session?.end ?? undefined,
-      activities: session?.activities ?? [],
-    },
-  });
-
-  const fieldArray = useFieldArray({ control, name: "activities" });
-  const { fields, append, remove, swap } = fieldArray;
-  const { isDirty } = formState;
-  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
-  const persistedActivityIds = new Set(
-    session?.activities.map((activity) => activity.activityId) ?? [],
+  const focused = useIsFocused();
+  const [initial] = useState(() => seed);
+  const [ownerId] = useState(() => uuidv4());
+  const [newSessionId] = useState(() => uuidv4());
+  const [initialDraft] = useState<SessionDraft>(() =>
+    initial.session
+      ? draftFromSession(initial.session)
+      : { name: "", deload: false, startMs: null, endMs: null, activities: [] },
   );
-  const [fromType, setFromType] = useState<
-    "Scratch" | "Template" | undefined
-  >();
-  const [templateSourceSession, setTemplateSourceSession] = useState<
-    Session | undefined
-  >();
-  const [renameTemplate, setRenameTemplate] = useState(true);
-  const sessionCanBeDeload = session
-    ? canSetSessionDeload(sessions, session)
-    : fromType === "Template" && templateSourceSession != null;
-  const deloadRequiresConfirmation =
-    session?.status !== "Incomplete" &&
-    (session?.status !== "Done" ||
-      isLatestCompletedSessionInTemplateSeries(sessions, session));
-  const watchStart = useWatch({ control, name: "start" });
-  const watchName = useWatch({ control, name: "name" });
-  const watchActivities = useWatch({ control, name: "activities" });
-  const showRenameTemplateInput = session != null && watchName !== session.name;
-
-  const templateWeightSources = [
-    ...(session ? [session] : []),
-    ...(templateSourceSession
-      ? [templateSourceSession]
-      : session?.templateId
-        ? sessions
-            .filter(
-              (item) =>
-                item.templateId === session.templateId &&
-                item.sessionId !== session.sessionId,
-            )
-            .reverse()
-        : []),
-  ];
-
-  // Consume pending selection store (populated by exercise/select, load, session/select modals)
-  const {
-    pendingExercise,
-    clearPendingExercise,
-    pendingLoad,
-    clearPendingLoad,
-    pendingSession,
-    clearPendingSession,
-  } = usePendingSelection();
-
-  const handleExerciseSelect = (selectedExercise: Exercise, index: number) => {
-    if (selectedExercise.oneRepMax && selectedExercise.oneRepMax.value > 0) {
-      setValue(`activities.${index}.load`, { type: "PERCENT", value: 0.75 });
-    } else {
-      setValue(`activities.${index}.load`, { type: "RPE", value: 8 });
-    }
-
-    setValue(
-      `activities.${index}.warmupSets`,
-      (watchActivities[index]?.warmupSets ?? []).map((warmupSet) => ({
-        ...warmupSet,
-        weight: undefined,
-        feedback: "Neutral" as const,
-      })),
-      { shouldDirty: true },
-    );
-    setValue(
-      `activities.${index}.mainSets`,
-      (watchActivities[index]?.mainSets ?? []).map((mainSet) => ({
-        ...mainSet,
-        weight: undefined,
-        feedback: "Neutral" as const,
-      })),
-      { shouldDirty: true },
-    );
+  const [draft, setDraft] = useState(initialDraft);
+  const draftRef = useRef(initialDraft);
+  const [exercises, setExercises] = useState<
+    Record<string, SessionEditorExercise>
+  >(() => Object.fromEntries(initial.exercises.map((item) => [item.id, item])));
+  const [template, setTemplate] = useState<TemplateSource | null>(null);
+  const [fromType, setFromType] = useState<"Scratch" | "Template">();
+  const templateRef = useRef<TemplateSource | null>(null);
+  const [renameLineage, setRenameLineage] = useState(true);
+  const [showValidation, setShowValidation] = useState(false);
+  const activeTicket = useRef<{
+    ticket: SelectionTicket;
+    kind: SelectionKind;
+  } | null>(null);
+  const sawBlur = useRef(false);
+  const entries = useSelectionHandoff((state) => state.entries);
+  const generation = useGeneration();
+  const session = initial.session;
+  const terminal =
+    session?.status === "Done" || session?.status === "Incomplete";
+  const dirty =
+    JSON.stringify(draft) !== JSON.stringify(initialDraft) || template !== null;
+  const { leaveWithoutWarning, hasLeft } = useUnsavedChangesWarning(dirty);
+  const updateDraft = (next: SessionDraft) => {
+    draftRef.current = next;
+    setDraft(next);
   };
-
-  const resetToScratch = () => {
-    setTemplateSourceSession(undefined);
-    reset({
-      name: "",
-      deload: false,
-      start: undefined,
-      end: undefined,
-      status: "Planned",
-      activities: [],
-    });
-    setFromType("Scratch");
-  };
-
-  const navigateToTemplatePicker = () => {
-    void router.push(
-      `/(public)/(app)/session/select?programId=${programId}&parentRoute=form`,
-    );
-  };
-
-  const confirmSourceChange = (
-    nextValue: "Scratch" | "Template",
-    onConfirm: () => void,
+  const updateActivity = (
+    id: string,
+    update: (
+      activity: SessionDraft["activities"][number],
+    ) => SessionDraft["activities"][number],
   ) => {
-    if (!isDirty) {
-      onConfirm();
+    const previous = draftRef.current;
+    updateDraft({
+      ...previous,
+      activities: previous.activities.map((activity) =>
+        activity.id === id ? update(activity) : activity,
+      ),
+    });
+  };
+  useEffect(() => {
+    return () => {
+      useSelectionHandoff.getState().clearOwner(generation, ownerId);
+    };
+  }, [generation, ownerId]);
+
+  const openSelection = (kind: SelectionKind, activityId?: string) => {
+    if (activeTicket.current)
+      useSelectionHandoff.getState().cancel(activeTicket.current.ticket);
+    const ticket: SelectionTicket = {
+      generation,
+      ownerId,
+      requestId: uuidv4(),
+      ...(activityId ? { activityId } : {}),
+    };
+    useSelectionHandoff.getState().begin(ticket, kind);
+    activeTicket.current = { ticket, kind };
+    const common = `requestId=${encodeURIComponent(ticket.requestId)}&ownerId=${encodeURIComponent(ownerId)}&generation=${generation}`;
+    const activity = draftRef.current.activities.find(
+      (item) => item.id === activityId,
+    );
+    if (kind === "template")
+      router.push(
+        `/(public)/(app)/session/select?programId=${encodeURIComponent(initial.program.id)}&${common}`,
+      );
+    else if (kind === "exercise")
+      router.push(
+        `/(public)/(app)/exercise/select?activityId=${encodeURIComponent(activityId ?? "")}&currentExerciseId=${encodeURIComponent(activity?.exerciseId ?? "")}&${common}`,
+      );
+    else
+      router.push(
+        `/(public)/(app)/load?activityId=${encodeURIComponent(activityId ?? "")}&exerciseId=${encodeURIComponent(activity?.exerciseId ?? "")}&loadType=${activity?.loadType ?? ""}&loadValue=${activity?.loadValue ?? ""}&${common}`,
+      );
+  };
+
+  // Apply a selection made on another screen when this one regains focus.
+  const applySelection = useEffectEvent(() => {
+    if (!focused) {
+      sawBlur.current = true;
       return;
     }
+    if (!sawBlur.current || !activeTicket.current) return;
+    sawBlur.current = false;
+    const active = activeTicket.current;
+    const entry = entries[active.ticket.requestId];
+    if (!entry?.result) {
+      useSelectionHandoff.getState().cancel(active.ticket);
+      activeTicket.current = null;
+      return;
+    }
+    const result = useSelectionHandoff
+      .getState()
+      .consume(active.ticket, active.kind);
+    activeTicket.current = null;
+    if (!result) return;
+    if (result.kind === "load" && active.ticket.activityId) {
+      updateActivity(active.ticket.activityId, (activity) => ({
+        ...activity,
+        loadType: result.load.type,
+        loadValue: result.load.value,
+        ...(result.load.type === "PERCENT"
+          ? {
+              warmupSets: activity.warmupSets.map((set) =>
+                set.status === "Planned"
+                  ? { ...set, weightValue: null, weightUnit: null }
+                  : set,
+              ),
+              mainSets: activity.mainSets.map((set) =>
+                set.status === "Planned"
+                  ? { ...set, weightValue: null, weightUnit: null }
+                  : set,
+              ),
+            }
+          : {}),
+      }));
+    } else if (result.kind === "exercise" && active.ticket.activityId) {
+      const activityId = active.ticket.activityId;
+      let exercise;
+      try {
+        exercise = read((db) => getSavedExercise(db, result.exerciseId));
+      } catch {
+        Alert.alert("Selection Failed", "The exercise could not be loaded.");
+        return;
+      }
+      if (!exercise || exercise.deleted) return;
+      setExercises((previous) => ({
+        ...previous,
+        [exercise.id]: {
+          id: exercise.id,
+          name: exercise.name,
+          deleted: exercise.deleted,
+          loadKind: exercise.loadKind,
+          oneRepMax: exercise.oneRepMax,
+        },
+      }));
+      updateActivity(activityId, (activity) => ({
+        ...activity,
+        exerciseId: exercise.id,
+        loadType:
+          exercise.oneRepMax && exercise.oneRepMax.value > 0
+            ? "PERCENT"
+            : "RPE",
+        loadValue:
+          exercise.oneRepMax && exercise.oneRepMax.value > 0 ? 0.75 : 8,
+        warmupSets: activity.warmupSets.map((set) => ({
+          ...set,
+          weightValue: null,
+          weightUnit: null,
+          feedback: "Neutral",
+        })),
+        mainSets: activity.mainSets.map((set) => ({
+          ...set,
+          weightValue: null,
+          weightUnit: null,
+          feedback: "Neutral",
+        })),
+      }));
+    } else if (
+      result.kind === "template" &&
+      result.programId === initial.program.id &&
+      !session
+    ) {
+      try {
+        const resolved = read((db) =>
+          resolveTemplateChoice(db, result.programId, result.sessionId),
+        );
+        if (!resolved)
+          throw new Error("The selected template is no longer available.");
+        if (resolved.kind === "planned") {
+          leaveWithoutWarning(() =>
+            router.replace(
+              `/(public)/(app)/program/${encodeURIComponent(result.programId)}/session/form?sessionId=${encodeURIComponent(resolved.sessionId)}`,
+            ),
+          );
+          return;
+        }
+        const sourceSeed = read((db) =>
+          getSessionEditorSeed(db, result.programId, resolved.sessionId),
+        );
+        if (!sourceSeed?.session)
+          throw new Error("The selected template is no longer available.");
+        const source = sourceSeed.session;
+        const sourceRef = {
+          sessionId: source.id,
+          baseRevision: source.revision,
+          newLineageId: uuidv4(),
+        };
+        templateRef.current = sourceRef;
+        setTemplate(sourceRef);
+        setFromType("Template");
+        setExercises(
+          Object.fromEntries(
+            sourceSeed.exercises.map((item) => [item.id, item]),
+          ),
+        );
+        updateDraft(createTemplateDraft(source, uuidv4));
+      } catch (error) {
+        Alert.alert(
+          "Template Failed",
+          error instanceof Error
+            ? error.message
+            : "The template could not be loaded.",
+        );
+      }
+    }
+  });
+  useEffect(() => applySelection(), [focused, entries]);
 
+  const changeSetCount = (
+    activityId: string,
+    kind: "Warmup" | "Main",
+    text: string,
+  ) => {
+    const count = text === "" ? 0 : Number(text);
+    if (!Number.isInteger(count) || count < 0 || count > 99) return;
+    const previous = draftRef.current;
+    const index = previous.activities.findIndex(
+      (item) => item.id === activityId,
+    );
+    const activity = previous.activities[index];
+    if (!activity) return;
+    const field = kind === "Warmup" ? "warmupSets" : "mainSets";
+    const original = activity[field];
+    const sets = original.slice(0, count);
+    while (sets.length < count) {
+      const last = sets.at(-1);
+      const next = newDraftSet(
+        uuidv4,
+        terminal ? draftRef.current.endMs : undefined,
+      );
+      if (activity.loadType === "RPE" && last) {
+        next.weightValue = last.weightValue;
+        next.weightUnit = last.weightUnit;
+      }
+      sets.push(next);
+    }
+    const added = new Set(sets.slice(original.length).map(({ id }) => id));
+    updateActivity(activityId, (item) => ({ ...item, [field]: sets }));
+    if (
+      original.length ||
+      !added.size ||
+      activity.loadType !== "RPE" ||
+      !activity.exerciseId
+    )
+      return;
+    const source = session
+      ? { kind: "session" as const, sessionId: session.id }
+      : templateRef.current
+        ? {
+            kind: "template" as const,
+            sessionId: templateRef.current.sessionId,
+          }
+        : null;
+    let hints;
+    try {
+      hints = read((db) =>
+        getPlanningWeightHints(
+          db,
+          initial.program.id,
+          source,
+          previous.activities,
+          kind,
+        ),
+      );
+    } catch {
+      Alert.alert(
+        "Weight Hint Unavailable",
+        "The session draft was kept. You can enter weights while recording sets.",
+      );
+      return;
+    }
+    const weight = hints.find((hint) => hint.activityIndex === index)?.weight;
+    if (!weight) return;
+    updateActivity(activityId, (item) => ({
+      ...item,
+      [field]: item[field].map((set) =>
+        added.has(set.id) && set.weightValue === null
+          ? { ...set, weightValue: weight.value, weightUnit: weight.unit }
+          : set,
+      ),
+    }));
+  };
+
+  const save = (action: "save" | "complete" | "delete" | "reset") => {
+    if (hasLeft()) return;
+    const value = draftRef.current;
+    if (
+      (action === "save" || action === "complete") &&
+      (!value.name.trim() ||
+        value.activities.some(
+          (activity) =>
+            !activity.exerciseId ||
+            activity.reps === null ||
+            activity.reps <= 0 ||
+            activity.loadType === null ||
+            activity.loadValue === null ||
+            !activity.mainSets.length,
+        ))
+    ) {
+      setShowValidation(true);
+      return;
+    }
+    try {
+      if (action === "delete" && session)
+        deleteSession(initial.program.id, session.id, session.revision);
+      else if (action === "reset" && session)
+        resetSession(initial.program.id, session.id, session.revision);
+      else if (action === "complete" && session)
+        saveAndCompleteSession(
+          initial.program.id,
+          session.id,
+          session.revision,
+          value,
+        );
+      else if (action === "save" && session)
+        saveSession(
+          initial.program.id,
+          session.id,
+          session.revision,
+          value,
+          renameLineage && value.name !== session.name,
+        );
+      else if (action === "save")
+        createSession(
+          initial.program.id,
+          newSessionId,
+          value,
+          templateRef.current,
+        );
+      else throw new Error("The session cannot be updated.");
+    } catch (error) {
+      Alert.alert(
+        "Session Not Saved",
+        error instanceof Error
+          ? error.message
+          : "The session could not be saved. Your draft is still here.",
+      );
+      return;
+    }
+    leaveWithoutWarning(() => {
+      if (action === "complete")
+        router.dismissTo(
+          `/(public)/(app)/program/${encodeURIComponent(initial.program.id)}`,
+        );
+      else if (action === "delete") {
+        router.back();
+        router.back();
+      } else router.back();
+    });
+  };
+
+  const chooseTemplate = () => {
+    if (!dirty) {
+      openSelection("template");
+      return;
+    }
     Alert.alert(
       "Change Plan Source?",
-      `Switching to ${nextValue === "Scratch" ? "Plan From Scratch" : "Plan From Template"} will discard your edits.`,
+      "Switching to Plan From Template will discard your edits.",
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Discard Edits",
           style: "destructive",
-          onPress: onConfirm,
+          onPress: () => openSelection("template"),
         },
       ],
     );
   };
-
-  // Apply exercise selection returned from exercise/select modal
-  useEffect(() => {
-    if (!pendingExercise) return;
-    const index = fields.findIndex(
-      (f) => f.activityId === pendingExercise.selectionKey,
-    );
-    if (index === -1) {
-      clearPendingExercise();
-      return;
-    }
-    setValue(
-      `activities.${index}.exerciseId`,
-      pendingExercise.exercise.exerciseId,
-      { shouldDirty: true, shouldValidate: true, shouldTouch: true },
-    );
-    handleExerciseSelect(pendingExercise.exercise, index);
-    clearPendingExercise();
-  }, [pendingExercise]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Apply load selection returned from load modal
-  useEffect(() => {
-    if (!pendingLoad) return;
-    const index = fields.findIndex(
-      (f) => f.activityId === pendingLoad.selectionKey,
-    );
-    if (index === -1) {
-      clearPendingLoad();
-      return;
-    }
-    setValue(`activities.${index}.load`, pendingLoad.load, {
-      shouldDirty: true,
-    });
-    if (pendingLoad.load.type === "PERCENT") {
-      setValue(
-        `activities.${index}.warmupSets`,
-        (watchActivities[index]?.warmupSets ?? []).map((warmupSet) => ({
-          ...warmupSet,
-          weight: warmupSet.status === "Planned" ? undefined : warmupSet.weight,
-        })),
-        { shouldDirty: true },
-      );
-      setValue(
-        `activities.${index}.mainSets`,
-        (watchActivities[index]?.mainSets ?? []).map((mainSet) => ({
-          ...mainSet,
-          weight: mainSet.status === "Planned" ? undefined : mainSet.weight,
-        })),
-        { shouldDirty: true },
-      );
-    }
-    clearPendingLoad();
-  }, [pendingLoad]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Apply session template returned from session/select modal
-  useEffect(() => {
-    if (!pendingSession || !isFocused) return;
-
-    if (pendingSession.session.status === "Planned") {
-      clearPendingSession();
-      leaveWithoutWarning(() => {
-        void router.replace(
-          `/(public)/(app)/program/${programId}/session/form?sessionId=${pendingSession.session.sessionId}`,
-        );
+  const chooseScratch = () => {
+    const apply = () => {
+      templateRef.current = null;
+      setTemplate(null);
+      setFromType("Scratch");
+      updateDraft({
+        name: "",
+        deload: false,
+        startMs: null,
+        endMs: null,
+        activities: [],
       });
+    };
+    if (!dirty) {
+      apply();
       return;
     }
-
-    reset(plannedSessionFromTemplate(pendingSession.session, uuidv4), {
-      keepDefaultValues: true,
-    });
-    queueMicrotask(() => {
-      setTemplateSourceSession(pendingSession.session);
-      setFromType("Template");
-    });
-    clearPendingSession();
-  }, [isFocused, pendingSession]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleSessionStartChange = (start: Date) => {
-    if (!sessionIsTerminal || !session) return;
-
-    const currentStart = getValues("start");
-    if (!currentStart) return;
-
-    const shifted = shiftSessionStart(
-      {
-        ...session,
-        start: currentStart,
-        end: getValues("end"),
-        activities: getValues("activities"),
-      },
-      start,
-    );
-
-    setValue("start", shifted.start, { shouldDirty: true });
-    setValue("end", shifted.end, { shouldDirty: true });
-    setValue("activities", shifted.activities, { shouldDirty: true });
-  };
-
-  const onSubmit = (data: SessionFormData) => {
-    if (session) {
-      const updatedSession = {
-        name: data.name,
-        sessionId: session.sessionId,
-        templateId: session.templateId,
-        deload: data.deload,
-        activities: data.activities,
-        start: data.start,
-        end: data.end,
-        status: session.status,
-      };
-      if (renameTemplate && data.name !== session.name) {
-        renameSessionsInTemplate(
-          program.programId,
-          session.sessionId,
-          data.name,
-        );
-      }
-      updateSession(program.programId, updatedSession);
-    } else {
-      const templateId = templateSourceSession
-        ? (templateSourceSession.templateId ?? uuidv4())
-        : undefined;
-      if (
-        templateSourceSession &&
-        templateSourceSession.templateId !== templateId
-      ) {
-        updateSession(program.programId, {
-          ...templateSourceSession,
-          templateId,
-        });
-      }
-      addSession(program.programId, {
-        name: data.name,
-        sessionId: uuidv4(),
-        templateId,
-        deload: data.deload,
-        activities: data.activities,
-        start: undefined,
-        end: undefined,
-        status: "Planned",
-      });
-      setTemplateSourceSession(undefined);
-    }
-    leaveWithoutWarning(() => router.back());
-  };
-
-  const handleCompleteSession = () => {
-    if (session?.status !== "Ready") return;
-
-    const hasSetsWithoutActualReps = watchActivities.some((activity) =>
-      [...activity.warmupSets, ...activity.mainSets].some(
-        (workoutSet) => (workoutSet.actualReps ?? 0) <= 0,
-      ),
-    );
-
     Alert.alert(
-      "Complete Workout Session?",
-      hasSetsWithoutActualReps
-        ? "Some sets do not have Actual Reps. Those sets will be marked Incomplete. You can enter their reps later."
-        : "This will mark the workout session as Done.",
+      "Change Plan Source?",
+      "Switching to Plan From Scratch will discard your edits.",
       [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "Complete Session",
-          style: hasSetsWithoutActualReps ? "destructive" : "default",
-          onPress: () => {
-            void handleSubmit((data) => {
-              completeSession(program.programId, {
-                name: data.name,
-                sessionId: session.sessionId,
-                templateId: session.templateId,
-                deload: data.deload,
-                activities: data.activities,
-                start: session.start,
-                end: new Date(),
-                status: "Done",
-              });
-              leaveWithoutWarning(() =>
-                router.dismissTo(
-                  `/(public)/(app)/program/${program.programId}`,
-                ),
-              );
-            })();
-          },
-        },
+        { text: "Discard Edits", style: "destructive", onPress: apply },
       ],
     );
   };
-
-  const removeActivity = (index: number, activityId: string) => {
-    if (!persistedActivityIds.has(activityId)) {
-      remove(index);
-      return;
-    }
-
-    Alert.alert(
-      "Delete Activity?",
-      "This will remove the activity from this session.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete Activity",
-          style: "destructive",
-          onPress: () => remove(index),
-        },
-      ],
-    );
+  const changeDeload = (deload: boolean) => {
+    const apply = () => updateDraft({ ...draftRef.current, deload });
+    if (
+      deload &&
+      session?.status !== "Incomplete" &&
+      (session?.status !== "Done" || initial.policy?.isLatestCompletedInLineage)
+    )
+      Alert.alert(
+        "Mark as Deload Session?",
+        "This session will be ignored when planning the next session from this template. The last completed non-deload session will be used instead.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Mark as Deload", onPress: apply },
+        ],
+      );
+    else apply();
   };
-
-  const handleDeloadValueChange = (
-    nextValue: boolean,
-    onValueChange: (value: boolean) => void,
-  ) => {
-    if (!nextValue || !deloadRequiresConfirmation) {
-      onValueChange(nextValue);
-      return;
-    }
-
-    Alert.alert(
-      "Mark as Deload Session?",
-      "This session will be ignored when planning the next session from this template. The last completed non-deload session will be used instead.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Mark as Deload",
-          onPress: () => onValueChange(true),
-        },
-      ],
-    );
-  };
-
-  const deloadInput = (
-    <Controller
-      name="deload"
-      control={control}
-      render={({ field: { onChange, value } }) => (
-        <>
-          <PressableThemed
-            onPress={() => handleDeloadValueChange(!value, onChange)}
-            accessibilityRole="switch"
-            accessibilityLabel="Deload session"
-            accessibilityHint="Marks this workout as a deload session"
-            accessibilityState={{ checked: value }}
-          >
-            <Card variants={["square"]}>
-              <Text
-                accessible={false}
-                maxFontSizeMultiplier={2}
-                className="text-muted text-xl tracking-tight"
-              >
-                Deload
-              </Text>
-              <View
-                accessible={false}
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-                pointerEvents="none"
-              >
-                <SwitchThemed
-                  value={value}
-                  onValueChange={(nextValue) =>
-                    handleDeloadValueChange(nextValue, onChange)
-                  }
-                  testID="session-deload-toggle"
-                />
-              </View>
-            </Card>
-          </PressableThemed>
-        </>
-      )}
-    />
-  );
-
   return (
     <>
       <Stack.Screen
@@ -565,8 +558,8 @@ function SessionFormScreenContent({
           headerRight: () => (
             <HeaderTextAction
               label="Save"
-              onPress={handleSubmit(onSubmit)}
-              disabled={!session && !!sessions.length && !fromType}
+              disabled={!session && sessionCount > 0 && !fromType}
+              onPress={() => save("save")}
               accessibilityLabel="Save session and close form"
               weight="bold"
             />
@@ -585,9 +578,9 @@ function SessionFormScreenContent({
         className="flex-1"
         contentContainerClassName="pt-5 gap-10 pb-18"
         contentInsetAdjustmentBehavior="automatic"
-        enabled={isFocused}
+        enabled={focused}
       >
-        {!session && !!sessions.length && (
+        {!session && sessionCount > 0 && (
           <SegmentedInputThemed
             label="Plan From"
             value={fromType}
@@ -607,17 +600,12 @@ function SessionFormScreenContent({
                 accessibilityLabel: "Navigate to template selection",
               },
             ]}
-            onChange={(nextValue) => {
-              if (nextValue === "Scratch") {
-                confirmSourceChange("Scratch", resetToScratch);
-                return;
-              }
-
-              confirmSourceChange("Template", navigateToTemplatePicker);
-            }}
+            onChange={(value) =>
+              value === "Scratch" ? chooseScratch() : chooseTemplate()
+            }
           />
         )}
-        {(fromType ?? session ?? !sessions.length) && (
+        {(session !== null || fromType !== undefined || sessionCount === 0) && (
           <AnimatedViewStyled
             entering={FadeInUp.duration(1000)
               .springify()
@@ -631,212 +619,173 @@ function SessionFormScreenContent({
               .mass(0.3)}
             className="gap-10"
           >
-            <Animated.View layout={activityListTransition}>
-              <Controller
-                name="name"
-                control={control}
-                rules={{ required: true }}
-                render={({
-                  field: { onChange, ref, onBlur, value },
-                  fieldState: { error },
-                }) => (
-                  <MultilineTextInputThemed
-                    onChangeText={(nextName) => {
-                      if (
-                        value === session?.name &&
-                        nextName !== session.name
-                      ) {
-                        setRenameTemplate(true);
-                      }
-                      onChange(nextName);
-                    }}
-                    onBlur={onBlur}
-                    value={value}
-                    label="Session Name"
-                    innerRef={ref}
-                    maxLength={50}
-                    cardVariants={["square"]}
-                    stack={
-                      showRenameTemplateInput
-                        ? { index: 0, size: 2 }
-                        : undefined
-                    }
-                    error={error ? "Required" : undefined}
-                  />
-                )}
+            <Animated.View layout={LinearTransition.duration(220)}>
+              <MultilineTextInputThemed
+                label="Session Name"
+                value={draft.name}
+                maxLength={50}
+                error={
+                  showValidation && !draft.name.trim() ? "Required" : undefined
+                }
+                cardVariants={["square"]}
+                stack={
+                  session && draft.name !== session.name
+                    ? { index: 0, size: 2 }
+                    : undefined
+                }
+                onChangeText={(name) =>
+                  updateDraft({ ...draftRef.current, name })
+                }
               />
-              {showRenameTemplateInput && (
-                <Animated.View
-                  entering={FadeInUp.duration(220)}
-                  exiting={FadeOutUp.duration(220)}
-                  layout={activityListTransition}
+              {session && draft.name !== session.name && (
+                <PressableThemed
+                  accessibilityRole="switch"
+                  accessibilityLabel="Rename all sessions in template"
+                  accessibilityHint="Renames every session in this template when saved"
+                  accessibilityState={{ checked: renameLineage }}
+                  onPress={() => setRenameLineage(!renameLineage)}
                 >
-                  <PressableThemed
-                    onPress={() => setRenameTemplate((current) => !current)}
-                    accessibilityRole="switch"
-                    accessibilityLabel="Rename all sessions in template"
-                    accessibilityHint="Renames every session in this template when saved"
-                    accessibilityState={{ checked: renameTemplate }}
-                  >
-                    <Card variants={["square"]} stack={{ index: 1, size: 2 }}>
-                      <Text
-                        accessible={false}
-                        maxFontSizeMultiplier={2}
-                        className="text-muted text-xl tracking-tight"
-                      >
-                        Rename all sessions in template
-                      </Text>
-                      <View
-                        accessible={false}
-                        accessibilityElementsHidden
-                        importantForAccessibility="no-hide-descendants"
-                        pointerEvents="none"
-                      >
-                        <SwitchThemed
-                          value={renameTemplate}
-                          onValueChange={setRenameTemplate}
-                        />
-                      </View>
-                    </Card>
-                  </PressableThemed>
-                </Animated.View>
+                  <Card variants={["square"]} stack={{ index: 1, size: 2 }}>
+                    <Text
+                      accessible={false}
+                      maxFontSizeMultiplier={2}
+                      className="text-muted text-xl tracking-tight"
+                    >
+                      Rename all sessions in template
+                    </Text>
+                    <View
+                      accessible={false}
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                      pointerEvents="none"
+                    >
+                      <SwitchThemed
+                        value={renameLineage}
+                        onValueChange={setRenameLineage}
+                      />
+                    </View>
+                  </Card>
+                </PressableThemed>
               )}
-              {program.sessions.length < 3 && fromType !== "Template" && (
+              {sessionCount < 3 && fromType !== "Template" && (
                 <HelperText className="leading-tight">
                   Use a descriptive name like &apos;Lower Body&apos; or
                   &apos;Chest Day&apos;.
                 </HelperText>
               )}
             </Animated.View>
-            {/* Activities Input */}
-            <Animated.View layout={activityListTransition}>
-              {fields.map((item, index) => {
-                const exerciseFieldState = getFieldState(
-                  `activities.${index}.exerciseId`,
-                  formState,
-                );
-
+            <Animated.View layout={LinearTransition.duration(220)}>
+              {draft.activities.map((activity, index) => {
+                const exercise = activity.exerciseId
+                  ? exercises[activity.exerciseId]
+                  : undefined;
+                const exerciseError = showValidation && !activity.exerciseId;
+                const load =
+                  activity.loadType !== null && activity.loadValue !== null
+                    ? activity.loadType === "PERCENT"
+                      ? `${Number((activity.loadValue * 100).toFixed(2))}%`
+                      : `RPE ${activity.loadValue}`
+                    : "Unavailable";
                 return (
                   <AnimatedViewStyled
-                    key={item.activityId}
+                    key={activity.id}
                     collapsable={false}
                     entering={FadeInUp.duration(220)}
                     exiting={FadeOutUp.duration(220)}
-                    className={exerciseFieldState.error ? "relative z-20" : ""}
                   >
                     <Card
-                      className={activityEditorCardClassName}
+                      className="h-auto flex-row items-stretch gap-0 rounded-none p-0"
                       variants={["square"]}
-                      stack={{ size: fields.length + 1, index }}
+                      stack={{ index, size: draft.activities.length + 1 }}
                     >
                       <View
                         className={
-                          exerciseFieldState.error
+                          exerciseError
                             ? "relative z-10 flex-initial basis-1/2 justify-evenly"
                             : "border-border relative flex-initial basis-1/2 justify-evenly border-r"
                         }
                       >
-                        {exerciseFieldState.error ? (
+                        {exerciseError && (
                           <View
                             pointerEvents="none"
                             className="border-destructive absolute inset-0 z-10 border"
                           />
-                        ) : null}
-                        <Controller
-                          name={`activities.${index}.exerciseId`}
-                          control={control}
-                          rules={{ required: true }}
-                          render={({
-                            field: { value },
-                            fieldState: { error },
-                          }) => {
-                            const ex = exercises.find(
-                              (e) => e.exerciseId === value,
-                            );
-
-                            return (
-                              <View className="relative py-2 pb-6">
-                                <Link
-                                  href={`/(public)/(app)/exercise/select?activityIndex=${index}&activityId=${item.activityId}&currentExerciseId=${value}`}
-                                  asChild
-                                >
-                                  <PressableThemed accessibilityLabel="Navigate to select exercise form">
-                                    <View
-                                      className={
-                                        error
-                                          ? "h-auto w-full flex-row items-center justify-between gap-2 pr-3 pl-5"
-                                          : "h-auto w-full flex-row items-center justify-between gap-2 pr-3 pl-5"
-                                      }
-                                    >
-                                      {ex ? (
-                                        <Text
-                                          maxFontSizeMultiplier={2.5}
-                                          className={
-                                            error
-                                              ? "text-destructive flex-1 text-xl leading-tight"
-                                              : "text-foreground flex-1 text-xl leading-tight"
-                                          }
-                                        >
-                                          {ex.deleted
-                                            ? `${ex.name} (Deleted)`
-                                            : ex.name}
-                                        </Text>
-                                      ) : (
-                                        <Text
-                                          maxFontSizeMultiplier={2.5}
-                                          className={
-                                            error
-                                              ? "text-destructive flex-1 text-xl leading-tight"
-                                              : "text-primary flex-1 text-xl leading-tight"
-                                          }
-                                        >
-                                          Select Exercise
-                                        </Text>
-                                      )}
-                                      <Text
-                                        maxFontSizeMultiplier={2.5}
-                                        className={
-                                          error
-                                            ? "text-destructive text-xl"
-                                            : "text-muted text-xl"
-                                        }
-                                      >
-                                        <AntDesign name="right" size={15} />
-                                      </Text>
-                                    </View>
-                                  </PressableThemed>
-                                </Link>
-                                {error && (
-                                  <AnimatedViewStyled
-                                    entering={FadeInLeft.springify()
-                                      .stiffness(40)
-                                      .damping(6)
-                                      .mass(0.3)}
-                                    exiting={FadeOutLeft.springify()
-                                      .stiffness(40)
-                                      .damping(6)
-                                      .mass(0.3)}
-                                    pointerEvents="none"
-                                    className="absolute bottom-2.5 left-5 z-10"
-                                  >
-                                    <Text
-                                      accessibilityRole="alert"
-                                      maxFontSizeMultiplier={2}
-                                      className="text-destructive text-sm"
-                                    >
-                                      Required
-                                    </Text>
-                                  </AnimatedViewStyled>
-                                )}
-                              </View>
-                            );
-                          }}
-                        />
+                        )}
+                        <View className="relative py-2 pb-6">
+                          <PressableThemed
+                            accessibilityLabel="Navigate to select exercise form"
+                            onPress={() =>
+                              openSelection("exercise", activity.id)
+                            }
+                          >
+                            <View className="h-auto w-full flex-row items-center justify-between gap-2 pr-3 pl-5">
+                              <Text
+                                maxFontSizeMultiplier={2.5}
+                                className={
+                                  exerciseError
+                                    ? "text-destructive flex-1 text-xl leading-tight"
+                                    : exercise
+                                      ? "text-foreground flex-1 text-xl leading-tight"
+                                      : "text-primary flex-1 text-xl leading-tight"
+                                }
+                              >
+                                {exercise
+                                  ? `${exercise.name}${exercise.deleted ? " (Deleted)" : ""}`
+                                  : activity.exerciseId
+                                    ? "Unavailable exercise"
+                                    : "Select Exercise"}
+                              </Text>
+                              <Text
+                                maxFontSizeMultiplier={2.5}
+                                className="text-muted text-xl"
+                              >
+                                <AntDesign name="right" size={15} />
+                              </Text>
+                            </View>
+                          </PressableThemed>
+                          {exerciseError && (
+                            <Text
+                              accessibilityRole="alert"
+                              maxFontSizeMultiplier={2}
+                              className="text-destructive absolute bottom-2.5 left-5 z-10 text-sm"
+                            >
+                              Required
+                            </Text>
+                          )}
+                        </View>
                         <PressableThemed
                           className="absolute top-1 left-2 p-2"
                           hitSlop={20}
-                          onPress={() => removeActivity(index, item.activityId)}
                           accessibilityLabel="Remove exercise from Session"
+                          onPress={() => {
+                            const remove = () =>
+                              updateDraft({
+                                ...draftRef.current,
+                                activities: draftRef.current.activities.filter(
+                                  (item) => item.id !== activity.id,
+                                ),
+                              });
+                            if (
+                              !session?.activities.some(
+                                (item) => item.id === activity.id,
+                              )
+                            ) {
+                              remove();
+                              return;
+                            }
+                            Alert.alert(
+                              "Delete Activity?",
+                              "This will remove the activity from this session.",
+                              [
+                                { text: "Cancel", style: "cancel" },
+                                {
+                                  text: "Delete Activity",
+                                  style: "destructive",
+                                  onPress: remove,
+                                },
+                              ],
+                            );
+                          }}
                         >
                           <Text
                             maxFontSizeMultiplier={2.5}
@@ -848,8 +797,20 @@ function SessionFormScreenContent({
                         {index !== 0 && (
                           <PressableThemed
                             className="absolute top-2 self-center p-2 opacity-50"
-                            onPress={() => swap(index, index - 1)}
                             accessibilityLabel="Move exercise up"
+                            onPress={() => {
+                              const items = [...draftRef.current.activities];
+                              const previous = items[index - 1];
+                              const currentItem = items[index];
+                              if (previous && currentItem) {
+                                items[index - 1] = currentItem;
+                                items[index] = previous;
+                                updateDraft({
+                                  ...draftRef.current,
+                                  activities: items,
+                                });
+                              }
+                            }}
                           >
                             <Text
                               maxFontSizeMultiplier={2.5}
@@ -859,11 +820,23 @@ function SessionFormScreenContent({
                             </Text>
                           </PressableThemed>
                         )}
-                        {index !== fields.length - 1 && (
+                        {index !== draft.activities.length - 1 && (
                           <PressableThemed
                             className="absolute bottom-2 self-center p-2 opacity-50"
-                            onPress={() => swap(index, index + 1)}
                             accessibilityLabel="Move exercise down"
+                            onPress={() => {
+                              const items = [...draftRef.current.activities];
+                              const next = items[index + 1];
+                              const currentItem = items[index];
+                              if (next && currentItem) {
+                                items[index + 1] = currentItem;
+                                items[index] = next;
+                                updateDraft({
+                                  ...draftRef.current,
+                                  activities: items,
+                                });
+                              }
+                            }}
                           >
                             <Text
                               maxFontSizeMultiplier={2.5}
@@ -875,360 +848,244 @@ function SessionFormScreenContent({
                         )}
                       </View>
                       <View className="flex-initial basis-1/2 justify-between">
-                        <Controller
-                          name={`activities.${index}.warmupSets`}
-                          control={control}
-                          defaultValue={Array.from(Array(3)).map(() => ({
-                            workoutSetId: uuidv4(),
-                            type: "Warmup" as const,
-                            status: "Planned" as const,
-                            start: undefined,
-                            end: undefined,
-                            actualReps: 0,
-                            feedback: "Neutral" as const,
-                          }))}
-                          render={({ field: { onChange, onBlur, value } }) => (
-                            <TextInputThemed
-                              label="Warmup Sets"
-                              stack={{ index: 0, size: 5 }}
-                              onChangeText={(v) =>
-                                onChange(
-                                  numberToWorkoutSetArray<WarmupSet>(
-                                    Number(v),
-                                    watchActivities[index]?.warmupSets ?? [],
-                                    "Warmup",
-                                    uuidv4,
-                                    session
-                                      ? { ...session, end: getValues("end") }
-                                      : undefined,
-                                    fallbackSetWeight(
-                                      getValues("activities"),
-                                      index,
-                                      "Warmup",
-                                      templateWeightSources,
-                                    ),
-                                    getValues(`activities.${index}.load`)
-                                      .type === "RPE",
-                                  ),
-                                )
-                              }
-                              onBlur={onBlur}
-                              value={
-                                value.length ? String(value.length) : undefined
-                              }
-                              placeholder="0"
-                              maxLength={1}
-                              cardVariants={activityEditorInputCardVariants}
-                              keyboardType="number-pad"
-                              selectTextOnFocus
-                              numeric
-                            />
-                          )}
+                        <TextInputThemed
+                          label="Warmup Sets"
+                          value={
+                            activity.warmupSets.length
+                              ? String(activity.warmupSets.length)
+                              : ""
+                          }
+                          keyboardType="number-pad"
+                          numeric
+                          maxLength={1}
+                          placeholder="0"
+                          selectTextOnFocus
+                          stack={{ index: 0, size: 5 }}
+                          cardVariants={["square", "small", "transparent"]}
+                          onChangeText={(value) =>
+                            changeSetCount(activity.id, "Warmup", value)
+                          }
                         />
-                        <Controller
-                          name={`activities.${index}.mainSets`}
-                          control={control}
-                          defaultValue={Array.from(Array(3)).map(() => ({
-                            workoutSetId: uuidv4(),
-                            type: "Main" as const,
-                            status: "Planned" as const,
-                            start: undefined,
-                            end: undefined,
-                            actualReps: 0,
-                            feedback: "Neutral" as const,
-                          }))}
-                          rules={{ required: true }}
-                          render={({
-                            field: { onChange, ref, onBlur, value },
-                            fieldState: { error },
-                          }) => (
-                            <TextInputThemed
-                              label="Main Sets"
-                              stack={{ index: 1, size: 5 }}
-                              onChangeText={(v) =>
-                                onChange(
-                                  numberToWorkoutSetArray<MainSet>(
-                                    Number(v),
-                                    watchActivities[index]?.mainSets ?? [],
-                                    "Main",
-                                    uuidv4,
-                                    session
-                                      ? { ...session, end: getValues("end") }
-                                      : undefined,
-                                    fallbackSetWeight(
-                                      getValues("activities"),
-                                      index,
-                                      "Main",
-                                      templateWeightSources,
-                                    ),
-                                    getValues(`activities.${index}.load`)
-                                      .type === "RPE",
-                                  ),
-                                )
-                              }
-                              onBlur={onBlur}
-                              value={
-                                value.length ? String(value.length) : undefined
-                              }
-                              innerRef={ref}
-                              placeholder="0"
-                              maxLength={2}
-                              cardVariants={activityEditorInputCardVariants}
-                              keyboardType="number-pad"
-                              selectTextOnFocus
-                              numeric
-                              error={error ? "Required" : undefined}
-                            />
-                          )}
+                        <TextInputThemed
+                          label="Main Sets"
+                          value={
+                            activity.mainSets.length
+                              ? String(activity.mainSets.length)
+                              : ""
+                          }
+                          keyboardType="number-pad"
+                          numeric
+                          maxLength={2}
+                          placeholder="0"
+                          selectTextOnFocus
+                          stack={{ index: 1, size: 5 }}
+                          cardVariants={["square", "small", "transparent"]}
+                          error={
+                            showValidation && !activity.mainSets.length
+                              ? "Required"
+                              : undefined
+                          }
+                          onChangeText={(value) =>
+                            changeSetCount(activity.id, "Main", value)
+                          }
                         />
-                        <Controller
-                          name={`activities.${index}.reps`}
-                          control={control}
-                          defaultValue={10}
-                          rules={{ required: true, min: 1 }}
-                          render={({
-                            field: { onChange, ref, onBlur, value },
-                            fieldState: { error },
-                          }) => (
-                            <TextInputThemed
-                              label="Repetitions"
-                              stack={{ index: 2, size: 5 }}
-                              onChangeText={(newValue) => {
-                                onChange(
-                                  newValue === "" ? "" : Number(newValue),
-                                );
-                              }}
-                              onBlur={onBlur}
-                              value={String(value)}
-                              innerRef={ref}
-                              placeholder="0"
-                              maxLength={2}
-                              cardVariants={activityEditorInputCardVariants}
-                              keyboardType="number-pad"
-                              selectTextOnFocus
-                              numeric
-                              error={error ? "Required" : undefined}
-                            />
-                          )}
+                        <NumberDraftInput
+                          key={`${activity.id}:reps`}
+                          compact
+                          stack={{ index: 2, size: 5 }}
+                          maxLength={2}
+                          label="Repetitions"
+                          value={activity.reps}
+                          error={
+                            showValidation &&
+                            (activity.reps === null || activity.reps <= 0)
+                              ? "Required"
+                              : undefined
+                          }
+                          onChange={(reps) =>
+                            updateActivity(activity.id, (item) => ({
+                              ...item,
+                              reps,
+                            }))
+                          }
                         />
-                        <Controller
-                          name={`activities.${index}.rest`}
-                          control={control}
-                          defaultValue={2}
-                          render={({ field: { onChange, onBlur, value } }) => (
-                            <TextInputThemed
-                              label="Rest (minutes)"
-                              stack={{ index: 3, size: 5 }}
-                              onChangeText={(newValue) => {
-                                onChange(Number(newValue));
-                              }}
-                              onBlur={onBlur}
-                              value={String(value)}
-                              placeholder="0"
-                              maxLength={2}
-                              cardVariants={activityEditorInputCardVariants}
-                              selectTextOnFocus
-                              keyboardType="number-pad"
-                              numeric
-                            />
-                          )}
+                        <NumberDraftInput
+                          key={`${activity.id}:rest`}
+                          compact
+                          stack={{ index: 3, size: 5 }}
+                          maxLength={2}
+                          label="Rest (minutes)"
+                          value={activity.restMinutes}
+                          onChange={(restMinutes) =>
+                            updateActivity(activity.id, (item) => ({
+                              ...item,
+                              restMinutes,
+                            }))
+                          }
                         />
-                        <Controller
-                          control={control}
-                          rules={{ required: true }}
-                          render={({ field: { value } }) => (
-                            <Link
-                              href={`/(public)/(app)/load?activityIndex=${index}&activityId=${item.activityId}&exerciseId=${watchActivities[index]?.exerciseId ?? ""}&loadType=${value.type}&loadValue=${value.value}`}
-                              asChild
-                            >
-                              <NavigationCardRow
-                                title="Load"
-                                trailingText={stringifyLoad(value)}
-                                stack={{ index: 4, size: 5 }}
-                                cardVariants={["square", "small"]}
-                                titleClassName="pr-0"
-                                accessibilityLabel="Navigate to select exercise load form"
-                              />
-                            </Link>
-                          )}
-                          name={`activities.${index}.load`}
+                        <NavigationCardRow
+                          title="Load"
+                          trailingText={load}
+                          stack={{ index: 4, size: 5 }}
+                          cardVariants={["square", "small"]}
+                          titleClassName="pr-0"
+                          onPress={() => openSelection("load", activity.id)}
+                          accessibilityLabel="Navigate to select exercise load form"
                         />
                       </View>
                     </Card>
                   </AnimatedViewStyled>
                 );
               })}
-              <Animated.View
-                layout={activityListTransition}
-                collapsable={false}
-              >
-                <PrimaryCardAction
-                  label="Add Exercise"
-                  icon={<Entypo name="circle-with-plus" size={20} />}
-                  onPress={() => {
-                    append(
-                      {
-                        activityId: uuidv4(),
-                        exerciseId: "",
-                        reps: 10,
-                        rest: 2,
-                        load: { type: "RPE", value: 8 },
-                        warmupSets: Array.from(Array(3)).map(() => ({
-                          workoutSetId: uuidv4(),
-                          type: "Warmup" as const,
-                          status: sessionIsTerminal
-                            ? ("Incomplete" as const)
-                            : ("Planned" as const),
-                          start: sessionIsTerminal
-                            ? getValues("end")
-                            : undefined,
-                          end: sessionIsTerminal ? getValues("end") : undefined,
-                          actualReps: 0,
-                          feedback: "Neutral" as const,
-                        })),
-                        mainSets: Array.from(Array(3)).map(() => ({
-                          workoutSetId: uuidv4(),
-                          type: "Main" as const,
-                          status: sessionIsTerminal
-                            ? ("Incomplete" as const)
-                            : ("Planned" as const),
-                          start: sessionIsTerminal
-                            ? getValues("end")
-                            : undefined,
-                          end: sessionIsTerminal ? getValues("end") : undefined,
-                          actualReps: 0,
-                          feedback: "Neutral" as const,
-                        })),
-                      },
-                      { shouldFocus: false },
-                    );
-                  }}
-                  disabled={fields.length > 100}
-                  cardVariants={["square"]}
-                  stack={{
-                    size: fields.length + 1,
-                    index: fields.length,
-                  }}
-                />
-              </Animated.View>
+              <PrimaryCardAction
+                label="Add Exercise"
+                icon={<Entypo name="circle-with-plus" size={20} />}
+                cardVariants={["square"]}
+                stack={{
+                  index: draft.activities.length,
+                  size: draft.activities.length + 1,
+                }}
+                disabled={draft.activities.length > 100}
+                onPress={() =>
+                  updateDraft({
+                    ...draftRef.current,
+                    activities: [
+                      ...draftRef.current.activities,
+                      newDraftActivity(
+                        uuidv4,
+                        terminal ? draftRef.current.endMs : undefined,
+                      ),
+                    ],
+                  })
+                }
+              />
             </Animated.View>
           </AnimatedViewStyled>
         )}
-        {sessionIsTerminal && watchStart && (
-          <Animated.View layout={activityListTransition}>
+        {terminal && draft.startMs !== null && (
+          <View>
             <DateTimeInputThemed
               label="Start Date"
-              value={watchStart}
+              value={new Date(draft.startMs)}
               mode="date"
-              onChange={handleSessionStartChange}
               testID="session-start-date"
+              onChange={(date) =>
+                updateDraft(shiftDraftStart(draftRef.current, date.getTime()))
+              }
               cardVariants={["square"]}
               stack={{ index: 0, size: 3 }}
             />
             <DateTimeInputThemed
               label="Start Time"
-              value={watchStart}
+              value={new Date(draft.startMs)}
               mode="time"
-              onChange={handleSessionStartChange}
               testID="session-start-time"
+              onChange={(date) =>
+                updateDraft(shiftDraftStart(draftRef.current, date.getTime()))
+              }
               cardVariants={["square"]}
               stack={{ index: 1, size: 3 }}
             />
-            <Controller
-              name="end"
-              control={control}
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInputThemed
-                  label="Elapsed Time (minutes)"
-                  onChangeText={(newValue) =>
-                    onChange(add(watchStart, { minutes: Number(newValue) }))
-                  }
-                  onBlur={onBlur}
-                  value={
-                    value
-                      ? String(differenceInMinutes(value, watchStart))
-                      : undefined
-                  }
-                  maxLength={3}
-                  keyboardType="number-pad"
-                  selectTextOnFocus
-                  numeric
-                  cardVariants={["square"]}
-                  stack={{ index: 2, size: 3 }}
-                />
-              )}
+            <NumberDraftInput
+              label="Elapsed Time (minutes)"
+              stack={{ index: 2, size: 3 }}
+              value={
+                draft.endMs === null
+                  ? null
+                  : Math.trunc((draft.endMs - draft.startMs) / 60000)
+              }
+              onChange={(minutes) =>
+                updateDraft({
+                  ...draftRef.current,
+                  endMs:
+                    minutes === null || draftRef.current.startMs === null
+                      ? null
+                      : draftRef.current.startMs + minutes * 60000,
+                })
+              }
             />
-          </Animated.View>
+          </View>
         )}
-        {sessionCanBeDeload && (
-          <Animated.View layout={activityListTransition}>
-            {deloadInput}
-          </Animated.View>
+        {((initial.policy?.canSetDeload ?? false) || template !== null) && (
+          <PressableThemed
+            accessibilityRole="switch"
+            accessibilityLabel="Deload session"
+            accessibilityHint="Marks this workout as a deload session"
+            accessibilityState={{ checked: draft.deload }}
+            onPress={() => changeDeload(!draft.deload)}
+          >
+            <Card variants={["square"]}>
+              <Text
+                accessible={false}
+                maxFontSizeMultiplier={2}
+                className="text-muted text-xl tracking-tight"
+              >
+                Deload
+              </Text>
+              <View
+                accessible={false}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                pointerEvents="none"
+              >
+                <SwitchThemed
+                  value={draft.deload}
+                  onValueChange={changeDeload}
+                  testID="session-deload-toggle"
+                />
+              </View>
+            </Card>
+          </PressableThemed>
         )}
         {session?.status === "Ready" && (
-          <Animated.View layout={activityListTransition}>
-            <PrimaryCardAction
-              label="Complete Workout Session"
-              onPress={handleCompleteSession}
-              accessibilityLabel="Complete workout session from session form"
-              cardVariants={["square"]}
-            />
-          </Animated.View>
+          <PrimaryCardAction
+            label="Complete Workout Session"
+            accessibilityLabel="Complete workout session from session form"
+            cardVariants={["square"]}
+            onPress={() => {
+              const missing = draft.activities.some((activity) =>
+                [...activity.warmupSets, ...activity.mainSets].some(
+                  (set) => (set.actualReps ?? 0) <= 0,
+                ),
+              );
+              Alert.alert(
+                "Complete Workout Session?",
+                missing
+                  ? "Some sets do not have Actual Reps. Those sets will be marked Incomplete. You can enter their reps later."
+                  : "This will mark the workout session as Done.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Complete Session",
+                    style: missing ? "destructive" : "default",
+                    onPress: () => save("complete"),
+                  },
+                ],
+              );
+            }}
+          />
         )}
         {session && (
-          <Animated.View layout={activityListTransition}>
-            <ConfirmButton
-              title="Delete Session?"
-              message="This will permanently delete this workout session."
-              confirmText="Delete Session"
-              onConfirm={() => {
-                deleteSession(program.programId, session.sessionId);
-                leaveWithoutWarning(() => {
-                  router.back();
-                  router.back();
-                });
-              }}
-              accessibilityLabel={`Delete Workout Session with name ${session.name}`}
-              cardVariants={["square"]}
-            >
-              Delete This Session
-            </ConfirmButton>
-          </Animated.View>
+          <ConfirmButton
+            title="Delete Session?"
+            message="This will permanently delete this workout session."
+            confirmText="Delete Session"
+            accessibilityLabel={`Delete Workout Session with name ${session.name}`}
+            cardVariants={["square"]}
+            onConfirm={() => save("delete")}
+          >
+            Delete This Session
+          </ConfirmButton>
         )}
-        {session?.start && (
-          <Animated.View layout={activityListTransition}>
+        {session?.startMs !== null && session && (
+          <View>
             <ConfirmButton
               title="Reset Session?"
               message="This will clear the recorded session data and return it to Planned status."
               confirmText="Reset Session"
-              onConfirm={() => {
-                updateSession(program.programId, {
-                  ...session,
-                  start: undefined,
-                  end: undefined,
-                  status: "Planned",
-                  activities: session.activities.map((actvy) => ({
-                    ...actvy,
-                    warmupSets: actvy.warmupSets.map((ws) => ({
-                      ...ws,
-                      start: undefined,
-                      end: undefined,
-                      actualReps: 0,
-                      status: "Planned" as const,
-                    })),
-                    mainSets: actvy.mainSets.map((ms) => ({
-                      ...ms,
-                      start: undefined,
-                      end: undefined,
-                      actualReps: 0,
-                      status: "Planned" as const,
-                    })),
-                  })),
-                });
-                leaveWithoutWarning(() => router.back());
-              }}
               accessibilityLabel={`Reset Workout Session with name ${session.name}`}
               cardVariants={["square"]}
+              onConfirm={() => save("reset")}
             >
               Reset This Session
             </ConfirmButton>
@@ -1236,7 +1093,7 @@ function SessionFormScreenContent({
               Resets session to &apos;Planned&apos; state by clearing all
               entered data.
             </HelperText>
-          </Animated.View>
+          </View>
         )}
       </KeyboardAwareScrollView>
     </>

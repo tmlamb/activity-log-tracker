@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { Alert } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
   FadeInUp,
@@ -16,18 +18,18 @@ import { PrimaryCardAction } from "~/components/CardRow";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import InventoryCounterInputRow from "~/components/InventoryCounterInputRow";
 import { HelperText, SectionHeading } from "~/components/Typography";
+import { replaceMuscles } from "~/data/actions";
+import { useMuscleCatalog } from "~/data/queries";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
-import useWorkoutStore from "~/hooks/use-workout-store";
 
 interface FormData {
   muscleGroups: { muscleGroupId: string; name: string }[];
 }
 
 export default function ExerciseMusclesScreen() {
+  const muscleGroups = useMuscleCatalog();
   const router = useRouter();
-  const { muscleGroups, updateMuscleGroups } = useWorkoutStore(
-    (state) => state,
-  );
+  const base = useRef([...muscleGroups]);
   const {
     control,
     getValues,
@@ -41,7 +43,7 @@ export default function ExerciseMusclesScreen() {
       })),
     },
   });
-  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
+  const { leaveWithoutWarning, hasLeft } = useUnsavedChangesWarning(isDirty);
   const { fields, append, remove } = useFieldArray({
     control,
     name: "muscleGroups",
@@ -53,12 +55,23 @@ export default function ExerciseMusclesScreen() {
       { focusName: `muscleGroups.${fields.length}.name` },
     );
   };
-
   const onSubmit = (data: FormData) => {
-    updateMuscleGroups(
-      data.muscleGroups.map((muscleGroup) => muscleGroup.name),
-    );
-    leaveWithoutWarning(() => router.back());
+    if (hasLeft()) return;
+    try {
+      replaceMuscles(
+        data.muscleGroups.map((muscleGroup) => muscleGroup.name),
+        base.current,
+      );
+      leaveWithoutWarning(() => router.back());
+    } catch (error) {
+      Alert.alert(
+        "Save Failed",
+        error instanceof Error &&
+          error.message.startsWith("Muscle groups changed.")
+          ? "Muscle groups changed while this form was open. Your draft is still here; reopen the form before saving."
+          : "Muscle groups could not be saved. Please try again.",
+      );
+    }
   };
 
   return (

@@ -13,6 +13,7 @@ import {
   useCollapsibleSectionScroll,
 } from "./CollapsibleSection";
 import { Text } from "./font-scale-text";
+import { HelperText } from "./Typography";
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
@@ -162,10 +163,12 @@ export default function ExerciseInsights({
   exerciseName,
   sessionName,
   insights,
+  partial = false,
 }: {
   exerciseName: string;
   sessionName: string;
   insights: ExerciseSetInsights[];
+  partial?: boolean;
 }) {
   const currentSetType = insights.find(
     (setInsights) => setInsights.selected,
@@ -217,6 +220,12 @@ export default function ExerciseInsights({
           stack={{ index: 1, size: 2 }}
         />
       </View>
+      {partial && (
+        <HelperText accessibilityRole="summary">
+          Some results are partial because recovered workout details are
+          unavailable.
+        </HelperText>
+      )}
       {warmupSetInsights.length ? (
         <CollapsibleSection
           title="Warmup Sets"

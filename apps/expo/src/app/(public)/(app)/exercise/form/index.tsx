@@ -1,20 +1,27 @@
 import { useEffect, useRef, useState } from "react";
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 import Animated, {
   FadeInUp,
   FadeOutUp,
   LinearTransition,
 } from "react-native-reanimated";
-import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Link,
+  Redirect,
+  Stack,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
-import type { Exercise } from "@activity-log/ui/utils";
+import type { Equipment, Exercise } from "@activity-log/ui/utils";
 import {
   exerciseNamesMatch,
   normalizeMuscleGroups,
 } from "@activity-log/ui/utils";
 
+import type { ExerciseInput } from "~/data/repositories/exercises";
 import { Text } from "~/components/font-scale-text";
 
 import "react-native-get-random-values";
@@ -32,8 +39,19 @@ import PressableThemed from "~/components/PressableThemed";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText, SectionHeading } from "~/components/Typography";
+import {
+  createExercise,
+  editExercise,
+  restoreExercise,
+  setExerciseDeleted,
+} from "~/data/actions";
+import {
+  useEquipment,
+  useExerciseLibrary,
+  useExerciseUsage,
+  useMuscleCatalog,
+} from "~/data/queries";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
-import useWorkoutStore from "~/hooks/use-workout-store";
 
 const decimalTextToNumber = (text: string) => {
   if (!text || text === ".") return undefined;
@@ -62,37 +80,123 @@ const parsePresetMuscles = (value?: string) => {
   }
 };
 
+type EditorExercise = Omit<Exercise, "loadKind"> & {
+  loadKind?: Exercise["loadKind"];
+  revision?: number;
+};
+
+function sqliteExerciseInput(data: Exercise): ExerciseInput {
+  return {
+    name: data.name,
+    loadKind: data.loadKind,
+    barbellId: data.loadKind === "BARBELL" ? (data.barbellId ?? null) : null,
+    oneRepMax: data.oneRepMax ?? null,
+    primaryMuscles: data.primaryMuscles ?? [],
+    notes: data.notes?.trim() ? data.notes : null,
+  };
+}
+
 export default function ExerciseFormScreen() {
+  const { exerciseId } = useLocalSearchParams<{ exerciseId?: string }>();
+  const library = useExerciseLibrary();
+  const equipment = useEquipment();
+  const muscles = useMuscleCatalog();
+  const usedInWorkout = useExerciseUsage(exerciseId);
+  const rows: EditorExercise[] = library.saved.map((item) => ({
+    exerciseId: item.id,
+    name: item.name,
+    loadKind: item.loadKind ?? undefined,
+    barbellId: item.barbellId ?? undefined,
+    oneRepMax: item.oneRepMax ?? undefined,
+    primaryMuscles: item.primaryMuscles,
+    notes: item.notes ?? undefined,
+    deleted: item.deleted,
+    revision: item.revision,
+  }));
+  const exercise = rows.find((item) => item.exerciseId === exerciseId);
+  if (exerciseId && !exercise)
+    return <Redirect href="/(public)/(app)/exercise/settings" />;
+  const revision = exercise?.revision;
+  return (
+    <ExerciseEditor
+      key={exerciseId ?? "new"}
+      exercise={exercise}
+      exercises={rows}
+      equipment={equipment}
+      muscleGroups={muscles}
+      usedInWorkout={usedInWorkout}
+      save={(data) => {
+        if (!exercise)
+          createExercise(data.exerciseId, sqliteExerciseInput(data));
+        else if (revision === undefined)
+          throw new Error("The exercise revision is unavailable.");
+        else if (exercise.deleted)
+          restoreExercise(
+            exercise.exerciseId,
+            revision,
+            sqliteExerciseInput(data),
+          );
+        else
+          editExercise(
+            exercise.exerciseId,
+            revision,
+            sqliteExerciseInput(data),
+          );
+      }}
+      remove={(id) => {
+        if (revision === undefined)
+          throw new Error("The exercise revision is unavailable.");
+        setExerciseDeleted(id, true, revision);
+      }}
+    />
+  );
+}
+
+function ExerciseEditor({
+  exercise: suppliedExercise,
+  exercises,
+  equipment: suppliedEquipment,
+  muscleGroups: suppliedMuscles,
+  usedInWorkout,
+  save,
+  remove,
+}: {
+  exercise?: EditorExercise;
+  exercises: EditorExercise[];
+  equipment: Equipment;
+  muscleGroups: string[];
+  usedInWorkout: boolean;
+  save: (data: Exercise) => void;
+  remove: (id: string) => void;
+}) {
   const {
-    exerciseId,
     name: presetName,
     loadKind: presetLoadKind,
     primaryMuscles: presetPrimaryMuscles,
+    unknownLoadKind,
   } = useLocalSearchParams<{
-    exerciseId?: string;
     name?: string;
     loadKind?: string;
     primaryMuscles?: string;
+    unknownLoadKind?: string;
   }>();
   const router = useRouter();
-  const {
-    exercises,
-    programs,
-    equipment,
-    addExercise,
-    updateExercise,
-    restoreExercise,
-    deleteExercise,
-    muscleGroups,
-  } = useWorkoutStore((state) => state);
-
-  const exercise = exercises.find((e) => e.exerciseId === exerciseId);
+  // The form works from the data it opened with; saving checks the captured
+  // revision, so a change made elsewhere is reported rather than overwritten.
+  const [exercise] = useState(suppliedExercise);
+  const [equipment] = useState(suppliedEquipment);
+  const [muscleGroups] = useState(suppliedMuscles);
+  const [newId] = useState(() => uuidv4());
+  const [saveAction] = useState(() => save);
+  const [removeAction] = useState(() => remove);
   const heaviestBarbell = _.maxBy(equipment.barbells, "value");
-  const defaultLoadKind =
-    exercise?.loadKind ??
-    (isLoadKind(presetLoadKind) ? presetLoadKind : undefined) ??
-    inferLoadKindFromName(presetName ?? "") ??
-    "BARBELL";
+  const defaultLoadKind = exercise
+    ? exercise.loadKind
+    : unknownLoadKind === "1"
+      ? undefined
+      : ((isLoadKind(presetLoadKind) ? presetLoadKind : undefined) ??
+        inferLoadKindFromName(presetName ?? "") ??
+        "BARBELL");
   const [oneRepMaxInput, setOneRepMaxInput] = useState(
     exercise?.oneRepMax?.value && exercise.oneRepMax.value > 0
       ? String(exercise.oneRepMax.value)
@@ -109,7 +213,7 @@ export default function ExerciseFormScreen() {
     defaultValues: {
       name: exercise?.name ?? presetName ?? "",
       loadKind: defaultLoadKind,
-      barbellId: exercise?.barbellId ?? heaviestBarbell?.barbellId,
+      barbellId: exercise ? exercise.barbellId : heaviestBarbell?.barbellId,
       oneRepMax: exercise?.oneRepMax ?? undefined,
       primaryMuscles: (
         exercise?.primaryMuscles ?? parsePresetMuscles(presetPrimaryMuscles)
@@ -117,7 +221,7 @@ export default function ExerciseFormScreen() {
       notes: exercise?.notes ?? undefined,
     },
   });
-  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
+  const { leaveWithoutWarning, hasLeft } = useUnsavedChangesWarning(isDirty);
   const selectedLoadKind = useWatch({ control, name: "loadKind" });
   const selectedBarbellId = useWatch({ control, name: "barbellId" });
   const selectedName = useWatch({ control, name: "name" });
@@ -131,6 +235,7 @@ export default function ExerciseFormScreen() {
     if (
       selectedLoadKind === "BARBELL" &&
       heaviestBarbell &&
+      (!exercise || selectedBarbellId !== undefined) &&
       !equipment.barbells.some(
         (barbell) => barbell.barbellId === selectedBarbellId,
       )
@@ -138,6 +243,7 @@ export default function ExerciseFormScreen() {
       setValue("barbellId", heaviestBarbell.barbellId, { shouldDirty: true });
     }
   }, [
+    exercise,
     equipment.barbells,
     heaviestBarbell,
     selectedBarbellId,
@@ -149,6 +255,7 @@ export default function ExerciseFormScreen() {
     const inferredLoadKind = inferLoadKindFromName(selectedName);
     if (
       exercise ||
+      unknownLoadKind === "1" ||
       hasManuallySelectedLoadKindRef.current ||
       !inferredLoadKind ||
       selectedLoadKind === inferredLoadKind
@@ -157,7 +264,7 @@ export default function ExerciseFormScreen() {
     }
 
     setValue("loadKind", inferredLoadKind, { shouldDirty: true });
-  }, [exercise, selectedLoadKind, selectedName, setValue]);
+  }, [exercise, selectedLoadKind, selectedName, setValue, unknownLoadKind]);
 
   useEffect(() => {
     const currentPrimaryMuscles = selectedPrimaryMuscles ?? [];
@@ -170,14 +277,6 @@ export default function ExerciseFormScreen() {
     }
   }, [muscleGroups, selectedPrimaryMuscles, setValue]);
 
-  const usedInWorkout = programs.find((program) =>
-    program.sessions.find((session) =>
-      session.activities.find(
-        (activity) => activity.exerciseId === exercise?.exerciseId,
-      ),
-    ),
-  );
-
   const hasDuplicateExerciseName = (name: string) =>
     exercises.some(
       (e) =>
@@ -185,8 +284,8 @@ export default function ExerciseFormScreen() {
         !e.deleted &&
         exerciseNamesMatch(e.name, name),
     );
-
   const onSubmit = (data: Exercise) => {
+    if (hasLeft()) return;
     const notes = data.notes?.trim() ? data.notes : undefined;
 
     if (hasDuplicateExerciseName(data.name)) {
@@ -198,33 +297,17 @@ export default function ExerciseFormScreen() {
     }
 
     try {
-      if (exercise) {
-        const updatedExercise = {
-          ...exercise,
-          name: data.name,
-          loadKind: data.loadKind,
-          barbellId: data.loadKind === "BARBELL" ? data.barbellId : undefined,
-          oneRepMax: data.oneRepMax,
-          primaryMuscles: data.primaryMuscles,
-          notes,
-        };
-
-        if (exercise.deleted) {
-          restoreExercise(updatedExercise);
-        } else {
-          updateExercise(updatedExercise);
-        }
-      } else {
-        addExercise({
-          name: data.name,
-          loadKind: data.loadKind,
-          barbellId: data.loadKind === "BARBELL" ? data.barbellId : undefined,
-          oneRepMax: data.oneRepMax,
-          primaryMuscles: data.primaryMuscles,
-          notes,
-          exerciseId: uuidv4(),
-        });
-      }
+      saveAction({
+        exerciseId: exercise?.exerciseId ?? newId,
+        name: data.name,
+        loadKind: data.loadKind,
+        barbellId: data.loadKind === "BARBELL" ? data.barbellId : undefined,
+        oneRepMax: data.oneRepMax,
+        primaryMuscles: data.primaryMuscles,
+        notes,
+        deleted: exercise?.deleted,
+      });
+      leaveWithoutWarning(() => router.back());
     } catch (error) {
       if (
         error instanceof Error &&
@@ -236,10 +319,27 @@ export default function ExerciseFormScreen() {
         });
         return;
       }
-      throw error;
+      Alert.alert(
+        "Save Failed",
+        error instanceof Error &&
+          error.message.startsWith("The exercise changed.")
+          ? "This exercise changed while the form was open. Your draft is still here; reopen the form before saving."
+          : "The exercise could not be saved. Please try again.",
+      );
     }
+  };
 
-    leaveWithoutWarning(() => router.back());
+  const onDelete = () => {
+    if (!exercise || hasLeft()) return;
+    try {
+      removeAction(exercise.exerciseId);
+      leaveWithoutWarning(() => router.back());
+    } catch {
+      Alert.alert(
+        "Delete Failed",
+        "The exercise could not be deleted. Please try again.",
+      );
+    }
   };
 
   return (
@@ -311,13 +411,16 @@ export default function ExerciseFormScreen() {
           rules={{ required: false, min: 5 }}
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInputThemed
-              label="One Rep Max (lbs)"
+              label={`One Rep Max (${exercise?.oneRepMax?.unit ?? "lbs"})`}
               onChangeText={(text) => {
                 const numericValue = decimalTextToNumber(text);
                 setOneRepMaxInput(text);
                 onChange(
                   numericValue != null
-                    ? { unit: value?.unit ?? "lbs", value: numericValue }
+                    ? {
+                        unit: value?.unit ?? exercise?.oneRepMax?.unit ?? "lbs",
+                        value: numericValue,
+                      }
                     : undefined,
                 );
               }}
@@ -333,7 +436,7 @@ export default function ExerciseFormScreen() {
               keyboardType="decimal-pad"
               numeric
               decimalPlaces={2}
-              accessibilityLabel="One Rep Max in pounds"
+              accessibilityLabel={`One Rep Max in ${exercise?.oneRepMax?.unit === "kg" ? "kilograms" : "pounds"}`}
               cardVariants={["square"]}
             />
           )}
@@ -524,10 +627,7 @@ export default function ExerciseFormScreen() {
               title="Delete Exercise?"
               message="This will hide the exercise from selection and management. Existing workouts will keep it."
               confirmText="Delete Exercise"
-              onConfirm={() => {
-                deleteExercise(exercise.exerciseId);
-                leaveWithoutWarning(() => router.back());
-              }}
+              onConfirm={onDelete}
               cardVariants={["square"]}
             >
               Delete This Exercise

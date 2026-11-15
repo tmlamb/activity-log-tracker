@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { Alert } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
   FadeInUp,
@@ -19,10 +21,10 @@ import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import InventoryCounterInputRow from "~/components/InventoryCounterInputRow";
 import { HelperText, SectionHeading } from "~/components/Typography";
+import { replaceEquipmentInventory } from "~/data/actions";
+import { createDefaultEquipment } from "~/data/legacy/workout-defaults";
+import { useEquipment } from "~/data/queries";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
-import useWorkoutStore, {
-  createDefaultEquipment,
-} from "~/hooks/use-workout-store";
 
 type FormEquipmentBarbell = Omit<Equipment["barbells"][number], "value"> & {
   value: number | string;
@@ -99,8 +101,12 @@ const validateUniqueWeight = <T extends { value: number | string }>(
 };
 
 export default function EquipmentScreen() {
+  const equipment = useEquipment();
   const router = useRouter();
-  const { equipment, updateEquipment } = useWorkoutStore((state) => state);
+  const base = useRef<Equipment>({
+    barbells: equipment.barbells.map((item) => ({ ...item })),
+    plates: equipment.plates.map((item) => ({ ...item })),
+  });
   const defaultValues = normalizeEquipmentFormData(equipment);
 
   const {
@@ -113,7 +119,7 @@ export default function EquipmentScreen() {
   } = useForm<FormData>({
     defaultValues,
   });
-  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
+  const { leaveWithoutWarning, hasLeft } = useUnsavedChangesWarning(isDirty);
 
   const {
     fields: barbellFields,
@@ -134,9 +140,27 @@ export default function EquipmentScreen() {
   });
 
   const plates = useWatch({ control, name: "plates" });
+  const saveEquipment = (next: Equipment, onSuccess: () => void) => {
+    try {
+      replaceEquipmentInventory(next, base.current);
+      base.current = {
+        barbells: next.barbells.map((item) => ({ ...item })),
+        plates: next.plates.map((item) => ({ ...item })),
+      };
+      onSuccess();
+    } catch (error) {
+      Alert.alert(
+        "Save Failed",
+        error instanceof Error && error.message.startsWith("Equipment changed.")
+          ? "Equipment changed while this form was open. Your draft is still here; reopen the form before saving."
+          : "Equipment changes could not be saved. Please try again.",
+      );
+    }
+  };
 
   const onSubmit = (data: FormData) => {
-    updateEquipment({
+    if (hasLeft()) return;
+    const next = {
       ...data,
       barbells: data.barbells
         .map((barbell) => ({
@@ -153,8 +177,8 @@ export default function EquipmentScreen() {
           quantity: Number(plate.quantity),
         }))
         .sort((a, b) => a.value - b.value),
-    });
-    leaveWithoutWarning(() => router.back());
+    };
+    saveEquipment(next, () => leaveWithoutWarning(() => router.back()));
   };
 
   const changePlateQuantity = (index: number, delta: number) => {
@@ -193,8 +217,7 @@ export default function EquipmentScreen() {
   const restoreEquipmentDefaults = () => {
     const defaultEquipment = createDefaultEquipment();
 
-    updateEquipment(defaultEquipment);
-    reset(defaultEquipment);
+    saveEquipment(defaultEquipment, () => reset(defaultEquipment));
   };
 
   return (
@@ -270,8 +293,8 @@ export default function EquipmentScreen() {
                           onChange(normalizeWeightInput(newValue));
                         }}
                         onBlur={onBlur}
-                        unit="lbs"
-                        inputAccessibilityLabel="Barbell weight in pounds"
+                        unit={item.unit}
+                        inputAccessibilityLabel={`Barbell weight in ${item.unit === "kg" ? "kilograms" : "pounds"}`}
                         maxLength={4}
                         keyboardType="numeric"
                         error={error?.message}
@@ -343,8 +366,8 @@ export default function EquipmentScreen() {
                           onChange(normalizeWeightInput(newValue));
                         }}
                         onBlur={onBlur}
-                        unit="lbs"
-                        inputAccessibilityLabel="Plate weight in pounds"
+                        unit={item.unit}
+                        inputAccessibilityLabel={`Plate weight in ${item.unit === "kg" ? "kilograms" : "pounds"}`}
                         maxLength={7}
                         error={error?.message}
                         stack={stack}

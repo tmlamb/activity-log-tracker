@@ -1,6 +1,4 @@
 import Papa from "papaparse";
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 import type { Exercise } from "@activity-log/ui/utils";
 import {
@@ -96,35 +94,3 @@ export const createDefaultMuscleGroups = () =>
 export interface ExerciseStoreData {
   exercises: Pick<Exercise, "name" | "loadKind" | "primaryMuscles">[];
 }
-
-interface ExerciseStore extends ExerciseStoreData {
-  replaceExerciseData: (data: ExerciseStoreData) => void;
-  resetExercises: () => void;
-}
-
-const useExerciseStore = create<ExerciseStore>()(
-  persist(
-    (set) => ({
-      exercises: createDefaultExercises(),
-      replaceExerciseData: (data: ExerciseStoreData) => {
-        set({ exercises: data.exercises });
-      },
-      resetExercises: () => {
-        set({ exercises: createDefaultExercises() });
-      },
-    }),
-    {
-      name: "exercise-storage",
-      version: 2,
-      migrate: (persistedState, version) =>
-        version < 2
-          ? {
-              ...(persistedState as Partial<ExerciseStore>),
-              exercises: createDefaultExercises(),
-            }
-          : persistedState,
-    },
-  ),
-);
-
-export default useExerciseStore;

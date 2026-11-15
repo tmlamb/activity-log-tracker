@@ -4,11 +4,10 @@ import { Link, Stack } from "expo-router";
 import { NavigationCardRow } from "~/components/CardRow";
 import { HeaderPlusAction } from "~/components/HeaderAction";
 import { LegendListStyled } from "~/components/Styled";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import { useProgramSummaries } from "~/data/queries";
 
 export default function ProgramSettingsScreen() {
-  const { programs } = useWorkoutStore((state) => state);
-
+  const programs = useProgramSummaries();
   return (
     <View className="flex-1">
       <Stack.Screen
@@ -32,17 +31,17 @@ export default function ProgramSettingsScreen() {
         data={programs}
         estimatedItemSize={53}
         extraData={programs.length}
-        keyExtractor={(item) => item.programId}
+        keyExtractor={(item) => item.id}
         renderItem={({ index, item }) => (
           <Link
-            href={`/(public)/(app)/program/form?programId=${item.programId}`}
+            href={`/(public)/(app)/program/form?programId=${encodeURIComponent(item.id)}`}
             asChild
           >
             <NavigationCardRow
               title={item.name}
               cardVariants={["multiline"]}
               stack={{ index, size: programs.length }}
-              trailingText={`${item.sessions.length} session${item.sessions.length !== 1 ? "s" : ""}`}
+              trailingText={`${item.sessionCount} session${item.sessionCount !== 1 ? "s" : ""}`}
               accessibilityLabel={`Navigate to Edit Workout Program ${item.name}`}
             />
           </Link>

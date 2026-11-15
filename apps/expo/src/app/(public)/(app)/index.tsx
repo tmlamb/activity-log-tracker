@@ -1,15 +1,14 @@
 import { Platform } from "react-native";
 import { Link, Stack, useRouter } from "expo-router";
-import _ from "lodash";
 
 import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
 import { LegendListStyled } from "~/components/Styled";
 import { HelperText, SectionHeading } from "~/components/Typography";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import { useProgramSummaries } from "~/data/queries";
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const programs = useWorkoutStore((state) => state.programs);
+  const programs = useProgramSummaries();
   const managementMenuItems = [
     {
       key: "programs",
@@ -60,7 +59,7 @@ export default function DashboardScreen() {
       </Stack.Toolbar>
       <LegendListStyled
         className="flex-1"
-        keyExtractor={(program) => program.programId}
+        keyExtractor={(program) => program.id}
         bounces={true}
         contentContainerClassName="px-5"
         contentInsetAdjustmentBehavior="automatic"
@@ -75,7 +74,10 @@ export default function DashboardScreen() {
           ) : null
         }
         renderItem={({ index, item }) => (
-          <Link href={`/(public)/(app)/program/${item.programId}`} asChild>
+          <Link
+            href={`/(public)/(app)/program/${encodeURIComponent(item.id)}`}
+            asChild
+          >
             <NavigationCardRow
               title={item.name}
               cardVariants={["multiline"]}
@@ -107,7 +109,10 @@ export default function DashboardScreen() {
               </>
             )}
             {programs.length > 0 &&
-              _.sumBy(programs, (o) => o.sessions.length) < 4 && (
+              programs.reduce(
+                (total, program) => total + program.sessionCount,
+                0,
+              ) < 4 && (
                 <HelperText
                   className="mr-0 ml-5 leading-tight"
                   accessibilityRole="summary"

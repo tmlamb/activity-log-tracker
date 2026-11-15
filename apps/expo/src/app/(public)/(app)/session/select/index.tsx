@@ -1,61 +1,65 @@
 import { useState } from "react";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import _ from "lodash";
+import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 
-import type { Session } from "@activity-log/ui/utils";
-import {
-  isSessionTerminalStatus,
-  templateSessionForPlanning,
-} from "@activity-log/ui/utils";
-
+import type { TemplateChoice } from "~/data/repositories/templates";
+import type { SelectionTicket } from "~/data/selection-handoff";
 import { SelectableCardRow } from "~/components/CardRow";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import { LegendListStyled } from "~/components/Styled";
 import { HelperText } from "~/components/Typography";
-import usePendingSelection from "~/hooks/use-pending-selection";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import { useTemplateChoices } from "~/data/queries";
+import { useSelectionHandoff } from "~/data/selection-handoff";
+import { useGeneration } from "~/data/store";
 
 export default function SessionSelectScreen() {
-  const { programId } = useLocalSearchParams<{ programId: string }>();
+  const params = useLocalSearchParams<{
+    programId: string;
+    requestId?: string;
+    ownerId?: string;
+    generation?: string;
+  }>();
+  const generation = useGeneration();
+  const entry = useSelectionHandoff((state) =>
+    params.requestId ? state.entries[params.requestId] : undefined,
+  );
+  const choices = useTemplateChoices(params.programId);
+  if (
+    entry?.kind !== "template" ||
+    entry.ticket.ownerId !== params.ownerId ||
+    String(entry.ticket.generation) !== params.generation ||
+    entry.ticket.generation !== generation
+  )
+    return <Redirect href="/(public)/(app)" />;
+  return (
+    <TemplatePicker
+      key={entry.ticket.requestId}
+      ticket={entry.ticket}
+      programId={params.programId}
+      choices={choices}
+    />
+  );
+}
+
+function TemplatePicker({
+  ticket,
+  programId,
+  choices,
+}: {
+  ticket: SelectionTicket;
+  programId: string;
+  choices: TemplateChoice[];
+}) {
   const router = useRouter();
-
-  const { programs } = useWorkoutStore((state) => state);
-  const { setPendingSession } = usePendingSelection();
-
-  const program = programs.find((p) => p.programId === programId);
-  const sessions = program?.sessions ?? [];
-
-  // Only terminal sessions make sense as templates. For template lineages,
-  // show only the latest terminal session in each lineage.
-  const sessionsSorted = _(sessions)
-    .filter(
-      (session) => isSessionTerminalStatus(session.status) && !!session.end,
-    )
-    .orderBy(["start"], ["desc"])
-    .uniqBy((session) => session.templateId ?? session.sessionId)
-    .reverse()
-    .value();
-
-  const [selected, setSelected] = useState<Session | undefined>();
-  const rowStateVersion = `${selected?.sessionId ?? ""}:${sessionsSorted
-    .map((session) => session.sessionId)
-    .join(":")}`;
-
-  const handleDone = () => {
+  const [selected, setSelected] = useState<string>();
+  const done = () => {
     if (!selected) return;
-    const templateId = selected.templateId ?? selected.sessionId;
-    const plannedSession = sessions.find(
-      (session) =>
-        session.status === "Planned" &&
-        (session.templateId ?? session.sessionId) === templateId,
-    );
-
-    setPendingSession({
-      session: plannedSession ?? templateSessionForPlanning(sessions, selected),
-    });
-    router.back();
+    if (
+      useSelectionHandoff
+        .getState()
+        .complete(ticket, { kind: "template", programId, sessionId: selected })
+    )
+      router.back();
   };
-
   return (
     <>
       <Stack.Screen
@@ -64,7 +68,7 @@ export default function SessionSelectScreen() {
           headerRight: () => (
             <HeaderTextAction
               label="Done"
-              onPress={handleDone}
+              onPress={done}
               disabled={!selected}
               accessibilityLabel="Use selected session as template"
               weight="bold"
@@ -85,30 +89,24 @@ export default function SessionSelectScreen() {
         contentInsetAdjustmentBehavior="automatic"
         recycleItems={false}
         maintainVisibleContentPosition={false}
-        data={sessionsSorted}
+        data={choices}
         estimatedItemSize={53}
-        extraData={rowStateVersion}
+        extraData={selected}
         keyExtractor={(item) => item.sessionId}
         ListHeaderComponent={
-          sessionsSorted.length > 0 ? (
-            <HelperText placement="listHeader">
-              Select a previous session to use as a template.
-            </HelperText>
-          ) : (
-            <HelperText placement="listHeader">
-              No previous sessions are available as templates.
-            </HelperText>
-          )
+          <HelperText placement="listHeader">
+            {choices.length
+              ? "Select a previous session to use as a template."
+              : "No previous sessions are available as templates."}
+          </HelperText>
         }
         renderItem={({ item, index }) => (
           <SelectableCardRow
             title={item.name}
-            selected={item.sessionId === selected?.sessionId}
-            stack={{ index, size: sessionsSorted.length }}
+            selected={item.sessionId === selected}
+            stack={{ index, size: choices.length }}
             cardVariants={["multiline"]}
-            onPress={() => {
-              setSelected(item);
-            }}
+            onPress={() => setSelected(item.sessionId)}
           />
         )}
       />

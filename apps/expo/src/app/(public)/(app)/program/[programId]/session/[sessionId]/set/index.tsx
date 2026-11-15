@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Keyboard,
   Platform,
   TextInput as RNTextInput,
@@ -17,13 +18,8 @@ import Animated, {
   FadeOutDown,
   LinearTransition,
 } from "react-native-reanimated";
-import {
-  Redirect,
-  Stack,
-  useFocusEffect,
-  useLocalSearchParams,
-  useRouter,
-} from "expo-router";
+import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useNavigation, usePreventRemove } from "expo-router/react-navigation";
 import { Button, Host } from "@expo/ui";
 import {
   accessibilityLabel as accessibilityLabelModifier,
@@ -33,18 +29,12 @@ import {
   font,
 } from "@expo/ui/swift-ui/modifiers";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { add, subMinutes } from "date-fns";
-import { Controller, useForm, useWatch } from "react-hook-form";
 import { twMerge } from "tailwind-merge";
 
-import type { Activity, WorkoutSet } from "@activity-log/ui/utils";
-import {
-  isSessionTerminalStatus,
-  plannedWeightForWorkoutSet,
-  stringifyLoad,
-} from "@activity-log/ui/utils";
+import type { Equipment } from "@activity-log/ui/utils";
 
-import type { WorkoutStore } from "~/hooks/use-workout-store";
+import type { SavedExercise } from "~/data/repositories/exercises";
+import type { SetExecutionContext } from "~/data/repositories/set-context";
 import BottomActionBar from "~/components/BottomActionBar";
 import { DetailCardRow } from "~/components/CardRow";
 import DumbbellChart from "~/components/DumbbellChart";
@@ -58,283 +48,198 @@ import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import SingleWeightChart from "~/components/SingleWeightChart";
 import { AnimatedViewStyled } from "~/components/Styled";
 import TextInputThemed from "~/components/TextInputThemed";
-import { HelperText } from "~/components/Typography";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import {
+  completeSet,
+  patchSet,
+  reconcileSet,
+  setExerciseNotes,
+  startSet,
+} from "~/data/actions";
+import { useEquipment, useExerciseDetail, useSetContext } from "~/data/queries";
 
-const actionAnimationDuration = 250;
-const keyboardDismissStartTimeout = 100;
-
-const decimalTextToNumber = (text: string) => {
-  if (!text || text === ".") return undefined;
-
-  const value = Number(text);
-  return Number.isFinite(value) ? value : undefined;
-};
+function parseInput(text: string): number | null | undefined {
+  if (!text.trim()) return null;
+  const number = Number(text);
+  return text === "." || !Number.isFinite(number) ? undefined : number;
+}
 
 export default function WorkoutSetDetailScreen() {
-  const { programId, sessionId, workoutSetId, activityId, title } =
-    useLocalSearchParams<{
-      programId: string;
-      sessionId: string;
-      workoutSetId: string;
-      activityId: string;
-      title: string;
-    }>();
-  const {
-    programs,
-    exercises,
-    equipment,
-    updateWorkoutSet,
-    reconcileCompletedWorkoutSet,
-    updateExercise,
-    startSession,
-  } = useWorkoutStore((store) => store);
-
-  const program = programs.find((p) => p.programId === programId);
-  const session = program?.sessions.find((s) => s.sessionId === sessionId);
-  const activity = session?.activities.find((a) => a.activityId === activityId);
-  const exercise = exercises.find((e) => e.exerciseId === activity?.exerciseId);
-  const workoutSet =
-    activity?.mainSets.find((ws) => ws.workoutSetId === workoutSetId) ??
-    activity?.warmupSets.find((ws) => ws.workoutSetId === workoutSetId);
-
-  if (!program || !session || !activity || !exercise || !workoutSet) {
-    return <Redirect href="/(public)/(app)" />;
-  }
-
+  const params = useLocalSearchParams<{
+    programId: string;
+    sessionId: string;
+    activityId: string;
+    workoutSetId: string;
+    title?: string;
+  }>();
+  const reference = {
+    programId: params.programId,
+    sessionId: params.sessionId,
+    activityId: params.activityId,
+    setId: params.workoutSetId,
+  };
+  const context = useSetContext(reference);
+  const exercise = useExerciseDetail(context?.exercise?.id);
+  const equipment = useEquipment();
+  if (!context) return <Redirect href="/(public)/(app)" />;
   return (
-    <WorkoutSetDetailScreenContent
-      title={title}
-      program={program}
-      session={session}
-      activity={activity}
+    <SetEditor
+      key={`${reference.programId}:${reference.sessionId}:${reference.activityId}:${reference.setId}`}
+      context={context}
       exercise={exercise}
-      workoutSet={workoutSet}
       equipment={equipment}
-      updateWorkoutSet={updateWorkoutSet}
-      reconcileCompletedWorkoutSet={reconcileCompletedWorkoutSet}
-      updateExercise={updateExercise}
-      startSession={startSession}
+      title={params.title ?? "Workout Set"}
     />
   );
 }
 
-function WorkoutSetDetailScreenContent({
-  title,
-  program,
-  session,
-  activity,
+function SetEditor({
+  context,
   exercise,
-  workoutSet,
   equipment,
-  updateWorkoutSet,
-  reconcileCompletedWorkoutSet,
-  updateExercise,
-  startSession,
+  title,
 }: {
+  context: SetExecutionContext;
+  exercise: SavedExercise | null;
+  equipment: Equipment;
   title: string;
-  program: WorkoutStore["programs"][number];
-  session: WorkoutStore["programs"][number]["sessions"][number];
-  activity: Activity;
-  exercise: WorkoutStore["exercises"][number];
-  workoutSet: WorkoutSet;
-  equipment: WorkoutStore["equipment"];
-  updateWorkoutSet: WorkoutStore["updateWorkoutSet"];
-  reconcileCompletedWorkoutSet: WorkoutStore["reconcileCompletedWorkoutSet"];
-  updateExercise: WorkoutStore["updateExercise"];
-  startSession: WorkoutStore["startSession"];
 }) {
   const router = useRouter();
+  const navigation = useNavigation();
   const primaryColor = useNativeVariable("--primary") as string;
-  const [initialWeight] = useState(workoutSet.weight);
-
-  const targetWeight =
-    activity.load.type === "PERCENT"
-      ? plannedWeightForWorkoutSet(activity, workoutSet, exercise.oneRepMax)
-          ?.value
-      : undefined;
-  const firstMainSet = activity.mainSets[0];
-  const mainTargetWeight =
-    firstMainSet && activity.load.type === "PERCENT"
-      ? plannedWeightForWorkoutSet(activity, firstMainSet, exercise.oneRepMax)
-          ?.value
-      : undefined;
-  const targetLoadValue =
-    workoutSet.type === "Main"
-      ? `${stringifyLoad(activity.load)}${activity.load.type === "PERCENT" && targetWeight && workoutSet.status !== "Done" ? ` / ${targetWeight}lbs` : ""}${activity.load.type === "RPE" && initialWeight ? ` / ${initialWeight.value}${initialWeight.unit}` : ""}`
-      : firstMainSet
-        ? `${stringifyLoad(activity.load)}${activity.load.type === "PERCENT" && mainTargetWeight && firstMainSet.status !== "Done" ? ` / ${mainTargetWeight}lbs` : ""}${activity.load.type === "RPE" && firstMainSet.weight ? ` / ${firstMainSet.weight.value}${firstMainSet.weight.unit}` : ""}`
-        : undefined;
-  const targetSummaryCardCount =
-    workoutSet.type === "Main" ? 4 : targetLoadValue ? 3 : 1;
-  const selectedBarbell = equipment.barbells.find(
-    (barbell) => barbell.barbellId === exercise.barbellId,
-  );
-  const weightInputLabel =
-    exercise.loadKind === "WEIGHT_PAIR" ? "Weight Each (lbs)" : "Weight (lbs)";
-  const defaultWeight =
-    (workoutSet.weight && workoutSet.weight.value > 0) ||
-    workoutSet.status === "Done"
-      ? workoutSet.weight
-      : targetWeight
-        ? { value: targetWeight, unit: "lbs" as const }
-        : undefined;
-  const [weightInput, setWeightInput] = useState(
-    defaultWeight?.value && defaultWeight.value > 0
-      ? String(defaultWeight.value)
-      : "",
-  );
-  const defaultActualReps = workoutSet.actualReps ?? 0;
-  const [actualRepsInput, setActualRepsInput] = useState(
-    defaultActualReps > 0 ? String(defaultActualReps) : "",
-  );
-
-  const { control, getValues, handleSubmit, setValue } = useForm<WorkoutSet>({
-    defaultValues: {
-      weight: defaultWeight,
-      actualReps: defaultActualReps,
-      start: workoutSet.start,
-      end: workoutSet.end,
-      status: workoutSet.status,
-      feedback: workoutSet.feedback,
-    },
-  });
-
-  const activitySets: WorkoutSet[] = [
-    ...activity.warmupSets,
-    ...activity.mainSets,
-  ];
-  const sessionIndex = program.sessions.findIndex(
-    (item) => item.sessionId === session.sessionId,
-  );
-  const hasTemplateHistory =
-    session.templateId != null &&
-    sessionIndex > 0 &&
-    program.sessions
-      .slice(0, sessionIndex)
-      .some((item) => item.templateId === session.templateId);
-  const isStartable =
-    !isSessionTerminalStatus(session.status) &&
-    workoutSet.status === "Planned" &&
-    activitySets.find((ws) => ["Planned", "Ready"].includes(ws.status))
-      ?.workoutSetId === workoutSet.workoutSetId;
-
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        const actualReps = getValues("actualReps");
-        if (actualReps != null && !Number.isFinite(actualReps)) return;
-
-        reconcileCompletedWorkoutSet(
-          program.programId,
-          session.sessionId,
-          activity.activityId,
-          workoutSet.workoutSetId,
-          actualReps,
-        );
-      };
-    }, [
-      activity.activityId,
-      getValues,
-      program.programId,
-      reconcileCompletedWorkoutSet,
-      session.sessionId,
-      workoutSet.workoutSetId,
-    ]),
-  );
-
-  const onSubmit = useCallback(
-    (data: WorkoutSet) => {
-      updateWorkoutSet(
-        program.programId,
-        session.sessionId,
-        activity.activityId,
-        {
-          ...workoutSet,
-          weight: data.weight,
-          actualReps: data.actualReps,
-          start: data.start,
-          end:
-            data.end &&
-            data.start &&
-            (subMinutes(data.end, 20).getTime() > data.start.getTime()
-              ? add(data.start, { minutes: 20 })
-              : data.end),
-          status: data.status,
-          feedback: data.feedback,
-        },
-      );
-    },
-    [
-      activity.activityId,
-      program.programId,
-      session.sessionId,
-      updateWorkoutSet,
-      workoutSet,
-    ],
-  );
-
-  const submitCurrentValues = useCallback(async () => {
-    let submitted = false;
-
-    await handleSubmit(
-      (data) => {
-        onSubmit(data);
-        submitted = true;
-      },
-      () => {
-        submitted = false;
-      },
-    )();
-
-    return submitted;
-  }, [handleSubmit, onSubmit]);
-
-  const weightWatcher = useWatch({ control, name: "weight" });
-  const actualRepsWatcher = useWatch({ control, name: "actualReps" });
-  const canComplete =
-    session.status === "Ready" &&
-    workoutSet.status === "Ready" &&
-    (actualRepsWatcher ?? 0) > 0;
-  const [isStartingSet, setIsStartingSet] = useState(false);
-  const isActionVisible = !isStartingSet && (isStartable || canComplete);
-  const action = isStartingSet
-    ? undefined
-    : isStartable
-      ? "start"
-      : canComplete
-        ? "complete"
-        : undefined;
-  const [lastAction, setLastAction] = useState<"start" | "complete">(
-    action ?? "complete",
-  );
+  const foregroundColor = useNativeVariable("--foreground") as string;
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const [isKeyboardOverlayVisible, setIsKeyboardOverlayVisible] =
     useState(isKeyboardVisible);
+  const initialWeight =
+    context.set.weightValue !== null &&
+    (context.set.weightValue > 0 || context.set.status === "Done")
+      ? {
+          value: context.set.weightValue,
+          unit: context.set.weightUnit ?? "lbs",
+        }
+      : context.targetWeight;
+  const [weightInput, setWeightInput] = useState(
+    initialWeight && initialWeight.value > 0 ? String(initialWeight.value) : "",
+  );
+  const [repsInput, setRepsInput] = useState(
+    context.set.actualReps && context.set.actualReps > 0
+      ? String(context.set.actualReps)
+      : "",
+  );
+  const [feedback, setFeedback] = useState(context.set.feedback);
+  const [notes, setNotes] = useState(exercise?.notes ?? "");
+  const [fallbackStart] = useState(Date.now);
+  const [unit] = useState<"lbs" | "kg">(initialWeight?.unit ?? "lbs");
+  const leavingRef = useRef(false);
+  const allowRemoval = useRef(false);
+  const validateInputs = (before = "leaving this set") => {
+    if (
+      parseInput(weightInput) === undefined ||
+      parseInput(repsInput) === undefined
+    )
+      throw new Error(`Enter valid numbers before ${before}.`);
+  };
+  const errorAlert = (error: unknown) =>
+    Alert.alert(
+      "Workout Not Saved",
+      error instanceof Error
+        ? error.message
+        : "The workout changes could not be saved. Your inputs are still here.",
+    );
+  const savePatch = (patch: Parameters<typeof patchSet>[1]) => {
+    try {
+      patchSet(context.reference, patch);
+    } catch (error) {
+      errorAlert(error);
+    }
+  };
+  usePreventRemove(true, ({ data }) => {
+    if (allowRemoval.current) {
+      allowRemoval.current = false;
+      navigation.dispatch(data.action);
+      return;
+    }
+    if (leavingRef.current) return;
+    try {
+      validateInputs();
+      if (
+        context.session.status === "Done" ||
+        context.session.status === "Incomplete"
+      )
+        reconcileSet(context.reference, parseInput(repsInput) ?? null);
+    } catch (error) {
+      errorAlert(error);
+      return;
+    }
+    allowRemoval.current = true;
+    navigation.dispatch(data.action);
+  });
+  const navigate = (route: "insights" | "exercise") => {
+    try {
+      validateInputs();
+    } catch (error) {
+      errorAlert(error);
+      return;
+    }
+    Keyboard.dismiss();
+    if (route === "insights")
+      router.push(
+        `/(public)/(app)/program/${encodeURIComponent(context.reference.programId)}/session/${encodeURIComponent(context.reference.sessionId)}/set/insights?activityId=${encodeURIComponent(context.reference.activityId)}&workoutSetId=${encodeURIComponent(context.reference.setId)}`,
+      );
+    else if (context.exercise)
+      router.push(
+        `/(public)/(app)/exercise/form?exerciseId=${encodeURIComponent(context.exercise.id)}`,
+      );
+  };
+  const actual = parseInput(repsInput);
+  const canComplete =
+    context.session.status === "Ready" &&
+    context.set.status === "Ready" &&
+    actual !== null &&
+    actual !== undefined &&
+    actual > 0;
+  const action = context.isStartable
+    ? "start"
+    : canComplete
+      ? "complete"
+      : null;
+  const isActionVisible = !!action;
+  const [lastAction, setLastAction] = useState<"start" | "complete">(
+    action ?? "complete",
+  );
   const [shouldRenderAction, setShouldRenderAction] = useState(isActionVisible);
-  const actionRenderTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+  if (action && action !== lastAction) setLastAction(action);
+  if (isActionVisible && !shouldRenderAction) setShouldRenderAction(true);
   const displayedAction = action ?? lastAction;
-
-  const actionLabel =
-    displayedAction === "start"
-      ? `Start ${workoutSet.type} Set`
-      : `Complete ${workoutSet.type} Set`;
-  const actionAccessibilityLabel =
-    displayedAction === "start"
-      ? `Start ${workoutSet.type.toLowerCase()} set`
-      : `Complete ${workoutSet.type.toLowerCase()} set`;
-
-  const dismissKeyboard = useCallback(() => {
+  const actionLabel = `${displayedAction === "start" ? "Start" : "Complete"} ${context.set.kind} Set`;
+  const actionAccessibilityLabel = `${displayedAction === "start" ? "Start" : "Complete"} ${context.set.kind.toLowerCase()} set`;
+  useEffect(() => {
+    const listeners = [
+      "keyboardWillShow",
+      "keyboardDidShow",
+      "keyboardWillHide",
+      "keyboardDidHide",
+    ].map((event) =>
+      Keyboard.addListener(event as "keyboardWillShow", () =>
+        setIsKeyboardOverlayVisible(event.endsWith("Show")),
+      ),
+    );
+    return () => listeners.forEach((listener) => listener.remove());
+  }, []);
+  useEffect(() => {
+    if (isActionVisible) return;
+    const timeout = setTimeout(() => setShouldRenderAction(false), 250);
+    return () => clearTimeout(timeout);
+  }, [isActionVisible]);
+  const dismissKeyboard = () => {
     RNTextInput.State.blurTextInput(RNTextInput.State.currentlyFocusedInput());
     Keyboard.dismiss();
-  }, []);
-
-  const dismissKeyboardBeforePop = useCallback(async () => {
+  };
+  const dismissKeyboardBeforePop = async () => {
     if (!isKeyboardVisible && !isKeyboardOverlayVisible) {
       dismissKeyboard();
       return;
     }
-
     await new Promise<void>((resolve) => {
       const subscription = Keyboard.addListener("keyboardWillHide", () => {
         clearTimeout(timeout);
@@ -344,213 +249,84 @@ function WorkoutSetDetailScreenContent({
       const timeout = setTimeout(() => {
         subscription.remove();
         resolve();
-      }, keyboardDismissStartTimeout);
+      }, 100);
       dismissKeyboard();
     });
-  }, [dismissKeyboard, isKeyboardOverlayVisible, isKeyboardVisible]);
-
-  const onInsightsPress = () => {
-    dismissKeyboard();
-    router.push(
-      `/(public)/(app)/program/${program.programId}/session/${session.sessionId}/set/insights?activityId=${activity.activityId}&workoutSetId=${workoutSet.workoutSetId}`,
-    );
   };
-
-  const onActionPress = async () => {
-    if (isStartable) {
-      setLastAction("start");
-      setIsStartingSet(true);
-      setValue("start", new Date());
-      setValue("status", "Ready");
-      const submitted = await submitCurrentValues();
-      if (!submitted) return;
-      if (session.status === "Planned") {
-        startSession(program.programId, session.sessionId);
-      }
+  const runAction = async () => {
+    if (!action || leavingRef.current) return;
+    try {
+      validateInputs("continuing");
+      const reps = parseInput(repsInput) ?? null;
+      const weight = parseInput(weightInput) ?? null;
+      const measurements = {
+        actualReps: reps,
+        weight: weight === null ? null : { value: weight, unit: unit },
+        feedback,
+      };
+      if (action === "start") startSet(context.reference, measurements);
+      else completeSet(context.reference, measurements);
+    } catch (error) {
+      errorAlert(error);
       return;
     }
-
-    const now = new Date();
-    setLastAction("complete");
-    setValue("end", now);
-    setValue("status", "Done");
-    const submitted = await submitCurrentValues();
-    if (!submitted) return;
-
-    const nextWorkoutSet = activitySets.find(
-      (_, index, obj) =>
-        obj[index - 1] &&
-        obj[index - 1]?.workoutSetId === workoutSet.workoutSetId,
-    );
-    if (nextWorkoutSet?.status === "Planned") {
-      updateWorkoutSet(
-        program.programId,
-        session.sessionId,
-        activity.activityId,
-        {
-          ...nextWorkoutSet,
-          start: now,
-          status: "Ready",
-        },
-      );
-    }
+    if (action !== "complete") return;
+    leavingRef.current = true;
     await dismissKeyboardBeforePop();
+    allowRemoval.current = true;
     router.back();
   };
-
-  const renderKeyboardAction = () => {
-    if (Platform.OS === "ios") {
-      return (
-        <Host matchContents ignoreSafeArea="all" seedColor={primaryColor}>
-          <Button
-            label={actionLabel}
-            disabled={!isActionVisible}
-            onPress={onActionPress}
-            modifiers={[
-              accessibilityLabelModifier(actionAccessibilityLabel),
-              buttonBorderShape("capsule"),
-              buttonStyle("glass"),
-              controlSize("large"),
-              font({ weight: "medium" }),
-            ]}
-          />
-        </Host>
-      );
-    }
-
-    return (
-      <PressableThemed
-        accessibilityLabel={actionAccessibilityLabel}
-        disabled={!isActionVisible}
-        onPress={onActionPress}
-        className="h-[48px] items-center justify-center"
-      >
-        <Text
-          maxFontSizeMultiplier={2.5}
-          className="text-primary text-center text-xl font-semibold"
-        >
-          {actionLabel}
-        </Text>
-      </PressableThemed>
-    );
-  };
-
-  const renderWeightChart = () => {
-    if (!weightWatcher?.value) return null;
-
-    if (exercise.loadKind === "BARBELL" && selectedBarbell) {
-      return (
-        <PlateChart
-          className="mx-5"
-          totalWeight={weightWatcher.value}
-          equipment={equipment}
-          barbell={selectedBarbell}
-        />
-      );
-    }
-
-    if (exercise.loadKind === "WEIGHT_PAIR") {
-      return (
-        <DumbbellChart
-          className="mx-5"
-          weight={weightWatcher.value}
-          unit={weightWatcher.unit}
-        />
-      );
-    }
-
-    if (exercise.loadKind === "SINGLE_WEIGHT") {
-      return (
-        <SingleWeightChart
-          className="mx-5"
-          weight={weightWatcher.value}
-          unit={weightWatcher.unit}
-        />
-      );
-    }
-
-    return null;
-  };
-
-  useEffect(() => {
-    const keyboardWillShowSubscription = Keyboard.addListener(
-      "keyboardWillShow",
-      () => {
-        setIsKeyboardOverlayVisible(true);
-      },
-    );
-    const keyboardDidShowSubscription = Keyboard.addListener(
-      "keyboardDidShow",
-      () => {
-        setIsKeyboardOverlayVisible(true);
-      },
-    );
-    const keyboardWillHideSubscription = Keyboard.addListener(
-      "keyboardWillHide",
-      () => {
-        setIsKeyboardOverlayVisible(false);
-      },
-    );
-    const keyboardDidHideSubscription = Keyboard.addListener(
-      "keyboardDidHide",
-      () => {
-        setIsKeyboardOverlayVisible(false);
-      },
-    );
-
-    return () => {
-      keyboardWillShowSubscription.remove();
-      keyboardDidShowSubscription.remove();
-      keyboardWillHideSubscription.remove();
-      keyboardDidHideSubscription.remove();
-      if (actionRenderTimeoutRef.current) {
-        clearTimeout(actionRenderTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (actionRenderTimeoutRef.current) {
-      clearTimeout(actionRenderTimeoutRef.current);
-      actionRenderTimeoutRef.current = null;
-    }
-
-    if (isActionVisible) {
-      if (!shouldRenderAction) {
-        actionRenderTimeoutRef.current = setTimeout(() => {
-          setShouldRenderAction(true);
-          actionRenderTimeoutRef.current = null;
-        }, 0);
-      }
-      return;
-    }
-
-    if (shouldRenderAction) {
-      actionRenderTimeoutRef.current = setTimeout(() => {
-        setShouldRenderAction(false);
-        if (isStartingSet) {
-          setIsStartingSet(false);
-        }
-        actionRenderTimeoutRef.current = null;
-      }, actionAnimationDuration);
-    }
-  }, [isActionVisible, isStartingSet, shouldRenderAction]);
-
+  const displayWeight = parseInput(weightInput);
+  const barbell = equipment.barbells.find(
+    (item) => item.barbellId === context.exercise?.barbellId,
+  );
+  const loadText =
+    context.activity.loadType === null || context.activity.loadValue === null
+      ? "Unavailable"
+      : context.activity.loadType === "PERCENT"
+        ? `${Number((context.activity.loadValue * 100).toFixed(2))}%`
+        : `RPE ${context.activity.loadValue}`;
+  const isMain = context.set.kind === "Main";
+  const showTarget = isMain || context.firstMainSet !== null;
+  const targetSummarySize = isMain ? 4 : showTarget ? 3 : 1;
+  const displayedTarget = isMain
+    ? context.targetWeight
+    : context.mainTargetWeight;
+  const referenceSet = isMain ? context.set : context.firstMainSet;
+  const rpeWeight = isMain
+    ? initialWeight
+    : referenceSet?.weightValue !== null &&
+        referenceSet?.weightValue !== undefined &&
+        referenceSet.weightUnit
+      ? { value: referenceSet.weightValue, unit: referenceSet.weightUnit }
+      : null;
+  const targetLoad = `${loadText}${context.activity.loadType === "PERCENT" && displayedTarget?.value && referenceSet?.status !== "Done" ? ` / ${displayedTarget.value}${displayedTarget.unit}` : ""}${context.activity.loadType === "RPE" && rpeWeight ? ` / ${rpeWeight.value}${rpeWeight.unit}` : ""}`;
   return (
     <>
       <Stack.Screen
         options={{
-          title: title,
+          title,
           headerBackButtonDisplayMode: "minimal",
+          ...(Platform.OS === "ios" && { headerBackVisible: false }),
         }}
       />
+      {Platform.OS === "ios" && router.canGoBack() && (
+        <Stack.Toolbar placement="left">
+          <Stack.Toolbar.Button
+            icon="chevron.left"
+            tintColor={foregroundColor}
+            accessibilityLabel="Back"
+            onPress={() => router.back()}
+          />
+        </Stack.Toolbar>
+      )}
       <Stack.Toolbar placement="right">
-        {hasTemplateHistory ? (
+        {context.hasTemplateHistory && context.exercise && (
           <Stack.Toolbar.View>
             <HeaderIconAction
               className="rounded-full"
-              accessibilityLabel={`View insights for ${exercise.name}`}
-              onPress={onInsightsPress}
+              accessibilityLabel={`View insights for ${context.exercise.name}`}
+              onPress={() => navigate("insights")}
             >
               <Text maxFontSizeMultiplier={2.5} className="text-primary">
                 <MaterialCommunityIcons
@@ -560,9 +336,9 @@ function WorkoutSetDetailScreenContent({
               </Text>
             </HeaderIconAction>
           </Stack.Toolbar.View>
-        ) : null}
-        {isKeyboardOverlayVisible ? (
-          Platform.OS === "ios" ? (
+        )}
+        {isKeyboardOverlayVisible &&
+          (Platform.OS === "ios" ? (
             <Stack.Toolbar.Button
               icon="checkmark"
               variant="done"
@@ -581,8 +357,7 @@ function WorkoutSetDetailScreenContent({
                 <MaterialCommunityIcons name="check" size={24} color="white" />
               </HeaderIconAction>
             </Stack.Toolbar.View>
-          )
-        ) : null}
+          ))}
       </Stack.Toolbar>
       <KeyboardAwareScrollView
         bottomOffset={Platform.OS === "ios" && shouldRenderAction ? 86 : 30}
@@ -597,67 +372,68 @@ function WorkoutSetDetailScreenContent({
           <View>
             <DetailCardRow
               label="Exercise"
-              value={`${exercise.name}${exercise.deleted ? " (Deleted)" : ""}`}
+              value={
+                context.exercise
+                  ? `${context.exercise.name}${context.exercise.deleted ? " (Deleted)" : ""}`
+                  : "Unavailable exercise"
+              }
               cardVariants={["multiline"]}
               trailingAccessory={
-                <PressableThemed
-                  className="-mt-3 -mr-3 -mb-3 h-11 w-11 items-center justify-center"
-                  accessibilityLabel={`Edit exercise ${exercise.name}`}
-                  onPress={() =>
-                    router.push(
-                      `/(public)/(app)/exercise/form?exerciseId=${exercise.exerciseId}`,
-                    )
-                  }
-                >
-                  <Text maxFontSizeMultiplier={2.5} className="text-primary">
-                    <MaterialCommunityIcons
-                      name="information-variant-circle-outline"
-                      size={22}
-                    />
-                  </Text>
-                </PressableThemed>
+                context.exercise ? (
+                  <PressableThemed
+                    className="-mt-3 -mr-3 -mb-3 h-11 w-11 items-center justify-center"
+                    accessibilityLabel={`Edit exercise ${context.exercise.name}`}
+                    onPress={() => navigate("exercise")}
+                  >
+                    <Text maxFontSizeMultiplier={2.5} className="text-primary">
+                      <MaterialCommunityIcons
+                        name="information-variant-circle-outline"
+                        size={22}
+                      />
+                    </Text>
+                  </PressableThemed>
+                ) : undefined
               }
               stack={
-                targetSummaryCardCount > 1
-                  ? { index: 0, size: targetSummaryCardCount }
+                targetSummarySize > 1
+                  ? { index: 0, size: targetSummarySize }
                   : undefined
               }
             />
-            {targetLoadValue && (
+            {showTarget && (
               <DetailCardRow
-                label={
-                  workoutSet.type === "Warmup"
-                    ? "Target Load (Main)"
-                    : "Target Load"
-                }
-                value={targetLoadValue}
-                stack={{ index: 1, size: targetSummaryCardCount }}
+                label={isMain ? "Target Load" : "Target Load (Main)"}
+                value={targetLoad}
+                stack={{ index: 1, size: targetSummarySize }}
               />
             )}
-            {(workoutSet.type === "Main" || targetLoadValue) && (
+            {showTarget && (
               <DetailCardRow
-                label={
-                  workoutSet.type === "Warmup"
-                    ? "Target Reps (Main)"
-                    : "Target Reps"
+                label={isMain ? "Target Reps" : "Target Reps (Main)"}
+                value={
+                  context.activity.reps === null
+                    ? "Unavailable"
+                    : String(context.activity.reps)
                 }
-                value={String(activity.reps)}
-                stack={{ index: 2, size: targetSummaryCardCount }}
+                stack={{ index: 2, size: targetSummarySize }}
               />
             )}
-            {workoutSet.type === "Main" && (
+            {isMain && (
               <DetailCardRow
                 label="Target Rest"
                 value={
-                  activity.rest > 0
-                    ? `${String(activity.rest)} minutes`
-                    : "No rest"
+                  context.activity.restMinutes === null
+                    ? "Unavailable"
+                    : context.activity.restMinutes > 0
+                      ? `${context.activity.restMinutes} minutes`
+                      : "No rest"
                 }
                 stack={{ index: 3, size: 4 }}
               />
             )}
-            {activity.load.type === "PERCENT" &&
-              (!exercise.oneRepMax || exercise.oneRepMax.value <= 0) && (
+            {context.activity.loadType === "PERCENT" &&
+              (!context.exercise?.oneRepMax ||
+                context.exercise.oneRepMax.value <= 0) && (
                 <Text
                   maxFontSizeMultiplier={2.5}
                   className="text-destructive px-3 pt-1.5 text-xl"
@@ -667,96 +443,63 @@ function WorkoutSetDetailScreenContent({
                 </Text>
               )}
           </View>
-          {workoutSet.status !== "Planned" && (
+          {context.set.status !== "Planned" && (
             <Animated.View
               entering={FadeInUp.duration(250)}
               exiting={FadeOutDown.duration(250)}
             >
-              {workoutSet.type === "Main" &&
-                activity.load.type === "RPE" &&
-                program.sessions.length < 4 && (
-                  <HelperText placement="beforeCard">
-                    Find a weight that will meet the target RPE.
-                  </HelperText>
-                )}
-              <Controller
-                control={control}
-                render={({ field: { onChange, onBlur } }) => {
-                  return (
-                    <TextInputThemed
-                      stack={{ index: 0, size: 3 }}
-                      label={weightInputLabel}
-                      onChangeText={(text) => {
-                        const numericValue = decimalTextToNumber(text);
-                        setWeightInput(text);
-                        onChange(
-                          numericValue != null
-                            ? { value: numericValue, unit: "lbs" }
-                            : undefined,
-                        );
-                      }}
-                      onBlur={() => {
-                        const numericValue = decimalTextToNumber(weightInput);
-                        setWeightInput(
-                          numericValue != null ? String(numericValue) : "",
-                        );
-                        onBlur();
-                        void submitCurrentValues();
-                      }}
-                      value={weightInput || undefined}
-                      placeholder="0"
-                      maxLength={7}
-                      keyboardType="decimal-pad"
-                      numeric
-                      decimalPlaces={2}
-                      selectTextOnFocus
-                    />
-                  );
+              <TextInputThemed
+                stack={{ index: 0, size: 3 }}
+                label={
+                  context.exercise?.loadKind === "WEIGHT_PAIR"
+                    ? `Weight Each (${unit})`
+                    : `Weight (${unit})`
+                }
+                value={weightInput}
+                keyboardType="decimal-pad"
+                numeric
+                decimalPlaces={2}
+                maxLength={7}
+                placeholder="0"
+                selectTextOnFocus
+                onChangeText={(text) => {
+                  setWeightInput(text);
+                  const value = parseInput(text);
+                  if (value !== undefined) {
+                    savePatch({
+                      weight: value === null ? null : { value, unit: unit },
+                    });
+                  }
                 }}
-                name="weight"
               />
-              <Controller
-                control={control}
-                rules={{ max: 9999 }}
-                render={({ field: { onChange, onBlur } }) => {
-                  return (
-                    <TextInputThemed
-                      stack={{ index: 1, size: 3 }}
-                      label="Actual Reps"
-                      onChangeText={(newValue) => {
-                        setActualRepsInput(newValue);
-                        onChange(decimalTextToNumber(newValue));
-                        setLastAction("complete");
-                      }}
-                      onBlur={() => {
-                        const numericValue =
-                          decimalTextToNumber(actualRepsInput);
-                        setActualRepsInput(
-                          numericValue != null ? String(numericValue) : "",
-                        );
-                        onBlur();
-                        void submitCurrentValues();
-                      }}
-                      value={actualRepsInput || undefined}
-                      placeholder="0"
-                      maxLength={4}
-                      keyboardType="number-pad"
-                      numeric
-                      selectTextOnFocus
-                    />
-                  );
+              <TextInputThemed
+                stack={{ index: 1, size: 3 }}
+                label="Actual Reps"
+                value={repsInput}
+                keyboardType="number-pad"
+                numeric
+                maxLength={4}
+                placeholder="0"
+                selectTextOnFocus
+                onChangeText={(text) => {
+                  setRepsInput(text);
+                  const value = parseInput(text);
+                  if (value !== undefined) savePatch({ actualReps: value });
                 }}
-                name="actualReps"
               />
               <ElapsedTime
                 stack={{ index: 2, size: 3 }}
-                start={workoutSet.start ?? new Date()}
-                end={workoutSet.end}
-                status={workoutSet.status}
+                start={new Date(context.set.startMs ?? fallbackStart)}
+                end={
+                  context.set.endMs === null
+                    ? undefined
+                    : new Date(context.set.endMs)
+                }
+                status={context.set.status}
               />
             </Animated.View>
           )}
-          {workoutSet.type === "Main" && (
+          {context.set.kind === "Main" && (
             <Animated.View
               layout={LinearTransition.duration(250)
                 .springify()
@@ -764,41 +507,45 @@ function WorkoutSetDetailScreenContent({
                 .damping(6)
                 .mass(0.3)}
             >
-              <Controller
-                name="feedback"
-                control={control}
-                rules={{ required: true }}
-                render={({ field: { value } }) => (
-                  <SegmentedInputThemed
-                    label="Difficulty"
-                    value={value}
-                    accessibilityLabel="Workout set difficulty"
-                    options={[
-                      {
-                        label: "Easy",
-                        value: "Easy",
-                        accessibilityLabel: "Set workout set feedback: Easy",
-                        tone: "info",
-                      },
-                      {
-                        label: "Neutral",
-                        value: "Neutral",
-                        accessibilityLabel: "Set workout set feedback: Neutral",
-                        tone: "muted",
-                      },
-                      {
-                        label: "Hard",
-                        value: "Hard",
-                        accessibilityLabel: "Set workout set feedback: Hard",
-                        tone: "primary",
-                      },
-                    ]}
-                    onChange={(feedback) => {
-                      setValue("feedback", feedback);
-                      void submitCurrentValues();
-                    }}
-                  />
-                )}
+              <SegmentedInputThemed
+                label="Difficulty"
+                value={feedback}
+                accessibilityLabel="Workout set difficulty"
+                options={[
+                  { label: "Easy", value: "Easy", tone: "info" },
+                  { label: "Neutral", value: "Neutral", tone: "muted" },
+                  { label: "Hard", value: "Hard", tone: "primary" },
+                ]}
+                onChange={(value) => {
+                  setFeedback(value);
+                  savePatch({ feedback: value });
+                }}
+              />
+            </Animated.View>
+          )}
+          {context.exercise && (
+            <Animated.View
+              layout={LinearTransition.duration(250)
+                .springify()
+                .stiffness(50)
+                .damping(6)
+                .mass(0.3)}
+            >
+              <MultilineTextInputThemed
+                label="Notes"
+                value={notes}
+                onChangeText={(text) => {
+                  setNotes(text);
+                  if (!context.exercise) return;
+                  try {
+                    setExerciseNotes(
+                      context.exercise.id,
+                      text.trim() ? text : null,
+                    );
+                  } catch (error) {
+                    errorAlert(error);
+                  }
+                }}
               />
             </Animated.View>
           )}
@@ -809,37 +556,56 @@ function WorkoutSetDetailScreenContent({
               .damping(6)
               .mass(0.3)}
           >
-            <MultilineTextInputThemed
-              label="Notes"
-              value={exercise.notes}
-              onChangeText={(notes) => {
-                updateExercise({
-                  ...exercise,
-                  notes: notes.trim() ? notes : undefined,
-                });
-              }}
-            />
+            {displayWeight !== null &&
+              displayWeight !== undefined &&
+              displayWeight > 0 &&
+              context.exercise?.loadKind === "BARBELL" &&
+              barbell?.unit === unit && (
+                <PlateChart
+                  className="mx-5"
+                  totalWeight={displayWeight}
+                  equipment={{
+                    barbells: equipment.barbells.filter(
+                      (item) => item.unit === unit,
+                    ),
+                    plates: equipment.plates.filter(
+                      (item) => item.unit === unit,
+                    ),
+                  }}
+                  barbell={barbell}
+                />
+              )}
           </Animated.View>
-          <Animated.View
-            layout={LinearTransition.duration(250)
-              .springify()
-              .stiffness(50)
-              .damping(6)
-              .mass(0.3)}
-          >
-            {renderWeightChart()}
-          </Animated.View>
+          {displayWeight !== null &&
+            displayWeight !== undefined &&
+            displayWeight > 0 &&
+            context.exercise?.loadKind === "WEIGHT_PAIR" && (
+              <DumbbellChart
+                className="mx-5"
+                weight={displayWeight}
+                unit={unit}
+              />
+            )}
+          {displayWeight !== null &&
+            displayWeight !== undefined &&
+            displayWeight > 0 &&
+            context.exercise?.loadKind === "SINGLE_WEIGHT" && (
+              <SingleWeightChart
+                className="mx-5"
+                weight={displayWeight}
+                unit={unit}
+              />
+            )}
         </AnimatedViewStyled>
       </KeyboardAwareScrollView>
       <BottomActionBar
         label={actionLabel}
         accessibilityLabel={actionAccessibilityLabel}
         hidden={!isActionVisible || isKeyboardOverlayVisible}
-        onPress={onActionPress}
+        onPress={() => void runAction()}
       />
-      {/* KeyboardExtender reparents its content, which crashes SwiftUI hosts on iOS. */}
       {Platform.OS === "ios" ? (
-        shouldRenderAction ? (
+        shouldRenderAction && (
           <KeyboardStickyView
             pointerEvents={
               isKeyboardOverlayVisible && isActionVisible ? "box-none" : "none"
@@ -860,17 +626,42 @@ function WorkoutSetDetailScreenContent({
                 justifyContent: "center",
               }}
             >
-              {renderKeyboardAction()}
+              <Host matchContents ignoreSafeArea="all" seedColor={primaryColor}>
+                <Button
+                  label={actionLabel}
+                  disabled={!isActionVisible}
+                  onPress={() => void runAction()}
+                  modifiers={[
+                    accessibilityLabelModifier(actionAccessibilityLabel),
+                    buttonBorderShape("capsule"),
+                    buttonStyle("glass"),
+                    controlSize("large"),
+                    font({ weight: "medium" }),
+                  ]}
+                />
+              </Host>
             </View>
           </KeyboardStickyView>
-        ) : null
+        )
       ) : (
         <View
           className="absolute right-0 bottom-0 left-0 h-0"
           pointerEvents="box-none"
         >
           <KeyboardExtender enabled={shouldRenderAction}>
-            {renderKeyboardAction()}
+            <PressableThemed
+              accessibilityLabel={actionAccessibilityLabel}
+              disabled={!isActionVisible}
+              onPress={() => void runAction()}
+              className="h-[48px] items-center justify-center"
+            >
+              <Text
+                maxFontSizeMultiplier={2.5}
+                className="text-primary text-center text-xl font-semibold"
+              >
+                {actionLabel}
+              </Text>
+            </PressableThemed>
           </KeyboardExtender>
         </View>
       )}

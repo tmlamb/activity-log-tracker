@@ -1,175 +1,168 @@
-import type { Href } from "expo-router";
-import { useState } from "react";
-import { View } from "react-native";
-import { useNativeVariable } from "react-native-css";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Host } from "@expo/ui";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-
-import type { Exercise } from "@activity-log/ui/utils";
-
-import { Text } from "~/components/font-scale-text";
-
 import "react-native-get-random-values";
 
-import _ from "lodash";
+import type { Href } from "expo-router";
+import { useState } from "react";
+import { Alert, View } from "react-native";
+import { useNativeVariable } from "react-native-css";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Host } from "@expo/ui";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { v4 as uuidv4 } from "uuid";
 
-import {
-  exerciseNamesMatch,
-  normalizeExerciseName,
-  sortRecordsByName,
-} from "@activity-log/ui/utils";
+import { normalizeExerciseName } from "@activity-log/ui/utils";
 
+import type { SelectionTicket } from "~/data/selection-handoff";
 import { SelectableCardRow } from "~/components/CardRow";
+import { Text } from "~/components/font-scale-text";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
 import { LegendSectionListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
-import useExerciseStore from "~/hooks/use-exercise-store";
-import usePendingSelection from "~/hooks/use-pending-selection";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import { materializeExercisePreset } from "~/data/actions";
+import { useExerciseLibrary } from "~/data/queries";
+import { getSavedExercise } from "~/data/repositories/exercises";
+import { useSelectionHandoff } from "~/data/selection-handoff";
+import { read, useGeneration } from "~/data/store";
 
-interface ExerciseSection {
+type Library = ReturnType<typeof useExerciseLibrary>;
+interface Choice {
+  kind: "saved" | "preset";
+  id: string;
+  name: string;
+  loadKind: "BARBELL" | "WEIGHT_PAIR" | "SINGLE_WEIGHT" | null;
+  muscles: string[];
+}
+interface Section {
   key: "used" | "unused";
-  data: Partial<Exercise>[];
+  data: Choice[];
 }
 
 export default function ExerciseSelectScreen() {
-  const { activityId, currentExerciseId } = useLocalSearchParams<{
-    activityId: string;
+  const params = useLocalSearchParams<{
+    requestId?: string;
+    ownerId?: string;
+    generation?: string;
+    activityId?: string;
     currentExerciseId?: string;
   }>();
+  const generation = useGeneration();
+  const entry = useSelectionHandoff((state) =>
+    params.requestId ? state.entries[params.requestId] : undefined,
+  );
+  const library = useExerciseLibrary();
+  if (
+    entry?.kind !== "exercise" ||
+    entry.ticket.ownerId !== params.ownerId ||
+    entry.ticket.activityId !== params.activityId ||
+    String(entry.ticket.generation) !== params.generation ||
+    entry.ticket.generation !== generation
+  )
+    return <Redirect href="/(public)/(app)" />;
+  return (
+    <ExercisePicker
+      key={entry.ticket.requestId}
+      ticket={entry.ticket}
+      library={library}
+      currentExerciseId={params.currentExerciseId}
+    />
+  );
+}
+
+function ExercisePicker({
+  ticket,
+  library,
+  currentExerciseId,
+}: {
+  ticket: SelectionTicket;
+  library: Library;
+  currentExerciseId?: string;
+}) {
   const router = useRouter();
-
-  const availableExercises = useExerciseStore((state) => state.exercises);
-  const {
-    exercises: usedExercises,
-    equipment,
-    addExercise,
-    muscleGroups,
-  } = useWorkoutStore((state) => state);
-  const { setPendingExercise } = usePendingSelection();
-  const activeUsedExercises = usedExercises.filter(
-    (exercise) => !exercise.deleted,
-  );
   const primaryColor = useNativeVariable("--primary") as string;
-  const usedExerciseNames = new Set(
-    usedExercises.map((exercise) => normalizeExerciseName(exercise.name)),
+  const [selected, setSelected] = useState<{
+    kind: "saved" | "preset";
+    id: string;
+  } | null>(() =>
+    library.saved.some(
+      (item) => item.id === currentExerciseId && !item.deleted,
+    ) && currentExerciseId
+      ? { kind: "saved", id: currentExerciseId }
+      : null,
   );
-
-  const initialExercise = activeUsedExercises.find(
-    (e) => e.exerciseId === currentExerciseId,
+  const [filter, setFilter] = useState("");
+  const names = new Set(
+    library.saved.map(({ name }) => normalizeExerciseName(name)),
   );
-  const [selected, setSelected] = useState<Exercise | undefined>(
-    initialExercise,
-  );
-  const [searchFilter, setSearchFilter] = useState<string>();
-  const normalizedSearchFilter = searchFilter
-    ? normalizeExerciseName(searchFilter)
-    : undefined;
-
-  const filteredUsedExercises = activeUsedExercises.filter((ue) =>
-    normalizedSearchFilter
-      ? normalizeExerciseName(ue.name).includes(normalizedSearchFilter)
-      : true,
-  );
-
-  const filteredAvailableExercises = availableExercises.filter((ae) =>
-    normalizedSearchFilter
-      ? normalizeExerciseName(ae.name).includes(normalizedSearchFilter)
-      : true,
-  );
-
-  const sortedFilteredUsedExercises = sortRecordsByName([
-    ...filteredUsedExercises,
-  ]) as Exercise[];
-  const filteredUnusedExercises = filteredAvailableExercises.filter(
-    (ae) => !usedExerciseNames.has(normalizeExerciseName(ae.name)),
-  ) as Partial<Exercise>[];
-  const exerciseSections: ExerciseSection[] = [];
-
-  if (sortedFilteredUsedExercises.length > 0) {
-    exerciseSections.push({
+  const search = normalizeExerciseName(filter);
+  const saved: Choice[] = library.saved
+    .filter(
+      (item) =>
+        !item.deleted && normalizeExerciseName(item.name).includes(search),
+    )
+    .map((item) => ({
+      kind: "saved",
+      id: item.id,
+      name: item.name,
+      loadKind: item.loadKind,
+      muscles: item.primaryMuscles,
+    }));
+  const presets: Choice[] = library.presets
+    .filter(
+      (item) =>
+        !names.has(normalizeExerciseName(item.name)) &&
+        normalizeExerciseName(item.name).includes(search),
+    )
+    .map((item) => ({
+      kind: "preset",
+      id: item.id,
+      name: item.name,
+      loadKind: item.loadKind,
+      muscles: item.primaryMuscles,
+    }));
+  const sections: Section[] = [];
+  if (saved.length)
+    sections.push({
       key: "used",
-      data: sortedFilteredUsedExercises,
+      data: saved.sort((a, b) => a.name.localeCompare(b.name)),
     });
-  }
-  if (filteredUnusedExercises.length > 0) {
-    exerciseSections.push({
+  if (presets.length)
+    sections.push({
       key: "unused",
-      data: filteredUnusedExercises,
+      data: presets,
     });
-  }
-
-  const getExerciseFormHref = (exercise: Partial<Exercise>): Href => {
-    const exerciseName = exercise.name;
-    const savedExercise = exerciseName
-      ? activeUsedExercises.find((e) =>
-          exerciseNamesMatch(e.name, exerciseName),
-        )
-      : undefined;
-    const exerciseId = exercise.exerciseId ?? savedExercise?.exerciseId;
-
-    return exerciseId
-      ? `/(public)/(app)/exercise/form?exerciseId=${exerciseId}`
-      : `/(public)/(app)/exercise/form?name=${encodeURIComponent(exerciseName ?? "")}${exercise.loadKind ? `&loadKind=${exercise.loadKind}` : ""}${exercise.primaryMuscles?.length ? `&primaryMuscles=${encodeURIComponent(JSON.stringify(exercise.primaryMuscles))}` : ""}`;
-  };
-
-  const renderExerciseInfoButton = (exercise: Partial<Exercise>) => (
-    <PressableThemed
-      className="-mr-3 h-11 w-11 items-center justify-center"
-      accessibilityLabel={`Edit exercise ${exercise.name}`}
-      onPress={(event) => {
-        event.stopPropagation();
-        router.push(getExerciseFormHref(exercise));
-      }}
-    >
-      <Text maxFontSizeMultiplier={2.5} className="text-primary">
-        <MaterialCommunityIcons
-          name="information-variant-circle-outline"
-          size={22}
-        />
-      </Text>
-    </PressableThemed>
-  );
-
-  const handleDone = () => {
+  const done = () => {
     if (!selected) return;
-    const existingExercise = activeUsedExercises.find((e) =>
-      exerciseNamesMatch(e.name, selected.name),
-    );
-    const heaviestBarbell = _.maxBy(equipment.barbells, "value");
-    const normalizedSelection = selected.exerciseId
-      ? selected
-      : (existingExercise ?? {
-          ...selected,
-          primaryMuscles: selected.primaryMuscles?.filter((muscleGroup) =>
-            muscleGroups.includes(muscleGroup),
-          ),
-          exerciseId: uuidv4(),
-          barbellId:
-            selected.loadKind === "BARBELL"
-              ? heaviestBarbell?.barbellId
-              : undefined,
-        });
-
-    // Add to workout store if it's a preset (not yet in usedExercises)
-    if (
-      !activeUsedExercises.find(
-        (e) => e.exerciseId === normalizedSelection.exerciseId,
+    try {
+      const id =
+        selected.kind === "preset"
+          ? materializeExercisePreset(selected.id, uuidv4())
+          : selected.id;
+      if (selected.kind === "saved") {
+        const savedExercise = read((db) => getSavedExercise(db, id));
+        if (!savedExercise || savedExercise.deleted)
+          throw new Error("The selected exercise is no longer available.");
+      }
+      if (
+        !useSelectionHandoff
+          .getState()
+          .complete(ticket, { kind: "exercise", exerciseId: id })
       )
-    ) {
-      addExercise(normalizedSelection);
+        throw new Error("This selection request is no longer active.");
+      router.back();
+    } catch (error) {
+      Alert.alert(
+        "Selection Failed",
+        error instanceof Error
+          ? error.message
+          : "The exercise could not be selected.",
+      );
     }
-    setPendingExercise({
-      selectionKey: activityId,
-      exercise: normalizedSelection,
-    });
-    router.back();
   };
-
+  const formHref = (choice: Choice): Href =>
+    choice.kind === "saved"
+      ? `/(public)/(app)/exercise/form?exerciseId=${encodeURIComponent(choice.id)}`
+      : `/(public)/(app)/exercise/form?name=${encodeURIComponent(choice.name)}${choice.loadKind ? `&loadKind=${choice.loadKind}` : "&unknownLoadKind=1"}${choice.muscles.length ? `&primaryMuscles=${encodeURIComponent(JSON.stringify(choice.muscles))}` : ""}`;
   return (
     <>
       <Stack.Screen
@@ -178,7 +171,7 @@ export default function ExerciseSelectScreen() {
           headerRight: () => (
             <HeaderTextAction
               label="Done"
-              onPress={handleDone}
+              onPress={done}
               disabled={!selected}
               accessibilityLabel="Confirm exercise selection"
               weight="bold"
@@ -195,8 +188,8 @@ export default function ExerciseSelectScreen() {
       />
       <Stack.SearchBar
         placeholder="Search Exercises"
-        onChangeText={(event) => setSearchFilter(event.nativeEvent.text)}
-        onSearchButtonPress={() => setSearchFilter("")}
+        onChangeText={(event) => setFilter(event.nativeEvent.text)}
+        onSearchButtonPress={() => setFilter("")}
         hideNavigationBar={false}
       />
       <LegendSectionListStyled
@@ -206,10 +199,10 @@ export default function ExerciseSelectScreen() {
         keyboardShouldPersistTaps="handled"
         recycleItems={false}
         maintainVisibleContentPosition={false}
-        sections={exerciseSections}
-        extraData={selected?.exerciseId ?? selected?.name}
+        sections={sections}
+        extraData={`${selected?.kind}:${selected?.id}`}
         stickySectionHeadersEnabled={false}
-        keyExtractor={(item) => item.exerciseId ?? item.name ?? ""}
+        keyExtractor={(item) => `${item.kind}:${item.id}`}
         renderSectionHeader={({ section }) =>
           section.key === "unused" ? (
             <View pointerEvents="none">
@@ -224,13 +217,26 @@ export default function ExerciseSelectScreen() {
             <SelectableCardRow
               title={item.name}
               cardVariants={["multiline"]}
-              selected={item.name === selected?.name}
-              onPress={() => setSelected(item as Exercise)}
-              trailingAccessory={renderExerciseInfoButton(item)}
-              stack={{
-                index,
-                size: section.data.length,
-              }}
+              selected={selected?.kind === item.kind && selected.id === item.id}
+              onPress={() => setSelected({ kind: item.kind, id: item.id })}
+              trailingAccessory={
+                <PressableThemed
+                  className="-mr-3 h-11 w-11 items-center justify-center"
+                  accessibilityLabel={`Edit exercise ${item.name}`}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    router.push(formHref(item));
+                  }}
+                >
+                  <Text maxFontSizeMultiplier={2.5} className="text-primary">
+                    <MaterialCommunityIcons
+                      name="information-variant-circle-outline"
+                      size={22}
+                    />
+                  </Text>
+                </PressableThemed>
+              }
+              stack={{ index, size: section.data.length }}
               cardClassName={
                 index === section.data.length - 1 ? "mb-6" : undefined
               }
