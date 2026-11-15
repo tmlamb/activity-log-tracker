@@ -11,9 +11,14 @@ import {
 
 function adapter(db: DatabaseSync) {
   return {
-    getAllAsync: <T>(sql: string) =>
-      Promise.resolve(db.prepare(sql).all() as T[]),
-    runAsync: (sql: string, ...parameters: (string | number)[]) => {
+    getAllAsync: <T>(
+      sql: string,
+      ...parameters: (string | number | null | Uint8Array)[]
+    ) => Promise.resolve(db.prepare(sql).all(...parameters) as T[]),
+    runAsync: (
+      sql: string,
+      ...parameters: (string | number | null | Uint8Array)[]
+    ) => {
       const result = db.prepare(sql).run(...parameters);
       return Promise.resolve({ changes: Number(result.changes) });
     },
@@ -65,6 +70,25 @@ describe("program repository", () => {
         "Program not found",
       );
       db.exec("ROLLBACK");
+    } finally {
+      db.close();
+    }
+  });
+
+  it("rolls back Drizzle writes with the owning transaction", async () => {
+    const db = new DatabaseSync(":memory:");
+    try {
+      db.exec(`${SCHEMA_V1} BEGIN IMMEDIATE`);
+      const transaction = adapter(db);
+      await createProgram(transaction, "a", "Program");
+      await renameProgram(transaction, "a", "Changed");
+      await expect(
+        createProgram(transaction, "a", "Duplicate"),
+      ).rejects.toThrow();
+      db.exec("ROLLBACK");
+      expect(
+        db.prepare("SELECT count(*) AS count FROM programs").get(),
+      ).toEqual({ count: 0 });
     } finally {
       db.close();
     }

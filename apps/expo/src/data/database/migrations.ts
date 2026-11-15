@@ -1,4 +1,4 @@
-import { SCHEMA_V1, SCHEMA_VERSION } from "./schema";
+import { SCHEMA_V1, SCHEMA_V2, SCHEMA_VERSION } from "./schema";
 
 export interface SchemaTransaction {
   execAsync(sql: string): Promise<void>;
@@ -20,6 +20,12 @@ export async function migrateSchema(transaction: SchemaTransaction) {
     await transaction.execAsync(SCHEMA_V1);
     await transaction.execAsync(
       `INSERT INTO schema_migrations(version, applied_at) VALUES (1, CAST(strftime('%s', 'now') AS INTEGER) * 1000); PRAGMA user_version = 1;`,
+    );
+  }
+  if (result.user_version < 2) {
+    await transaction.execAsync(SCHEMA_V2);
+    await transaction.execAsync(
+      `INSERT INTO schema_migrations(version, applied_at) VALUES (2, CAST(strftime('%s', 'now') AS INTEGER) * 1000); PRAGMA user_version = 2;`,
     );
   }
 }

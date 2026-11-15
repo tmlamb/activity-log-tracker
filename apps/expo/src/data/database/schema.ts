@@ -1,5 +1,5 @@
 /** The first relational schema. Persisted independently of legacy store versions. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const SCHEMA_V1 = `
 CREATE TABLE schema_migrations (
@@ -155,4 +155,11 @@ CREATE INDEX activities_exercise ON activities(exercise_id, program_id, session_
 CREATE INDEX activities_occurrence ON activities(program_id, session_id, exercise_id, position);
 CREATE INDEX exercise_muscles_label ON exercise_muscles(muscle_id, exercise_id);
 CREATE INDEX preset_muscles_label ON preset_muscles(muscle_id, preset_id);
+`;
+
+/** Supports finding the latest completed session without scanning its history. */
+export const SCHEMA_V2 = `
+CREATE INDEX sessions_lineage_completed_chrono
+  ON sessions(program_id, lineage_id, COALESCE(start_ms, end_ms, 0) DESC, position DESC)
+  WHERE status = 'Done';
 `;

@@ -11,6 +11,7 @@ import {
   listSavedExercises,
   setExerciseDeleted,
   setExerciseNotes,
+  setExerciseOneRepMax,
 } from "./exercises";
 
 function adapter(db: DatabaseSync) {
@@ -111,6 +112,47 @@ describe("saved exercises", () => {
       expect(
         (await getSavedExercise(adapter(db), "e"))?.primaryMuscles,
       ).toEqual(["Shoulders"]);
+      db.exec("COMMIT");
+    } finally {
+      db.close();
+    }
+  });
+
+  it("updates and clears only one-rep max while detecting no-ops and stale edits", async () => {
+    const db = setup();
+    try {
+      const tx = adapter(db);
+      await createExercise(tx, "e", exercise);
+      expect(
+        await setExerciseOneRepMax(tx, "e", { value: 100, unit: "kg" }),
+      ).toBe(false);
+      expect(
+        await setExerciseOneRepMax(tx, "e", { value: 225, unit: "lbs" }),
+      ).toBe(true);
+      expect(await getSavedExercise(tx, "e")).toMatchObject({
+        oneRepMax: { value: 225, unit: "lbs" },
+        revision: 1,
+        notes: "Notes",
+        primaryMuscles: ["Chest", "Triceps"],
+      });
+      await expect(
+        setExerciseOneRepMax(tx, "e", null, { value: 100, unit: "kg" }),
+      ).rejects.toThrow("one-rep max changed");
+      await expect(editExercise(tx, "e", 0, exercise)).rejects.toThrow(
+        "exercise changed",
+      );
+      await expect(
+        setExerciseOneRepMax(tx, "e", { value: NaN, unit: "lbs" }),
+      ).rejects.toThrow("finite");
+      await expect(setExerciseOneRepMax(tx, "missing", null)).rejects.toThrow(
+        "Exercise not found",
+      );
+      expect(await setExerciseOneRepMax(tx, "e", null)).toBe(true);
+      expect(await setExerciseOneRepMax(tx, "e", null)).toBe(false);
+      expect(await getSavedExercise(tx, "e")).toMatchObject({
+        oneRepMax: null,
+        revision: 2,
+      });
       db.exec("COMMIT");
     } finally {
       db.close();

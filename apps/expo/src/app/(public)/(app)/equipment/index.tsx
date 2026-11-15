@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+import { Alert } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
   FadeInUp,
@@ -10,6 +12,8 @@ import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import type { Equipment } from "@activity-log/ui/utils";
 
+import type { ApplicationDataRuntime } from "~/data/react/application-data";
+
 import "react-native-get-random-values";
 
 import { v4 as uuidv4 } from "uuid";
@@ -18,11 +22,15 @@ import { PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import InventoryCounterInputRow from "~/components/InventoryCounterInputRow";
+import { SQLiteQueryStatus } from "~/components/sqlite-query-status";
 import { HelperText, SectionHeading } from "~/components/Typography";
+import { createDefaultEquipment } from "~/data/legacy/workout-defaults";
+import {
+  useApplicationDataRuntime,
+  useApplicationDataSnapshot,
+} from "~/data/react/application-data";
+import { useEquipment } from "~/data/react/settings-queries";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
-import useWorkoutStore, {
-  createDefaultEquipment,
-} from "~/hooks/use-workout-store";
 
 type FormEquipmentBarbell = Omit<Equipment["barbells"][number], "value"> & {
   value: number | string;
@@ -99,8 +107,57 @@ const validateUniqueWeight = <T extends { value: number | string }>(
 };
 
 export default function EquipmentScreen() {
+  const runtime = useApplicationDataRuntime();
+  return <SQLiteEquipmentScreen runtime={runtime} />;
+}
+
+function SQLiteEquipmentScreen({
+  runtime,
+}: {
+  runtime: ApplicationDataRuntime;
+}) {
+  const snapshot = useApplicationDataSnapshot(runtime);
+  const query = useEquipment(runtime);
+  if (query.data === undefined)
+    return (
+      <SQLiteQueryStatus
+        error={query.isError}
+        onRetry={() => void query.refetch()}
+      />
+    );
+  return (
+    <EquipmentEditor
+      key={snapshot.generation}
+      equipment={query.data}
+      save={snapshot.service.replaceEquipment}
+      isCurrent={() => runtime.getSnapshot().generation === snapshot.generation}
+    />
+  );
+}
+
+function EquipmentEditor({
+  equipment,
+  save,
+  isCurrent,
+}: {
+  equipment: Equipment;
+  save: (value: Equipment, expected: Equipment) => Promise<void>;
+  isCurrent: () => boolean;
+}) {
   const router = useRouter();
-  const { equipment, updateEquipment } = useWorkoutStore((state) => state);
+  const [pending, setPending] = useState(false);
+  const pendingRef = useRef(false);
+  const mounted = useRef(false);
+  const base = useRef<Equipment>({
+    barbells: equipment.barbells.map((item) => ({ ...item })),
+    plates: equipment.plates.map((item) => ({ ...item })),
+  });
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const defaultValues = normalizeEquipmentFormData(equipment);
 
   const {
@@ -134,9 +191,36 @@ export default function EquipmentScreen() {
   });
 
   const plates = useWatch({ control, name: "plates" });
+  const canUpdate = () => mounted.current && isCurrent();
+
+  const saveEquipment = async (equipment: Equipment, onSuccess: () => void) => {
+    if (pendingRef.current || !canUpdate()) return;
+    pendingRef.current = true;
+    setPending(true);
+    try {
+      await save(equipment, base.current);
+      base.current = {
+        barbells: equipment.barbells.map((item) => ({ ...item })),
+        plates: equipment.plates.map((item) => ({ ...item })),
+      };
+      if (canUpdate()) onSuccess();
+    } catch (error) {
+      if (canUpdate())
+        Alert.alert(
+          "Save Failed",
+          error instanceof Error &&
+            error.message.startsWith("Equipment changed.")
+            ? "Equipment changed while this form was open. Your draft is still here; reopen the form before saving."
+            : "Equipment changes could not be saved. Please try again.",
+        );
+    } finally {
+      pendingRef.current = false;
+      if (canUpdate()) setPending(false);
+    }
+  };
 
   const onSubmit = (data: FormData) => {
-    updateEquipment({
+    const next = {
       ...data,
       barbells: data.barbells
         .map((barbell) => ({
@@ -153,8 +237,8 @@ export default function EquipmentScreen() {
           quantity: Number(plate.quantity),
         }))
         .sort((a, b) => a.value - b.value),
-    });
-    leaveWithoutWarning(() => router.back());
+    };
+    void saveEquipment(next, () => leaveWithoutWarning(() => router.back()));
   };
 
   const changePlateQuantity = (index: number, delta: number) => {
@@ -193,8 +277,7 @@ export default function EquipmentScreen() {
   const restoreEquipmentDefaults = () => {
     const defaultEquipment = createDefaultEquipment();
 
-    updateEquipment(defaultEquipment);
-    reset(defaultEquipment);
+    void saveEquipment(defaultEquipment, () => reset(defaultEquipment));
   };
 
   return (
@@ -204,6 +287,7 @@ export default function EquipmentScreen() {
           headerLeft: () => (
             <HeaderTextAction
               label="Cancel"
+              disabled={pending}
               onPress={() => router.back()}
               accessibilityLabel="Go Back Without Saving"
               color="foreground"
@@ -212,6 +296,7 @@ export default function EquipmentScreen() {
           headerRight: () => (
             <HeaderTextAction
               label="Save"
+              disabled={pending}
               onPress={handleSubmit(onSubmit)}
               accessibilityLabel="Save Equipment Settings"
               weight="bold"
@@ -221,6 +306,7 @@ export default function EquipmentScreen() {
       />
 
       <KeyboardAwareScrollView
+        pointerEvents={pending ? "none" : "auto"}
         bottomOffset={40}
         className="flex-1"
         contentContainerClassName="px-5 pt-5 pb-18"
@@ -270,8 +356,8 @@ export default function EquipmentScreen() {
                           onChange(normalizeWeightInput(newValue));
                         }}
                         onBlur={onBlur}
-                        unit="lbs"
-                        inputAccessibilityLabel="Barbell weight in pounds"
+                        unit={item.unit}
+                        inputAccessibilityLabel={`Barbell weight in ${item.unit === "kg" ? "kilograms" : "pounds"}`}
                         maxLength={4}
                         keyboardType="numeric"
                         error={error?.message}
@@ -343,8 +429,8 @@ export default function EquipmentScreen() {
                           onChange(normalizeWeightInput(newValue));
                         }}
                         onBlur={onBlur}
-                        unit="lbs"
-                        inputAccessibilityLabel="Plate weight in pounds"
+                        unit={item.unit}
+                        inputAccessibilityLabel={`Plate weight in ${item.unit === "kg" ? "kilograms" : "pounds"}`}
                         maxLength={7}
                         error={error?.message}
                         stack={stack}

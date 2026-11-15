@@ -13,6 +13,7 @@ import Card from "./Card";
 import { DetailCardRow } from "./CardRow";
 import { Text } from "./font-scale-text";
 import PressableThemed from "./PressableThemed";
+import { HelperText } from "./Typography";
 
 type MetricKey = keyof ProgramInsightMetrics;
 
@@ -242,9 +243,11 @@ function TrendChart({ insights }: { insights: ProgramInsightsData }) {
 export default function ProgramInsights({
   programName,
   insights,
+  partial = false,
 }: {
   programName: string;
   insights: ProgramInsightsData;
+  partial?: boolean;
 }) {
   const hasTrendData = insights.muscleGroups.length > 0;
 
@@ -259,6 +262,12 @@ export default function ProgramInsights({
         value={programName}
         cardVariants={["multiline"]}
       />
+      {partial && (
+        <HelperText accessibilityRole="summary">
+          Some results are partial because recovered workout details are
+          unavailable.
+        </HelperText>
+      )}
 
       {hasTrendData ? (
         <TrendChart insights={insights} />

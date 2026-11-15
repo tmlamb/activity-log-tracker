@@ -35,6 +35,12 @@ export interface SetMeasurements {
   feedback: Feedback;
 }
 
+export interface SetRecordingPatch {
+  actualReps?: number | null;
+  weight?: { value: number; unit: Unit } | null;
+  feedback?: Feedback;
+}
+
 interface CurrentSet {
   sessionStatus: Status;
   setStatus: Status;
@@ -62,6 +68,74 @@ async function getCurrentSet(
   );
   if (!current) throw new Error("Workout set not found");
   return current;
+}
+
+/** Apply only explicitly edited fields; never write stale status or timestamps. */
+export async function patchSetRecording(
+  transaction: SetTransaction,
+  reference: SetReference,
+  patch: SetRecordingPatch,
+  nowMs: number,
+): Promise<boolean> {
+  if (
+    !Number.isFinite(nowMs) ||
+    (patch.actualReps !== undefined &&
+      patch.actualReps !== null &&
+      !Number.isFinite(patch.actualReps)) ||
+    (patch.weight != null && !Number.isFinite(patch.weight.value))
+  )
+    throw new Error("Workout set values must be finite numbers.");
+  const current = await transaction.getFirstAsync<{
+    actualReps: number | null;
+    weightValue: number | null;
+    weightUnit: Unit | null;
+    feedback: Feedback;
+  }>(
+    `SELECT actual_reps AS actualReps, weight_value AS weightValue, weight_unit AS weightUnit, feedback
+     FROM workout_sets WHERE program_id = ? AND session_id = ? AND activity_id = ? AND id = ?`,
+    reference.programId,
+    reference.sessionId,
+    reference.activityId,
+    reference.setId,
+  );
+  if (!current) throw new Error("Workout set not found");
+  const fields: string[] = [];
+  const values: (string | number | null)[] = [];
+  if (
+    patch.actualReps !== undefined &&
+    patch.actualReps !== current.actualReps
+  ) {
+    fields.push("actual_reps = ?");
+    values.push(patch.actualReps);
+  }
+  if (
+    patch.weight !== undefined &&
+    (current.weightValue !== (patch.weight?.value ?? null) ||
+      current.weightUnit !== (patch.weight?.unit ?? null))
+  ) {
+    fields.push("weight_value = ?", "weight_unit = ?");
+    values.push(patch.weight?.value ?? null, patch.weight?.unit ?? null);
+  }
+  if (patch.feedback !== undefined && patch.feedback !== current.feedback) {
+    fields.push("feedback = ?");
+    values.push(patch.feedback);
+  }
+  if (!fields.length) return false;
+  await transaction.runAsync(
+    `UPDATE workout_sets SET ${fields.join(", ")} WHERE program_id = ? AND session_id = ? AND activity_id = ? AND id = ?`,
+    ...values,
+    reference.programId,
+    reference.sessionId,
+    reference.activityId,
+    reference.setId,
+  );
+  await transaction.runAsync(
+    "UPDATE sessions SET last_activity_at_ms = ?, revision = revision + 1 WHERE program_id = ? AND id = ?",
+    nowMs,
+    reference.programId,
+    reference.sessionId,
+  );
+  return true;
 }
 
 function validateMeasurements(measurements: SetMeasurements, nowMs: number) {

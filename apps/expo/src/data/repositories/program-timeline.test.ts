@@ -8,6 +8,11 @@ import type {
   TimelineCursor,
 } from "../domain/program-timeline";
 import { buildProgramWeeks } from "../../utils/program-weeks";
+import {
+  buildApplicationMemory,
+  getMemoryProgramWeek,
+  readApplicationMemoryFacts,
+} from "../application-memory";
 import { SCHEMA_V1 } from "../database/schema";
 import {
   buildProgramOverview,
@@ -90,6 +95,10 @@ describe("program timeline projections", () => {
     ];
     insert("program-start", 0, "Done", localDate(-30), "other");
     const legacy = buildProgramWeeks(sessions, new Date(nowMs));
+    const memory = buildApplicationMemory(
+      await readApplicationMemoryFacts(reader),
+      1,
+    );
     const facts = await readProgramTimeline(reader, "p");
     expect(facts).not.toBeNull();
     if (!facts) throw new Error("Missing timeline facts");
@@ -121,6 +130,16 @@ describe("program timeline projections", () => {
       expect(items.map(({ id }) => id)).toEqual(
         week.sessions.map(({ sessionId }) => sessionId),
       );
+      expect(
+        getMemoryProgramWeek(
+          memory,
+          "p",
+          week.week,
+          legacy.programStart.getTime(),
+          legacy.currentWeek,
+          nowMs,
+        )?.items,
+      ).toEqual(items);
       expect(items.every((item) => !("activities" in item))).toBe(true);
       expect(
         items

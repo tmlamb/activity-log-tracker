@@ -1,6 +1,12 @@
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
+import {
+  buildApplicationMemory,
+  getMemoryTemplateChoices,
+  readApplicationMemoryFacts,
+  resolveMemoryTemplateChoice,
+} from "../application-memory";
 import { SCHEMA_V1 } from "../database/schema";
 import { listTemplateChoices, resolveTemplateChoice } from "./templates";
 
@@ -38,7 +44,24 @@ describe("template queries", () => {
         kind: "planned",
         sessionId: "planned",
       });
+      let memory = buildApplicationMemory(
+        await readApplicationMemoryFacts(adapter(db)),
+        1,
+      );
+      expect(getMemoryTemplateChoices(memory, "p")).toEqual(
+        await listTemplateChoices(adapter(db), "p"),
+      );
+      expect(resolveMemoryTemplateChoice(memory, "p", "deload")).toEqual(
+        await resolveTemplateChoice(adapter(db), "p", "deload"),
+      );
       db.exec("DELETE FROM sessions WHERE id = 'planned'");
+      memory = buildApplicationMemory(
+        await readApplicationMemoryFacts(adapter(db)),
+        1,
+      );
+      expect(resolveMemoryTemplateChoice(memory, "p", "deload")).toEqual(
+        await resolveTemplateChoice(adapter(db), "p", "deload"),
+      );
       expect(await resolveTemplateChoice(adapter(db), "p", "deload")).toEqual({
         kind: "template",
         sessionId: "new",

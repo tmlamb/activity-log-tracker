@@ -1,11 +1,23 @@
+import { useMemo } from "react";
 import { Redirect, useLocalSearchParams } from "expo-router";
 
-import { buildExerciseInsights } from "@activity-log/ui/utils";
-
+import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import ExerciseInsights from "~/components/exercise-insights";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import { SQLiteQueryStatus } from "~/components/sqlite-query-status";
+import { useApplicationDataRuntime } from "~/data/react/application-data";
+import { presentExerciseInsights } from "~/data/react/insight-presenters";
+import { useExerciseSeries } from "~/data/react/insight-queries";
 
 export default function ExerciseInsightsScreen() {
+  const runtime = useApplicationDataRuntime();
+  return <SQLiteExerciseInsights runtime={runtime} />;
+}
+
+function SQLiteExerciseInsights({
+  runtime,
+}: {
+  runtime: ApplicationDataRuntime;
+}) {
   const { programId, sessionId, activityId, workoutSetId } =
     useLocalSearchParams<{
       programId: string;
@@ -13,42 +25,30 @@ export default function ExerciseInsightsScreen() {
       activityId: string;
       workoutSetId: string;
     }>();
-  const { programs, exercises } = useWorkoutStore((state) => state);
-  const program = programs.find((item) => item.programId === programId);
-  const session = program?.sessions.find(
-    (item) => item.sessionId === sessionId,
+  const query = useExerciseSeries(runtime, {
+    programId,
+    sessionId,
+    activityId,
+    setId: workoutSetId,
+  });
+  const insights = useMemo(
+    () => (query.data ? presentExerciseInsights(query.data) : null),
+    [query.data],
   );
-  const activity = session?.activities.find(
-    (item) => item.activityId === activityId,
-  );
-  const exercise = exercises.find(
-    (item) => item.exerciseId === activity?.exerciseId,
-  );
-  const workoutSet =
-    activity?.mainSets.find((item) => item.workoutSetId === workoutSetId) ??
-    activity?.warmupSets.find((item) => item.workoutSetId === workoutSetId);
-
-  if (
-    !program ||
-    !session?.templateId ||
-    !activity ||
-    !exercise ||
-    !workoutSet
-  ) {
-    return <Redirect href="/(public)/(app)" />;
-  }
-
+  if (query.data === undefined)
+    return (
+      <SQLiteQueryStatus
+        error={query.isError}
+        onRetry={() => void query.refetch()}
+      />
+    );
+  if (!query.data || !insights) return <Redirect href="/(public)/(app)" />;
   return (
     <ExerciseInsights
-      exerciseName={exercise.name}
-      sessionName={session.name}
-      insights={buildExerciseInsights(
-        program,
-        session,
-        activity,
-        workoutSet,
-        exercise,
-      )}
+      exerciseName={query.data.exerciseName}
+      sessionName={query.data.sessionName}
+      insights={insights}
+      partial={query.data.partial}
     />
   );
 }

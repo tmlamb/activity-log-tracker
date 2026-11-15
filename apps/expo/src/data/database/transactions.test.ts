@@ -3,6 +3,49 @@ import { describe, expect, it } from "vitest";
 import { createTransactionQueue } from "./transactions";
 
 describe("transaction queue", () => {
+  it("drains accepted jobs and rejects new jobs immediately during shutdown", async () => {
+    const operations: string[] = [];
+    const transact = createTransactionQueue(
+      {
+        execAsync: (sql) => {
+          operations.push(sql);
+          return Promise.resolve();
+        },
+      },
+      "BEGIN IMMEDIATE",
+    );
+    let release: (() => void) | undefined;
+    const blocked = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const first = transact(async () => {
+      operations.push("first");
+      await blocked;
+    });
+    const second = transact(() => {
+      operations.push("second");
+      return Promise.resolve();
+    });
+    let closed = false;
+    const closing = transact.close().then(() => {
+      closed = true;
+    });
+    await expect(transact(() => Promise.resolve())).rejects.toThrow("closing");
+    await Promise.resolve();
+    expect(closed).toBe(false);
+    release?.();
+    await Promise.all([first, second, closing, transact.close()]);
+    expect(closed).toBe(true);
+    expect(operations).toEqual([
+      "BEGIN IMMEDIATE",
+      "first",
+      "COMMIT",
+      "BEGIN IMMEDIATE",
+      "second",
+      "COMMIT",
+    ]);
+  });
+
   it("does not interleave transactions when jobs await", async () => {
     const operations: string[] = [];
     const transact = createTransactionQueue(

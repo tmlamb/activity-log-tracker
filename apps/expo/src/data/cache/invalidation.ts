@@ -1,5 +1,13 @@
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import type {
+  InfiniteData,
+  QueryClient,
+  QueryKey,
+} from "@tanstack/react-query";
 
+import type {
+  ProgramWeekPage,
+  TimelineCursor,
+} from "../domain/program-timeline";
 import { workoutKeys } from "./keys";
 
 export type WorkoutChange =
@@ -53,6 +61,7 @@ export function affectedQueryKeys(change: WorkoutChange): QueryKey[] {
       return [
         workoutKeys.programs(generation),
         workoutKeys.programHeader(generation, change.programId),
+        workoutKeys.sessionEditorSeeds(generation, change.programId),
       ];
     case "exercise-notes":
       return [
@@ -65,6 +74,8 @@ export function affectedQueryKeys(change: WorkoutChange): QueryKey[] {
         workoutKeys.exercise(generation, change.exerciseId),
         ...change.affectedPrograms.flatMap((programId) => [
           workoutKeys.sessions(generation, programId),
+          workoutKeys.sessionEditorSeeds(generation, programId),
+          workoutKeys.deloadCandidates(generation, programId),
           workoutKeys.templates(generation, programId),
           workoutKeys.programInsights(generation, programId),
           workoutKeys.exerciseSeries(generation, programId),
@@ -76,9 +87,10 @@ export function affectedQueryKeys(change: WorkoutChange): QueryKey[] {
         ...change.affectedExercises.map((id) =>
           workoutKeys.exercise(generation, id),
         ),
-        ...change.affectedPrograms.map((id) =>
+        ...change.affectedPrograms.flatMap((id) => [
           workoutKeys.sessions(generation, id),
-        ),
+          workoutKeys.sessionEditorSeeds(generation, id),
+        ]),
       ];
     case "set-recording":
       return [
@@ -88,14 +100,25 @@ export function affectedQueryKeys(change: WorkoutChange): QueryKey[] {
           change.sessionId,
         ),
         workoutKeys.setContexts(generation, change.programId, change.sessionId),
+        workoutKeys.sessionEditorSeed(
+          generation,
+          change.programId,
+          change.sessionId,
+        ),
         workoutKeys.exerciseSeries(generation, change.programId),
         ...(change.kind === "Main"
-          ? [workoutKeys.programInsights(generation, change.programId)]
+          ? [
+              workoutKeys.programInsights(generation, change.programId),
+              workoutKeys.deloadCandidates(generation, change.programId),
+            ]
           : []),
       ];
     case "session-lifecycle":
       return [
         workoutKeys.session(generation, change.programId, change.sessionId),
+        workoutKeys.sessionPolicies(generation, change.programId),
+        workoutKeys.deloadCandidates(generation, change.programId),
+        workoutKeys.sessionEditorSeeds(generation, change.programId),
         workoutKeys.timeline(generation, change.programId),
         workoutKeys.programInsights(generation, change.programId),
         workoutKeys.exerciseSeries(generation, change.programId),
@@ -103,6 +126,9 @@ export function affectedQueryKeys(change: WorkoutChange): QueryKey[] {
       ];
     case "session-structure":
       return [
+        workoutKeys.sessionPolicies(generation, change.programId),
+        workoutKeys.deloadCandidates(generation, change.programId),
+        workoutKeys.sessionEditorSeeds(generation, change.programId),
         change.affectsOtherSessions
           ? workoutKeys.sessions(generation, change.programId)
           : workoutKeys.session(generation, change.programId, change.sessionId),
@@ -125,6 +151,29 @@ export async function invalidateWorkoutChange(
 ) {
   const keys = affectedQueryKeys(change);
   await Promise.all(keys.map((queryKey) => client.cancelQueries({ queryKey })));
+  if (
+    change.type === "session-lifecycle" ||
+    change.type === "session-structure"
+  ) {
+    // Discard later cursors, but retain a known first page as a placeholder while
+    // it refetches. A window whose first page was evicted must start over.
+    client
+      .getQueryCache()
+      .findAll({
+        queryKey: workoutKeys.programWeeks(change.generation, change.programId),
+      })
+      .forEach((query) => {
+        const data = query.state.data as
+          | InfiniteData<ProgramWeekPage, TimelineCursor | undefined>
+          | undefined;
+        if (data?.pages[0] && data.pageParams[0] === undefined) {
+          client.setQueryData(query.queryKey, {
+            pages: [data.pages[0]],
+            pageParams: [undefined],
+          });
+        } else query.reset();
+      });
+  }
   await Promise.all(
     keys.map((queryKey) =>
       client.invalidateQueries({ queryKey, refetchType: "active" }),

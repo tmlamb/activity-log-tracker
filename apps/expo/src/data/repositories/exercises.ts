@@ -227,15 +227,19 @@ export async function setExerciseDeleted(
   transaction: ExerciseTransaction,
   id: string,
   deleted: boolean,
+  expectedRevision?: number,
 ) {
   const current = await transaction.getFirstAsync<{
     normalizedName: string;
     deleted: number;
+    revision: number;
   }>(
-    "SELECT normalized_name AS normalizedName, deleted FROM exercises WHERE id = ?",
+    "SELECT normalized_name AS normalizedName, deleted, revision FROM exercises WHERE id = ?",
     id,
   );
   if (!current) throw new Error("Exercise not found");
+  if (expectedRevision !== undefined && current.revision !== expectedRevision)
+    throw new Error("The exercise changed. Reload before saving.");
   if ((current.deleted === 1) === deleted) return false;
   if (!deleted)
     await ensureAvailableName(transaction, current.normalizedName, id);
@@ -261,6 +265,45 @@ export async function setExerciseNotes(
   await transaction.runAsync(
     "UPDATE exercises SET notes = ?, revision = revision + 1 WHERE id = ?",
     notes,
+    id,
+  );
+  return true;
+}
+
+/** Change only the live 1RM reference, without overwriting a stale editor draft. */
+export async function setExerciseOneRepMax(
+  transaction: ExerciseTransaction,
+  id: string,
+  weight: ExerciseInput["oneRepMax"],
+  expected?: ExerciseInput["oneRepMax"],
+) {
+  if (weight !== null && !Number.isFinite(weight.value))
+    throw new Error("One-rep max must be a finite number.");
+  const current = await transaction.getFirstAsync<{
+    value: number | null;
+    unit: "lbs" | "kg" | null;
+  }>(
+    "SELECT one_rep_max_value AS value, one_rep_max_unit AS unit FROM exercises WHERE id = ?",
+    id,
+  );
+  if (!current) throw new Error("Exercise not found");
+  if (
+    expected !== undefined &&
+    (current.value !== (expected?.value ?? null) ||
+      current.unit !== (expected?.unit ?? null))
+  )
+    throw new Error(
+      "The one-rep max changed. Reopen this screen before saving.",
+    );
+  if (
+    current.value === (weight?.value ?? null) &&
+    current.unit === (weight?.unit ?? null)
+  )
+    return false;
+  await transaction.runAsync(
+    "UPDATE exercises SET one_rep_max_value = ?, one_rep_max_unit = ?, revision = revision + 1 WHERE id = ?",
+    weight?.value ?? null,
+    weight?.unit ?? null,
     id,
   );
   return true;

@@ -6,6 +6,7 @@ import {
   cleanupInactiveSessions,
   completeSession,
   deleteSession,
+  resetSession,
   setSessionDeload,
 } from "./session-lifecycle";
 
@@ -138,6 +139,96 @@ describe("session lifecycle", () => {
 });
 
 describe("session metadata operations", () => {
+  it("resets only the selected session while retaining its planning, weights, feedback, deload, and lineage", async () => {
+    const db = setup();
+    try {
+      db.exec(`INSERT INTO session_lineages VALUES ('p', 'lineage');
+        UPDATE sessions SET lineage_id = 'lineage', deload = 1, status = 'Done', end_ms = 500 WHERE id = 's';
+        UPDATE workout_sets SET weight_value = 42.5, weight_unit = 'kg', feedback = 'Hard' WHERE id = 'positive';
+        INSERT INTO sessions(program_id, id, name, position, status, deload, start_ms)
+          VALUES ('p', 'other', 'Other', 1, 'Ready', 0, 123);
+        INSERT INTO activities(program_id, session_id, id, position) VALUES ('p', 'other', 'a', 0);
+        INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback, actual_reps)
+          VALUES ('p', 'other', 'a', 'positive', 'Main', 0, 'Done', 'Easy', 9);`);
+      await resetSession(adapter(db), "p", "s", 0, 1000);
+      db.exec("COMMIT");
+      expect(
+        db
+          .prepare(
+            "SELECT status, start_ms, end_ms, last_activity_at_ms, deload, lineage_id, revision FROM sessions WHERE id = 's'",
+          )
+          .get(),
+      ).toEqual({
+        status: "Planned",
+        start_ms: null,
+        end_ms: null,
+        last_activity_at_ms: 1000,
+        deload: 1,
+        lineage_id: "lineage",
+        revision: 1,
+      });
+      expect(
+        db
+          .prepare(
+            "SELECT status, start_ms, end_ms, actual_reps, weight_value, weight_unit, feedback FROM workout_sets WHERE session_id = 's' AND id = 'positive'",
+          )
+          .get(),
+      ).toEqual({
+        status: "Planned",
+        start_ms: null,
+        end_ms: null,
+        actual_reps: 0,
+        weight_value: 42.5,
+        weight_unit: "kg",
+        feedback: "Hard",
+      });
+      expect(
+        db
+          .prepare(
+            "SELECT COUNT(*) AS count FROM workout_sets WHERE session_id = 's' AND (status <> 'Planned' OR start_ms IS NOT NULL OR end_ms IS NOT NULL OR actual_reps <> 0)",
+          )
+          .get(),
+      ).toEqual({ count: 0 });
+      expect(
+        db
+          .prepare(
+            "SELECT status, actual_reps FROM workout_sets WHERE session_id = 'other'",
+          )
+          .get(),
+      ).toEqual({ status: "Done", actual_reps: 9 });
+      await expect(
+        resetSession(adapter(db), "p", "s", 0, 2000),
+      ).rejects.toThrow("session changed");
+      await expect(
+        resetSession(adapter(db), "p", "missing", 0, 2000),
+      ).rejects.toThrow("Session not found");
+    } finally {
+      db.close();
+    }
+  });
+
+  it("rolls back set resets if the session update fails", async () => {
+    const db = setup();
+    try {
+      db.exec(
+        `CREATE TRIGGER reject_reset BEFORE UPDATE ON sessions BEGIN SELECT RAISE(ABORT, 'reset failed'); END;`,
+      );
+      await expect(
+        resetSession(adapter(db), "p", "s", 0, 1000),
+      ).rejects.toThrow("reset failed");
+      db.exec("ROLLBACK");
+      expect(
+        db
+          .prepare(
+            "SELECT status, actual_reps FROM workout_sets WHERE id = 'positive'",
+          )
+          .get(),
+      ).toEqual({ status: "Ready", actual_reps: 5 });
+    } finally {
+      db.close();
+    }
+  });
+
   it("updates deload and protects against deleting a stale revision", async () => {
     const db = setup();
     try {

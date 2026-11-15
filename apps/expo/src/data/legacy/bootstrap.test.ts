@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 import { createTransactionQueue } from "../database/transactions";
+import { resetApplicationData } from "../lifecycle/reset";
 import { bootstrapLegacyConversion } from "./bootstrap";
 
 function harness() {
@@ -63,6 +64,7 @@ function harness() {
     db,
     keys,
     options,
+    write: queue,
     opens: () => opens,
     failReceipt: (value: boolean) => {
       failReceipt = value;
@@ -143,6 +145,39 @@ describe("legacy conversion bootstrap", () => {
       );
       expect(
         test.db.prepare("SELECT count(*) AS count FROM bootstrap_state").get(),
+      ).toEqual({ count: 0 });
+    } finally {
+      test.db.close();
+    }
+  });
+
+  it("does not reimport old source data after an atomic reset and restart", async () => {
+    const test = harness();
+    try {
+      const legacy = JSON.stringify({
+        version: 2,
+        state: { programs: [{ programId: "p", name: "Old", sessions: [] }] },
+      });
+      test.keys.set("workout-storage", legacy);
+      await bootstrapLegacyConversion(test.options);
+      const generation = test.db
+        .prepare("SELECT generation FROM bootstrap_state")
+        .get() as { generation: number };
+      await test.write((transaction) =>
+        resetApplicationData(transaction, generation.generation),
+      );
+      expect(test.keys.get("workout-storage")).toBe(legacy);
+      await bootstrapLegacyConversion(test.options);
+      expect(
+        test.db.prepare("SELECT count(*) AS count FROM programs").get(),
+      ).toEqual({ count: 0 });
+      expect(
+        test.db.prepare("SELECT state, generation FROM bootstrap_state").get(),
+      ).toEqual({ state: "ready", generation: generation.generation + 1 });
+      expect(
+        test.db
+          .prepare("SELECT count(*) AS count FROM conversion_snapshots")
+          .get(),
       ).toEqual({ count: 0 });
     } finally {
       test.db.close();

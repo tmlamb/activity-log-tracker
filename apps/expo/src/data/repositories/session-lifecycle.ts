@@ -158,6 +158,42 @@ export async function setSessionDeload(
   if (result.changes !== 1) throw new Error("Session not found.");
 }
 
+/** Reset execution while preserving planning, weights, feedback, and lineage. */
+export async function resetSession(
+  transaction: LifecycleTransaction,
+  programId: string,
+  sessionId: string,
+  baseRevision: number,
+  nowMs: number,
+) {
+  if (!Number.isFinite(nowMs)) throw new Error("Invalid reset time.");
+  const current = await transaction.getFirstAsync<{ revision: number }>(
+    "SELECT revision FROM sessions WHERE program_id = ? AND id = ?",
+    programId,
+    sessionId,
+  );
+  if (!current) throw new Error("Session not found.");
+  if (current.revision !== baseRevision)
+    throw new Error("The session changed. Reload before resetting.");
+  await transaction.runAsync(
+    `UPDATE workout_sets SET status = 'Planned', start_ms = NULL, end_ms = NULL, actual_reps = 0
+     WHERE program_id = ? AND session_id = ?`,
+    programId,
+    sessionId,
+  );
+  const updated = await transaction.runAsync(
+    `UPDATE sessions SET status = 'Planned', start_ms = NULL, end_ms = NULL,
+       last_activity_at_ms = ?, revision = revision + 1
+     WHERE program_id = ? AND id = ? AND revision = ?`,
+    nowMs,
+    programId,
+    sessionId,
+    baseRevision,
+  );
+  if (updated.changes !== 1)
+    throw new Error("The session changed. Reload before resetting.");
+}
+
 export async function deleteSession(
   transaction: LifecycleTransaction,
   programId: string,

@@ -173,17 +173,11 @@ async function conversionFromSnapshot(
   );
 }
 
-/** Must run in the private writer transaction; no partial import may commit. */
-export async function populateLegacyData(
+/** Insert a prepared canonical dataset inside the caller's writer transaction. */
+export async function insertConvertedData(
   transaction: PopulationTransaction,
-  snapshotId: number,
+  conversion: Conversion,
 ) {
-  const state = await transaction.getFirstAsync<{ state: string }>(
-    "SELECT state FROM bootstrap_state WHERE singleton = 1",
-  );
-  if (state?.state !== "source-captured")
-    throw new Error("The database is not awaiting conversion.");
-  const conversion = await conversionFromSnapshot(transaction, snapshotId);
   for (const { table, columns, rows } of tables(conversion)) {
     const count = await transaction.getFirstAsync<{ count: number }>(
       `SELECT COUNT(*) AS count FROM ${table}`,
@@ -202,6 +196,20 @@ export async function populateLegacyData(
       }
     }
   }
+}
+
+/** Must run in the private writer transaction; no partial import may commit. */
+export async function populateLegacyData(
+  transaction: PopulationTransaction,
+  snapshotId: number,
+) {
+  const state = await transaction.getFirstAsync<{ state: string }>(
+    "SELECT state FROM bootstrap_state WHERE singleton = 1",
+  );
+  if (state?.state !== "source-captured")
+    throw new Error("The database is not awaiting conversion.");
+  const conversion = await conversionFromSnapshot(transaction, snapshotId);
+  await insertConvertedData(transaction, conversion);
   await transaction.runAsync(
     "INSERT INTO conversion_reports(snapshot_id, converter_version, report) VALUES (?, 1, ?)",
     snapshotId,

@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1794599647836,
+      "tag": "0000_lumpy_katie_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794617900190,
+      "tag": "0001_certain_stark_industries",
+      "breakpoints": true
+    }
+  ]
+}

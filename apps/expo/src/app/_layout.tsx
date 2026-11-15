@@ -1,7 +1,7 @@
 import "../global.css";
 
 import { useEffect } from "react";
-import { AppState, useColorScheme } from "react-native";
+import { useColorScheme } from "react-native";
 import { useNativeVariable } from "react-native-css";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
@@ -11,89 +11,37 @@ import * as SystemUI from "expo-system-ui";
 import { PostHogProvider } from "posthog-react-native";
 
 import { FontScaleProvider } from "~/components/font-scale-text";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import { SQLiteBootstrap } from "~/components/sqlite-bootstrap";
 import { captureException, posthog } from "~/utils/posthog";
 
 SplashScreen.preventAutoHideAsync().catch(captureException);
 SplashScreen.setOptions({ fade: true, duration: 400 });
 
-const sessionCleanupIntervalMs = 60 * 1000;
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const hasHydrated = useWorkoutStore((state) => state.hasHydrated);
   const backgroundColor = useNativeVariable("--background") as string;
-
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(backgroundColor).catch(captureException);
   }, [backgroundColor]);
-
-  useEffect(() => {
-    if (hasHydrated) {
-      SplashScreen.hideAsync().catch(captureException);
-    }
-  }, [hasHydrated]);
-
-  useEffect(() => {
-    if (!hasHydrated) return;
-
-    let interval: ReturnType<typeof setInterval> | undefined;
-    const stopCleanup = () => {
-      if (interval) {
-        clearInterval(interval);
-        interval = undefined;
-      }
-    };
-    const cleanup = () => {
-      useWorkoutStore.getState().cleanupInactiveSessions();
-    };
-    const startCleanup = () => {
-      stopCleanup();
-      cleanup();
-      interval = setInterval(cleanup, sessionCleanupIntervalMs);
-    };
-
-    if (AppState.currentState === "active") {
-      startCleanup();
-    }
-
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "active") {
-        startCleanup();
-      } else {
-        stopCleanup();
-      }
-    });
-
-    return () => {
-      subscription.remove();
-      stopCleanup();
-    };
-  }, [hasHydrated]);
-
-  // Wait for Zustand store hydration before rendering
-  if (!hasHydrated) {
-    return null;
-  }
-
   const app = (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <KeyboardProvider preload={false}>
         <StatusBar style="auto" />
         <FontScaleProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor },
-            }}
-          >
-            <Stack.Screen name="(public)" />
-          </Stack>
+          <SQLiteBootstrap>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor },
+              }}
+            >
+              <Stack.Screen name="(public)" />
+            </Stack>
+          </SQLiteBootstrap>
         </FontScaleProvider>
       </KeyboardProvider>
     </ThemeProvider>
   );
-
   return posthog ? (
     <PostHogProvider client={posthog}>{app}</PostHogProvider>
   ) : (

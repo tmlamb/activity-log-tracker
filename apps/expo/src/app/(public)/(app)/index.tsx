@@ -1,15 +1,34 @@
 import { Platform } from "react-native";
 import { Link, Stack, useRouter } from "expo-router";
-import _ from "lodash";
 
+import type { ApplicationDataRuntime } from "~/data/react/application-data";
+import type { ProgramSummary } from "~/data/repositories/programs";
 import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
+import { SQLiteQueryStatus } from "~/components/sqlite-query-status";
 import { LegendListStyled } from "~/components/Styled";
 import { HelperText, SectionHeading } from "~/components/Typography";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import { useApplicationDataRuntime } from "~/data/react/application-data";
+import { useProgramSummaries } from "~/data/react/program-queries";
 
 export default function DashboardScreen() {
+  const runtime = useApplicationDataRuntime();
+  return <SQLiteDashboard runtime={runtime} />;
+}
+
+function SQLiteDashboard({ runtime }: { runtime: ApplicationDataRuntime }) {
+  const query = useProgramSummaries(runtime);
+  if (query.data === undefined)
+    return (
+      <SQLiteQueryStatus
+        error={query.isError}
+        onRetry={() => void query.refetch()}
+      />
+    );
+  return <DashboardContent programs={query.data} />;
+}
+
+function DashboardContent({ programs }: { programs: ProgramSummary[] }) {
   const router = useRouter();
-  const programs = useWorkoutStore((state) => state.programs);
   const managementMenuItems = [
     {
       key: "programs",
@@ -60,7 +79,7 @@ export default function DashboardScreen() {
       </Stack.Toolbar>
       <LegendListStyled
         className="flex-1"
-        keyExtractor={(program) => program.programId}
+        keyExtractor={(program) => program.id}
         bounces={true}
         contentContainerClassName="px-5"
         contentInsetAdjustmentBehavior="automatic"
@@ -75,7 +94,10 @@ export default function DashboardScreen() {
           ) : null
         }
         renderItem={({ index, item }) => (
-          <Link href={`/(public)/(app)/program/${item.programId}`} asChild>
+          <Link
+            href={`/(public)/(app)/program/${encodeURIComponent(item.id)}`}
+            asChild
+          >
             <NavigationCardRow
               title={item.name}
               cardVariants={["multiline"]}
@@ -107,7 +129,10 @@ export default function DashboardScreen() {
               </>
             )}
             {programs.length > 0 &&
-              _.sumBy(programs, (o) => o.sessions.length) < 4 && (
+              programs.reduce(
+                (total, program) => total + program.sessionCount,
+                0,
+              ) < 4 && (
                 <HelperText
                   className="mr-0 ml-5 leading-tight"
                   accessibilityRole="summary"

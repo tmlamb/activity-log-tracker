@@ -4,6 +4,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { Activity, WorkoutSet } from "@activity-log/ui/utils";
 import { plannedWeightForWorkoutSet } from "@activity-log/ui/utils";
 
+import {
+  buildApplicationMemory,
+  getMemorySetContext,
+  readApplicationMemoryFacts,
+} from "../application-memory";
 import { SCHEMA_V1 } from "../database/schema";
 import { plannedSetWeight } from "../domain/set-execution";
 import { getSetExecutionContext } from "./set-context";
@@ -54,6 +59,28 @@ function setup() {
 }
 
 describe("set execution context", () => {
+  it("matches the synchronous memory projection including sparse set positions", async () => {
+    const { db, reader } = setup();
+    const memory = buildApplicationMemory(
+      await readApplicationMemoryFacts({
+        getAllAsync: <T>(sql: string) =>
+          Promise.resolve(db.prepare(sql).all() as T[]),
+      }),
+      1,
+    );
+    for (const entry of [
+      reference,
+      { ...reference, setId: "warmup-2" },
+      { ...reference, setId: "main" },
+      { ...reference, activityId: "repeated" },
+      { ...reference, programId: "other" },
+      { ...reference, setId: "missing" },
+    ])
+      expect(getMemorySetContext(memory, entry)).toEqual(
+        await getSetExecutionContext(reader, entry),
+      );
+  });
+
   it("loads scoped context, live deleted exercises, and positional targets without a session graph", async () => {
     const { reader, calls } = setup();
     const result = await getSetExecutionContext(reader, reference);

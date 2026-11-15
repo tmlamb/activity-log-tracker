@@ -1,5 +1,9 @@
 import type { Equipment } from "@activity-log/ui/utils";
 
+import type { DrizzleTransactionExecutor } from "../database/drizzle-transaction";
+import { barbells, plates } from "../database/drizzle-schema";
+import { drizzleTransaction } from "../database/drizzle-transaction";
+
 interface EquipmentTransaction {
   getFirstAsync<T>(sql: string): Promise<T | null>;
   getAllAsync<T>(sql: string): Promise<T[]>;
@@ -10,15 +14,29 @@ interface EquipmentTransaction {
 }
 
 export async function getEquipment(
-  transaction: EquipmentTransaction,
+  transaction: EquipmentTransaction & DrizzleTransactionExecutor,
 ): Promise<Equipment> {
-  const barbells = await transaction.getAllAsync<Equipment["barbells"][number]>(
-    "SELECT id AS barbellId, value, unit FROM barbells ORDER BY position",
-  );
-  const plates = await transaction.getAllAsync<Equipment["plates"][number]>(
-    "SELECT id AS plateId, value, unit, quantity FROM plates ORDER BY position",
-  );
-  return { barbells, plates };
+  const db = drizzleTransaction(transaction);
+  const barbellRows = await db
+    .select({
+      barbellId: barbells.id,
+      value: barbells.value,
+      unit: barbells.unit,
+    })
+    .from(barbells)
+    .orderBy(barbells.position)
+    .all();
+  const plateRows = await db
+    .select({
+      plateId: plates.id,
+      value: plates.value,
+      unit: plates.unit,
+      quantity: plates.quantity,
+    })
+    .from(plates)
+    .orderBy(plates.position)
+    .all();
+  return { barbells: barbellRows, plates: plateRows };
 }
 
 /** Preserve referenced IDs while atomically replacing and reordering inventory. */

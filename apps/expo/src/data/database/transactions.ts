@@ -13,10 +13,13 @@ export function createTransactionQueue<T extends TransactionConnection>(
 ) {
   let pending: Promise<void> = Promise.resolve();
   let unusable = false;
+  let closing = false;
 
-  return function transact<Result>(
+  function transact<Result>(
     job: (transaction: T) => Promise<Result>,
   ): Promise<Result> {
+    if (closing)
+      return Promise.reject(new Error("The database connection is closing."));
     const result = pending.then(async () => {
       if (unusable) {
         throw new Error(
@@ -46,5 +49,12 @@ export function createTransactionQueue<T extends TransactionConnection>(
       () => undefined,
     );
     return result;
+  }
+
+  /** Stop accepting jobs immediately, then wait for all accepted jobs to settle. */
+  transact.close = () => {
+    closing = true;
+    return pending;
   };
+  return transact;
 }

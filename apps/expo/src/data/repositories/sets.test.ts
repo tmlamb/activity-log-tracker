@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { SCHEMA_V1 } from "../database/schema";
 import {
   completeSetAndAdvance,
+  patchSetRecording,
   reconcileTerminalSet,
   saveSetRecording,
   startSet,
@@ -57,6 +58,46 @@ function setup(status: string) {
 }
 
 describe("set recording", () => {
+  it("updates only edited fields without overwriting newer recording state", async () => {
+    const db = setup("Done");
+    try {
+      db.exec(
+        "UPDATE workout_sets SET weight_value = 75, weight_unit = 'kg', feedback = 'Hard' WHERE id = 'k'",
+      );
+      expect(
+        await patchSetRecording(adapter(db), reference, { actualReps: 7 }, 500),
+      ).toBe(true);
+      expect(
+        await patchSetRecording(adapter(db), reference, { actualReps: 7 }, 600),
+      ).toBe(false);
+      db.exec("COMMIT");
+      expect(
+        db
+          .prepare(
+            "SELECT status,start_ms,end_ms,actual_reps,weight_value,weight_unit,feedback FROM workout_sets WHERE id = 'k'",
+          )
+          .get(),
+      ).toEqual({
+        status: "Done",
+        start_ms: 100,
+        end_ms: 200,
+        actual_reps: 7,
+        weight_value: 75,
+        weight_unit: "kg",
+        feedback: "Hard",
+      });
+      expect(
+        db
+          .prepare(
+            "SELECT revision,last_activity_at_ms FROM sessions WHERE id = 's'",
+          )
+          .get(),
+      ).toEqual({ revision: 1, last_activity_at_ms: 500 });
+    } finally {
+      db.close();
+    }
+  });
+
   it("updates only the target set and session metadata", async () => {
     const db = setup("Ready");
     try {

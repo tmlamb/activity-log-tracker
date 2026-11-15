@@ -13,6 +13,7 @@ import {
   useCollapsibleSectionScroll,
 } from "./CollapsibleSection";
 import { Text } from "./font-scale-text";
+import { HelperText } from "./Typography";
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
@@ -162,10 +163,14 @@ export default function ExerciseInsights({
   exerciseName,
   sessionName,
   insights,
+  partial = false,
+  lazyCharts = false,
 }: {
   exerciseName: string;
   sessionName: string;
   insights: ExerciseSetInsights[];
+  partial?: boolean;
+  lazyCharts?: boolean;
 }) {
   const currentSetType = insights.find(
     (setInsights) => setInsights.selected,
@@ -217,13 +222,19 @@ export default function ExerciseInsights({
           stack={{ index: 1, size: 2 }}
         />
       </View>
+      {partial && (
+        <HelperText accessibilityRole="summary">
+          Some results are partial because recovered workout details are
+          unavailable.
+        </HelperText>
+      )}
       {warmupSetInsights.length ? (
         <CollapsibleSection
           title="Warmup Sets"
           collapsed={warmupSetsCollapsed}
           onCollapsedChange={handleWarmupSetsCollapsedChange}
           titleClassName="leading-tight"
-          premeasureCollapsedContent
+          premeasureCollapsedContent={!lazyCharts}
         >
           <View className="mb-3">
             {warmupSetInsights.map((setInsights, index) => (
@@ -241,7 +252,7 @@ export default function ExerciseInsights({
         collapsed={mainSetsCollapsed}
         onCollapsedChange={handleMainSetsCollapsedChange}
         titleClassName="leading-tight"
-        premeasureCollapsedContent
+        premeasureCollapsedContent={!lazyCharts}
       >
         <View>
           {mainSetInsights.map((setInsights, index) => (

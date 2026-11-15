@@ -1,23 +1,42 @@
+import { useMemo } from "react";
 import { Redirect, useLocalSearchParams } from "expo-router";
 
-import { buildProgramInsights } from "@activity-log/ui/utils";
-
+import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import ProgramInsights from "~/components/program-insights";
-import useWorkoutStore from "~/hooks/use-workout-store";
+import { SQLiteQueryStatus } from "~/components/sqlite-query-status";
+import { useApplicationDataRuntime } from "~/data/react/application-data";
+import { presentProgramInsights } from "~/data/react/insight-presenters";
+import { useProgramInsights } from "~/data/react/insight-queries";
 
 export default function ProgramInsightsScreen() {
+  const runtime = useApplicationDataRuntime();
+  return <SQLiteProgramInsights runtime={runtime} />;
+}
+
+function SQLiteProgramInsights({
+  runtime,
+}: {
+  runtime: ApplicationDataRuntime;
+}) {
   const { programId } = useLocalSearchParams<{ programId: string }>();
-  const program = useWorkoutStore((state) =>
-    state.programs.find((candidate) => candidate.programId === programId),
+  const query = useProgramInsights(runtime, programId);
+  const insights = useMemo(
+    () => (query.data ? presentProgramInsights(query.data) : null),
+    [query.data],
   );
-  const exercises = useWorkoutStore((state) => state.exercises);
-
-  if (!program) return <Redirect href="/(public)/(app)" />;
-
+  if (query.data === undefined)
+    return (
+      <SQLiteQueryStatus
+        error={query.isError}
+        onRetry={() => void query.refetch()}
+      />
+    );
+  if (!query.data || !insights) return <Redirect href="/(public)/(app)" />;
   return (
     <ProgramInsights
-      programName={program.name}
-      insights={buildProgramInsights(program, exercises)}
+      programName={query.data.programName}
+      insights={insights}
+      partial={query.data.partial}
     />
   );
 }

@@ -53,14 +53,16 @@ function receiptId(raw: string | null): string | null {
  * Initialize and verify before exposing the database to consumers. The caller
  * owns the returned database and must close it when the data provider stops.
  */
-export async function bootstrapLegacyConversion(options: {
-  open: () => Promise<ManagedDatabase>;
+export async function bootstrapLegacyConversion<
+  T extends ManagedDatabase,
+>(options: {
+  open: () => Promise<T>;
   storage: LegacyStorage;
   createDatabaseId: () => string;
   now: () => number;
-}): Promise<ManagedDatabase> {
+}): Promise<T> {
   const receipt = receiptId(await options.storage.getItemAsync(CUTOVER_KEY));
-  let database: ManagedDatabase | undefined = await options.open();
+  let database: T | undefined = await options.open();
   try {
     await database.write(migrateSchema);
     let state = await database.read((transaction) =>

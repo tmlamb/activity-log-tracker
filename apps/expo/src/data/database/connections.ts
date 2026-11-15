@@ -5,8 +5,8 @@ import { createTransactionQueue } from "./transactions";
 const DATABASE_NAME = "activity-log.sqlite";
 
 /** Open private connections; callers must not issue SQL outside their queues. */
-export async function openApplicationDatabase() {
-  const writer = await openDatabaseAsync(DATABASE_NAME, {
+export async function openApplicationDatabase(name = DATABASE_NAME) {
+  const writer = await openDatabaseAsync(name, {
     useNewConnection: true,
   });
   let reader: Awaited<ReturnType<typeof openDatabaseAsync>> | undefined;
@@ -23,7 +23,7 @@ export async function openApplicationDatabase() {
     if (foreignKeys?.foreign_keys !== 1 || journal?.journal_mode !== "wal") {
       throw new Error("The workout database could not be configured safely.");
     }
-    reader = await openDatabaseAsync(DATABASE_NAME, {
+    reader = await openDatabaseAsync(name, {
       useNewConnection: true,
     });
     await reader.execAsync(
@@ -32,17 +32,42 @@ export async function openApplicationDatabase() {
     const read = createTransactionQueue(reader, "BEGIN");
     const write = createTransactionQueue(writer, "BEGIN IMMEDIATE");
     const readerConnection = reader;
+    let closing: Promise<void> | undefined;
     return {
       read,
       write,
-      close: async () => {
-        await readerConnection.closeAsync();
-        await writer.closeAsync();
+      close: () => {
+        closing ??= (async () => {
+          await Promise.all([read.close(), write.close()]);
+          const closed = await Promise.allSettled([
+            readerConnection.closeAsync(),
+            writer.closeAsync(),
+          ]);
+          const errors = closed.flatMap((result) =>
+            result.status === "rejected" ? [result.reason as unknown] : [],
+          );
+          if (errors.length)
+            throw new AggregateError(
+              errors,
+              "The workout database could not be closed.",
+            );
+        })();
+        return closing;
       },
     };
   } catch (error) {
-    await reader?.closeAsync();
-    await writer.closeAsync();
+    const closed = await Promise.allSettled([
+      ...(reader ? [reader.closeAsync()] : []),
+      writer.closeAsync(),
+    ]);
+    const errors = closed.flatMap((result) =>
+      result.status === "rejected" ? [result.reason as unknown] : [],
+    );
+    if (errors.length)
+      throw new AggregateError(
+        [error, ...errors],
+        "The workout database could not be opened or closed cleanly.",
+      );
     throw error;
   }
 }
