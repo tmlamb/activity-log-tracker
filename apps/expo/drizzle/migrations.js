@@ -11,4 +11,3 @@ import m0001 from './0001_certain_stark_industries.sql';
 m0001
     }
   }
-  

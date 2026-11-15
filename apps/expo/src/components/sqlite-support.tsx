@@ -137,18 +137,6 @@ export function SQLiteSupport({
         ],
       );
     }, "The conversion report could not be loaded.");
-  const testLegacyConversion = () =>
-    run(async () => {
-      const { runNativeConversionDryRun } = await import(
-        "~/data/legacy/native-dry-run"
-      );
-      const result = await runNativeConversionDryRun();
-      if (!current()) return;
-      Alert.alert(
-        "Legacy Conversion Test Passed",
-        `Verified ${result.counts.programs ?? 0} programs, ${result.counts.sessions ?? 0} sessions, ${result.counts.activities ?? 0} activities, ${result.counts.workout_sets ?? 0} sets, and ${result.counts.exercises ?? 0} exercises.\n\nRepairs: ${result.repairs}; remapped IDs: ${result.remappedIds}; preset IDs created: ${result.presetIdsCreated}.\nTime: ${(result.elapsedMs / 1000).toFixed(1)} seconds.\n\nThis tests the retained legacy source, not changes made after conversion.`,
-      );
-    }, "The legacy conversion test could not complete.");
   const updateIdentifier = __DEV__
     ? "dev"
     : (Updates.updateId?.slice(-4) ??
@@ -198,22 +186,11 @@ export function SQLiteSupport({
             />
           </View>
           {__DEV__ && (
-            <View>
-              <PrimaryCardAction
-                label="Conversion Report"
-                accessibilityLabel="View conversion report"
-                onPress={() => void report()}
-              />
-              <PrimaryCardAction
-                label="Test SQLite Conversion"
-                accessibilityLabel="Test retained legacy SQLite conversion"
-                onPress={() => void testLegacyConversion()}
-              />
-              <HelperText>
-                Tests the retained legacy source; changes made after conversion
-                are not included.
-              </HelperText>
-            </View>
+            <PrimaryCardAction
+              label="Conversion Report"
+              accessibilityLabel="View conversion report"
+              onPress={() => void report()}
+            />
           )}
           <ConfirmButton
             accessibilityLabel="Reset all app data"

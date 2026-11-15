@@ -1,5 +1,6 @@
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { URL } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
@@ -167,22 +168,22 @@ describe("portable backup conversion dry run", () => {
     });
   });
 
-  const userBackup = process.env.ACTIVITY_LOG_MIGRATION_BACKUP;
-  it.runIf(Boolean(userBackup))(
-    "converts and verifies the supplied backup",
-    async () => {
-      if (!userBackup)
-        throw new Error(
-          "Set ACTIVITY_LOG_MIGRATION_BACKUP to an exported backup file.",
-        );
-      const start = Date.now();
-      const result = await verifyBackupConversion(
-        readFileSync(userBackup, "utf8"),
-      );
-      console.info("Verified backup conversion:", {
-        ...result,
-        elapsedMs: Date.now() - start,
-      });
-    },
-  );
+  it("converts and verifies the historical backup fixture", async () => {
+    const backup = readFileSync(
+      new URL("./fixtures/backup-v1.json", import.meta.url),
+      "utf8",
+    );
+    expect(await verifyBackupConversion(backup)).toMatchObject({
+      counts: {
+        programs: 1,
+        sessions: 1,
+        activities: 1,
+        workout_sets: 2,
+        exercises: 1,
+        exercise_presets: 1,
+        barbells: 1,
+        plates: 1,
+      },
+    });
+  });
 });

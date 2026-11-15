@@ -164,13 +164,11 @@ export default function ExerciseInsights({
   sessionName,
   insights,
   partial = false,
-  lazyCharts = false,
 }: {
   exerciseName: string;
   sessionName: string;
   insights: ExerciseSetInsights[];
   partial?: boolean;
-  lazyCharts?: boolean;
 }) {
   const currentSetType = insights.find(
     (setInsights) => setInsights.selected,
@@ -234,7 +232,7 @@ export default function ExerciseInsights({
           collapsed={warmupSetsCollapsed}
           onCollapsedChange={handleWarmupSetsCollapsedChange}
           titleClassName="leading-tight"
-          premeasureCollapsedContent={!lazyCharts}
+          premeasureCollapsedContent
         >
           <View className="mb-3">
             {warmupSetInsights.map((setInsights, index) => (
@@ -252,7 +250,7 @@ export default function ExerciseInsights({
         collapsed={mainSetsCollapsed}
         onCollapsedChange={handleMainSetsCollapsedChange}
         titleClassName="leading-tight"
-        premeasureCollapsedContent={!lazyCharts}
+        premeasureCollapsedContent
       >
         <View>
           {mainSetInsights.map((setInsights, index) => (

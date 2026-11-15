@@ -43,10 +43,5 @@
     "POSTHOG_API_KEY",
     "POSTHOG_HOST"
   ],
-  "globalPassThroughEnv": [
-    "NODE_ENV",
-    "CI",
-    "npm_lifecycle_event",
-    "ACTIVITY_LOG_MIGRATION_BACKUP"
-  ]
+  "globalPassThroughEnv": ["NODE_ENV", "CI", "npm_lifecycle_event"]
 }
