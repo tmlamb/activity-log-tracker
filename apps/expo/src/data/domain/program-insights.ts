@@ -64,24 +64,90 @@ export function buildProgramInsightProjection(
         weekAndDayNumbersFromStart(start, new Date(date)).week,
       );
   }
+  // The week depends only on the session, so compute it once per session
+  // rather than once per set.
+  const weekBySession = new Map<string, number | null>();
+  for (const session of facts.sessions) {
+    const date = session.status === "Planned" ? nowMs : session.startMs;
+    weekBySession.set(
+      session.id,
+      date === null
+        ? null
+        : weekAndDayNumbersFromStart(start, new Date(date)).week,
+    );
+  }
   const muscles = new Map<string, string[]>();
   for (const { exerciseId, name } of facts.muscles) {
     const labels = muscles.get(exerciseId) ?? [];
     labels.push(name);
     muscles.set(exerciseId, labels);
   }
+  const labelsByExercise = new Map<string, { key: string; label: string }[]>();
   for (const [id, labels] of muscles)
-    muscles.set(id, normalizeMuscleGroups(labels));
+    labelsByExercise.set(
+      id,
+      normalizeMuscleGroups(labels).map((label) => ({
+        key: label.toLocaleLowerCase(),
+        label,
+      })),
+    );
   const names = new Map<string, string>();
   const weekly = new Map<number, Map<string, MuscleMetrics>>();
+  const metricsFor = (week: number, key: string, label: string) => {
+    const groups = weekly.get(week) ?? new Map<string, MuscleMetrics>();
+    weekly.set(week, groups);
+    const name = names.get(key) ?? label;
+    names.set(key, name);
+    const metrics = groups.get(key) ?? {
+      ...emptyMetrics(),
+      muscleGroup: name,
+      pending: emptyMetrics(),
+      partial: false,
+    };
+    groups.set(key, metrics);
+    return metrics;
+  };
+  const weightInLbs = (value: number | null, unit: "lbs" | "kg" | null) =>
+    value === null || unit === null
+      ? null
+      : unit === "kg"
+        ? value * 2.2046226218
+        : value;
   let partial = false;
+  // Completed sets arrive pre-grouped by session, exercise and weight. A group
+  // contributes exactly what its sets would one at a time.
+  for (const group of facts.completed) {
+    if (!sessions.has(group.sessionId))
+      throw new Error("An insight fact has no owning session.");
+    const week = weekBySession.get(group.sessionId);
+    if (week == null || week < 1) continue;
+    if (group.exerciseId === null || group.exerciseName === null) {
+      partial = true;
+      continue;
+    }
+    const labels = labelsByExercise.get(group.exerciseId) ?? [];
+    if (!labels.length) continue;
+    const weightLbs = weightInLbs(group.weightValue, group.weightUnit);
+    const incomplete = group.loadKind === null || weightLbs === null;
+    partial ||= incomplete;
+    for (const { key, label } of labels) {
+      const metrics = metricsFor(week, key, label);
+      metrics.partial ||= incomplete;
+      metrics.sets += group.sets;
+      metrics.reps += group.reps;
+      if (weightLbs !== null && group.loadKind !== null)
+        metrics.volumeLbs +=
+          group.reps * weightLbs * (group.loadKind === "WEIGHT_PAIR" ? 2 : 1);
+      metrics.hardSets += group.hardSets;
+      metrics.easySets += group.easySets;
+    }
+  }
+  // Pending sets and sets with unknown reps, one row each.
   for (const set of facts.sets) {
     const session = sessions.get(set.sessionId);
     if (!session) throw new Error("An insight fact has no owning session.");
-    const date = session.status === "Planned" ? nowMs : session.startMs;
-    if (date === null) continue;
-    const week = weekAndDayNumbersFromStart(start, new Date(date)).week;
-    if (week < 1) continue;
+    const week = weekBySession.get(set.sessionId);
+    if (week == null || week < 1) continue;
     const completed = set.status === "Done" && (set.actualReps ?? 0) > 0;
     const unknownCompleted = set.status === "Done" && set.actualReps === null;
     const pending =
@@ -92,7 +158,7 @@ export function buildProgramInsightProjection(
       partial = true;
       continue;
     }
-    const labels = muscles.get(set.exerciseId) ?? [];
+    const labels = labelsByExercise.get(set.exerciseId) ?? [];
     if (!labels.length) continue;
     const setPartial =
       unknownCompleted ||
@@ -118,24 +184,9 @@ export function buildProgramInsightProjection(
     const missingWeight = weightValue === null || weightUnit === null;
     const incomplete = setPartial || missingWeight;
     partial ||= incomplete;
-    const weightLbs =
-      weightValue === null || weightUnit === null
-        ? null
-        : weightUnit === "kg"
-          ? weightValue * 2.2046226218
-          : weightValue;
-    const groups = weekly.get(week) ?? new Map<string, MuscleMetrics>();
-    weekly.set(week, groups);
-    for (const label of labels) {
-      const key = label.toLocaleLowerCase();
-      const name = names.get(key) ?? label;
-      names.set(key, name);
-      const metrics = groups.get(key) ?? {
-        ...emptyMetrics(),
-        muscleGroup: name,
-        pending: emptyMetrics(),
-        partial: false,
-      };
+    const weightLbs = weightInLbs(weightValue, weightUnit);
+    for (const { key, label } of labels) {
+      const metrics = metricsFor(week, key, label);
       metrics.partial ||= incomplete;
       const target = pending ? metrics.pending : metrics;
       if (!unknownCompleted) target.sets++;
@@ -152,7 +203,6 @@ export function buildProgramInsightProjection(
         target.hardSets += Number(set.feedback === "Hard");
         target.easySets += Number(set.feedback === "Easy");
       }
-      groups.set(key, metrics);
     }
   }
   return {

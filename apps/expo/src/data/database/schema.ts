@@ -1,6 +1,4 @@
-/** The relational schema, stamped into PRAGMA user_version. */
-export const SCHEMA_VERSION = 1;
-
+/** The initial relational schema: migration step 1 (see `migrations.ts`). */
 export const SCHEMA = `
 CREATE TABLE programs (
   id TEXT PRIMARY KEY CHECK (length(trim(id)) > 0),

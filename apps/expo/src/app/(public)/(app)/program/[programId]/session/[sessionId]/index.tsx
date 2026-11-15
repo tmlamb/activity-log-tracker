@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { Alert, View } from "react-native";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import {
@@ -78,19 +78,6 @@ const SessionContent = memo(function SessionContent({
   candidate: ReturnType<typeof useSessionDeloadCandidate>;
 }) {
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(
-    () => new Set(session.activities.filter(allDone).map(({ id }) => id)),
-  );
-  const autoCollapsed = useRef(new Set(collapsed));
-  useEffect(() => {
-    const done = new Set(
-      session.activities.filter(allDone).map(({ id }) => id),
-    );
-    const newlyDone = [...done].filter((id) => !autoCollapsed.current.has(id));
-    autoCollapsed.current = done;
-    if (newlyDone.length)
-      setCollapsed((previous) => new Set([...previous, ...newlyDone]));
-  }, [session.activities]);
   const changeDeload = (value: boolean) => {
     const commit = () => {
       try {
@@ -169,7 +156,6 @@ const SessionContent = memo(function SessionContent({
           keyExtractor={(item) => item.id}
           contentContainerClassName="px-5 pt-5 pb-24"
           contentInsetAdjustmentBehavior="automatic"
-          extraData={collapsed}
           ListHeaderComponent={
             <Animated.View layout={LinearTransition.duration(500)}>
               <DetailCardRow
@@ -253,99 +239,14 @@ const SessionContent = memo(function SessionContent({
               <ScreenHeading>Planned Exercises</ScreenHeading>
             </Animated.View>
           }
-          renderItem={({ item, index }) => {
-            const sets = [...item.warmupSets, ...item.mainSets];
-            const completionWidth = Math.max(
-              0,
-              ...sets.flatMap((set) =>
-                completed(set)
-                  ? (set.weightValue
-                      ? [
-                          `${set.weightValue} ${set.weightUnit}`,
-                          `${set.actualReps} reps`,
-                        ]
-                      : [`${set.actualReps} reps`]
-                    ).map((line) => line.length * 8)
-                  : [],
-              ),
-            );
-            const name = item.exerciseName
-              ? `${item.exerciseName}${item.exerciseDeleted ? " (Deleted)" : ""}`
-              : `Activity ${index + 1}`;
-            return (
-              <CollapsibleSection
-                title={name}
-                collapsed={collapsed.has(item.id)}
-                titleClassName={
-                  allDone(item)
-                    ? "text-muted leading-tight"
-                    : "text-foreground leading-tight"
-                }
-                chevronClassName={
-                  collapsed.has(item.id) && !allDone(item)
-                    ? "text-primary"
-                    : "text-muted"
-                }
-                onCollapsedChange={(value) =>
-                  setCollapsed((previous) => {
-                    const next = new Set(previous);
-                    if (value) next.add(item.id);
-                    else next.delete(item.id);
-                    return next;
-                  })
-                }
-              >
-                {sets.map((set, setIndex) => {
-                  const title =
-                    set.kind === "Warmup"
-                      ? `Warmup Set ${item.warmupSets.findIndex((entry) => entry.id === set.id) + 1}`
-                      : `Main Set ${item.mainSets.findIndex((entry) => entry.id === set.id) + 1}`;
-                  const status =
-                    set.status === "Planned" && setIndex === 0
-                      ? "Ready"
-                      : set.status;
-                  const lines = completed(set)
-                    ? set.weightValue
-                      ? ([
-                          `${set.weightValue} ${set.weightUnit}`,
-                          `${set.actualReps} reps`,
-                        ] as const)
-                      : ([`${set.actualReps} reps`] as const)
-                    : undefined;
-                  return (
-                    <Link
-                      key={set.id}
-                      href={`/(public)/(app)/program/${encodeURIComponent(session.programId)}/session/${encodeURIComponent(session.id)}/set?workoutSetId=${encodeURIComponent(set.id)}&activityId=${encodeURIComponent(item.id)}&title=${encodeURIComponent(title)}`}
-                      asChild
-                    >
-                      <NavigationCardRow
-                        title={title}
-                        cardVariants={["multiline"]}
-                        titleClassName="py-3"
-                        stack={{ index: setIndex, size: sets.length }}
-                        cardClassName={
-                          setIndex === sets.length - 1 ? "mb-3" : undefined
-                        }
-                        centerTextLines={lines}
-                        centerTextColumnWidth={completionWidth || undefined}
-                        trailingText={status === "Planned" ? undefined : status}
-                        trailingTextClassName={
-                          status === "Ready"
-                            ? "text-primary"
-                            : status === "Incomplete"
-                              ? "text-warning"
-                              : "text-muted"
-                        }
-                        animateTrailingText
-                        trailingTextAnimationKey={status}
-                        accessibilityLabel={`Navigate to ${title}${lines ? `, completed with ${set.weightValue} ${set.weightUnit} for ${set.actualReps} reps` : ""}, current status: ${status}`}
-                      />
-                    </Link>
-                  );
-                })}
-              </CollapsibleSection>
-            );
-          }}
+          renderItem={({ item, index }) => (
+            <ActivityRow
+              activity={item}
+              index={index}
+              programId={session.programId}
+              sessionId={session.id}
+            />
+          )}
           ListFooterComponent={
             <HelperText>
               {session.activities.length < 1
@@ -369,6 +270,102 @@ const SessionContent = memo(function SessionContent({
     </>
   );
 });
+
+/**
+ * One exercise's sets. Collapse state lives here, not in the screen: list rows
+ * re-render reliably for their own state, as on the program screen's weeks.
+ */
+function ActivityRow({
+  activity: item,
+  index,
+  programId,
+  sessionId,
+}: {
+  activity: SessionActivity;
+  index: number;
+  programId: string;
+  sessionId: string;
+}) {
+  const done = allDone(item);
+  const [collapsed, setCollapsed] = useState(done);
+  // Collapse an exercise automatically when its last set is completed.
+  const [wasDone, setWasDone] = useState(done);
+  if (done !== wasDone) {
+    setWasDone(done);
+    if (done) setCollapsed(true);
+  }
+  const sets = [...item.warmupSets, ...item.mainSets];
+  const completionWidth = Math.max(
+    0,
+    ...sets.flatMap((set) =>
+      completed(set)
+        ? (set.weightValue
+            ? [`${set.weightValue} ${set.weightUnit}`, `${set.actualReps} reps`]
+            : [`${set.actualReps} reps`]
+          ).map((line) => line.length * 8)
+        : [],
+    ),
+  );
+  const name = item.exerciseName
+    ? `${item.exerciseName}${item.exerciseDeleted ? " (Deleted)" : ""}`
+    : `Activity ${index + 1}`;
+  return (
+    <CollapsibleSection
+      title={name}
+      collapsed={collapsed}
+      titleClassName={
+        done ? "text-muted leading-tight" : "text-foreground leading-tight"
+      }
+      chevronClassName={collapsed && !done ? "text-primary" : "text-muted"}
+      onCollapsedChange={setCollapsed}
+    >
+      {sets.map((set, setIndex) => {
+        const title =
+          set.kind === "Warmup"
+            ? `Warmup Set ${item.warmupSets.findIndex((entry) => entry.id === set.id) + 1}`
+            : `Main Set ${item.mainSets.findIndex((entry) => entry.id === set.id) + 1}`;
+        const status =
+          set.status === "Planned" && setIndex === 0 ? "Ready" : set.status;
+        const lines = completed(set)
+          ? set.weightValue
+            ? ([
+                `${set.weightValue} ${set.weightUnit}`,
+                `${set.actualReps} reps`,
+              ] as const)
+            : ([`${set.actualReps} reps`] as const)
+          : undefined;
+        return (
+          <Link
+            key={set.id}
+            href={`/(public)/(app)/program/${encodeURIComponent(programId)}/session/${encodeURIComponent(sessionId)}/set?workoutSetId=${encodeURIComponent(set.id)}&activityId=${encodeURIComponent(item.id)}&title=${encodeURIComponent(title)}`}
+            asChild
+          >
+            <NavigationCardRow
+              title={title}
+              cardVariants={["multiline"]}
+              titleClassName="py-3"
+              stack={{ index: setIndex, size: sets.length }}
+              cardClassName={setIndex === sets.length - 1 ? "mb-3" : undefined}
+              centerTextLines={lines}
+              centerTextColumnWidth={completionWidth || undefined}
+              trailingText={status === "Planned" ? undefined : status}
+              trailingTextClassName={
+                status === "Ready"
+                  ? "text-primary"
+                  : status === "Incomplete"
+                    ? "text-warning"
+                    : "text-muted"
+              }
+              animateTrailingText
+              trailingTextAnimationKey={status}
+              accessibilityLabel={`Navigate to ${title}${lines ? `, completed with ${set.weightValue} ${set.weightUnit} for ${set.actualReps} reps` : ""}, current status: ${status}`}
+            />
+          </Link>
+        );
+      })}
+    </CollapsibleSection>
+  );
+}
 
 function SessionCleanupWarning({
   status,

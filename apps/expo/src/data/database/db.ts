@@ -10,6 +10,11 @@ export interface Db {
   getFirstSync<T>(sql: string, ...parameters: SqlValue[]): T | null;
   runSync(sql: string, ...parameters: SqlValue[]): { changes: number };
   execSync(sql: string): void;
+  /** For running one statement many times, e.g. bulk inserts. */
+  prepareSync(sql: string): {
+    executeSync(...parameters: SqlValue[]): unknown;
+    finalizeSync(): void;
+  };
 }
 
 /** Run `job` in one write transaction, rolling back if it throws. */

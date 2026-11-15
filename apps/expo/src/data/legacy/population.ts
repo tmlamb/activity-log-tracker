@@ -147,6 +147,11 @@ export function insertConvertedData(db: Db, conversion: Conversion) {
     if (count?.count !== 0)
       throw new Error(`The target table ${table} is not empty.`);
     const sql = `INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`;
-    for (const row of rows) db.runSync(sql, ...values(row, columns));
+    const statement = db.prepareSync(sql);
+    try {
+      for (const row of rows) statement.executeSync(...values(row, columns));
+    } finally {
+      statement.finalizeSync();
+    }
   }
 }

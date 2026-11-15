@@ -132,12 +132,12 @@ function SetEditor({
   const [unit] = useState<"lbs" | "kg">(initialWeight?.unit ?? "lbs");
   const leavingRef = useRef(false);
   const allowRemoval = useRef(false);
-  const validateInputs = () => {
+  const validateInputs = (before = "leaving this set") => {
     if (
       parseInput(weightInput) === undefined ||
       parseInput(repsInput) === undefined
     )
-      throw new Error("Enter valid numbers before leaving this set.");
+      throw new Error(`Enter valid numbers before ${before}.`);
   };
   const errorAlert = (error: unknown) =>
     Alert.alert(
@@ -256,7 +256,7 @@ function SetEditor({
   const runAction = async () => {
     if (!action || leavingRef.current) return;
     try {
-      validateInputs();
+      validateInputs("continuing");
       const reps = parseInput(repsInput) ?? null;
       const weight = parseInput(weightInput) ?? null;
       const measurements = {

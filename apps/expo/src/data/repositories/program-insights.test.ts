@@ -127,8 +127,9 @@ describe("program insights projection", () => {
       };
       const facts = readProgramInsightFacts(reader, "p");
       if (!facts) throw new Error("Missing program");
-      expect(calls()).toBe(4);
-      expect(facts.sets).toHaveLength(3);
+      expect(calls()).toBe(5);
+      expect(facts.completed).toHaveLength(1);
+      expect(facts.sets).toHaveLength(2);
       const actual = buildProgramInsightProjection(facts, now.getTime());
       const legacy = buildProgramInsights(program, [exercise], now);
       expect(actual.partial).toBe(false);

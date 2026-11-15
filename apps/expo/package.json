@@ -42,7 +42,6 @@
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
     "expo-updates": "~57.0.26",
-    "immer": "^10.1.1",
     "lodash": "^4.17.21",
     "nativewind": "5.0.0-rc.0",
     "papaparse": "^5.4.1",

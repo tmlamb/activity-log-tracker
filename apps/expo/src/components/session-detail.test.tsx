@@ -18,7 +18,7 @@ const env = vi.hoisted(() => ({
       startMs: null,
       endMs: null,
       lastActivityAtMs: null as number | null,
-      activities: [],
+      activities: [] as unknown[],
     },
     policy: { canSetDeload: false, isLatestCompletedInLineage: false },
   },
@@ -79,19 +79,58 @@ vi.mock("./CardRow", () => ({
   DetailCardRow: ({ value }: { value: ReactNode }) => <div>{value}</div>,
   NavigationCardRow: ({ title }: { title: ReactNode }) => <div>{title}</div>,
 }));
-vi.mock("./CollapsibleSection", () => ({
-  CollapsibleSection: ({ children }: PropsWithChildren) => (
-    <section>{children}</section>
-  ),
-  CollapsibleSectionList: ({
-    ListHeaderComponent,
-  }: {
-    ListHeaderComponent: ReactNode;
-  }) => {
-    env.renderList();
-    return <main>{ListHeaderComponent}</main>;
-  },
-}));
+vi.mock("./CollapsibleSection", () => {
+  // Like LegendList, rows are rendered from `data`; a screen re-render alone
+  // does not re-render existing rows, but a row's own state change does.
+  const rowsByData = new WeakMap<readonly unknown[], ReactNode[]>();
+  return {
+    CollapsibleSection: ({
+      title,
+      collapsed,
+      onCollapsedChange,
+      children,
+    }: PropsWithChildren<{
+      title: string;
+      collapsed: boolean;
+      onCollapsedChange: (next: boolean) => void;
+    }>) => (
+      <section>
+        <button
+          data-title={title}
+          data-collapsed={collapsed}
+          onClick={() => onCollapsedChange(!collapsed)}
+        />
+        {!collapsed && children}
+      </section>
+    ),
+    CollapsibleSectionList: ({
+      ListHeaderComponent,
+      data,
+      keyExtractor,
+      renderItem,
+    }: {
+      ListHeaderComponent: ReactNode;
+      data: readonly { id: string }[];
+      keyExtractor: (item: { id: string }) => string;
+      renderItem: (info: { item: { id: string }; index: number }) => ReactNode;
+    }) => {
+      env.renderList();
+      let rows = rowsByData.get(data);
+      if (!rows) {
+        rows = data.map((item, index) => (
+          <div key={keyExtractor(item)}>{renderItem({ item, index })}</div>
+        ));
+        rowsByData.set(data, rows);
+      }
+      return (
+        <main>
+          {ListHeaderComponent}
+          {rows}
+        </main>
+      );
+    },
+  };
+});
 vi.mock("./ElapsedTime", () => ({ default: () => null }));
 vi.mock("./font-scale-text", () => ({
   Text: ({ children }: PropsWithChildren) => <span>{children}</span>,
@@ -176,5 +215,95 @@ describe("session detail navigation", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("session detail exercises", () => {
+  const set = (id: string, done: boolean) => ({
+    id,
+    kind: "Main" as const,
+    position: 0,
+    status: done ? ("Done" as const) : ("Planned" as const),
+    feedback: "Neutral" as const,
+    actualReps: done ? 5 : null,
+    weightValue: null,
+    weightUnit: null,
+    startMs: null,
+    endMs: null,
+  });
+  const activity = (id: string, done: boolean) => ({
+    id,
+    exerciseId: id,
+    exerciseName: `Exercise ${id}`,
+    exerciseDeleted: false,
+    reps: 5,
+    loadType: null,
+    loadValue: null,
+    restMinutes: null,
+    warmupSets: [],
+    mainSets: [set(`${id}-set`, done)],
+  });
+
+  it("toggles each exercise repeatedly and collapses one when its sets are completed", async () => {
+    (
+      globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
+    ).IS_REACT_ACT_ENVIRONMENT = true;
+    env.focused = true;
+    env.seed = {
+      ...env.seed,
+      session: {
+        ...env.seed.session,
+        lastActivityAtMs: null,
+        activities: [activity("done", true), activity("open", false)],
+      },
+    };
+    let renderer: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      renderer = create(<SessionDetailScreen />);
+      await Promise.resolve();
+    });
+    if (!renderer) throw new Error("Renderer not created");
+    const root = renderer.root;
+    const header = (title: string) =>
+      root.findByProps({ "data-title": title }).props as {
+        "data-collapsed": boolean;
+        onClick: () => void;
+      };
+    const press = (title: string) =>
+      act(() => {
+        header(title).onClick();
+      });
+
+    // A completed exercise starts collapsed; an unfinished one starts open.
+    expect(header("Exercise done")["data-collapsed"]).toBe(true);
+    expect(header("Exercise open")["data-collapsed"]).toBe(false);
+    for (const expected of [false, true, false, true]) {
+      press("Exercise done");
+      expect(header("Exercise done")["data-collapsed"]).toBe(expected);
+    }
+    for (const expected of [true, false, true, false]) {
+      press("Exercise open");
+      expect(header("Exercise open")["data-collapsed"]).toBe(expected);
+    }
+
+    // Completing the last set collapses the exercise automatically.
+    env.seed = {
+      ...env.seed,
+      session: {
+        ...env.seed.session,
+        activities: [activity("done", true), activity("open", true)],
+      },
+    };
+    await act(async () => {
+      renderer?.update(<SessionDetailScreen />);
+      await Promise.resolve();
+    });
+    expect(header("Exercise open")["data-collapsed"]).toBe(true);
+    press("Exercise open");
+    expect(header("Exercise open")["data-collapsed"]).toBe(false);
+    await act(async () => {
+      renderer?.unmount();
+      await Promise.resolve();
+    });
   });
 });

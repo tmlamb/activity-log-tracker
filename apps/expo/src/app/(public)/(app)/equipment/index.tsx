@@ -140,12 +140,12 @@ export default function EquipmentScreen() {
   });
 
   const plates = useWatch({ control, name: "plates" });
-  const saveEquipment = (equipment: Equipment, onSuccess: () => void) => {
+  const saveEquipment = (next: Equipment, onSuccess: () => void) => {
     try {
-      replaceEquipmentInventory(equipment, base.current);
+      replaceEquipmentInventory(next, base.current);
       base.current = {
-        barbells: equipment.barbells.map((item) => ({ ...item })),
-        plates: equipment.plates.map((item) => ({ ...item })),
+        barbells: next.barbells.map((item) => ({ ...item })),
+        plates: next.plates.map((item) => ({ ...item })),
       };
       onSuccess();
     } catch (error) {

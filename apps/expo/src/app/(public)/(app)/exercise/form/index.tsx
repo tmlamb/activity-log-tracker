@@ -125,7 +125,6 @@ export default function ExerciseFormScreen() {
       equipment={equipment}
       muscleGroups={muscles}
       usedInWorkout={usedInWorkout}
-      freezeSeed
       save={(data) => {
         if (!exercise)
           createExercise(data.exerciseId, sqliteExerciseInput(data));
@@ -159,7 +158,6 @@ function ExerciseEditor({
   equipment: suppliedEquipment,
   muscleGroups: suppliedMuscles,
   usedInWorkout,
-  freezeSeed,
   save,
   remove,
 }: {
@@ -168,7 +166,6 @@ function ExerciseEditor({
   equipment: Equipment;
   muscleGroups: string[];
   usedInWorkout: boolean;
-  freezeSeed: boolean;
   save: (data: Exercise) => void;
   remove: (id: string) => void;
 }) {
@@ -184,21 +181,18 @@ function ExerciseEditor({
     unknownLoadKind?: string;
   }>();
   const router = useRouter();
-  const [initialExercise] = useState(suppliedExercise);
-  const [initialEquipment] = useState(suppliedEquipment);
-  const [initialMuscles] = useState(suppliedMuscles);
+  // The form works from the data it opened with; saving checks the captured
+  // revision, so a change made elsewhere is reported rather than overwritten.
+  const [exercise] = useState(suppliedExercise);
+  const [equipment] = useState(suppliedEquipment);
+  const [muscleGroups] = useState(suppliedMuscles);
   const [newId] = useState(() => uuidv4());
-  const [initialSave] = useState(() => save);
-  const [initialRemove] = useState(() => remove);
-  const exercise = freezeSeed ? initialExercise : suppliedExercise;
-  const equipment = freezeSeed ? initialEquipment : suppliedEquipment;
-  const muscleGroups = freezeSeed ? initialMuscles : suppliedMuscles;
-  const saveAction = freezeSeed ? initialSave : save;
-  const removeAction = freezeSeed ? initialRemove : remove;
+  const [saveAction] = useState(() => save);
+  const [removeAction] = useState(() => remove);
   const heaviestBarbell = _.maxBy(equipment.barbells, "value");
   const defaultLoadKind = exercise
     ? exercise.loadKind
-    : freezeSeed && unknownLoadKind === "1"
+    : unknownLoadKind === "1"
       ? undefined
       : ((isLoadKind(presetLoadKind) ? presetLoadKind : undefined) ??
         inferLoadKindFromName(presetName ?? "") ??

@@ -71,7 +71,6 @@ export default function LoadScreen() {
     <LoadEditor
       key={ticket.requestId}
       exercise={initial}
-      freezeSeed
       onDone={(load, max) => {
         if (load.type === "PERCENT" && record && max)
           setExerciseOneRepMax(
@@ -93,21 +92,18 @@ export default function LoadScreen() {
 function LoadEditor({
   exercise: suppliedExercise,
   onDone,
-  freezeSeed,
 }: {
   exercise?: LoadExercise;
   onDone: (load: Load, max: number | undefined) => void;
-  freezeSeed: boolean;
 }) {
   const { loadType, loadValue } = useLocalSearchParams<{
     loadType?: string;
     loadValue?: string;
   }>();
   const router = useRouter();
-  const [initialExercise] = useState(suppliedExercise);
-  const [initialDone] = useState(() => onDone);
-  const exercise = freezeSeed ? initialExercise : suppliedExercise;
-  const done = freezeSeed ? initialDone : onDone;
+  // Work from the exercise as it was when the screen opened.
+  const [exercise] = useState(suppliedExercise);
+  const [done] = useState(() => onDone);
   const [oneRepMaxInput, setOneRepMaxInput] = useState(
     exercise?.oneRepMax?.value && exercise.oneRepMax.value > 0
       ? String(exercise.oneRepMax.value)

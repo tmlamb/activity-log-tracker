@@ -3,6 +3,7 @@ import { Alert, ScrollView, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import * as Updates from "expo-updates";
 
+import BusyOverlay, { afterNextPaint } from "~/components/BusyOverlay";
 import { PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
@@ -23,6 +24,8 @@ export default function SupportScreen() {
   const router = useRouter();
   // Sharing and picking a file are still asynchronous.
   const [pending, setPending] = useState(false);
+  // Shown while large backups are validated or restored synchronously.
+  const [progress, setProgress] = useState<string | null>(null);
   const busy = useRef(false);
   const runFileAction = async (job: () => Promise<void>, failure: string) => {
     if (busy.current) return;
@@ -55,26 +58,40 @@ export default function SupportScreen() {
         {
           text: "Restore Backup Data",
           style: "destructive",
-          onPress: () => {
-            try {
-              restoreApplicationData(prepared);
-            } catch {
-              Alert.alert(
-                "Support Action Failed",
-                "Your backup could not be restored. Your previous app data has been kept.",
-              );
-              return;
-            }
-            router.back();
-          },
+          onPress: () => void applyRestore(prepared),
         },
       ],
     );
   };
+  const applyRestore = async (
+    prepared: ReturnType<typeof prepareApplicationRestore>,
+  ) => {
+    setProgress("Restoring backup…");
+    await afterNextPaint();
+    try {
+      restoreApplicationData(prepared);
+    } catch {
+      setProgress(null);
+      Alert.alert(
+        "Support Action Failed",
+        "Your backup could not be restored. Your previous app data has been kept.",
+      );
+      return;
+    }
+    // A restore remounts every screen, which also clears the overlay.
+    router.back();
+  };
   const restore = () =>
     runFileAction(async () => {
       const contents = await pickBackupFileContents();
-      if (contents !== null) confirmRestore(contents);
+      if (contents === null) return;
+      setProgress("Checking backup…");
+      await afterNextPaint();
+      try {
+        confirmRestore(contents);
+      } finally {
+        setProgress(null);
+      }
     }, "The selected backup could not be opened or is invalid. No app data was changed.");
   const reset = () => {
     try {
@@ -103,7 +120,7 @@ export default function SupportScreen() {
           headerLeft: () => (
             <HeaderTextAction
               label="Done"
-              disabled={pending}
+              disabled={pending || progress !== null}
               onPress={() => router.back()}
               accessibilityLabel="Close Support"
               color="foreground"
@@ -152,6 +169,7 @@ export default function SupportScreen() {
           </HelperText>
         </View>
       </ScrollView>
+      <BusyOverlay message={progress} />
     </>
   );
 }

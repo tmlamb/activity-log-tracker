@@ -15,6 +15,14 @@ export function nodeDb(db: DatabaseSync): Db & { raw: DatabaseSync } {
       changes: Number(db.prepare(sql).run(...parameters).changes),
     }),
     execSync: (sql: string) => db.exec(sql),
+    prepareSync: (sql: string) => {
+      const statement = db.prepare(sql);
+      return {
+        executeSync: (...parameters: SqlValue[]) =>
+          statement.run(...parameters),
+        finalizeSync: () => undefined,
+      };
+    },
   };
 }
 
