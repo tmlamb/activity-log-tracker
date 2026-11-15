@@ -1,7 +1,4 @@
-interface InsightsReader {
-  getFirstAsync<T>(sql: string, ...parameters: string[]): Promise<T | null>;
-  getAllAsync<T>(sql: string, ...parameters: string[]): Promise<T[]>;
-}
+import type { Db } from "../database/db";
 
 type Status = "Planned" | "Ready" | "Done" | "Incomplete";
 export interface InsightSession {
@@ -38,20 +35,20 @@ export interface ProgramInsightFacts {
 }
 
 /** Read compact facts in a single caller-owned read transaction. */
-export async function readProgramInsightFacts(
-  reader: InsightsReader,
+export function readProgramInsightFacts(
+  reader: Db,
   programId: string,
-): Promise<ProgramInsightFacts | null> {
-  const program = await reader.getFirstAsync<{ name: string }>(
+): ProgramInsightFacts | null {
+  const program = reader.getFirstSync<{ name: string }>(
     "SELECT name FROM programs WHERE id = ?",
     programId,
   );
   if (!program) return null;
-  const sessions = await reader.getAllAsync<InsightSession>(
+  const sessions = reader.getAllSync<InsightSession>(
     "SELECT id, status, start_ms AS startMs FROM sessions WHERE program_id = ? ORDER BY position",
     programId,
   );
-  const sets = await reader.getAllAsync<InsightSetFact>(
+  const sets = reader.getAllSync<InsightSetFact>(
     `SELECT s.id AS sessionId, a.id AS activityId, a.exercise_id AS exerciseId,
        e.name AS exerciseName, e.load_kind AS loadKind, e.one_rep_max_value AS maxValue,
        e.one_rep_max_unit AS maxUnit, a.reps AS plannedReps, a.load_type AS loadType,
@@ -63,7 +60,7 @@ export async function readProgramInsightFacts(
      WHERE s.program_id = ? ORDER BY s.position, a.position, w.position`,
     programId,
   );
-  const muscles = await reader.getAllAsync<InsightMuscle>(
+  const muscles = reader.getAllSync<InsightMuscle>(
     `SELECT m.exercise_id AS exerciseId, l.name FROM exercise_muscles m
      JOIN muscle_labels l ON l.id = m.muscle_id
      WHERE EXISTS (SELECT 1 FROM activities a WHERE a.exercise_id = m.exercise_id AND a.program_id = ?)

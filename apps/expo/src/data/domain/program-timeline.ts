@@ -35,29 +35,9 @@ export interface SessionSummary {
   day: number | null;
 }
 
-export interface TimelineCursor {
-  programStartMs: number;
-  currentWeek: number;
-  week: number;
-  windowStartMs: number;
-  windowEndMs: number;
-  group: number;
-  undated: number;
-  sortStartMs: number;
-  position: number;
-}
-
-export interface ProgramWeekRequest {
-  week: number;
-  nowMs: number;
-  limit?: number;
-  after?: TimelineCursor;
-}
-
-export interface ProgramWeekPage {
+export interface ProgramWeek {
   week: number;
   items: SessionSummary[];
-  nextCursor: TimelineCursor | null;
 }
 
 export function timelineContext(anchor: TimelineAnchor, nowMs: number) {
@@ -103,47 +83,18 @@ export function buildProgramOverview(
 /** Local-calendar boundaries deliberately use calendar days, not 24-hour spans. */
 export function programWeekWindow(
   anchor: TimelineAnchor,
-  request: ProgramWeekRequest,
+  week: number,
+  nowMs: number,
 ) {
-  const { week, nowMs, after } = request;
-  const limit = request.limit ?? 50;
-  if (!Number.isSafeInteger(week)) throw new Error("Invalid program week.");
-  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
-    throw new Error("Timeline page size must be between 1 and 100.");
   const context = timelineContext(anchor, nowMs);
   const start = addDays(
     startOfDay(new Date(context.programStartMs)),
     (week - 1) * 7,
   );
-  const end = addDays(start, 7);
-  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()))
-    throw new Error("Invalid program week.");
-  if (after) {
-    if (
-      after.programStartMs !== context.programStartMs ||
-      after.currentWeek !== context.currentWeek ||
-      after.week !== week ||
-      after.windowStartMs !== start.getTime() ||
-      after.windowEndMs !== end.getTime()
-    ) {
-      throw new Error("The timeline changed. Reload before loading more.");
-    }
-    if (
-      ![0, 1, 2].includes(after.group) ||
-      ![0, 1].includes(after.undated) ||
-      !Number.isFinite(after.sortStartMs) ||
-      !Number.isSafeInteger(after.position) ||
-      after.position < 0
-    ) {
-      throw new Error("Invalid timeline cursor.");
-    }
-  }
   return {
     ...context,
-    week,
-    limit,
     includeCurrent: week === context.currentWeek,
     startMs: start.getTime(),
-    endMs: end.getTime(),
+    endMs: addDays(start, 7).getTime(),
   };
 }

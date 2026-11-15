@@ -1,103 +1,75 @@
 import "react-native-get-random-values";
 
-import { useEffect, useRef, useState } from "react";
 import { Alert, ScrollView, View } from "react-native";
 import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
-import { QueryStatus } from "~/components/query-status";
 import { HelperText } from "~/components/Typography";
-import {
-  useApplicationDataRuntime,
-  useApplicationDataSnapshot,
-} from "~/data/react/application-data";
-import { createProgramFormActions } from "~/data/react/program-form-actions";
-import { useProgramHeader } from "~/data/react/program-queries";
+import { createProgram, deleteProgram, renameProgram } from "~/data/actions";
+import { useProgramHeader } from "~/data/queries";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 
-/** Mount the form only after its entity seed resolves. */
 export default function ProgramFormScreen() {
-  const runtime = useApplicationDataRuntime();
   const { programId } = useLocalSearchParams<{ programId?: string }>();
-  const snapshot = useApplicationDataSnapshot(runtime);
-  const query = useProgramHeader(runtime, programId);
-  if (programId !== undefined && query.data === undefined)
-    return (
-      <QueryStatus error={query.isError} onRetry={() => void query.refetch()} />
-    );
-  if (programId !== undefined && query.data === null)
+  const program = useProgramHeader(programId);
+  if (programId !== undefined && !program)
     return <Redirect href="/(public)/(app)/program/settings" />;
   return (
     <ProgramFormContent
-      key={`${snapshot.generation}:${programId ?? "new"}`}
-      runtime={runtime}
-      generation={snapshot.generation}
+      key={programId ?? "new"}
       programId={programId}
-      initialName={query.data?.name ?? ""}
+      initialName={program?.name ?? ""}
     />
   );
 }
 
 function ProgramFormContent({
-  runtime,
-  generation,
   programId,
   initialName,
 }: {
-  runtime: ApplicationDataRuntime;
-  generation: number;
   programId: string | undefined;
   initialName: string;
 }) {
   const router = useRouter();
-  const [actions] = useState(() =>
-    createProgramFormActions(
-      runtime.getSnapshot().service,
-      programId,
-      uuidv4(),
-    ),
-  );
-  const [pending, setPending] = useState(false);
-  const pendingRef = useRef(false);
-  const mounted = useRef(false);
   const {
     control,
     handleSubmit,
     getValues,
     formState: { isDirty },
   } = useForm<{ name: string }>({ defaultValues: { name: initialName } });
-  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  const isCurrent = () =>
-    mounted.current && runtime.getSnapshot().generation === generation;
+  const { leaveWithoutWarning, hasLeft } = useUnsavedChangesWarning(isDirty);
 
-  async function perform(kind: "save" | "delete", name = "") {
-    if (pendingRef.current || !isCurrent()) return;
-    pendingRef.current = true;
-    setPending(true);
-    const result =
-      kind === "save" ? await actions.save(name) : await actions.remove();
-    pendingRef.current = false;
-    if (!isCurrent()) return;
-    setPending(false);
-    if (result.status === "committed") leaveWithoutWarning(() => router.back());
-    else if (result.status === "failed")
+  function save(name: string) {
+    if (hasLeft()) return;
+    try {
+      if (programId) renameProgram(programId, name);
+      else createProgram(uuidv4(), name);
+    } catch {
       Alert.alert(
-        kind === "save" ? "Save Failed" : "Delete Failed",
-        kind === "save"
-          ? "Your changes could not be saved. Please try again."
-          : "The program could not be deleted. Please try again.",
+        "Save Failed",
+        "Your changes could not be saved. Please try again.",
       );
+      return;
+    }
+    leaveWithoutWarning(() => router.back());
+  }
+
+  function remove(id: string) {
+    if (hasLeft()) return;
+    try {
+      deleteProgram(id);
+    } catch {
+      Alert.alert(
+        "Delete Failed",
+        "The program could not be deleted. Please try again.",
+      );
+      return;
+    }
+    leaveWithoutWarning(() => router.back());
   }
 
   return (
@@ -108,7 +80,6 @@ function ProgramFormContent({
           headerLeft: () => (
             <HeaderTextAction
               label="Cancel"
-              disabled={pending}
               onPress={() => router.back()}
               accessibilityLabel="Go Back Without Saving"
               color="foreground"
@@ -117,10 +88,7 @@ function ProgramFormContent({
           headerRight: () => (
             <HeaderTextAction
               label="Save"
-              disabled={pending}
-              onPress={() =>
-                void handleSubmit((data) => perform("save", data.name))()
-              }
+              onPress={() => void handleSubmit((data) => save(data.name))()}
               accessibilityLabel="Save Workout Program"
               weight="bold"
             />
@@ -170,9 +138,7 @@ function ProgramFormContent({
             title="Delete Program?"
             message="This will permanently delete this workout program and its sessions."
             confirmText="Delete Program"
-            onConfirm={() => {
-              if (!pendingRef.current) void perform("delete");
-            }}
+            onConfirm={() => remove(programId)}
           >
             Delete This Program
           </ConfirmButton>

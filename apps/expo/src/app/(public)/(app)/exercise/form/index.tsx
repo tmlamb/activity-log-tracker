@@ -21,7 +21,6 @@ import {
   normalizeMuscleGroups,
 } from "@activity-log/ui/utils";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import type { ExerciseInput } from "~/data/repositories/exercises";
 import { Text } from "~/components/font-scale-text";
 
@@ -37,20 +36,21 @@ import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PressableThemed from "~/components/PressableThemed";
-import { QueryStatus } from "~/components/query-status";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText, SectionHeading } from "~/components/Typography";
 import {
-  useApplicationDataRuntime,
-  useApplicationDataSnapshot,
-} from "~/data/react/application-data";
+  createExercise,
+  editExercise,
+  restoreExercise,
+  setExerciseDeleted,
+} from "~/data/actions";
 import {
   useEquipment,
   useExerciseLibrary,
   useExerciseUsage,
   useMuscleCatalog,
-} from "~/data/react/settings-queries";
+} from "~/data/queries";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 
 const decimalTextToNumber = (text: string) => {
@@ -97,40 +97,12 @@ function sqliteExerciseInput(data: Exercise): ExerciseInput {
 }
 
 export default function ExerciseFormScreen() {
-  const runtime = useApplicationDataRuntime();
-  return <ExerciseFormContent runtime={runtime} />;
-}
-
-function ExerciseFormContent({ runtime }: { runtime: ApplicationDataRuntime }) {
   const { exerciseId } = useLocalSearchParams<{ exerciseId?: string }>();
-  const snapshot = useApplicationDataSnapshot(runtime);
-  const library = useExerciseLibrary(runtime);
-  const equipment = useEquipment(runtime);
-  const muscles = useMuscleCatalog(runtime);
-  const usage = useExerciseUsage(runtime, exerciseId);
-  const isLoading =
-    library.data === undefined ||
-    equipment.data === undefined ||
-    muscles.data === undefined ||
-    (exerciseId !== undefined && usage.data === undefined);
-  if (isLoading)
-    return (
-      <QueryStatus
-        error={
-          library.isError ||
-          equipment.isError ||
-          muscles.isError ||
-          usage.isError
-        }
-        onRetry={() => {
-          void library.refetch();
-          void equipment.refetch();
-          void muscles.refetch();
-          if (exerciseId) void usage.refetch();
-        }}
-      />
-    );
-  const rows: EditorExercise[] = library.data.saved.map((item) => ({
+  const library = useExerciseLibrary();
+  const equipment = useEquipment();
+  const muscles = useMuscleCatalog();
+  const usedInWorkout = useExerciseUsage(exerciseId);
+  const rows: EditorExercise[] = library.saved.map((item) => ({
     exerciseId: item.id,
     name: item.name,
     loadKind: item.loadKind ?? undefined,
@@ -147,39 +119,35 @@ function ExerciseFormContent({ runtime }: { runtime: ApplicationDataRuntime }) {
   const revision = exercise?.revision;
   return (
     <ExerciseEditor
-      key={`${snapshot.generation}:${exerciseId ?? "new"}`}
+      key={exerciseId ?? "new"}
       exercise={exercise}
       exercises={rows}
-      equipment={equipment.data}
-      muscleGroups={muscles.data}
-      usedInWorkout={usage.data ?? false}
+      equipment={equipment}
+      muscleGroups={muscles}
+      usedInWorkout={usedInWorkout}
       freezeSeed
-      isCurrent={() => runtime.getSnapshot().generation === snapshot.generation}
-      save={async (data) => {
+      save={(data) => {
         if (!exercise)
-          await snapshot.service.createExercise(
-            data.exerciseId,
-            sqliteExerciseInput(data),
-          );
+          createExercise(data.exerciseId, sqliteExerciseInput(data));
         else if (revision === undefined)
           throw new Error("The exercise revision is unavailable.");
         else if (exercise.deleted)
-          await snapshot.service.restoreExercise(
+          restoreExercise(
             exercise.exerciseId,
             revision,
             sqliteExerciseInput(data),
           );
         else
-          await snapshot.service.editExercise(
+          editExercise(
             exercise.exerciseId,
             revision,
             sqliteExerciseInput(data),
           );
       }}
-      remove={async (id) => {
+      remove={(id) => {
         if (revision === undefined)
           throw new Error("The exercise revision is unavailable.");
-        await snapshot.service.setExerciseDeleted(id, true, revision);
+        setExerciseDeleted(id, true, revision);
       }}
     />
   );
@@ -191,7 +159,6 @@ function ExerciseEditor({
   equipment: suppliedEquipment,
   muscleGroups: suppliedMuscles,
   usedInWorkout,
-  isCurrent,
   freezeSeed,
   save,
   remove,
@@ -201,10 +168,9 @@ function ExerciseEditor({
   equipment: Equipment;
   muscleGroups: string[];
   usedInWorkout: boolean;
-  isCurrent: () => boolean;
   freezeSeed: boolean;
-  save: (data: Exercise) => Promise<void>;
-  remove: (id: string) => Promise<void>;
+  save: (data: Exercise) => void;
+  remove: (id: string) => void;
 }) {
   const {
     name: presetName,
@@ -229,15 +195,6 @@ function ExerciseEditor({
   const muscleGroups = freezeSeed ? initialMuscles : suppliedMuscles;
   const saveAction = freezeSeed ? initialSave : save;
   const removeAction = freezeSeed ? initialRemove : remove;
-  const [pending, setPending] = useState(false);
-  const pendingRef = useRef(false);
-  const mounted = useRef(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   const heaviestBarbell = _.maxBy(equipment.barbells, "value");
   const defaultLoadKind = exercise
     ? exercise.loadKind
@@ -270,7 +227,7 @@ function ExerciseEditor({
       notes: exercise?.notes ?? undefined,
     },
   });
-  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
+  const { leaveWithoutWarning, hasLeft } = useUnsavedChangesWarning(isDirty);
   const selectedLoadKind = useWatch({ control, name: "loadKind" });
   const selectedBarbellId = useWatch({ control, name: "barbellId" });
   const selectedName = useWatch({ control, name: "name" });
@@ -333,10 +290,8 @@ function ExerciseEditor({
         !e.deleted &&
         exerciseNamesMatch(e.name, name),
     );
-  const canUpdate = () => mounted.current && isCurrent();
-
-  const onSubmit = async (data: Exercise) => {
-    if (pendingRef.current || !canUpdate()) return;
+  const onSubmit = (data: Exercise) => {
+    if (hasLeft()) return;
     const notes = data.notes?.trim() ? data.notes : undefined;
 
     if (hasDuplicateExerciseName(data.name)) {
@@ -347,10 +302,8 @@ function ExerciseEditor({
       return;
     }
 
-    pendingRef.current = true;
-    setPending(true);
     try {
-      await saveAction({
+      saveAction({
         exerciseId: exercise?.exerciseId ?? newId,
         name: data.name,
         loadKind: data.loadKind,
@@ -360,9 +313,8 @@ function ExerciseEditor({
         notes,
         deleted: exercise?.deleted,
       });
-      if (canUpdate()) leaveWithoutWarning(() => router.back());
+      leaveWithoutWarning(() => router.back());
     } catch (error) {
-      if (!canUpdate()) return;
       if (
         error instanceof Error &&
         error.message === "Exercise name already exists"
@@ -380,28 +332,19 @@ function ExerciseEditor({
           ? "This exercise changed while the form was open. Your draft is still here; reopen the form before saving."
           : "The exercise could not be saved. Please try again.",
       );
-    } finally {
-      pendingRef.current = false;
-      if (canUpdate()) setPending(false);
     }
   };
 
-  const onDelete = async () => {
-    if (!exercise || pendingRef.current || !canUpdate()) return;
-    pendingRef.current = true;
-    setPending(true);
+  const onDelete = () => {
+    if (!exercise || hasLeft()) return;
     try {
-      await removeAction(exercise.exerciseId);
-      if (canUpdate()) leaveWithoutWarning(() => router.back());
+      removeAction(exercise.exerciseId);
+      leaveWithoutWarning(() => router.back());
     } catch {
-      if (canUpdate())
-        Alert.alert(
-          "Delete Failed",
-          "The exercise could not be deleted. Please try again.",
-        );
-    } finally {
-      pendingRef.current = false;
-      if (canUpdate()) setPending(false);
+      Alert.alert(
+        "Delete Failed",
+        "The exercise could not be deleted. Please try again.",
+      );
     }
   };
 
@@ -415,7 +358,6 @@ function ExerciseEditor({
             : () => (
                 <HeaderTextAction
                   label="Save"
-                  disabled={pending}
                   onPress={handleSubmit(onSubmit)}
                   accessibilityLabel="Save exercise"
                   weight="bold"
@@ -424,7 +366,6 @@ function ExerciseEditor({
           headerLeft: () => (
             <HeaderTextAction
               label="Cancel"
-              disabled={pending}
               onPress={() => router.back()}
               color="foreground"
             />
@@ -432,7 +373,6 @@ function ExerciseEditor({
         }}
       />
       <KeyboardAwareScrollView
-        pointerEvents={pending ? "none" : "auto"}
         bottomOffset={40}
         className="flex-1"
         contentContainerClassName={twMerge("pt-5 pb-18 gap-10")}
@@ -683,7 +623,6 @@ function ExerciseEditor({
           {exercise?.deleted ? (
             <PrimaryCardAction
               label="Undo Deletion"
-              disabled={pending}
               onPress={handleSubmit(onSubmit)}
               accessibilityLabel={`Restore exercise with name ${exercise.name}`}
               cardVariants={["square"]}
@@ -694,7 +633,7 @@ function ExerciseEditor({
               title="Delete Exercise?"
               message="This will hide the exercise from selection and management. Existing workouts will keep it."
               confirmText="Delete Exercise"
-              onConfirm={() => void onDelete()}
+              onConfirm={onDelete}
               cardVariants={["square"]}
             >
               Delete This Exercise

@@ -2,19 +2,7 @@ import type { PropsWithChildren, ReactNode } from "react";
 import { act, create } from "react-test-renderer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import WorkoutSetDetailScreen from "~/app/(public)/(app)/program/[programId]/session/[sessionId]/set/index";
-import { createWorkoutQueryClient } from "~/data/cache/query-client";
-import { ApplicationDataProvider } from "~/data/react/application-data";
-
-const cache = createWorkoutQueryClient();
-function SetScreen({ runtime }: { runtime: ApplicationDataRuntime }) {
-  return (
-    <ApplicationDataProvider runtime={{ ...runtime, cache }}>
-      <WorkoutSetDetailScreen />
-    </ApplicationDataProvider>
-  );
-}
 
 const env = vi.hoisted(() => ({
   back: vi.fn(),
@@ -24,6 +12,11 @@ const env = vi.hoisted(() => ({
   input: "8",
   beforeRemove: null as null | ((event: { data: { action: unknown } }) => void),
   kind: "Main",
+  patchSet: vi.fn(),
+  setExerciseNotes: vi.fn(),
+  completeSet: vi.fn(),
+  startSet: vi.fn(),
+  reconcileSet: vi.fn(),
 }));
 vi.mock("react-native", () => ({
   Alert: { alert: env.alert },
@@ -127,80 +120,81 @@ vi.mock("expo-router", () => {
 vi.mock("@expo/vector-icons/MaterialCommunityIcons", () => ({
   default: () => null,
 }));
-vi.mock("~/data/react/session-queries", () => ({
-  useSetContext: () => ({
-    data: {
-      reference: {
-        programId: "p",
-        sessionId: "s",
-        activityId: "a",
-        setId: "set",
-      },
-      session: {
-        id: "s",
-        programId: "p",
-        name: "S",
-        lineageId: null,
-        status: "Ready",
-        deload: false,
-        startMs: 1,
-        endMs: null,
-        lastActivityAtMs: 1,
-        revision: 0,
-      },
-      activity: {
-        id: "a",
-        exerciseId: "e",
-        reps: 10,
-        loadType: "RPE",
-        loadValue: 8,
-        restMinutes: 2,
-        warmupSetCount: 0,
-        mainSetCount: 1,
-      },
-      exercise: {
-        id: "e",
-        name: "Exercise",
-        deleted: false,
-        revision: 0,
-        loadKind: "SINGLE_WEIGHT",
-        barbellId: null,
-        oneRepMax: null,
-      },
-      set: {
-        id: "set",
-        kind: env.kind,
-        position: 0,
-        status: "Ready",
-        feedback: "Neutral",
-        actualReps: 0,
-        weightValue: 40,
-        weightUnit: "kg",
-        startMs: 1,
-        endMs: null,
-      },
-      firstMainSet:
-        env.kind === "Warmup"
-          ? {
-              id: "main",
-              status: "Planned",
-              weightValue: 100,
-              weightUnit: "lbs",
-            }
-          : null,
-      targetWeight: { value: 40, unit: "kg" },
-      mainTargetWeight: null,
-      hasTemplateHistory: false,
-      isStartable: false,
-      canComplete: false,
-    },
-  }),
+vi.mock("~/data/actions", () => ({
+  patchSet: env.patchSet,
+  setExerciseNotes: env.setExerciseNotes,
+  completeSet: env.completeSet,
+  startSet: env.startSet,
+  reconcileSet: env.reconcileSet,
 }));
-vi.mock("~/data/react/settings-queries", () => ({
-  useExerciseDetail: () => ({
-    data: { id: "e", name: "Exercise", notes: null },
+vi.mock("~/data/queries", () => ({
+  useExerciseDetail: () => ({ id: "e", name: "Exercise", notes: null }),
+  useEquipment: () => ({ barbells: [], plates: [] }),
+  useSetContext: () => ({
+    reference: {
+      programId: "p",
+      sessionId: "s",
+      activityId: "a",
+      setId: "set",
+    },
+    session: {
+      id: "s",
+      programId: "p",
+      name: "S",
+      lineageId: null,
+      status: "Ready",
+      deload: false,
+      startMs: 1,
+      endMs: null,
+      lastActivityAtMs: 1,
+      revision: 0,
+    },
+    activity: {
+      id: "a",
+      exerciseId: "e",
+      reps: 10,
+      loadType: "RPE",
+      loadValue: 8,
+      restMinutes: 2,
+      warmupSetCount: 0,
+      mainSetCount: 1,
+    },
+    exercise: {
+      id: "e",
+      name: "Exercise",
+      deleted: false,
+      revision: 0,
+      loadKind: "SINGLE_WEIGHT",
+      barbellId: null,
+      oneRepMax: null,
+    },
+    set: {
+      id: "set",
+      kind: env.kind,
+      position: 0,
+      status: "Ready",
+      feedback: "Neutral",
+      actualReps: 0,
+      weightValue: 40,
+      weightUnit: "kg",
+      startMs: 1,
+      endMs: null,
+    },
+    firstMainSet:
+      env.kind === "Warmup"
+        ? {
+            id: "main",
+            status: "Planned",
+            weightValue: 100,
+            weightUnit: "lbs",
+          }
+        : null,
+    targetWeight: { value: 40, unit: "kg" },
+    mainTargetWeight: null,
+    hasTemplateHistory: false,
+    isStartable: false,
+    canComplete: false,
   }),
-  useEquipment: () => ({ data: { barbells: [], plates: [] } }),
 }));
 vi.mock("./BottomActionBar", () => ({
   default: ({
@@ -290,23 +284,44 @@ beforeEach(() => {
   env.beforeRemove = null;
   env.input = "8";
   env.kind = "Main";
+  env.patchSet.mockReset();
+  env.setExerciseNotes.mockReset();
+  env.completeSet.mockReset();
+  env.startSet.mockReset();
+  env.reconcileSet.mockReset();
 });
 
+function render() {
+  let renderer: ReturnType<typeof create> | undefined;
+  act(() => {
+    renderer = create(<WorkoutSetDetailScreen />);
+  });
+  if (!renderer) throw new Error("Renderer not created");
+  return renderer;
+}
+
+function press(renderer: ReturnType<typeof create>, label: string) {
+  (
+    renderer.root.findByProps({ "data-label": label }).props as {
+      onClick: () => void;
+    }
+  ).onClick();
+}
+
+function change(renderer: ReturnType<typeof create>, label: string) {
+  act(() => {
+    (
+      renderer.root.findByProps({ "data-label": label }).props as {
+        onChange: () => void;
+      }
+    ).onChange();
+  });
+}
+
 describe("set screen interactions", () => {
-  it("keeps warmup targets and recording inputs in the original card groups", async () => {
+  it("keeps warmup targets and recording inputs in the original card groups", () => {
     env.kind = "Warmup";
-    const service = { patchSet: vi.fn(), setExerciseNotes: vi.fn() };
-    const snapshot = { generation: 1, service };
-    const runtime = {
-      getSnapshot: () => snapshot,
-      subscribe: () => () => undefined,
-    } as unknown as ApplicationDataRuntime;
-    let renderer: ReturnType<typeof create> | undefined;
-    await act(async () => {
-      renderer = create(<SetScreen runtime={runtime} />);
-      await Promise.resolve();
-    });
-    if (!renderer) throw new Error("Renderer not created");
+    const renderer = render();
     const root = renderer.root;
     expect(
       root.findByProps({ "data-card-label": "Exercise" }).props["data-stack"],
@@ -331,220 +346,95 @@ describe("set screen interactions", () => {
       root.findByProps({ "data-label": "Actual Reps" }).props["data-stack"],
     ).toBe("1/3");
     expect(root.findByProps({ "data-elapsed-stack": "2/3" })).toBeDefined();
-    await act(async () => {
-      renderer?.unmount();
-      await Promise.resolve();
-    });
+    act(() => renderer.unmount());
   });
 
-  it("flushes recorded reps before completing and navigating", async () => {
-    let release: (() => void) | undefined;
-    const write = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    const service = {
-      patchSet: vi.fn(() => write),
-      setExerciseNotes: vi.fn().mockResolvedValue(undefined),
-      completeSet: vi.fn().mockResolvedValue(null),
-    };
-    const snapshot = { generation: 1, service };
-    const runtime = {
-      getSnapshot: () => snapshot,
-      subscribe: () => () => undefined,
-    } as unknown as ApplicationDataRuntime;
-    let renderer: ReturnType<typeof create> | undefined;
+  it("saves recorded reps, then completes the set and navigates back", async () => {
+    const renderer = render();
+    change(renderer, "Actual Reps");
+    expect(env.patchSet).toHaveBeenCalledWith(
+      { programId: "p", sessionId: "s", activityId: "a", setId: "set" },
+      { actualReps: 8 },
+    );
     await act(async () => {
-      renderer = create(<SetScreen runtime={runtime} />);
+      press(renderer, "Complete Main Set");
       await Promise.resolve();
     });
-    if (!renderer) throw new Error("Renderer not created");
-    const root = renderer.root;
-    await act(async () => {
-      (
-        root.findByProps({ "data-label": "Actual Reps" }).props as {
-          onChange: () => void;
-        }
-      ).onChange();
-      await Promise.resolve();
-    });
-    await act(async () => {
-      (
-        root.findByProps({ "data-label": "Complete Main Set" }).props as {
-          onClick: () => void;
-        }
-      ).onClick();
-      await Promise.resolve();
-    });
-    expect(service.patchSet).toHaveBeenCalledOnce();
-    expect(service.completeSet).not.toHaveBeenCalled();
-    expect(env.back).not.toHaveBeenCalled();
-    await act(async () => {
-      release?.();
-      await write;
-    });
-    expect(service.completeSet).toHaveBeenCalledWith(
+    expect(env.completeSet).toHaveBeenCalledWith(
       { programId: "p", sessionId: "s", activityId: "a", setId: "set" },
       { actualReps: 8, weight: { value: 40, unit: "kg" }, feedback: "Neutral" },
     );
     expect(env.back).toHaveBeenCalledOnce();
-    await act(async () => {
-      renderer?.unmount();
-      await Promise.resolve();
-    });
+    act(() => renderer.unmount());
   });
 
-  it("keeps the input and prevents navigation when a save fails", async () => {
-    const service = {
-      patchSet: vi.fn().mockRejectedValue(new Error("disk full")),
-      setExerciseNotes: vi.fn().mockResolvedValue(undefined),
-      completeSet: vi.fn(),
-    };
-    const snapshot = { generation: 1, service };
-    const runtime = {
-      getSnapshot: () => snapshot,
-      subscribe: () => () => undefined,
-    } as unknown as ApplicationDataRuntime;
-    let renderer: ReturnType<typeof create> | undefined;
-    await act(async () => {
-      renderer = create(<SetScreen runtime={runtime} />);
-      await Promise.resolve();
+  it("keeps the input and alerts when a save fails", () => {
+    env.patchSet.mockImplementation(() => {
+      throw new Error("disk full");
     });
-    if (!renderer) throw new Error("Renderer not created");
-    const root = renderer.root;
-    await act(async () => {
-      (
-        root.findByProps({ "data-label": "Actual Reps" }).props as {
-          onChange: () => void;
-        }
-      ).onChange();
-      await Promise.resolve();
+    const renderer = render();
+    change(renderer, "Actual Reps");
+    expect(env.alert).toHaveBeenCalledWith("Workout Not Saved", "disk full");
+    expect(
+      renderer.root.findByProps({ "data-label": "Actual Reps" }).props.value,
+    ).toBe("8");
+    act(() => renderer.unmount());
+  });
+
+  it("stays on the set when completing fails", async () => {
+    env.completeSet.mockImplementation(() => {
+      throw new Error("disk full");
     });
+    const renderer = render();
+    change(renderer, "Actual Reps");
     await act(async () => {
-      (
-        root.findByProps({ "data-label": "Complete Main Set" }).props as {
-          onClick: () => void;
-        }
-      ).onClick();
+      press(renderer, "Complete Main Set");
       await Promise.resolve();
     });
     expect(env.alert).toHaveBeenCalledWith("Workout Not Saved", "disk full");
-    expect(root.findByProps({ "data-label": "Actual Reps" }).props.value).toBe(
-      "8",
-    );
-    expect(service.completeSet).not.toHaveBeenCalled();
     expect(env.back).not.toHaveBeenCalled();
-    await act(async () => {
-      renderer?.unmount();
-      await Promise.resolve();
-    });
+    act(() => renderer.unmount());
   });
 
-  it("holds a back navigation until pending recording writes complete", async () => {
-    let release: (() => void) | undefined;
-    const write = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    const service = {
-      patchSet: vi.fn(() => write),
-      setExerciseNotes: vi.fn().mockResolvedValue(undefined),
-    };
-    const snapshot = { generation: 1, service };
-    const runtime = {
-      getSnapshot: () => snapshot,
-      subscribe: () => () => undefined,
-    } as unknown as ApplicationDataRuntime;
-    let renderer: ReturnType<typeof create> | undefined;
-    await act(async () => {
-      renderer = create(<SetScreen runtime={runtime} />);
-      await Promise.resolve();
-    });
-    if (!renderer) throw new Error("Renderer not created");
-    const root = renderer.root;
-    await act(async () => {
-      (
-        root.findByProps({ "data-label": "Actual Reps" }).props as {
-          onChange: () => void;
-        }
-      ).onChange();
-      await Promise.resolve();
-    });
+  it("allows back navigation once inputs are valid", () => {
+    const renderer = render();
+    change(renderer, "Actual Reps");
     const action = { type: "GO_BACK" };
-    await act(async () => {
-      env.beforeRemove?.({ data: { action } });
-      await Promise.resolve();
-    });
-    expect(env.dispatch).not.toHaveBeenCalled();
-    await act(async () => {
-      release?.();
-      await write;
-    });
+    act(() => env.beforeRemove?.({ data: { action } }));
     expect(env.dispatch).toHaveBeenCalledWith(action);
-    await act(async () => {
-      renderer?.unmount();
-      await Promise.resolve();
-    });
+    expect(env.reconcileSet).not.toHaveBeenCalled();
+    act(() => renderer.unmount());
   });
 
-  it("initiates header back navigation through JavaScript on iOS", async () => {
-    const snapshot = {
-      generation: 1,
-      service: { patchSet: vi.fn(), setExerciseNotes: vi.fn() },
-    };
-    const runtime = {
-      getSnapshot: () => snapshot,
-      subscribe: () => () => undefined,
-    } as unknown as ApplicationDataRuntime;
-    let renderer: ReturnType<typeof create> | undefined;
-    await act(async () => {
-      renderer = create(<SetScreen runtime={runtime} />);
-      await Promise.resolve();
-    });
-    await act(async () => {
-      (
-        renderer?.root.findByProps({ "data-label": "Back" }).props as {
-          onClick: () => void;
-        }
-      ).onClick();
-      await Promise.resolve();
-    });
+  it("blocks back navigation while an input is invalid", () => {
+    const renderer = render();
+    env.input = ".";
+    change(renderer, "Actual Reps");
+    expect(env.patchSet).not.toHaveBeenCalled();
+    const action = { type: "GO_BACK" };
+    act(() => env.beforeRemove?.({ data: { action } }));
+    expect(env.dispatch).not.toHaveBeenCalled();
+    expect(env.alert).toHaveBeenCalledWith(
+      "Workout Not Saved",
+      "Enter valid numbers before leaving this set.",
+    );
+    act(() => renderer.unmount());
+  });
+
+  it("initiates header back navigation through JavaScript on iOS", () => {
+    const renderer = render();
+    act(() => press(renderer, "Back"));
     expect(env.back).toHaveBeenCalledOnce();
-    await act(async () => {
-      renderer?.unmount();
-      await Promise.resolve();
-    });
+    act(() => renderer.unmount());
   });
 
-  it("preserves the original unit when changing a recorded weight", async () => {
-    const service = {
-      patchSet: vi.fn().mockResolvedValue(true),
-      setExerciseNotes: vi.fn().mockResolvedValue(undefined),
-    };
-    const snapshot = { generation: 1, service };
-    const runtime = {
-      getSnapshot: () => snapshot,
-      subscribe: () => () => undefined,
-    } as unknown as ApplicationDataRuntime;
-    let renderer: ReturnType<typeof create> | undefined;
-    await act(async () => {
-      renderer = create(<SetScreen runtime={runtime} />);
-      await Promise.resolve();
-    });
-    if (!renderer) throw new Error("Renderer not created");
+  it("preserves the original unit when changing a recorded weight", () => {
+    const renderer = render();
     env.input = "45";
-    await act(async () => {
-      (
-        renderer?.root.findByProps({ "data-label": "Weight (kg)" }).props as {
-          onChange: () => void;
-        }
-      ).onChange();
-      await Promise.resolve();
-    });
-    expect(service.patchSet).toHaveBeenCalledWith(expect.anything(), {
+    change(renderer, "Weight (kg)");
+    expect(env.patchSet).toHaveBeenCalledWith(expect.anything(), {
       weight: { value: 45, unit: "kg" },
     });
-    await act(async () => {
-      renderer?.unmount();
-      await Promise.resolve();
-    });
+    act(() => renderer.unmount());
   });
 });

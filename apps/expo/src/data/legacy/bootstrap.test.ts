@@ -1,81 +1,29 @@
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
-import { createTransactionQueue } from "../database/transactions";
-import { resetApplicationData } from "../lifecycle/reset";
-import { bootstrapLegacyConversion } from "./bootstrap";
+import { transaction } from "../database/db";
+import { nodeDb } from "../database/test-db";
+import { defaultDomainData, replaceDomainData } from "../lifecycle/replace";
+import { bootstrapDatabase } from "./bootstrap";
 
 function harness() {
-  const db = new DatabaseSync(":memory:");
-  db.exec("PRAGMA foreign_keys = ON");
-  const transaction = {
-    execAsync: (sql: string) => {
-      db.exec(sql);
-      return Promise.resolve();
-    },
-    getFirstAsync: <T>(
-      sql: string,
-      ...parameters: (string | number | null)[]
-    ) =>
-      Promise.resolve(
-        (db.prepare(sql).get(...parameters) as T | undefined) ?? null,
-      ),
-    getAllAsync: <T>(sql: string) =>
-      Promise.resolve(db.prepare(sql).all() as T[]),
-    prepareAsync: (sql: string) => {
-      const statement = db.prepare(sql);
-      return Promise.resolve({
-        executeAsync: (...parameters: (string | number | null)[]) =>
-          Promise.resolve(statement.run(...parameters)),
-        finalizeAsync: () => Promise.resolve(),
-      });
-    },
-    runAsync: (sql: string, ...parameters: (string | number | null)[]) =>
-      Promise.resolve({
-        changes: Number(db.prepare(sql).run(...parameters).changes),
-      }),
-  };
-  const queue = createTransactionQueue(transaction, "BEGIN IMMEDIATE");
+  const db = nodeDb(new DatabaseSync(":memory:"));
+  db.execSync("PRAGMA foreign_keys = ON");
   const keys = new Map<string, string>();
-  let opens = 0;
-  let failReceipt = false;
   let failRemoval = false;
   const storage = {
-    getItemAsync: (key: string) => Promise.resolve(keys.get(key) ?? null),
-    setItemAsync: (key: string, value: string) => {
-      if (failReceipt) return Promise.reject(new Error("receipt write failed"));
-      keys.set(key, value);
-      return Promise.resolve();
+    getItemSync: (key: string) => keys.get(key) ?? null,
+    removeItemSync: (key: string) => {
+      if (failRemoval) throw new Error("legacy removal failed");
+      return keys.delete(key);
     },
-    removeItemAsync: (key: string) => {
-      if (failRemoval)
-        return Promise.reject(new Error("legacy removal failed"));
-      keys.delete(key);
-      return Promise.resolve();
-    },
-  };
-  const options = {
-    open: () => {
-      opens++;
-      return Promise.resolve({
-        read: queue,
-        write: queue,
-        close: () => Promise.resolve(),
-      });
-    },
-    storage,
-    createDatabaseId: () => "database-id",
-    now: () => 123,
   };
   return {
-    db,
+    db: db.raw,
     keys,
-    options,
-    write: queue,
-    opens: () => opens,
-    failReceipt: (value: boolean) => {
-      failReceipt = value;
-    },
+    bootstrap: () => bootstrapDatabase(db, storage),
+    reset: () =>
+      transaction(db, () => replaceDomainData(db, defaultDomainData())),
     failRemoval: (value: boolean) => {
       failRemoval = value;
     },
@@ -83,7 +31,7 @@ function harness() {
 }
 
 describe("legacy conversion bootstrap", () => {
-  it("converts once, reopens for verification, and ignores stale legacy data on restart", async () => {
+  it("imports the legacy stores once and ignores stale legacy data on restart", () => {
     const test = harness();
     try {
       test.keys.set(
@@ -99,124 +47,66 @@ describe("legacy conversion bootstrap", () => {
         "exercise-storage",
         JSON.stringify({ version: 2, state: { exercises: [] } }),
       );
-      test.keys.set(
-        "activity-log-restore-transaction",
-        JSON.stringify({
-          version: 1,
-          stores: {
-            "workout-storage": test.keys.get("workout-storage"),
-            "exercise-storage": test.keys.get("exercise-storage"),
-          },
-        }),
-      );
-      const first = await bootstrapLegacyConversion(test.options);
-      expect(test.opens()).toBe(2);
-      expect(
-        test.db.prepare("SELECT state FROM bootstrap_state").get(),
-      ).toEqual({ state: "ready" });
+      test.keys.set("activity-log-restore-transaction", "{}");
+      test.bootstrap();
+      expect(test.db.prepare("PRAGMA user_version").get()).toEqual({
+        user_version: 1,
+      });
       expect(test.db.prepare("SELECT name FROM programs").get()).toEqual({
         name: "Program",
       });
-      expect(
-        JSON.parse(test.keys.get("activity-log-sqlite-cutover") ?? "null"),
-      ).toEqual({ version: 1, databaseId: "database-id" });
-      expect(test.keys.has("workout-storage")).toBe(false);
-      expect(test.keys.has("exercise-storage")).toBe(false);
-      expect(test.keys.has("activity-log-restore-transaction")).toBe(false);
-      expect(
-        test.db
-          .prepare("SELECT count(*) AS count FROM conversion_snapshots")
-          .get(),
-      ).toEqual({ count: 0 });
-      await first.close();
+      expect(test.keys.size).toBe(0);
       test.keys.set("workout-storage", "invalid stale legacy data");
-      await bootstrapLegacyConversion(test.options);
-      expect(test.db.prepare("SELECT name FROM programs").get()).toEqual({
-        name: "Program",
-      });
-      expect(test.opens()).toBe(3);
+      test.bootstrap();
+      expect(test.db.prepare("SELECT name FROM programs").all()).toEqual([
+        { name: "Program" },
+      ]);
     } finally {
       test.db.close();
     }
   });
 
-  it("finishes installing a receipt after a prior write failure without reimporting", async () => {
+  it("starts a new install with the default settings", () => {
     const test = harness();
     try {
-      test.failReceipt(true);
-      await expect(bootstrapLegacyConversion(test.options)).rejects.toThrow(
-        "receipt write failed",
-      );
-      expect(
-        test.db.prepare("SELECT state FROM bootstrap_state").get(),
-      ).toEqual({ state: "ready" });
-      test.keys.set("workout-storage", "stale");
-      test.failReceipt(false);
-      await bootstrapLegacyConversion(test.options);
-      expect(
-        test.db
-          .prepare("SELECT count(*) AS count FROM conversion_snapshots")
-          .get(),
-      ).toEqual({ count: 0 });
-      expect(test.keys.has("activity-log-sqlite-cutover")).toBe(true);
-    } finally {
-      test.db.close();
-    }
-  });
-
-  it("does not import stale legacy data when the retirement receipt exists but the target is missing", async () => {
-    const test = harness();
-    try {
-      test.keys.set(
-        "activity-log-sqlite-cutover",
-        JSON.stringify({ version: 1, databaseId: "old" }),
-      );
-      test.keys.set("workout-storage", "old data");
-      await expect(bootstrapLegacyConversion(test.options)).rejects.toThrow(
-        "Recovery is required",
-      );
-      expect(
-        test.db.prepare("SELECT count(*) AS count FROM bootstrap_state").get(),
-      ).toEqual({ count: 0 });
-    } finally {
-      test.db.close();
-    }
-  });
-
-  it("does not reimport old source data after an atomic reset and restart", async () => {
-    const test = harness();
-    try {
-      const legacy = JSON.stringify({
-        version: 2,
-        state: { programs: [{ programId: "p", name: "Old", sessions: [] }] },
-      });
-      test.keys.set("workout-storage", legacy);
-      await bootstrapLegacyConversion(test.options);
-      const generation = test.db
-        .prepare("SELECT generation FROM bootstrap_state")
-        .get() as { generation: number };
-      await test.write((transaction) =>
-        resetApplicationData(transaction, generation.generation),
-      );
-      expect(test.keys.has("workout-storage")).toBe(false);
-      await bootstrapLegacyConversion(test.options);
+      test.bootstrap();
       expect(
         test.db.prepare("SELECT count(*) AS count FROM programs").get(),
       ).toEqual({ count: 0 });
       expect(
-        test.db.prepare("SELECT state, generation FROM bootstrap_state").get(),
-      ).toEqual({ state: "ready", generation: generation.generation + 1 });
+        (
+          test.db
+            .prepare("SELECT count(*) AS count FROM exercise_presets")
+            .get() as { count: number }
+        ).count,
+      ).toBeGreaterThan(0);
+    } finally {
+      test.db.close();
+    }
+  });
+
+  it("does not reimport after a reset and restart", () => {
+    const test = harness();
+    try {
+      test.keys.set(
+        "workout-storage",
+        JSON.stringify({
+          version: 2,
+          state: { programs: [{ programId: "p", name: "Old", sessions: [] }] },
+        }),
+      );
+      test.bootstrap();
+      test.reset();
+      test.bootstrap();
       expect(
-        test.db
-          .prepare("SELECT count(*) AS count FROM conversion_snapshots")
-          .get(),
+        test.db.prepare("SELECT count(*) AS count FROM programs").get(),
       ).toEqual({ count: 0 });
     } finally {
       test.db.close();
     }
   });
 
-  it("retries failed legacy cleanup without repeating conversion", async () => {
+  it("retries failed legacy cleanup without repeating the import", () => {
     const test = harness();
     try {
       test.keys.set(
@@ -229,36 +119,27 @@ describe("legacy conversion bootstrap", () => {
         }),
       );
       test.failRemoval(true);
-      await expect(bootstrapLegacyConversion(test.options)).rejects.toThrow(
-        "legacy removal failed",
-      );
-      expect(test.keys.has("workout-storage")).toBe(true);
-      expect(
-        test.db.prepare("SELECT state FROM bootstrap_state").get(),
-      ).toEqual({ state: "ready" });
+      expect(() => test.bootstrap()).toThrow("legacy removal failed");
       test.failRemoval(false);
-      await bootstrapLegacyConversion(test.options);
+      test.bootstrap();
       expect(test.keys.has("workout-storage")).toBe(false);
-      expect(test.db.prepare("SELECT name FROM programs").get()).toEqual({
-        name: "Saved",
-      });
-      expect(
-        test.db
-          .prepare("SELECT count(*) AS count FROM conversion_snapshots")
-          .get(),
-      ).toEqual({ count: 0 });
+      expect(test.db.prepare("SELECT name FROM programs").all()).toEqual([
+        { name: "Saved" },
+      ]);
     } finally {
       test.db.close();
     }
   });
 
-  it("retains the legacy source when conversion fails", async () => {
+  it("keeps the legacy source and imports nothing when conversion fails", () => {
     const test = harness();
     try {
       test.keys.set("workout-storage", "invalid-json");
-      await expect(bootstrapLegacyConversion(test.options)).rejects.toThrow();
+      expect(() => test.bootstrap()).toThrow();
       expect(test.keys.get("workout-storage")).toBe("invalid-json");
-      expect(test.keys.has("activity-log-sqlite-cutover")).toBe(false);
+      expect(
+        test.db.prepare("SELECT count(*) AS count FROM sqlite_master").get(),
+      ).toEqual({ count: 0 });
     } finally {
       test.db.close();
     }

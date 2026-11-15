@@ -1,8 +1,7 @@
-import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 import type { ExerciseInput } from "./exercises";
-import { SCHEMA_V1 } from "../database/schema";
+import { createTestDb } from "../database/test-db";
 import {
   createExercise,
   editExercise,
@@ -14,24 +13,6 @@ import {
   setExerciseOneRepMax,
 } from "./exercises";
 
-function adapter(db: DatabaseSync) {
-  return {
-    getFirstAsync: <T>(
-      sql: string,
-      ...parameters: (string | number | null)[]
-    ) =>
-      Promise.resolve(
-        (db.prepare(sql).get(...parameters) as T | undefined) ?? null,
-      ),
-    getAllAsync: <T>(sql: string, ...parameters: (string | number | null)[]) =>
-      Promise.resolve(db.prepare(sql).all(...parameters) as T[]),
-    runAsync: (sql: string, ...parameters: (string | number | null)[]) =>
-      Promise.resolve({
-        changes: Number(db.prepare(sql).run(...parameters).changes),
-      }),
-  };
-}
-
 const exercise: ExerciseInput = {
   name: "  Bench   Press ",
   loadKind: "BARBELL",
@@ -42,16 +23,14 @@ const exercise: ExerciseInput = {
 };
 
 function setup() {
-  const db = new DatabaseSync(":memory:");
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1} BEGIN IMMEDIATE`);
-  return db;
+  return createTestDb();
 }
 
 describe("saved exercises", () => {
-  it("creates and lists exercises with ordered muscle labels", async () => {
+  it("creates and lists exercises with ordered muscle labels", () => {
     const db = setup();
     try {
-      await createExercise(adapter(db), "e", exercise);
+      createExercise(db, "e", exercise);
       const expected = {
         id: "e",
         name: "Bench Press",
@@ -63,99 +42,96 @@ describe("saved exercises", () => {
         deleted: false,
         revision: 0,
       };
-      expect(await getSavedExercise(adapter(db), "e")).toEqual(expected);
-      expect(await listSavedExercises(adapter(db))).toEqual([expected]);
-      db.exec("COMMIT");
+      expect(getSavedExercise(db, "e")).toEqual(expected);
+      expect(listSavedExercises(db)).toEqual([expected]);
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("protects live workouts when an exercise is deleted and checks restore conflicts", async () => {
+  it("protects live workouts when an exercise is deleted and checks restore conflicts", () => {
     const db = setup();
     try {
-      await createExercise(adapter(db), "old", exercise);
-      db.exec(`INSERT INTO programs VALUES ('p', 'P', 0);
+      createExercise(db, "old", exercise);
+      db.raw.exec(`INSERT INTO programs VALUES ('p', 'P', 0);
         INSERT INTO sessions(program_id, id, name, position, status, deload) VALUES ('p', 's', 'S', 0, 'Done', 0);
         INSERT INTO activities(program_id, session_id, id, exercise_id, position) VALUES ('p', 's', 'a', 'old', 0);`);
-      expect(await isExerciseUsed(adapter(db), "old")).toBe(true);
-      await setExerciseDeleted(adapter(db), "old", true);
-      await createExercise(adapter(db), "replacement", exercise);
-      await expect(
-        setExerciseDeleted(adapter(db), "old", false),
-      ).rejects.toThrow("name already exists");
-      expect(db.prepare("SELECT exercise_id FROM activities").get()).toEqual({
+      expect(isExerciseUsed(db, "old")).toBe(true);
+      setExerciseDeleted(db, "old", true);
+      createExercise(db, "replacement", exercise);
+      expect(() => setExerciseDeleted(db, "old", false)).toThrow(
+        "name already exists",
+      );
+      expect(
+        db.raw.prepare("SELECT exercise_id FROM activities").get(),
+      ).toEqual({
         exercise_id: "old",
       });
-      db.exec("COMMIT");
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("rejects stale edits and makes notes-only changes without rewriting muscles", async () => {
+  it("rejects stale edits and makes notes-only changes without rewriting muscles", () => {
     const db = setup();
     try {
-      await createExercise(adapter(db), "e", exercise);
-      expect(await setExerciseNotes(adapter(db), "e", "Changed")).toBe(true);
-      expect(await setExerciseNotes(adapter(db), "e", "Changed")).toBe(false);
-      await expect(editExercise(adapter(db), "e", 0, exercise)).rejects.toThrow(
+      createExercise(db, "e", exercise);
+      expect(setExerciseNotes(db, "e", "Changed")).toBe(true);
+      expect(setExerciseNotes(db, "e", "Changed")).toBe(false);
+      expect(() => editExercise(db, "e", 0, exercise)).toThrow(
         "exercise changed",
       );
-      expect(
-        (await getSavedExercise(adapter(db), "e"))?.primaryMuscles,
-      ).toEqual(["Chest", "Triceps"]);
-      await editExercise(adapter(db), "e", 1, {
+      expect(getSavedExercise(db, "e")?.primaryMuscles).toEqual([
+        "Chest",
+        "Triceps",
+      ]);
+      editExercise(db, "e", 1, {
         ...exercise,
         primaryMuscles: ["Shoulders"],
       });
-      expect(
-        (await getSavedExercise(adapter(db), "e"))?.primaryMuscles,
-      ).toEqual(["Shoulders"]);
-      db.exec("COMMIT");
+      expect(getSavedExercise(db, "e")?.primaryMuscles).toEqual(["Shoulders"]);
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("updates and clears only one-rep max while detecting no-ops and stale edits", async () => {
+  it("updates and clears only one-rep max while detecting no-ops and stale edits", () => {
     const db = setup();
     try {
-      const tx = adapter(db);
-      await createExercise(tx, "e", exercise);
-      expect(
-        await setExerciseOneRepMax(tx, "e", { value: 100, unit: "kg" }),
-      ).toBe(false);
-      expect(
-        await setExerciseOneRepMax(tx, "e", { value: 225, unit: "lbs" }),
-      ).toBe(true);
-      expect(await getSavedExercise(tx, "e")).toMatchObject({
+      const tx = db;
+      createExercise(tx, "e", exercise);
+      expect(setExerciseOneRepMax(tx, "e", { value: 100, unit: "kg" })).toBe(
+        false,
+      );
+      expect(setExerciseOneRepMax(tx, "e", { value: 225, unit: "lbs" })).toBe(
+        true,
+      );
+      expect(getSavedExercise(tx, "e")).toMatchObject({
         oneRepMax: { value: 225, unit: "lbs" },
         revision: 1,
         notes: "Notes",
         primaryMuscles: ["Chest", "Triceps"],
       });
-      await expect(
+      expect(() =>
         setExerciseOneRepMax(tx, "e", null, { value: 100, unit: "kg" }),
-      ).rejects.toThrow("one-rep max changed");
-      await expect(editExercise(tx, "e", 0, exercise)).rejects.toThrow(
+      ).toThrow("one-rep max changed");
+      expect(() => editExercise(tx, "e", 0, exercise)).toThrow(
         "exercise changed",
       );
-      await expect(
+      expect(() =>
         setExerciseOneRepMax(tx, "e", { value: NaN, unit: "lbs" }),
-      ).rejects.toThrow("finite");
-      await expect(setExerciseOneRepMax(tx, "missing", null)).rejects.toThrow(
+      ).toThrow("finite");
+      expect(() => setExerciseOneRepMax(tx, "missing", null)).toThrow(
         "Exercise not found",
       );
-      expect(await setExerciseOneRepMax(tx, "e", null)).toBe(true);
-      expect(await setExerciseOneRepMax(tx, "e", null)).toBe(false);
-      expect(await getSavedExercise(tx, "e")).toMatchObject({
+      expect(setExerciseOneRepMax(tx, "e", null)).toBe(true);
+      expect(setExerciseOneRepMax(tx, "e", null)).toBe(false);
+      expect(getSavedExercise(tx, "e")).toMatchObject({
         oneRepMax: null,
         revision: 2,
       });
-      db.exec("COMMIT");
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });

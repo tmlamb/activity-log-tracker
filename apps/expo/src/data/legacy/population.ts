@@ -1,22 +1,9 @@
-import { prepareLegacyConversion } from "./conversion";
-import { selectLegacySource } from "./source";
+import type { Db } from "../database/db";
+import type { prepareLegacyConversion } from "./conversion";
 
-type Conversion = ReturnType<typeof prepareLegacyConversion>;
+export type Conversion = ReturnType<typeof prepareLegacyConversion>;
 type SqlValue = string | number | null;
 type Row = Record<string, SqlValue>;
-
-export interface PopulationTransaction {
-  getFirstAsync<T>(sql: string, ...parameters: SqlValue[]): Promise<T | null>;
-  getAllAsync<T>(sql: string): Promise<T[]>;
-  runAsync(
-    sql: string,
-    ...parameters: SqlValue[]
-  ): Promise<{ changes: number }>;
-  prepareAsync(sql: string): Promise<{
-    executeAsync(...parameters: SqlValue[]): Promise<unknown>;
-    finalizeAsync(): Promise<void>;
-  }>;
-}
 
 interface TableSpec {
   table: string;
@@ -151,131 +138,15 @@ function values(row: Row, columns: string[]): SqlValue[] {
   });
 }
 
-async function conversionFromSnapshot(
-  transaction: PopulationTransaction,
-  snapshotId: number,
-) {
-  const snapshot = await transaction.getFirstAsync<{
-    workout: string | null;
-    exercises: string | null;
-    restore_journal: string | null;
-  }>(
-    "SELECT workout, exercises, restore_journal FROM conversion_snapshots WHERE id = ?",
-    snapshotId,
-  );
-  if (!snapshot) throw new Error("The conversion snapshot is missing.");
-  return prepareLegacyConversion(
-    selectLegacySource({
-      workout: snapshot.workout,
-      exercises: snapshot.exercises,
-      restoreJournal: snapshot.restore_journal,
-    }),
-  );
-}
-
-/** Insert a prepared canonical dataset inside the caller's writer transaction. */
-export async function insertConvertedData(
-  transaction: PopulationTransaction,
-  conversion: Conversion,
-) {
+/** Insert a prepared dataset into empty tables. Run inside a transaction. */
+export function insertConvertedData(db: Db, conversion: Conversion) {
   for (const { table, columns, rows } of tables(conversion)) {
-    const count = await transaction.getFirstAsync<{ count: number }>(
+    const count = db.getFirstSync<{ count: number }>(
       `SELECT COUNT(*) AS count FROM ${table}`,
     );
     if (count?.count !== 0)
       throw new Error(`The target table ${table} is not empty.`);
     const sql = `INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`;
-    if (rows.length > 0) {
-      const statement = await transaction.prepareAsync(sql);
-      try {
-        for (const row of rows) {
-          await statement.executeAsync(...values(row, columns));
-        }
-      } finally {
-        await statement.finalizeAsync();
-      }
-    }
+    for (const row of rows) db.runSync(sql, ...values(row, columns));
   }
-}
-
-/** Must run in the private writer transaction; no partial import may commit. */
-export async function populateLegacyData(
-  transaction: PopulationTransaction,
-  snapshotId: number,
-) {
-  const state = await transaction.getFirstAsync<{ state: string }>(
-    "SELECT state FROM bootstrap_state WHERE singleton = 1",
-  );
-  if (state?.state !== "source-captured")
-    throw new Error("The database is not awaiting conversion.");
-  const conversion = await conversionFromSnapshot(transaction, snapshotId);
-  await insertConvertedData(transaction, conversion);
-  await transaction.runAsync(
-    "INSERT INTO conversion_reports(snapshot_id, converter_version, report) VALUES (?, 1, ?)",
-    snapshotId,
-    JSON.stringify(conversion.report),
-  );
-  const updated = await transaction.runAsync(
-    "UPDATE bootstrap_state SET state = 'awaiting-verification' WHERE singleton = 1 AND state = 'source-captured'",
-  );
-  if (updated.changes !== 1)
-    throw new Error("The conversion state changed unexpectedly.");
-}
-
-/** Call after reopening the target on a fresh connection, before normal writes. */
-export async function verifyAndMarkLegacyDataReady(
-  transaction: PopulationTransaction,
-  snapshotId: number,
-  verifiedAt: number,
-) {
-  const state = await transaction.getFirstAsync<{ state: string }>(
-    "SELECT state FROM bootstrap_state WHERE singleton = 1",
-  );
-  if (state?.state !== "awaiting-verification")
-    throw new Error("The database is not awaiting verification.");
-  const integrity = await transaction.getFirstAsync<{
-    integrity_check: string;
-  }>("PRAGMA integrity_check");
-  if (integrity?.integrity_check !== "ok")
-    throw new Error("Database integrity check failed.");
-  const foreignKeys = await transaction.getAllAsync<unknown>(
-    "PRAGMA foreign_key_check",
-  );
-  if (foreignKeys.length !== 0)
-    throw new Error("Database foreign-key check failed.");
-  const conversion = await conversionFromSnapshot(transaction, snapshotId);
-  const reportRow = await transaction.getFirstAsync<{ report: string }>(
-    "SELECT report FROM conversion_reports WHERE snapshot_id = ? AND converter_version = 1 AND verified_at IS NULL",
-    snapshotId,
-  );
-  if (reportRow?.report !== JSON.stringify(conversion.report)) {
-    throw new Error(
-      "The conversion report does not match the captured source.",
-    );
-  }
-  for (const { table, columns, rows } of tables(conversion)) {
-    const actual = await transaction.getAllAsync<Row>(
-      `SELECT ${columns.join(", ")} FROM ${table}`,
-    );
-    const expectedValues = rows
-      .map((row) => JSON.stringify(values(row, columns)))
-      .sort();
-    const actualValues = actual
-      .map((row) => JSON.stringify(values(row, columns)))
-      .sort();
-    if (JSON.stringify(actualValues) !== JSON.stringify(expectedValues))
-      throw new Error(`Conversion verification failed for ${table}.`);
-  }
-  const report = await transaction.runAsync(
-    "UPDATE conversion_reports SET verified_at = ? WHERE snapshot_id = ? AND verified_at IS NULL",
-    verifiedAt,
-    snapshotId,
-  );
-  if (report.changes !== 1)
-    throw new Error("The conversion report is missing or already verified.");
-  const updatedState = await transaction.runAsync(
-    "UPDATE bootstrap_state SET state = 'ready' WHERE singleton = 1 AND state = 'awaiting-verification'",
-  );
-  if (updatedState.changes !== 1)
-    throw new Error("The database is not awaiting verification.");
 }

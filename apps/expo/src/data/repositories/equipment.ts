@@ -1,49 +1,20 @@
 import type { Equipment } from "@activity-log/ui/utils";
 
-import type { DrizzleTransactionExecutor } from "../database/drizzle-transaction";
-import { barbells, plates } from "../database/drizzle-schema";
-import { drizzleTransaction } from "../database/drizzle-transaction";
+import type { Db } from "../database/db";
 
-interface EquipmentTransaction {
-  getFirstAsync<T>(sql: string): Promise<T | null>;
-  getAllAsync<T>(sql: string): Promise<T[]>;
-  runAsync(
-    sql: string,
-    ...parameters: (string | number)[]
-  ): Promise<{ changes: number }>;
-}
-
-export async function getEquipment(
-  transaction: EquipmentTransaction & DrizzleTransactionExecutor,
-): Promise<Equipment> {
-  const db = drizzleTransaction(transaction);
-  const barbellRows = await db
-    .select({
-      barbellId: barbells.id,
-      value: barbells.value,
-      unit: barbells.unit,
-    })
-    .from(barbells)
-    .orderBy(barbells.position)
-    .all();
-  const plateRows = await db
-    .select({
-      plateId: plates.id,
-      value: plates.value,
-      unit: plates.unit,
-      quantity: plates.quantity,
-    })
-    .from(plates)
-    .orderBy(plates.position)
-    .all();
-  return { barbells: barbellRows, plates: plateRows };
+export function getEquipment(db: Db): Equipment {
+  return {
+    barbells: db.getAllSync<Equipment["barbells"][number]>(
+      "SELECT id AS barbellId, value, unit FROM barbells ORDER BY position",
+    ),
+    plates: db.getAllSync<Equipment["plates"][number]>(
+      "SELECT id AS plateId, value, unit, quantity FROM plates ORDER BY position",
+    ),
+  };
 }
 
 /** Preserve referenced IDs while atomically replacing and reordering inventory. */
-export async function replaceEquipment(
-  transaction: EquipmentTransaction,
-  equipment: Equipment,
-) {
+export function replaceEquipment(transaction: Db, equipment: Equipment) {
   const barbellIds = new Set<string>();
   for (const barbell of equipment.barbells) {
     if (!barbell.barbellId.trim() || barbellIds.has(barbell.barbellId))
@@ -60,16 +31,16 @@ export async function replaceEquipment(
     if (!Number.isFinite(plate.value) || !Number.isFinite(plate.quantity))
       throw new Error("Equipment values must be finite numbers.");
   }
-  const barbellMax = await transaction.getFirstAsync<{ max: number }>(
+  const barbellMax = transaction.getFirstSync<{ max: number }>(
     "SELECT COALESCE(MAX(position), -1) AS max FROM barbells",
   );
   const barbellOffset = (barbellMax?.max ?? -1) + equipment.barbells.length + 2;
-  await transaction.runAsync(
+  transaction.runSync(
     "UPDATE barbells SET position = position + ?",
     barbellOffset,
   );
   for (const [position, barbell] of equipment.barbells.entries()) {
-    await transaction.runAsync(
+    transaction.runSync(
       `INSERT INTO barbells(id, position, value, unit) VALUES (?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET position = excluded.position, value = excluded.value, unit = excluded.unit`,
       barbell.barbellId,
@@ -78,26 +49,23 @@ export async function replaceEquipment(
       barbell.unit,
     );
   }
-  await transaction.runAsync(
+  transaction.runSync(
     `UPDATE exercises SET barbell_id = NULL, revision = revision + 1
      WHERE barbell_id IN (SELECT id FROM barbells WHERE position >= ?)`,
     barbellOffset,
   );
-  await transaction.runAsync(
+  transaction.runSync(
     "DELETE FROM barbells WHERE position >= ?",
     barbellOffset,
   );
 
-  const plateMax = await transaction.getFirstAsync<{ max: number }>(
+  const plateMax = transaction.getFirstSync<{ max: number }>(
     "SELECT COALESCE(MAX(position), -1) AS max FROM plates",
   );
   const plateOffset = (plateMax?.max ?? -1) + equipment.plates.length + 2;
-  await transaction.runAsync(
-    "UPDATE plates SET position = position + ?",
-    plateOffset,
-  );
+  transaction.runSync("UPDATE plates SET position = position + ?", plateOffset);
   for (const [position, plate] of equipment.plates.entries()) {
-    await transaction.runAsync(
+    transaction.runSync(
       `INSERT INTO plates(id, position, value, unit, quantity) VALUES (?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET position = excluded.position, value = excluded.value, unit = excluded.unit, quantity = excluded.quantity`,
       plate.plateId,
@@ -107,8 +75,5 @@ export async function replaceEquipment(
       plate.quantity,
     );
   }
-  await transaction.runAsync(
-    "DELETE FROM plates WHERE position >= ?",
-    plateOffset,
-  );
+  transaction.runSync("DELETE FROM plates WHERE position >= ?", plateOffset);
 }

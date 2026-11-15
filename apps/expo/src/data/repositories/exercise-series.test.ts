@@ -1,4 +1,3 @@
-import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 import type {
@@ -10,12 +9,8 @@ import type {
 } from "@activity-log/ui/utils";
 import { buildExerciseInsights } from "@activity-log/ui/utils";
 
-import {
-  buildApplicationMemory,
-  getMemoryExerciseSeriesFacts,
-  readApplicationMemoryFacts,
-} from "../application-memory";
-import { SCHEMA_V1 } from "../database/schema";
+import type { Db } from "../database/db";
+import { createTestDb } from "../database/test-db";
 import { buildExerciseSeriesProjection } from "../domain/exercise-series";
 import { readExerciseSeriesFacts } from "./exercise-series";
 
@@ -29,8 +24,7 @@ const reference = {
 };
 
 function setup() {
-  const db = new DatabaseSync(":memory:");
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1}
+  const db = createTestDb(`
     INSERT INTO programs VALUES ('p', 'Program', 0), ('other', 'Other', 1);
     INSERT INTO session_lineages VALUES ('p', 'lineage'), ('other', 'lineage');
     INSERT INTO sessions(program_id,id,lineage_id,name,position,status,deload,start_ms)
@@ -53,16 +47,15 @@ function setup() {
              ('p','current','second','m2','Main',1,'Planned','Neutral',0,NULL,NULL),
              ('other','current','second','m2','Main',0,'Done','Hard',99,100,'lbs');`);
   let queries = 0;
-  const reader = {
-    getFirstAsync: <T>(sql: string, ...params: string[]) => {
+  const reader: Db = {
+    ...db,
+    getFirstSync: (sql, ...params) => {
       queries++;
-      return Promise.resolve(
-        (db.prepare(sql).get(...params) as T | undefined) ?? null,
-      );
+      return db.getFirstSync(sql, ...params);
     },
-    getAllAsync: <T>(sql: string, ...params: (string | number)[]) => {
+    getAllSync: (sql, ...params) => {
       queries++;
-      return Promise.resolve(db.prepare(sql).all(...params) as T[]);
+      return db.getAllSync(sql, ...params);
     },
   };
   return { db, reader, queries: () => queries };
@@ -100,26 +93,7 @@ const activity = (
 });
 
 describe("exercise-series projection", () => {
-  it("derives the same lineage series facts from hydrated data", async () => {
-    const { db, reader } = setup();
-    try {
-      const facts = await readExerciseSeriesFacts(reader, reference);
-      const memory = buildApplicationMemory(
-        await readApplicationMemoryFacts(reader),
-        1,
-      );
-      expect(getMemoryExerciseSeriesFacts(memory, reference)).toEqual(facts);
-      expect(
-        getMemoryExerciseSeriesFacts(memory, {
-          ...reference,
-          setId: "missing",
-        }),
-      ).toBeNull();
-    } finally {
-      db.close();
-    }
-  });
-  it("matches existing analytics for repeated occurrences, set positions, missing sets and calendar gaps", async () => {
+  it("matches existing analytics for repeated occurrences, set positions, missing sets and calendar gaps", () => {
     const { db, reader, queries } = setup();
     try {
       const old: Session = {
@@ -254,7 +228,7 @@ describe("exercise-series projection", () => {
       };
       const selectedSet = selectedActivity.mainSets[1];
       if (!selectedSet) throw new Error("Missing set");
-      const facts = await readExerciseSeriesFacts(reader, reference);
+      const facts = readExerciseSeriesFacts(reader, reference);
       if (!facts) throw new Error("Missing facts");
       expect(queries()).toBe(3);
       expect(facts.selection.occurrence).toBe(1);
@@ -290,29 +264,29 @@ describe("exercise-series projection", () => {
         weightLbs: 75 * 2.2046226218,
       });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("returns no data for unavailable selection and marks unknown recorded values partial", async () => {
+  it("returns no data for unavailable selection and marks unknown recorded values partial", () => {
     const { db, reader } = setup();
     try {
       expect(
-        await readExerciseSeriesFacts(reader, {
+        readExerciseSeriesFacts(reader, {
           ...reference,
           setId: "missing",
         }),
       ).toBeNull();
       expect(
-        await readExerciseSeriesFacts(reader, {
+        readExerciseSeriesFacts(reader, {
           ...reference,
           programId: "missing",
         }),
       ).toBeNull();
-      db.exec(
+      db.raw.exec(
         "UPDATE workout_sets SET actual_reps = NULL, weight_value = NULL, weight_unit = NULL WHERE program_id = 'p' AND session_id = 'old' AND activity_id = 'second' AND id = 'm1'",
       );
-      const facts = await readExerciseSeriesFacts(reader, reference);
+      const facts = readExerciseSeriesFacts(reader, reference);
       if (!facts) throw new Error("Missing facts");
       const result = buildExerciseSeriesProjection(facts, current.getTime());
       expect(result.partial).toBe(true);
@@ -321,20 +295,20 @@ describe("exercise-series projection", () => {
         weightLbs: 0,
         partial: true,
       });
-      db.exec(
+      db.raw.exec(
         "UPDATE activities SET exercise_id = NULL WHERE program_id = 'p' AND session_id = 'current' AND id = 'second'",
       );
-      expect(await readExerciseSeriesFacts(reader, reference)).toBeNull();
+      expect(readExerciseSeriesFacts(reader, reference)).toBeNull();
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("keeps exercise-series results independent of unrelated workout histories", async () => {
+  it("keeps exercise-series results independent of unrelated workout histories", () => {
     const { db, reader } = setup();
     try {
-      const before = await readExerciseSeriesFacts(reader, reference);
-      db.exec(`INSERT INTO session_lineages VALUES ('p', 'unrelated');
+      const before = readExerciseSeriesFacts(reader, reference);
+      db.raw.exec(`INSERT INTO session_lineages VALUES ('p', 'unrelated');
         WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
         INSERT INTO sessions(program_id,id,lineage_id,name,position,status,deload)
           SELECT 'p', 'unrelated-' || x, 'unrelated', 'Unrelated', x + 2, 'Done', 0 FROM n;
@@ -342,9 +316,9 @@ describe("exercise-series projection", () => {
           SELECT program_id,id,'a','e',0 FROM sessions WHERE lineage_id = 'unrelated';
         INSERT INTO workout_sets(program_id,session_id,activity_id,id,kind,position,status,feedback)
           SELECT program_id,session_id,id,'m','Main',0,'Done','Neutral' FROM activities WHERE session_id LIKE 'unrelated-%';`);
-      expect(await readExerciseSeriesFacts(reader, reference)).toEqual(before);
+      expect(readExerciseSeriesFacts(reader, reference)).toEqual(before);
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });

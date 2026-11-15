@@ -1,21 +1,13 @@
+import type { DatabaseSync } from "node:sqlite";
 import type { PropsWithChildren, ReactNode } from "react";
 import { act, create } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import SessionFormScreen from "~/app/(public)/(app)/program/[programId]/session/form/index";
-import { createWorkoutQueryClient } from "~/data/cache/query-client";
-import { ApplicationDataProvider } from "~/data/react/application-data";
-import { useSelectionHandoff } from "~/data/react/selection-handoff";
-
-const cache = createWorkoutQueryClient();
-function SessionForm({ runtime }: { runtime: ApplicationDataRuntime }) {
-  return (
-    <ApplicationDataProvider runtime={{ ...runtime, cache }}>
-      <SessionFormScreen />
-    </ApplicationDataProvider>
-  );
-}
+import * as actions from "~/data/actions";
+import { createTestDb } from "~/data/database/test-db";
+import { useSelectionHandoff } from "~/data/selection-handoff";
+import { read, setDatabase } from "~/data/store";
 
 const env = vi.hoisted(() => ({
   focused: true,
@@ -24,7 +16,6 @@ const env = vi.hoisted(() => ({
   replace: vi.fn(),
   dismissTo: vi.fn(),
   alert: vi.fn(),
-  sessionCount: 0,
 }));
 vi.mock("react-native-get-random-values", () => ({}));
 vi.mock("react-native", () => ({
@@ -96,25 +87,25 @@ vi.mock("./SegmentedInputThemed", () => ({
     </button>
   ),
 }));
-vi.mock("~/data/react/program-queries", () => ({
-  useProgramSummaries: () => ({
-    data: [{ id: "p", name: "Program", sessionCount: env.sessionCount }],
-  }),
-}));
-vi.mock("~/hooks/use-unsaved-changes-warning", () => ({
-  default: () => (navigate: () => void) => navigate(),
-}));
-vi.mock("~/data/react/session-queries", () => ({
-  useSessionEditorSeed: () => ({
-    data: {
-      generation: 1,
-      program: { id: "p", name: "Program" },
-      session: null,
-      policy: null,
-      exercises: [],
+vi.mock("~/data/actions", async (importOriginal) => {
+  const original = await importOriginal<typeof actions>();
+  return { ...original, createSession: vi.fn(original.createSession) };
+});
+vi.mock("~/hooks/use-unsaved-changes-warning", async () => {
+  const { useRef } = await import("react");
+  return {
+    default: function useUnsavedChangesWarning() {
+      const left = useRef(false);
+      return {
+        leaveWithoutWarning: (navigate: () => void) => {
+          left.current = true;
+          navigate();
+        },
+        hasLeft: () => left.current,
+      };
     },
-  }),
-}));
+  };
+});
 vi.mock("./Card", () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
@@ -200,30 +191,47 @@ vi.mock("./Typography", () => ({
   SectionHeading: ({ children }: PropsWithChildren) => <h2>{children}</h2>,
 }));
 
+let raw: DatabaseSync | undefined;
+const sessionNames = () =>
+  read((db) =>
+    db.getAllSync<{ name: string }>(
+      "SELECT name FROM sessions ORDER BY position",
+    ),
+  ).map(({ name }) => name);
+
 beforeEach(() => {
   (
     globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
   ).IS_REACT_ACT_ENVIRONMENT = true;
   env.focused = true;
-  env.sessionCount = 0;
   env.back.mockClear();
   env.push.mockClear();
   env.alert.mockClear();
+  vi.mocked(actions.createSession).mockClear();
   useSelectionHandoff.setState({ entries: {} });
+  const db = createTestDb(`
+    INSERT INTO programs (id, name, position) VALUES ('p', 'Program', 0);
+    INSERT INTO exercises (id, name, normalized_name, position)
+      VALUES ('e', 'Exercise', 'exercise', 0);
+  `);
+  raw = db.raw;
+  setDatabase(db);
 });
-afterEach(() => useSelectionHandoff.setState({ entries: {} }));
+afterEach(() => {
+  useSelectionHandoff.setState({ entries: {} });
+  setDatabase(undefined);
+  raw?.close();
+  raw = undefined;
+});
 
 describe("session editor interactions", () => {
   it("shows the original plan-source selector before opening a new session editor", async () => {
-    env.sessionCount = 1;
-    const snapshot = { generation: 1, service: {} };
-    const runtime = {
-      getSnapshot: () => snapshot,
-      subscribe: () => () => undefined,
-    } as unknown as ApplicationDataRuntime;
+    raw?.exec(
+      "INSERT INTO sessions (program_id, id, name, position, status, deload) VALUES ('p', 'old', 'Old', 0, 'Done', 0)",
+    );
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SessionForm runtime={runtime} />);
+      renderer = create(<SessionFormScreen />);
       await Promise.resolve();
     });
     if (!renderer) throw new Error("Renderer not created");
@@ -250,29 +258,10 @@ describe("session editor interactions", () => {
     });
   });
 
-  it("uses a scoped exercise selection and waits for the session commit before leaving", async () => {
-    let finish: (() => void) | undefined;
-    const commit = new Promise<void>((resolve) => {
-      finish = resolve;
-    });
-    const service = {
-      createSession: vi.fn(() => commit),
-      exercise: vi.fn().mockResolvedValue({
-        id: "e",
-        name: "Exercise",
-        deleted: false,
-        loadKind: "SINGLE_WEIGHT",
-        oneRepMax: null,
-      }),
-    };
-    const snapshot = { generation: 1, service };
-    const runtime = {
-      getSnapshot: () => snapshot,
-      subscribe: () => () => undefined,
-    } as unknown as ApplicationDataRuntime;
+  it("uses a scoped exercise selection and saves the session once before leaving", async () => {
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SessionForm runtime={runtime} />);
+      renderer = create(<SessionFormScreen />);
       await Promise.resolve();
     });
     if (!renderer) throw new Error("Renderer not created");
@@ -307,7 +296,7 @@ describe("session editor interactions", () => {
     if (!entry) throw new Error("Missing selection request");
     await act(async () => {
       env.focused = false;
-      renderer?.update(<SessionForm runtime={runtime} />);
+      renderer?.update(<SessionFormScreen />);
       await Promise.resolve();
     });
     await act(async () => {
@@ -320,7 +309,7 @@ describe("session editor interactions", () => {
     });
     await act(async () => {
       env.focused = true;
-      renderer?.update(<SessionForm runtime={runtime} />);
+      renderer?.update(<SessionFormScreen />);
       await Promise.resolve();
     });
     expect(
@@ -329,12 +318,14 @@ describe("session editor interactions", () => {
         .some((node) => node.children.includes("Exercise")),
     ).toBe(true);
     await act(async () => {
+      // A second tap while the screen closes must not save again or alert.
       click("Save");
       click("Save");
       await Promise.resolve();
     });
-    expect(service.createSession).toHaveBeenCalledOnce();
-    expect(service.createSession).toHaveBeenCalledWith(
+    expect(env.alert).not.toHaveBeenCalled();
+    expect(actions.createSession).toHaveBeenCalledOnce();
+    expect(actions.createSession).toHaveBeenCalledWith(
       "p",
       expect.any(String),
       expect.objectContaining({
@@ -343,11 +334,7 @@ describe("session editor interactions", () => {
       }),
       null,
     );
-    expect(env.back).not.toHaveBeenCalled();
-    await act(async () => {
-      finish?.();
-      await commit;
-    });
+    expect(sessionNames()).toEqual(["Training"]);
     expect(env.back).toHaveBeenCalledOnce();
     await act(async () => {
       renderer?.unmount();
@@ -356,20 +343,12 @@ describe("session editor interactions", () => {
   });
 
   it("keeps the draft open after a failed save and permits retry", async () => {
-    const service = {
-      createSession: vi
-        .fn()
-        .mockRejectedValueOnce(new Error("disk full"))
-        .mockResolvedValueOnce(undefined),
-    };
-    const snapshot = { generation: 1, service };
-    const runtime = {
-      getSnapshot: () => snapshot,
-      subscribe: () => () => undefined,
-    } as unknown as ApplicationDataRuntime;
+    vi.mocked(actions.createSession).mockImplementationOnce(() => {
+      throw new Error("disk full");
+    });
     let renderer: ReturnType<typeof create> | undefined;
     await act(async () => {
-      renderer = create(<SessionForm runtime={runtime} />);
+      renderer = create(<SessionFormScreen />);
       await Promise.resolve();
     });
     if (!renderer) throw new Error("Renderer not created");
@@ -395,6 +374,7 @@ describe("session editor interactions", () => {
       "Training",
     );
     expect(env.back).not.toHaveBeenCalled();
+    expect(sessionNames()).toEqual([]);
     await act(async () => {
       (
         root.findByProps({ "data-label": "Save" }).props as {
@@ -403,6 +383,7 @@ describe("session editor interactions", () => {
       ).onClick();
       await Promise.resolve();
     });
+    expect(sessionNames()).toEqual(["Training"]);
     expect(env.back).toHaveBeenCalledOnce();
     await act(async () => {
       renderer?.unmount();

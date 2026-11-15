@@ -1,7 +1,7 @@
-import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
-import { SCHEMA_V1 } from "../database/schema";
+import { transaction } from "../database/db";
+import { createTestDb } from "../database/test-db";
 import {
   cleanupInactiveSessions,
   completeSession,
@@ -10,27 +10,8 @@ import {
   setSessionDeload,
 } from "./session-lifecycle";
 
-function adapter(db: DatabaseSync) {
-  return {
-    getFirstAsync: <T>(
-      sql: string,
-      ...parameters: (string | number | null)[]
-    ) =>
-      Promise.resolve(
-        (db.prepare(sql).get(...parameters) as T | undefined) ?? null,
-      ),
-    getAllAsync: <T>(sql: string, ...parameters: (string | number | null)[]) =>
-      Promise.resolve(db.prepare(sql).all(...parameters) as T[]),
-    runAsync: (sql: string, ...parameters: (string | number | null)[]) =>
-      Promise.resolve({
-        changes: Number(db.prepare(sql).run(...parameters).changes),
-      }),
-  };
-}
-
 function setup() {
-  const db = new DatabaseSync(":memory:");
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1}
+  const db = createTestDb(`
     INSERT INTO programs VALUES ('p', 'Program', 0);
     INSERT INTO sessions(program_id, id, name, position, status, deload, start_ms, last_activity_at_ms)
       VALUES ('p', 's', 'Session', 0, 'Ready', 0, 100, 200);
@@ -39,21 +20,17 @@ function setup() {
       VALUES ('p', 's', 'a', 'already', 'Main', 0, 'Done', 'Neutral', 5, NULL, NULL),
              ('p', 's', 'a', 'positive', 'Main', 1, 'Ready', 'Neutral', 5, 900, 800),
              ('p', 's', 'a', 'started', 'Main', 2, 'Ready', 'Neutral', 0, 300, NULL),
-             ('p', 's', 'a', 'unstarted', 'Main', 3, 'Planned', 'Neutral', NULL, NULL, NULL);
-    BEGIN IMMEDIATE;`);
+             ('p', 's', 'a', 'unstarted', 'Main', 3, 'Planned', 'Neutral', NULL, NULL, NULL);`);
   return db;
 }
 
 describe("session lifecycle", () => {
-  it("finalizes sets with the existing completion semantics", async () => {
+  it("finalizes sets with the existing completion semantics", () => {
     const db = setup();
     try {
-      await expect(
-        completeSession(adapter(db), "p", "s", 600, 1000),
-      ).resolves.toBe(true);
-      db.exec("COMMIT");
+      expect(completeSession(db, "p", "s", 600, 1000)).toBe(true);
       expect(
-        db
+        db.raw
           .prepare(
             "SELECT id, status, start_ms, end_ms FROM workout_sets ORDER BY position",
           )
@@ -65,49 +42,46 @@ describe("session lifecycle", () => {
         { id: "unstarted", status: "Incomplete", start_ms: null, end_ms: null },
       ]);
       expect(
-        db
+        db.raw
           .prepare("SELECT status, end_ms, last_activity_at_ms FROM sessions")
           .get(),
       ).toEqual({ status: "Done", end_ms: 600, last_activity_at_ms: 1000 });
-      await expect(
-        completeSession(adapter(db), "p", "s", 700, 1100),
-      ).resolves.toBe(false);
+      expect(completeSession(db, "p", "s", 700, 1100)).toBe(false);
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("acknowledges a timed-out session without replacing its recorded end", async () => {
+  it("acknowledges a timed-out session without replacing its recorded end", () => {
     const db = setup();
     try {
-      db.exec(
+      db.raw.exec(
         "UPDATE sessions SET status = 'Incomplete', end_ms = 400 WHERE id = 's'",
       );
-      await completeSession(adapter(db), "p", "s", 900, 1000);
-      db.exec("COMMIT");
+      completeSession(db, "p", "s", 900, 1000);
       expect(
-        db
+        db.raw
           .prepare("SELECT status, end_ms, last_activity_at_ms FROM sessions")
           .get(),
       ).toEqual({ status: "Done", end_ms: 400, last_activity_at_ms: 1000 });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("cleans up only expired ready sessions and uses the legacy completed-set fallback", async () => {
+  it("cleans up only expired ready sessions and uses the legacy completed-set fallback", () => {
     const db = setup();
     try {
-      db.exec(`UPDATE sessions SET last_activity_at_ms = NULL WHERE id = 's';
+      db.raw
+        .exec(`UPDATE sessions SET last_activity_at_ms = NULL WHERE id = 's';
         UPDATE workout_sets SET end_ms = 250 WHERE id = 'already';
         INSERT INTO sessions(program_id, id, name, position, status, deload, last_activity_at_ms)
           VALUES ('p', 'recent', 'Recent', 1, 'Ready', 0, 5_000_000),
                  ('p', 'planned', 'Planned', 2, 'Planned', 0, NULL);`);
-      const expired = await cleanupInactiveSessions(adapter(db), 5_000_000);
-      db.exec("COMMIT");
+      const expired = cleanupInactiveSessions(db, 5_000_000);
       expect(expired).toEqual([{ programId: "p", sessionId: "s" }]);
       expect(
-        db
+        db.raw
           .prepare(
             "SELECT id, status, end_ms, last_activity_at_ms FROM sessions ORDER BY position",
           )
@@ -133,16 +107,16 @@ describe("session lifecycle", () => {
         },
       ]);
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });
 
 describe("session metadata operations", () => {
-  it("resets only the selected session while retaining its planning, weights, feedback, deload, and lineage", async () => {
+  it("resets only the selected session while retaining its planning, weights, feedback, deload, and lineage", () => {
     const db = setup();
     try {
-      db.exec(`INSERT INTO session_lineages VALUES ('p', 'lineage');
+      db.raw.exec(`INSERT INTO session_lineages VALUES ('p', 'lineage');
         UPDATE sessions SET lineage_id = 'lineage', deload = 1, status = 'Done', end_ms = 500 WHERE id = 's';
         UPDATE workout_sets SET weight_value = 42.5, weight_unit = 'kg', feedback = 'Hard' WHERE id = 'positive';
         INSERT INTO sessions(program_id, id, name, position, status, deload, start_ms)
@@ -150,10 +124,9 @@ describe("session metadata operations", () => {
         INSERT INTO activities(program_id, session_id, id, position) VALUES ('p', 'other', 'a', 0);
         INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback, actual_reps)
           VALUES ('p', 'other', 'a', 'positive', 'Main', 0, 'Done', 'Easy', 9);`);
-      await resetSession(adapter(db), "p", "s", 0, 1000);
-      db.exec("COMMIT");
+      resetSession(db, "p", "s", 0, 1000);
       expect(
-        db
+        db.raw
           .prepare(
             "SELECT status, start_ms, end_ms, last_activity_at_ms, deload, lineage_id, revision FROM sessions WHERE id = 's'",
           )
@@ -168,7 +141,7 @@ describe("session metadata operations", () => {
         revision: 1,
       });
       expect(
-        db
+        db.raw
           .prepare(
             "SELECT status, start_ms, end_ms, actual_reps, weight_value, weight_unit, feedback FROM workout_sets WHERE session_id = 's' AND id = 'positive'",
           )
@@ -183,71 +156,67 @@ describe("session metadata operations", () => {
         feedback: "Hard",
       });
       expect(
-        db
+        db.raw
           .prepare(
             "SELECT COUNT(*) AS count FROM workout_sets WHERE session_id = 's' AND (status <> 'Planned' OR start_ms IS NOT NULL OR end_ms IS NOT NULL OR actual_reps <> 0)",
           )
           .get(),
       ).toEqual({ count: 0 });
       expect(
-        db
+        db.raw
           .prepare(
             "SELECT status, actual_reps FROM workout_sets WHERE session_id = 'other'",
           )
           .get(),
       ).toEqual({ status: "Done", actual_reps: 9 });
-      await expect(
-        resetSession(adapter(db), "p", "s", 0, 2000),
-      ).rejects.toThrow("session changed");
-      await expect(
-        resetSession(adapter(db), "p", "missing", 0, 2000),
-      ).rejects.toThrow("Session not found");
+      expect(() => resetSession(db, "p", "s", 0, 2000)).toThrow(
+        "session changed",
+      );
+      expect(() => resetSession(db, "p", "missing", 0, 2000)).toThrow(
+        "Session not found",
+      );
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("rolls back set resets if the session update fails", async () => {
+  it("rolls back set resets if the session update fails", () => {
     const db = setup();
     try {
-      db.exec(
+      db.raw.exec(
         `CREATE TRIGGER reject_reset BEFORE UPDATE ON sessions BEGIN SELECT RAISE(ABORT, 'reset failed'); END;`,
       );
-      await expect(
-        resetSession(adapter(db), "p", "s", 0, 1000),
-      ).rejects.toThrow("reset failed");
-      db.exec("ROLLBACK");
+      expect(() =>
+        transaction(db, () => resetSession(db, "p", "s", 0, 1000)),
+      ).toThrow("reset failed");
       expect(
-        db
+        db.raw
           .prepare(
             "SELECT status, actual_reps FROM workout_sets WHERE id = 'positive'",
           )
           .get(),
       ).toEqual({ status: "Ready", actual_reps: 5 });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("updates deload and protects against deleting a stale revision", async () => {
+  it("updates deload and protects against deleting a stale revision", () => {
     const db = setup();
     try {
-      await setSessionDeload(adapter(db), "p", "s", true, 1000);
-      await expect(deleteSession(adapter(db), "p", "s", 0)).rejects.toThrow(
-        "session changed",
-      );
+      setSessionDeload(db, "p", "s", true, 1000);
+      expect(() => deleteSession(db, "p", "s", 0)).toThrow("session changed");
       expect(
-        db
+        db.raw
           .prepare("SELECT deload, revision, last_activity_at_ms FROM sessions")
           .get(),
       ).toEqual({ deload: 1, revision: 1, last_activity_at_ms: 1000 });
-      await deleteSession(adapter(db), "p", "s", 1);
-      db.exec("COMMIT");
+      deleteSession(db, "p", "s", 1);
       expect(
-        db.prepare("SELECT count(*) AS count FROM workout_sets").get(),
+        db.raw.prepare("SELECT count(*) AS count FROM workout_sets").get(),
       ).toEqual({ count: 0 });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });

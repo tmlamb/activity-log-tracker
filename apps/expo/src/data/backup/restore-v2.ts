@@ -1,14 +1,7 @@
 import { normalizeExerciseName } from "@activity-log/ui/utils";
 
 import type { prepareLegacyConversion } from "../legacy/conversion";
-import type { PopulationTransaction } from "../legacy/population";
 import type { PortableDataV2 } from "./portable-v2";
-import { insertConvertedData } from "../legacy/population";
-import {
-  advanceGeneration,
-  assertReadyGeneration,
-  clearDomainData,
-} from "../lifecycle/reset";
 import { parsePortableBackupV2 } from "./portable-v2";
 
 type PreparedRows = ReturnType<typeof prepareLegacyConversion>;
@@ -92,9 +85,6 @@ function toRows(data: PortableDataV2): PreparedRows {
     catalog: [],
     exerciseMuscles: [],
     presetMuscles: [],
-    exerciseIds: new Map(),
-    identities: [],
-    repairs: [],
   };
   const history: PreparedRows["history"] = {
     programs: [],
@@ -102,8 +92,6 @@ function toRows(data: PortableDataV2): PreparedRows {
     sessions: [],
     activities: [],
     sets: [],
-    identities: [],
-    repairs: [],
   };
   const labelIds = new Map<string, number>();
   const label = (name: string) => {
@@ -218,27 +206,5 @@ function toRows(data: PortableDataV2): PreparedRows {
       });
     });
   });
-  return {
-    settings,
-    history,
-    report: {
-      version: 1,
-      workoutVersion: null,
-      presetVersion: null,
-      identities: [],
-      repairs: [],
-    },
-  };
-}
-
-/** Replace domain rows and advance the generation within one writer job. */
-export async function restoreVersion2Data(
-  transaction: PopulationTransaction,
-  expectedGeneration: number,
-  prepared: PreparedRows,
-) {
-  await assertReadyGeneration(transaction, expectedGeneration);
-  await clearDomainData(transaction);
-  await insertConvertedData(transaction, prepared);
-  return advanceGeneration(transaction, expectedGeneration);
+  return { settings, history };
 }

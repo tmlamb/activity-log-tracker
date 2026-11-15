@@ -3,57 +3,33 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
-import { SCHEMA_V1 } from "../database/schema";
+import type { Db, SqlValue } from "../database/db";
+import { transaction } from "../database/db";
+import { SCHEMA } from "../database/schema";
+import { createTestDb, nodeDb } from "../database/test-db";
+import { replaceDomainData } from "../lifecycle/replace";
 import { readPortableDataV2 } from "./export-v2";
 import {
   parsePortableBackupV2,
   serializePortableBackupV2,
 } from "./portable-v2";
-import { prepareVersion2Restore, restoreVersion2Data } from "./restore-v2";
+import { prepareVersion2Restore } from "./restore-v2";
 
-function adapter(db: DatabaseSync) {
+function counting(db: Db) {
   let calls = 0;
-  return {
-    reader: {
-      getAllAsync: <T>(sql: string) => {
-        calls++;
-        return Promise.resolve(db.prepare(sql).all() as T[]);
-      },
-    },
-    calls: () => calls,
-  };
-}
-
-function writerAdapter(db: DatabaseSync) {
-  return {
-    getFirstAsync: <T>(sql: string, ...params: (string | number | null)[]) =>
-      Promise.resolve(
-        (db.prepare(sql).get(...params) as T | undefined) ?? null,
-      ),
-    getAllAsync: <T>(sql: string) =>
-      Promise.resolve(db.prepare(sql).all() as T[]),
-    runAsync: (sql: string, ...params: (string | number | null)[]) =>
-      Promise.resolve({
-        changes: Number(db.prepare(sql).run(...params).changes),
-      }),
-    prepareAsync: (sql: string) => {
-      const statement = db.prepare(sql);
-      return Promise.resolve({
-        executeAsync: (...params: (string | number | null)[]) =>
-          Promise.resolve(statement.run(...params)),
-        finalizeAsync: () => Promise.resolve(),
-      });
+  const reader: Db = {
+    ...db,
+    getAllSync: (sql, ...params) => {
+      calls++;
+      return db.getAllSync(sql, ...params);
     },
   };
+  return { reader, calls: () => calls };
 }
 
 describe("portable backup v2 export", () => {
-  it("preserves scoped IDs, order, unknown values, deleted exercises and customized presets", async () => {
-    const db = new DatabaseSync(":memory:");
-    try {
-      db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1}
-        INSERT INTO bootstrap_state VALUES (1,'secret-db','ready',4);
-        INSERT INTO conversion_snapshots VALUES (1,'secret-original',NULL,NULL,12);
+  it("preserves scoped IDs, order, unknown values, deleted exercises and customized presets", () => {
+    const db = createTestDb(`
         INSERT INTO programs VALUES ('p2','Second',1), ('p1','First',0);
         INSERT INTO session_lineages VALUES ('p1','lineage'), ('p1','orphan'), ('p2','lineage');
         INSERT INTO sessions(program_id,id,lineage_id,name,position,status,deload,start_ms,end_ms,last_activity_at_ms)
@@ -76,10 +52,9 @@ describe("portable backup v2 export", () => {
                  ('p1','same','a','m1','Main',0,'Done','Easy',5,10,'kg',123456789,123456790),
                  ('p1','same','a','w','Warmup',0,'Done','Neutral',3,5,'lbs',NULL,NULL),
                  ('p2','same','a','m1','Main',0,'Done','Neutral',8,20,'lbs',NULL,NULL);`);
-      const { reader, calls } = adapter(db);
-      db.exec("BEGIN");
-      const data = await readPortableDataV2(reader);
-      db.exec("COMMIT");
+    try {
+      const { reader, calls } = counting(db);
+      const data = readPortableDataV2(reader);
       expect(calls()).toBe(12);
       expect(data.programs.map(({ id }) => id)).toEqual(["p1", "p2"]);
       expect(data.programs[0]).toMatchObject({
@@ -141,62 +116,48 @@ describe("portable backup v2 export", () => {
         createdAtMs: 200,
         data,
       });
-      expect(json).not.toContain("secret-original");
-      expect(json).not.toContain("secret-db");
-      expect(json).not.toContain("bootstrap_state");
       const prepared = prepareVersion2Restore(json);
-      db.exec(
-        "CREATE TRIGGER reject_restore BEFORE INSERT ON workout_sets BEGIN SELECT RAISE(ABORT, 'simulated storage failure'); END; BEGIN IMMEDIATE",
+      db.raw.exec(
+        "CREATE TRIGGER reject_restore BEFORE INSERT ON workout_sets BEGIN SELECT RAISE(ABORT, 'simulated storage failure'); END",
       );
-      await expect(
-        restoreVersion2Data(writerAdapter(db), 4, prepared),
-      ).rejects.toThrow("simulated storage failure");
-      db.exec("ROLLBACK; DROP TRIGGER reject_restore");
-      expect(await readPortableDataV2(adapter(db).reader)).toEqual(data);
-      expect(
-        db.prepare("SELECT generation FROM bootstrap_state").get(),
-      ).toEqual({ generation: 4 });
-      db.exec("BEGIN IMMEDIATE");
-      expect(await restoreVersion2Data(writerAdapter(db), 4, prepared)).toBe(5);
-      db.exec("COMMIT");
-      expect(await readPortableDataV2(adapter(db).reader)).toEqual(data);
-      expect(
-        db.prepare("SELECT workout FROM conversion_snapshots").get(),
-      ).toEqual({ workout: "secret-original" });
-      db.exec("BEGIN IMMEDIATE");
-      await expect(
-        restoreVersion2Data(writerAdapter(db), 4, prepared),
-      ).rejects.toThrow("dataset has changed");
-      db.exec("ROLLBACK");
+      expect(() =>
+        transaction(db, () => replaceDomainData(db, prepared)),
+      ).toThrow("simulated storage failure");
+      db.raw.exec("DROP TRIGGER reject_restore");
+      expect(readPortableDataV2(db)).toEqual(data);
+      transaction(db, () => replaceDomainData(db, prepared));
+      expect(readPortableDataV2(db)).toEqual(data);
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("reads a consistent snapshot even if another connection commits during export", async () => {
+  it("reads a consistent snapshot even if another connection commits during export", () => {
     const directory = mkdtempSync(join(process.cwd(), ".sqlite-backup-v2-"));
     const path = join(directory, "test.sqlite");
     const writer = new DatabaseSync(path);
     const readerDb = new DatabaseSync(path);
     try {
-      writer.exec(`PRAGMA journal_mode = WAL; ${SCHEMA_V1}
+      writer.exec(`PRAGMA journal_mode = WAL; ${SCHEMA}
         INSERT INTO programs VALUES ('p','Before',0);
         INSERT INTO sessions(program_id,id,name,position,status,deload) VALUES ('p','s','Before',0,'Planned',0);`);
       readerDb.exec("BEGIN");
       let first = true;
-      const reader = {
-        getAllAsync: <T>(sql: string) => {
-          const rows = readerDb.prepare(sql).all() as T[];
+      const base = nodeDb(readerDb);
+      const reader: Db = {
+        ...base,
+        getAllSync: <T>(sql: string, ...params: SqlValue[]) => {
+          const rows = base.getAllSync<T>(sql, ...params);
           if (first) {
             first = false;
             writer.exec(
               "BEGIN IMMEDIATE; UPDATE programs SET name = 'After'; UPDATE sessions SET name = 'After'; COMMIT",
             );
           }
-          return Promise.resolve(rows);
+          return rows;
         },
       };
-      const data = await readPortableDataV2(reader);
+      const data = readPortableDataV2(reader);
       readerDb.exec("COMMIT");
       expect(data.programs[0]?.name).toBe("Before");
       expect(data.programs[0]?.sessions[0]?.name).toBe("Before");

@@ -11,7 +11,7 @@ describe("portable restore format selection", () => {
       new URL("../legacy/fixtures/backup-v1.json", import.meta.url),
       "utf8",
     );
-    expect(prepareApplicationRestore(v1).version).toBe(1);
+    expect(prepareApplicationRestore(v1).history.programs).toHaveLength(1);
     const v2 = serializePortableBackupV2(
       {
         programs: [],
@@ -22,7 +22,7 @@ describe("portable restore format selection", () => {
       },
       123,
     );
-    expect(prepareApplicationRestore(v2).version).toBe(2);
+    expect(prepareApplicationRestore(v2).history.programs).toEqual([]);
   });
 
   it("rejects invalid or future formats before a write is started", () => {

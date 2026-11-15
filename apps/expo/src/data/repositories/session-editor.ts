@@ -1,13 +1,9 @@
+import type { Db } from "../database/db";
 import type { SessionDetail } from "./session-detail";
 import type { SessionPolicy } from "./session-policy";
 import { getProgramHeader } from "./program-timeline";
 import { getSessionDetail } from "./session-detail";
 import { getSessionPolicy } from "./session-policy";
-
-interface EditorReader {
-  getFirstAsync<T>(sql: string, ...parameters: string[]): Promise<T | null>;
-  getAllAsync<T>(sql: string, ...parameters: string[]): Promise<T[]>;
-}
 
 export interface SessionEditorExercise {
   id: string;
@@ -18,7 +14,6 @@ export interface SessionEditorExercise {
 }
 
 export interface SessionEditorSeed {
-  generation: number;
   program: { id: string; name: string };
   session: SessionDetail | null;
   policy: SessionPolicy | null;
@@ -26,21 +21,20 @@ export interface SessionEditorSeed {
 }
 
 /** Read a complete seed in the caller's snapshot; no unrelated history graphs. */
-export async function getSessionEditorSeed(
-  reader: EditorReader,
-  generation: number,
+export function getSessionEditorSeed(
+  reader: Db,
   programId: string,
   sessionId: string | null,
-): Promise<SessionEditorSeed | null> {
-  const program = await getProgramHeader(reader, programId);
+): SessionEditorSeed | null {
+  const program = getProgramHeader(reader, programId);
   if (!program) return null;
   if (sessionId === null)
-    return { generation, program, session: null, policy: null, exercises: [] };
-  const session = await getSessionDetail(reader, programId, sessionId);
+    return { program, session: null, policy: null, exercises: [] };
+  const session = getSessionDetail(reader, programId, sessionId);
   if (!session) return null;
-  const policy = await getSessionPolicy(reader, programId, sessionId);
+  const policy = getSessionPolicy(reader, programId, sessionId);
   if (!policy) throw new Error("The session policy could not be loaded.");
-  const rows = await reader.getAllAsync<{
+  const rows = reader.getAllSync<{
     id: string;
     name: string;
     deleted: number;
@@ -56,7 +50,6 @@ export async function getSessionEditorSeed(
     sessionId,
   );
   return {
-    generation,
     program,
     session,
     policy,

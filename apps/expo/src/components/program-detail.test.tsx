@@ -2,10 +2,7 @@ import type { PropsWithChildren, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import ProgramDetailScreen from "~/app/(public)/(app)/program/[programId]/index";
-import { createWorkoutQueryClient } from "~/data/cache/query-client";
-import { ApplicationDataProvider } from "~/data/react/application-data";
 
 const { weekQuery } = vi.hoisted(() => ({ weekQuery: vi.fn() }));
 vi.mock("react-native", () => ({
@@ -18,24 +15,20 @@ vi.mock("expo-router", () => ({
   useLocalSearchParams: () => ({ programId: "p" }),
   useRouter: () => ({ push: vi.fn() }),
 }));
-vi.mock("expo-router/react-navigation", () => ({ useIsFocused: () => true }));
-vi.mock("~/utils/posthog", () => ({ captureException: vi.fn() }));
 vi.mock("@expo/vector-icons/MaterialCommunityIcons", () => ({
   default: () => null,
 }));
-vi.mock("~/data/react/program-queries", () => ({
-  useProgramHeader: () => ({ data: { id: "p", name: "Program" } }),
+vi.mock("~/data/queries", () => ({
+  useProgramHeader: () => ({ id: "p", name: "Program" }),
   useProgramOverview: () => ({
-    data: {
-      programId: "p",
-      sessionCount: 2,
-      programStartMs: new Date(2026, 0, 1, 12).getTime(),
-      currentWeek: 2,
-      weeks: [
-        { week: 2, sessionCount: 1 },
-        { week: 1, sessionCount: 1 },
-      ],
-    },
+    programId: "p",
+    sessionCount: 2,
+    programStartMs: new Date(2026, 0, 1, 12).getTime(),
+    currentWeek: 2,
+    weeks: [
+      { week: 2, sessionCount: 1 },
+      { week: 1, sessionCount: 1 },
+    ],
   }),
   useProgramWeek: weekQuery,
 }));
@@ -91,38 +84,17 @@ vi.mock("./Typography", () => ({
 }));
 
 describe("program timeline", () => {
-  it("renders the current week and does not mount queries for collapsed history", () => {
+  it("renders the current week and does not read collapsed history", () => {
     weekQuery.mockReset();
     weekQuery.mockReturnValue({
-      data: {
-        pages: [
-          {
-            items: [
-              { id: "s", name: "Current session", day: 1, status: "Ready" },
-            ],
-          },
-        ],
-        pageParams: [undefined],
-      },
-      hasNextPage: false,
+      week: 2,
+      items: [{ id: "s", name: "Current session", day: 1, status: "Ready" }],
     });
-    const cache = createWorkoutQueryClient();
-    const snapshot = { generation: 1, service: {} };
-    const runtime = {
-      cache,
-      getSnapshot: () => snapshot,
-      subscribe: () => () => undefined,
-    } as unknown as ApplicationDataRuntime;
-    const output = renderToStaticMarkup(
-      <ApplicationDataProvider runtime={runtime}>
-        <ProgramDetailScreen />
-      </ApplicationDataProvider>,
-    );
+    const output = renderToStaticMarkup(<ProgramDetailScreen />);
     expect(output).toContain("Week 2 (Now)");
     expect(output).toContain("Week 1");
     expect(output).toContain("Current session");
     expect(weekQuery).toHaveBeenCalledTimes(1);
-    expect(weekQuery.mock.calls[0]?.[2]).toBe(2);
-    cache.clear();
+    expect(weekQuery).toHaveBeenCalledWith("p", 2);
   });
 });

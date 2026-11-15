@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Alert, ScrollView, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import * as Updates from "expo-updates";
@@ -7,11 +7,12 @@ import { PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import { HelperText } from "~/components/Typography";
-import { prepareApplicationRestore } from "~/data/backup/prepare-restore";
 import {
-  useApplicationDataRuntime,
-  useApplicationDataSnapshot,
-} from "~/data/react/application-data";
+  exportBackup,
+  resetApplicationData,
+  restoreApplicationData,
+} from "~/data/actions";
+import { prepareApplicationRestore } from "~/data/backup/prepare-restore";
 import {
   downloadBackupFile,
   pickBackupFileContents,
@@ -19,69 +20,74 @@ import {
 import { version as appVersion } from "../../../../../package.json";
 
 export default function SupportScreen() {
-  const runtime = useApplicationDataRuntime();
   const router = useRouter();
-  const snapshot = useApplicationDataSnapshot(runtime);
+  // Sharing and picking a file are still asynchronous.
   const [pending, setPending] = useState(false);
   const busy = useRef(false);
-  const mounted = useRef(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  const current = () =>
-    mounted.current && runtime.getSnapshot().generation === snapshot.generation;
-  const run = async (job: () => Promise<void>, failure: string) => {
-    if (busy.current || !current()) return;
+  const runFileAction = async (job: () => Promise<void>, failure: string) => {
+    if (busy.current) return;
     busy.current = true;
     setPending(true);
     try {
       await job();
     } catch {
-      if (current()) Alert.alert("Support Action Failed", failure);
+      Alert.alert("Support Action Failed", failure);
     } finally {
       busy.current = false;
-      if (current()) setPending(false);
+      setPending(false);
     }
   };
   const backup = () =>
-    run(async () => {
+    runFileAction(async () => {
       const now = new Date();
-      const contents = await snapshot.service.exportBackupV2();
       await downloadBackupFile(
-        contents,
+        exportBackup(),
         `activity-log-backup-${now.toISOString().slice(0, 10)}.json`,
       );
     }, "Your app data could not be backed up. Please try again.");
-  const restore = () =>
-    run(async () => {
-      const contents = await pickBackupFileContents();
-      if (contents === null || !current()) return;
-      const prepared = prepareApplicationRestore(contents);
-      Alert.alert(
-        "Restore Backup Data?",
-        "This will permanently delete and replace all current workout programs, sessions, exercises, equipment, and muscle settings with the data in this backup. This cannot be undone.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Restore Backup Data",
-            style: "destructive",
-            onPress: () =>
-              void run(async () => {
-                await runtime.restore(prepared);
-                router.back();
-              }, "Your backup could not be restored. Your previous app data has been kept."),
+  const confirmRestore = (contents: string) => {
+    const prepared = prepareApplicationRestore(contents);
+    Alert.alert(
+      "Restore Backup Data?",
+      "This will permanently delete and replace all current workout programs, sessions, exercises, equipment, and muscle settings with the data in this backup. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Restore Backup Data",
+          style: "destructive",
+          onPress: () => {
+            try {
+              restoreApplicationData(prepared);
+            } catch {
+              Alert.alert(
+                "Support Action Failed",
+                "Your backup could not be restored. Your previous app data has been kept.",
+              );
+              return;
+            }
+            router.back();
           },
-        ],
-      );
+        },
+      ],
+    );
+  };
+  const restore = () =>
+    runFileAction(async () => {
+      const contents = await pickBackupFileContents();
+      if (contents !== null) confirmRestore(contents);
     }, "The selected backup could not be opened or is invalid. No app data was changed.");
-  const reset = () =>
-    run(async () => {
-      await runtime.reset();
-      router.back();
-    }, "Your app data could not be reset. Please try again.");
+  const reset = () => {
+    try {
+      resetApplicationData();
+    } catch {
+      Alert.alert(
+        "Support Action Failed",
+        "Your app data could not be reset. Please try again.",
+      );
+      return;
+    }
+    router.back();
+  };
   const updateIdentifier = __DEV__
     ? "dev"
     : (Updates.updateId?.slice(-4) ??
@@ -135,7 +141,7 @@ export default function SupportScreen() {
             title="Reset App Data?"
             message="This will permanently delete all workout programs, sessions, exercises, and equipment settings. Equipment will be restored to the default barbell and plate inventory."
             confirmText="Reset App Data"
-            onConfirm={() => void reset()}
+            onConfirm={reset}
           >
             Reset App Data
           </ConfirmButton>

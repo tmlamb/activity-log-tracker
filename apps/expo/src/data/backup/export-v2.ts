@@ -1,8 +1,6 @@
+import type { Db } from "../database/db";
 import type { PortableDataV2 } from "./portable-v2";
 
-interface BackupReader {
-  getAllAsync<T>(sql: string): Promise<T[]>;
-}
 type Unit = "lbs" | "kg";
 type Status = "Planned" | "Ready" | "Done" | "Incomplete";
 type LoadKind = "BARBELL" | "WEIGHT_PAIR" | "SINGLE_WEIGHT" | null;
@@ -15,14 +13,14 @@ function weight(value: number | null, unit: Unit | null) {
 }
 
 /** Read ordered rows inside a single snapshot; reconstruct only after it closes. */
-export async function readPortableFactsV2(reader: BackupReader) {
-  const programs = await reader.getAllAsync<{ id: string; name: string }>(
+export function readPortableFactsV2(reader: Db) {
+  const programs = reader.getAllSync<{ id: string; name: string }>(
     "SELECT id, name FROM programs ORDER BY position",
   );
-  const lineages = await reader.getAllAsync<{ programId: string; id: string }>(
+  const lineages = reader.getAllSync<{ programId: string; id: string }>(
     "SELECT program_id AS programId, id FROM session_lineages ORDER BY program_id, id",
   );
-  const sessions = await reader.getAllAsync<{
+  const sessions = reader.getAllSync<{
     programId: string;
     id: string;
     lineageId: string | null;
@@ -35,7 +33,7 @@ export async function readPortableFactsV2(reader: BackupReader) {
   }>(
     "SELECT program_id AS programId, id, lineage_id AS lineageId, name, status, deload, start_ms AS startMs, end_ms AS endMs, last_activity_at_ms AS lastActivityAtMs FROM sessions ORDER BY program_id, position",
   );
-  const activities = await reader.getAllAsync<{
+  const activities = reader.getAllSync<{
     programId: string;
     sessionId: string;
     id: string;
@@ -47,7 +45,7 @@ export async function readPortableFactsV2(reader: BackupReader) {
   }>(
     "SELECT program_id AS programId, session_id AS sessionId, id, exercise_id AS exerciseId, reps, load_type AS loadType, load_value AS loadValue, rest_minutes AS restMinutes FROM activities ORDER BY program_id, session_id, position",
   );
-  const sets = await reader.getAllAsync<{
+  const sets = reader.getAllSync<{
     programId: string;
     sessionId: string;
     activityId: string;
@@ -64,7 +62,7 @@ export async function readPortableFactsV2(reader: BackupReader) {
   }>(
     "SELECT program_id AS programId, session_id AS sessionId, activity_id AS activityId, id, kind, position, status, feedback, actual_reps AS actualReps, weight_value AS value, weight_unit AS unit, start_ms AS startMs, end_ms AS endMs FROM workout_sets ORDER BY program_id, session_id, activity_id, kind, position",
   );
-  const exercises = await reader.getAllAsync<{
+  const exercises = reader.getAllSync<{
     id: string;
     name: string;
     loadKind: LoadKind;
@@ -76,34 +74,34 @@ export async function readPortableFactsV2(reader: BackupReader) {
   }>(
     "SELECT id, name, load_kind AS loadKind, barbell_id AS barbellId, one_rep_max_value AS maxValue, one_rep_max_unit AS maxUnit, notes, deleted FROM exercises ORDER BY position",
   );
-  const presets = await reader.getAllAsync<{
+  const presets = reader.getAllSync<{
     id: string;
     name: string;
     loadKind: LoadKind;
   }>(
     "SELECT id, name, load_kind AS loadKind FROM exercise_presets ORDER BY position",
   );
-  const exerciseMuscles = await reader.getAllAsync<{
+  const exerciseMuscles = reader.getAllSync<{
     ownerId: string;
     name: string;
   }>(
     "SELECT m.exercise_id AS ownerId, l.name FROM exercise_muscles m JOIN muscle_labels l ON l.id = m.muscle_id ORDER BY m.exercise_id, m.position",
   );
-  const presetMuscles = await reader.getAllAsync<{
+  const presetMuscles = reader.getAllSync<{
     ownerId: string;
     name: string;
   }>(
     "SELECT m.preset_id AS ownerId, l.name FROM preset_muscles m JOIN muscle_labels l ON l.id = m.muscle_id ORDER BY m.preset_id, m.position",
   );
-  const muscleGroups = await reader.getAllAsync<{ name: string }>(
+  const muscleGroups = reader.getAllSync<{ name: string }>(
     "SELECT l.name FROM muscle_catalog m JOIN muscle_labels l ON l.id = m.muscle_id ORDER BY m.position",
   );
-  const barbells = await reader.getAllAsync<{
+  const barbells = reader.getAllSync<{
     id: string;
     value: number;
     unit: Unit;
   }>("SELECT id, value, unit FROM barbells ORDER BY position");
-  const plates = await reader.getAllAsync<{
+  const plates = reader.getAllSync<{
     id: string;
     value: number;
     unit: Unit;
@@ -243,8 +241,6 @@ export function buildPortableDataV2(
 }
 
 /** Convenience for callers already managing their own snapshot lifetime. */
-export async function readPortableDataV2(
-  reader: BackupReader,
-): Promise<PortableDataV2> {
-  return buildPortableDataV2(await readPortableFactsV2(reader));
+export function readPortableDataV2(reader: Db): PortableDataV2 {
+  return buildPortableDataV2(readPortableFactsV2(reader));
 }

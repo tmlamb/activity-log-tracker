@@ -1,7 +1,4 @@
-interface TemplateReader {
-  getFirstAsync<T>(sql: string, ...parameters: string[]): Promise<T | null>;
-  getAllAsync<T>(sql: string, ...parameters: string[]): Promise<T[]>;
-}
+import type { Db } from "../database/db";
 
 export interface TemplateChoice {
   sessionId: string;
@@ -13,11 +10,11 @@ export interface TemplateChoice {
 }
 
 /** One most recent terminal session per lineage, without loading sets. */
-export async function listTemplateChoices(
-  reader: TemplateReader,
+export function listTemplateChoices(
+  reader: Db,
   programId: string,
-): Promise<TemplateChoice[]> {
-  return reader.getAllAsync<TemplateChoice>(
+): TemplateChoice[] {
+  return reader.getAllSync<TemplateChoice>(
     `WITH ranked AS (
        SELECT id AS sessionId, name, lineage_id AS lineageId, start_ms AS startMs,
          end_ms AS endMs, revision, position,
@@ -34,18 +31,18 @@ export async function listTemplateChoices(
 }
 
 /** Resolve a choice to an existing plan or the latest non-deload lineage source. */
-export async function resolveTemplateChoice(
-  reader: TemplateReader,
+export function resolveTemplateChoice(
+  reader: Db,
   programId: string,
   selectedSessionId: string,
-): Promise<{ kind: "planned" | "template"; sessionId: string } | null> {
-  const selected = await reader.getFirstAsync<{ lineageId: string | null }>(
+): { kind: "planned" | "template"; sessionId: string } | null {
+  const selected = reader.getFirstSync<{ lineageId: string | null }>(
     "SELECT lineage_id AS lineageId FROM sessions WHERE program_id = ? AND id = ?",
     programId,
     selectedSessionId,
   );
   if (!selected) return null;
-  const planned = await reader.getFirstAsync<{ id: string }>(
+  const planned = reader.getFirstSync<{ id: string }>(
     `SELECT id FROM sessions WHERE program_id = ? AND status = 'Planned'
        AND COALESCE(lineage_id, id) = ? ORDER BY position LIMIT 1`,
     programId,
@@ -54,7 +51,7 @@ export async function resolveTemplateChoice(
   if (planned) return { kind: "planned", sessionId: planned.id };
   if (selected.lineageId === null)
     return { kind: "template", sessionId: selectedSessionId };
-  const source = await reader.getFirstAsync<{ id: string }>(
+  const source = reader.getFirstSync<{ id: string }>(
     `SELECT id FROM sessions WHERE program_id = ? AND lineage_id = ?
        AND status IN ('Done', 'Incomplete') AND deload = 0
      ORDER BY COALESCE(start_ms, end_ms, 0) DESC, position DESC LIMIT 1`,

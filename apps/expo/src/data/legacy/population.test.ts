@@ -1,34 +1,8 @@
-import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
-import { SCHEMA_V1 } from "../database/schema";
-import { populateLegacyData, verifyAndMarkLegacyDataReady } from "./population";
-
-function adapter(db: DatabaseSync) {
-  return {
-    getFirstAsync: <T>(
-      sql: string,
-      ...parameters: (string | number | null)[]
-    ) =>
-      Promise.resolve(
-        (db.prepare(sql).get(...parameters) as T | undefined) ?? null,
-      ),
-    getAllAsync: <T>(sql: string) =>
-      Promise.resolve(db.prepare(sql).all() as T[]),
-    prepareAsync: (sql: string) => {
-      const statement = db.prepare(sql);
-      return Promise.resolve({
-        executeAsync: (...parameters: (string | number | null)[]) =>
-          Promise.resolve(statement.run(...parameters)),
-        finalizeAsync: () => Promise.resolve(),
-      });
-    },
-    runAsync: (sql: string, ...parameters: (string | number | null)[]) =>
-      Promise.resolve({
-        changes: Number(db.prepare(sql).run(...parameters).changes),
-      }),
-  };
-}
+import { createTestDb } from "../database/test-db";
+import { prepareLegacyConversion } from "./conversion";
+import { insertConvertedData } from "./population";
 
 function fixture() {
   return {
@@ -89,92 +63,27 @@ function fixture() {
   };
 }
 
-function setup() {
-  const db = new DatabaseSync(":memory:");
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1}
-    INSERT INTO bootstrap_state(singleton, database_id, state) VALUES (1, 'db', 'source-captured');`);
-  const source = fixture();
-  db.prepare(
-    "INSERT INTO conversion_snapshots(id, workout, exercises, captured_at) VALUES (1, ?, ?, 100)",
-  ).run(source.workout, source.exercises);
-  return db;
-}
-
 describe("conversion population", () => {
-  it("imports all dependent records and verifies before readiness", async () => {
-    const db = setup();
-    try {
-      db.exec("BEGIN IMMEDIATE");
-      await populateLegacyData(adapter(db), 1);
-      db.exec("COMMIT");
-      expect(db.prepare("SELECT state FROM bootstrap_state").get()).toEqual({
-        state: "awaiting-verification",
-      });
-      db.exec("BEGIN IMMEDIATE");
-      await verifyAndMarkLegacyDataReady(adapter(db), 1, 200);
-      db.exec("COMMIT");
-      expect(db.prepare("SELECT state FROM bootstrap_state").get()).toEqual({
-        state: "ready",
-      });
-      expect(
-        db.prepare("SELECT actual_reps, weight_value FROM workout_sets").get(),
-      ).toEqual({ actual_reps: 5, weight_value: 100 });
-      expect(
-        db.prepare("SELECT verified_at FROM conversion_reports").get(),
-      ).toEqual({ verified_at: 200 });
-    } finally {
-      db.close();
-    }
+  it("imports all dependent records", () => {
+    const db = createTestDb();
+    insertConvertedData(db, prepareLegacyConversion(fixture()));
+    expect(
+      db.raw
+        .prepare("SELECT actual_reps, weight_value FROM workout_sets")
+        .get(),
+    ).toEqual({ actual_reps: 5, weight_value: 100 });
+    expect(
+      db.raw.prepare("SELECT load_type, load_value FROM activities").get(),
+    ).toEqual({ load_type: "RPE", load_value: 8 });
+    expect(db.raw.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    db.raw.close();
   });
 
-  it("detects changed data during verification and leaves the target unready", async () => {
-    const db = setup();
-    try {
-      db.exec("BEGIN IMMEDIATE");
-      await populateLegacyData(adapter(db), 1);
-      db.exec("COMMIT; UPDATE programs SET name = 'wrong'; BEGIN IMMEDIATE");
-      await expect(
-        verifyAndMarkLegacyDataReady(adapter(db), 1, 200),
-      ).rejects.toThrow("verification failed for programs");
-      db.exec("ROLLBACK");
-      expect(db.prepare("SELECT state FROM bootstrap_state").get()).toEqual({
-        state: "awaiting-verification",
-      });
-    } finally {
-      db.close();
-    }
-  });
-
-  it("rolls back all records if an insert fails", async () => {
-    const db = setup();
-    try {
-      const transaction = adapter(db);
-      let finalized = false;
-      const failing = {
-        ...transaction,
-        prepareAsync: (sql: string) =>
-          sql.startsWith("INSERT INTO workout_sets")
-            ? Promise.resolve({
-                executeAsync: () => Promise.reject(new Error("disk full")),
-                finalizeAsync: () => {
-                  finalized = true;
-                  return Promise.resolve();
-                },
-              })
-            : transaction.prepareAsync(sql),
-      };
-      db.exec("BEGIN IMMEDIATE");
-      await expect(populateLegacyData(failing, 1)).rejects.toThrow("disk full");
-      db.exec("ROLLBACK");
-      expect(finalized).toBe(true);
-      expect(
-        db.prepare("SELECT count(*) AS count FROM programs").get(),
-      ).toEqual({ count: 0 });
-      expect(db.prepare("SELECT state FROM bootstrap_state").get()).toEqual({
-        state: "source-captured",
-      });
-    } finally {
-      db.close();
-    }
+  it("refuses to insert into tables that already hold data", () => {
+    const db = createTestDb("INSERT INTO programs VALUES ('x', 'X', 0);");
+    expect(() =>
+      insertConvertedData(db, prepareLegacyConversion(fixture())),
+    ).toThrow("not empty");
+    db.raw.close();
   });
 });

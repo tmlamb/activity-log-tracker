@@ -8,7 +8,6 @@ const env = vi.hoisted(() => ({
   focused: true,
   listeners: new Set<() => void>(),
   renderList: vi.fn(),
-  snapshot: { generation: 1 },
   seed: {
     session: {
       id: "s",
@@ -55,23 +54,20 @@ vi.mock("expo-router", () => ({
   useLocalSearchParams: () => ({ programId: "p", sessionId: "s" }),
   useRouter: () => ({ dismissTo: vi.fn() }),
 }));
-vi.mock("~/data/react/application-data", () => {
-  const runtime = { getSnapshot: () => env.snapshot };
-  return {
-    useApplicationDataRuntime: () => runtime,
-    useApplicationDataSnapshot: () => env.snapshot,
-  };
-});
-vi.mock("~/data/react/session-queries", async () => {
+vi.mock("~/data/actions", () => ({
+  completeSession: vi.fn(),
+  setSessionDeload: vi.fn(),
+}));
+vi.mock("~/data/queries", async () => {
   const { useIsFocused } = await import("expo-router/react-navigation");
   return {
     useSessionEditorSeed: () => {
       useIsFocused();
-      return { data: env.seed };
+      return env.seed;
     },
     useSessionDeloadCandidate: () => {
       useIsFocused();
-      return { data: undefined };
+      return null;
     },
   };
 });
@@ -104,7 +100,6 @@ vi.mock("./HeaderAction", () => ({ HeaderTextAction: () => null }));
 vi.mock("./PressableThemed", () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
-vi.mock("./query-status", () => ({ QueryStatus: () => null }));
 vi.mock("./SwitchThemed", () => ({ default: () => null }));
 vi.mock("./Typography", () => ({
   HelperText: ({ children }: PropsWithChildren) => <p>{children}</p>,

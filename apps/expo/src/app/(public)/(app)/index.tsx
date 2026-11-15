@@ -1,31 +1,14 @@
 import { Platform } from "react-native";
 import { Link, Stack, useRouter } from "expo-router";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
-import type { ProgramSummary } from "~/data/repositories/programs";
 import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
-import { QueryStatus } from "~/components/query-status";
 import { LegendListStyled } from "~/components/Styled";
 import { HelperText, SectionHeading } from "~/components/Typography";
-import { useApplicationDataRuntime } from "~/data/react/application-data";
-import { useProgramSummaries } from "~/data/react/program-queries";
+import { useProgramSummaries } from "~/data/queries";
 
 export default function DashboardScreen() {
-  const runtime = useApplicationDataRuntime();
-  return <Dashboard runtime={runtime} />;
-}
-
-function Dashboard({ runtime }: { runtime: ApplicationDataRuntime }) {
-  const query = useProgramSummaries(runtime);
-  if (query.data === undefined)
-    return (
-      <QueryStatus error={query.isError} onRetry={() => void query.refetch()} />
-    );
-  return <DashboardContent programs={query.data} />;
-}
-
-function DashboardContent({ programs }: { programs: ProgramSummary[] }) {
   const router = useRouter();
+  const programs = useProgramSummaries();
   const managementMenuItems = [
     {
       key: "programs",

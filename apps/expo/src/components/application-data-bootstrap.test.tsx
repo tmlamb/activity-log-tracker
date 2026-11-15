@@ -6,13 +6,12 @@ import { ApplicationDataBootstrap } from "./application-data-bootstrap";
 
 const env = vi.hoisted(() => ({
   change: undefined as ((state: string) => void) | undefined,
-  resume: vi.fn(),
-  release: vi.fn(),
   failure: undefined as Error | undefined,
+  cleanup: vi.fn(),
+  refresh: vi.fn(),
 }));
 
 vi.mock("react-native", () => ({
-  Alert: { alert: vi.fn() },
   ScrollView: ({ children }: PropsWithChildren) => <div>{children}</div>,
   AppState: {
     currentState: "active",
@@ -26,31 +25,23 @@ vi.mock("expo-splash-screen", () => ({
   hideAsync: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("~/utils/posthog", () => ({ captureException: vi.fn() }));
-vi.mock("~/data/native-runtime", () => ({
-  openNativeApplicationDataRuntime: vi.fn(),
+vi.mock("~/data/open-database", () => ({
+  openDatabase: () => {
+    if (env.failure) throw env.failure;
+    return {};
+  },
 }));
-vi.mock("~/data/react/application-data", () => ({
-  ApplicationDataProvider: ({ children }: PropsWithChildren) => <>{children}</>,
+vi.mock("~/data/actions", () => ({ cleanupInactiveSessions: env.cleanup }));
+vi.mock("~/data/store", () => ({
+  setDatabase: vi.fn(),
+  refresh: env.refresh,
+  useGeneration: () => 1,
 }));
-vi.mock("~/data/runtime-leases", () => ({
-  createRuntimeLeaseManager: () => ({
-    acquire: () => ({
-      runtime: env.failure
-        ? Promise.reject(env.failure)
-        : Promise.resolve({
-            resume: env.resume,
-            getSnapshot: () => ({ generation: 1 }),
-            cache: {
-              cancelQueries: vi.fn().mockResolvedValue(undefined),
-              invalidateQueries: vi.fn().mockResolvedValue(undefined),
-              getQueryCache: () => ({ findAll: () => [] }),
-            },
-          }),
-      release: env.release,
-    }),
-  }),
+vi.mock("./CardRow", () => ({
+  PrimaryCardAction: ({ onPress }: { onPress: () => void }) => (
+    <button onClick={onPress}>Try Again</button>
+  ),
 }));
-vi.mock("./CardRow", () => ({ PrimaryCardAction: () => null }));
 vi.mock("./font-scale-text", () => ({
   Text: ({ children }: PropsWithChildren) => <span>{children}</span>,
 }));
@@ -58,67 +49,38 @@ vi.mock("./Typography", () => ({
   HelperText: ({ children }: PropsWithChildren) => <span>{children}</span>,
 }));
 
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
+
 describe("application data bootstrap", () => {
-  it("keeps the existing screen visible and interactive while resume maintenance is pending", async () => {
-    (
-      globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
-    ).IS_REACT_ACT_ENVIRONMENT = true;
-    let finish: (() => void) | undefined;
-    env.resume.mockReturnValue(
-      new Promise<void>((resolve) => {
-        finish = resolve;
-      }),
-    );
+  it("shows the failure and opens the database on retry", () => {
+    env.failure = new Error("Migration failed: disk full");
     let renderer: ReturnType<typeof create> | undefined;
-    await act(async () => {
+    act(() => {
       renderer = create(
         <ApplicationDataBootstrap>
-          <button>Existing screen</button>
+          <p>Existing screen</p>
         </ApplicationDataBootstrap>,
       );
-      await Promise.resolve();
     });
-    if (!renderer) throw new Error("Renderer not created");
-    await act(async () => {
-      env.change?.("background");
-      env.change?.("active");
-      await Promise.resolve();
-    });
-    expect(env.resume).toHaveBeenCalledOnce();
-    expect(renderer.root.findByType("button").children).toContain(
-      "Existing screen",
+    expect(JSON.stringify(renderer?.toJSON())).toContain(
+      "Migration failed: disk full",
     );
-    expect(JSON.stringify(renderer.toJSON())).not.toContain(
-      "Refreshing workout data",
-    );
-    await act(async () => {
-      finish?.();
-      await Promise.resolve();
-      renderer?.unmount();
-    });
-  });
 
-  it("shows migration error details", async () => {
-    (
-      globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
-    ).IS_REACT_ACT_ENVIRONMENT = true;
-    env.failure = new Error("Could not read legacy workout data");
-    let renderer: ReturnType<typeof create> | undefined;
-    try {
-      await act(async () => {
-        renderer = create(
-          <ApplicationDataBootstrap>
-            <span>App</span>
-          </ApplicationDataBootstrap>,
-        );
-        await Promise.resolve();
-      });
-      expect(JSON.stringify(renderer?.toJSON())).toContain(
-        "Could not read legacy workout data",
-      );
-    } finally {
-      await act(() => renderer?.unmount());
-      env.failure = undefined;
-    }
+    env.failure = undefined;
+    act(() => {
+      (
+        renderer?.root.findByType("button").props as { onClick: () => void }
+      ).onClick();
+    });
+    expect(JSON.stringify(renderer?.toJSON())).toContain("Existing screen");
+    expect(env.cleanup).toHaveBeenCalledOnce();
+
+    act(() => env.change?.("background"));
+    act(() => env.change?.("active"));
+    expect(env.cleanup).toHaveBeenCalledTimes(2);
+    expect(env.refresh).toHaveBeenCalledOnce();
+    act(() => renderer?.unmount());
   });
 });

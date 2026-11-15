@@ -1,7 +1,8 @@
-import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
-import { SCHEMA_V1 } from "../database/schema";
+import type { Db } from "../database/db";
+import { transaction } from "../database/db";
+import { createTestDb } from "../database/test-db";
 import {
   completeSetAndAdvance,
   patchSetRecording,
@@ -9,22 +10,6 @@ import {
   saveSetRecording,
   startSet,
 } from "./sets";
-
-function adapter(db: DatabaseSync) {
-  return {
-    getFirstAsync: <T>(
-      sql: string,
-      ...parameters: (string | number | null)[]
-    ) =>
-      Promise.resolve(
-        (db.prepare(sql).get(...parameters) as T | undefined) ?? null,
-      ),
-    runAsync: (sql: string, ...parameters: (string | number | null)[]) => {
-      const result = db.prepare(sql).run(...parameters);
-      return Promise.resolve({ changes: Number(result.changes) });
-    },
-  };
-}
 
 const reference = {
   programId: "p",
@@ -42,9 +27,7 @@ const recording = {
 };
 
 function setup(status: string) {
-  const db = new DatabaseSync(":memory:");
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1}`);
-  db.exec(`
+  const db = createTestDb(`
     INSERT INTO programs VALUES ('p', 'Program', 0);
     INSERT INTO sessions(program_id, id, name, position, status, deload)
       VALUES ('p', 's', 'Session', 0, '${status}', 0);
@@ -52,27 +35,25 @@ function setup(status: string) {
     INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback, start_ms, end_ms)
       VALUES ('p', 's', 'a', 'k', 'Main', 0, 'Done', 'Neutral', 100, 200),
              ('p', 's', 'a', 'other', 'Main', 1, 'Planned', 'Easy', NULL, NULL);
-    BEGIN IMMEDIATE;
   `);
   return db;
 }
 
 describe("set recording", () => {
-  it("updates only edited fields without overwriting newer recording state", async () => {
+  it("updates only edited fields without overwriting newer recording state", () => {
     const db = setup("Done");
     try {
-      db.exec(
+      db.raw.exec(
         "UPDATE workout_sets SET weight_value = 75, weight_unit = 'kg', feedback = 'Hard' WHERE id = 'k'",
       );
+      expect(patchSetRecording(db, reference, { actualReps: 7 }, 500)).toBe(
+        true,
+      );
+      expect(patchSetRecording(db, reference, { actualReps: 7 }, 600)).toBe(
+        false,
+      );
       expect(
-        await patchSetRecording(adapter(db), reference, { actualReps: 7 }, 500),
-      ).toBe(true);
-      expect(
-        await patchSetRecording(adapter(db), reference, { actualReps: 7 }, 600),
-      ).toBe(false);
-      db.exec("COMMIT");
-      expect(
-        db
+        db.raw
           .prepare(
             "SELECT status,start_ms,end_ms,actual_reps,weight_value,weight_unit,feedback FROM workout_sets WHERE id = 'k'",
           )
@@ -87,24 +68,23 @@ describe("set recording", () => {
         feedback: "Hard",
       });
       expect(
-        db
+        db.raw
           .prepare(
             "SELECT revision,last_activity_at_ms FROM sessions WHERE id = 's'",
           )
           .get(),
       ).toEqual({ revision: 1, last_activity_at_ms: 500 });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("updates only the target set and session metadata", async () => {
+  it("updates only the target set and session metadata", () => {
     const db = setup("Ready");
     try {
-      await saveSetRecording(adapter(db), reference, recording, 500);
-      db.exec("COMMIT");
+      saveSetRecording(db, reference, recording, 500);
       expect(
-        db
+        db.raw
           .prepare(
             "SELECT id, status, feedback, start_ms FROM workout_sets ORDER BY position",
           )
@@ -114,72 +94,70 @@ describe("set recording", () => {
         { id: "other", status: "Planned", feedback: "Easy", start_ms: null },
       ]);
       expect(
-        db.prepare("SELECT last_activity_at_ms, revision FROM sessions").get(),
+        db.raw
+          .prepare("SELECT last_activity_at_ms, revision FROM sessions")
+          .get(),
       ).toEqual({ last_activity_at_ms: 500, revision: 1 });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("preserves terminal set status and timestamps on recording edits", async () => {
+  it("preserves terminal set status and timestamps on recording edits", () => {
     const db = setup("Done");
     try {
-      await saveSetRecording(adapter(db), reference, recording, 500);
-      db.exec("COMMIT");
+      saveSetRecording(db, reference, recording, 500);
       expect(
-        db
+        db.raw
           .prepare(
             "SELECT status, start_ms, end_ms, actual_reps FROM workout_sets WHERE id = 'k'",
           )
           .get(),
       ).toEqual({ status: "Done", start_ms: 100, end_ms: 200, actual_reps: 5 });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("does not change session metadata when the set is missing", async () => {
+  it("does not change session metadata when the set is missing", () => {
     const db = setup("Ready");
     try {
-      await expect(
-        saveSetRecording(
-          adapter(db),
-          { ...reference, setId: "missing" },
-          recording,
-          500,
+      expect(() =>
+        transaction(db, () =>
+          saveSetRecording(
+            db,
+            { ...reference, setId: "missing" },
+            recording,
+            500,
+          ),
         ),
-      ).rejects.toThrow("Workout set not found");
-      db.exec("ROLLBACK");
+      ).toThrow("Workout set not found");
       expect(
-        db.prepare("SELECT last_activity_at_ms, revision FROM sessions").get(),
+        db.raw
+          .prepare("SELECT last_activity_at_ms, revision FROM sessions")
+          .get(),
       ).toEqual({ last_activity_at_ms: null, revision: 0 });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });
 
 describe("transactional workout set actions", () => {
-  it("starts the session with its first set, then completes and advances from warmup to main", async () => {
+  it("starts the session with its first set, then completes and advances from warmup to main", () => {
     const db = setup("Planned");
     try {
-      db.exec(
+      db.raw.exec(
         "UPDATE workout_sets SET kind = 'Warmup', status = 'Planned', start_ms = NULL, end_ms = NULL WHERE id = 'k'",
       );
-      await startSet(adapter(db), reference, recording, 1000);
-      expect(db.prepare("SELECT status, start_ms FROM sessions").get()).toEqual(
-        { status: "Ready", start_ms: 1000 },
-      );
-      const next = await completeSetAndAdvance(
-        adapter(db),
-        reference,
-        recording,
-        1_501_000,
-      );
-      db.exec("COMMIT");
+      startSet(db, reference, recording, 1000);
+      expect(
+        db.raw.prepare("SELECT status, start_ms FROM sessions").get(),
+      ).toEqual({ status: "Ready", start_ms: 1000 });
+      const next = completeSetAndAdvance(db, reference, recording, 1_501_000);
       expect(next).toBe("other");
       expect(
-        db
+        db.raw
           .prepare(
             "SELECT id, status, start_ms, end_ms FROM workout_sets ORDER BY id",
           )
@@ -189,105 +167,101 @@ describe("transactional workout set actions", () => {
         { id: "other", status: "Ready", start_ms: 1_501_000, end_ms: null },
       ]);
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("rejects starting a later pending set and completing without reps", async () => {
+  it("rejects starting a later pending set and completing without reps", () => {
     const db = setup("Ready");
     try {
-      db.exec("UPDATE workout_sets SET status = 'Planned' WHERE id = 'k'");
-      await expect(
-        startSet(adapter(db), { ...reference, setId: "other" }, recording, 500),
-      ).rejects.toThrow("first pending set");
-      db.exec("UPDATE workout_sets SET status = 'Ready' WHERE id = 'k'");
-      await expect(
-        completeSetAndAdvance(
-          adapter(db),
-          reference,
-          { ...recording, actualReps: 0 },
-          500,
+      db.raw.exec("UPDATE workout_sets SET status = 'Planned' WHERE id = 'k'");
+      expect(() =>
+        startSet(db, { ...reference, setId: "other" }, recording, 500),
+      ).toThrow("first pending set");
+      db.raw.exec("UPDATE workout_sets SET status = 'Ready' WHERE id = 'k'");
+      expect(() =>
+        transaction(db, () =>
+          completeSetAndAdvance(
+            db,
+            reference,
+            { ...recording, actualReps: 0 },
+            500,
+          ),
         ),
-      ).rejects.toThrow("cannot be completed");
-      db.exec("ROLLBACK");
+      ).toThrow("cannot be completed");
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("rolls back the completed set if advancing the next set fails", async () => {
+  it("rolls back the completed set if advancing the next set fails", () => {
     const db = setup("Ready");
     try {
-      db.exec(
-        "COMMIT; UPDATE workout_sets SET status = 'Ready' WHERE id = 'k'; BEGIN IMMEDIATE",
-      );
-      const transaction = adapter(db);
-      const failing = {
-        ...transaction,
-        runAsync: (sql: string, ...parameters: (string | number | null)[]) =>
-          sql.includes("SET start_ms = ?, status = 'Ready'")
-            ? Promise.reject(new Error("write failed"))
-            : transaction.runAsync(sql, ...parameters),
+      db.raw.exec("UPDATE workout_sets SET status = 'Ready' WHERE id = 'k'");
+      const failing: Db = {
+        ...db,
+        runSync: (sql, ...parameters) => {
+          if (sql.includes("SET start_ms = ?, status = 'Ready'"))
+            throw new Error("write failed");
+          return db.runSync(sql, ...parameters);
+        },
       };
-      await expect(
-        completeSetAndAdvance(failing, reference, recording, 500),
-      ).rejects.toThrow("write failed");
-      db.exec("ROLLBACK");
+      expect(() =>
+        transaction(failing, () =>
+          completeSetAndAdvance(failing, reference, recording, 500),
+        ),
+      ).toThrow("write failed");
       expect(
-        db.prepare("SELECT status FROM workout_sets WHERE id = 'k'").get(),
+        db.raw.prepare("SELECT status FROM workout_sets WHERE id = 'k'").get(),
       ).toEqual({ status: "Ready" });
       expect(
-        db.prepare("SELECT status FROM workout_sets WHERE id = 'other'").get(),
+        db.raw
+          .prepare("SELECT status FROM workout_sets WHERE id = 'other'")
+          .get(),
       ).toEqual({ status: "Planned" });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });
 
 describe("terminal set reconciliation", () => {
-  it("reconciles edited reps and preserves terminal session status", async () => {
+  it("reconciles edited reps and preserves terminal session status", () => {
     const db = setup("Incomplete");
     try {
-      db.exec(
+      db.raw.exec(
         "UPDATE sessions SET end_ms = 600 WHERE id = 's'; UPDATE workout_sets SET status = 'Incomplete', actual_reps = 0, start_ms = NULL, end_ms = NULL WHERE id = 'k'",
       );
-      expect(await reconcileTerminalSet(adapter(db), reference, 5, 1000)).toBe(
-        true,
-      );
-      db.exec("COMMIT");
+      expect(reconcileTerminalSet(db, reference, 5, 1000)).toBe(true);
       expect(
-        db
+        db.raw
           .prepare(
             "SELECT status, actual_reps, start_ms, end_ms FROM workout_sets WHERE id = 'k'",
           )
           .get(),
       ).toEqual({ status: "Done", actual_reps: 5, start_ms: 600, end_ms: 600 });
       expect(
-        db.prepare("SELECT status, last_activity_at_ms FROM sessions").get(),
+        db.raw
+          .prepare("SELECT status, last_activity_at_ms FROM sessions")
+          .get(),
       ).toEqual({ status: "Incomplete", last_activity_at_ms: 1000 });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("does not write unchanged values or reconcile an active session", async () => {
+  it("does not write unchanged values or reconcile an active session", () => {
     const db = setup("Done");
     try {
-      db.exec("UPDATE workout_sets SET actual_reps = 5 WHERE id = 'k'");
-      expect(await reconcileTerminalSet(adapter(db), reference, 5, 1000)).toBe(
-        false,
-      );
-      db.exec("UPDATE sessions SET status = 'Ready'");
-      expect(await reconcileTerminalSet(adapter(db), reference, 0, 1000)).toBe(
-        false,
-      );
-      db.exec("COMMIT");
-      expect(db.prepare("SELECT revision FROM sessions").get()).toEqual({
+      db.raw.exec("UPDATE workout_sets SET actual_reps = 5 WHERE id = 'k'");
+      expect(reconcileTerminalSet(db, reference, 5, 1000)).toBe(false);
+      db.raw.exec("UPDATE sessions SET status = 'Ready'");
+      expect(reconcileTerminalSet(db, reference, 0, 1000)).toBe(false);
+      expect(db.raw.prepare("SELECT revision FROM sessions").get()).toEqual({
         revision: 0,
       });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });

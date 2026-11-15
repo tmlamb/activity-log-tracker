@@ -33,7 +33,6 @@ import { twMerge } from "tailwind-merge";
 
 import type { Equipment } from "@activity-log/ui/utils";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import type { SavedExercise } from "~/data/repositories/exercises";
 import type { SetExecutionContext } from "~/data/repositories/set-context";
 import BottomActionBar from "~/components/BottomActionBar";
@@ -45,18 +44,18 @@ import { HeaderIconAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PlateChart from "~/components/PlateChart";
 import PressableThemed from "~/components/PressableThemed";
-import { QueryStatus } from "~/components/query-status";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import SingleWeightChart from "~/components/SingleWeightChart";
 import { AnimatedViewStyled } from "~/components/Styled";
 import TextInputThemed from "~/components/TextInputThemed";
 import {
-  useApplicationDataRuntime,
-  useApplicationDataSnapshot,
-} from "~/data/react/application-data";
-import { useSetContext } from "~/data/react/session-queries";
-import { createSetRecordingController } from "~/data/react/set-recording-controller";
-import { useEquipment, useExerciseDetail } from "~/data/react/settings-queries";
+  completeSet,
+  patchSet,
+  reconcileSet,
+  setExerciseNotes,
+  startSet,
+} from "~/data/actions";
+import { useEquipment, useExerciseDetail, useSetContext } from "~/data/queries";
 
 function parseInput(text: string): number | null | undefined {
   if (!text.trim()) return null;
@@ -65,7 +64,6 @@ function parseInput(text: string): number | null | undefined {
 }
 
 export default function WorkoutSetDetailScreen() {
-  const runtime = useApplicationDataRuntime();
   const params = useLocalSearchParams<{
     programId: string;
     sessionId: string;
@@ -73,55 +71,33 @@ export default function WorkoutSetDetailScreen() {
     workoutSetId: string;
     title?: string;
   }>();
-  const snapshot = useApplicationDataSnapshot(runtime);
   const reference = {
     programId: params.programId,
     sessionId: params.sessionId,
     activityId: params.activityId,
     setId: params.workoutSetId,
   };
-  const context = useSetContext(runtime, reference);
-  const exercise = useExerciseDetail(runtime, context.data?.exercise?.id);
-  const equipment = useEquipment(runtime);
-  if (
-    context.data === undefined ||
-    equipment.data === undefined ||
-    (context.data?.exercise && exercise.data === undefined)
-  )
-    return (
-      <QueryStatus
-        error={context.isError || equipment.isError || exercise.isError}
-        onRetry={() => {
-          void context.refetch();
-          void equipment.refetch();
-          if (context.data?.exercise) void exercise.refetch();
-        }}
-      />
-    );
-  if (!context.data) return <Redirect href="/(public)/(app)" />;
+  const context = useSetContext(reference);
+  const exercise = useExerciseDetail(context?.exercise?.id);
+  const equipment = useEquipment();
+  if (!context) return <Redirect href="/(public)/(app)" />;
   return (
     <SetEditor
-      key={`${snapshot.generation}:${reference.programId}:${reference.sessionId}:${reference.activityId}:${reference.setId}`}
-      runtime={runtime}
-      generation={snapshot.generation}
-      context={context.data}
-      exercise={exercise.data ?? null}
-      equipment={equipment.data}
+      key={`${reference.programId}:${reference.sessionId}:${reference.activityId}:${reference.setId}`}
+      context={context}
+      exercise={exercise}
+      equipment={equipment}
       title={params.title ?? "Workout Set"}
     />
   );
 }
 
 function SetEditor({
-  runtime,
-  generation,
   context,
   exercise,
   equipment,
   title,
 }: {
-  runtime: ApplicationDataRuntime;
-  generation: number;
   context: SetExecutionContext;
   exercise: SavedExercise | null;
   equipment: Equipment;
@@ -134,13 +110,6 @@ function SetEditor({
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const [isKeyboardOverlayVisible, setIsKeyboardOverlayVisible] =
     useState(isKeyboardVisible);
-  const [controller] = useState(() =>
-    createSetRecordingController(
-      runtime.getSnapshot().service,
-      context.reference,
-      context.exercise?.id ?? null,
-    ),
-  );
   const initialWeight =
     context.set.weightValue !== null &&
     (context.set.weightValue > 0 || context.set.status === "Done")
@@ -160,30 +129,15 @@ function SetEditor({
   const [feedback, setFeedback] = useState(context.set.feedback);
   const [notes, setNotes] = useState(exercise?.notes ?? "");
   const [fallbackStart] = useState(Date.now);
-  const [pending, setPending] = useState(false);
-  const weightRef = useRef(weightInput);
-  const repsRef = useRef(repsInput);
-  const unitRef = useRef<"lbs" | "kg">(initialWeight?.unit ?? "lbs");
-  const feedbackRef = useRef(feedback);
-  const actionRef = useRef(false);
-  const removalRef = useRef(false);
+  const [unit] = useState<"lbs" | "kg">(initialWeight?.unit ?? "lbs");
+  const leavingRef = useRef(false);
   const allowRemoval = useRef(false);
-  const mounted = useRef(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  const current = () =>
-    mounted.current && runtime.getSnapshot().generation === generation;
-  const flush = async () => {
+  const validateInputs = () => {
     if (
-      parseInput(weightRef.current) === undefined ||
-      parseInput(repsRef.current) === undefined
+      parseInput(weightInput) === undefined ||
+      parseInput(repsInput) === undefined
     )
       throw new Error("Enter valid numbers before leaving this set.");
-    await controller.flush();
   };
   const errorAlert = (error: unknown) =>
     Alert.alert(
@@ -192,18 +146,12 @@ function SetEditor({
         ? error.message
         : "The workout changes could not be saved. Your inputs are still here.",
     );
-  const flushAndReconcile = async () => {
-    await flush();
-    if (
-      context.session.status === "Done" ||
-      context.session.status === "Incomplete"
-    )
-      await runtime
-        .getSnapshot()
-        .service.reconcileSet(
-          context.reference,
-          parseInput(repsRef.current) ?? null,
-        );
+  const savePatch = (patch: Parameters<typeof patchSet>[1]) => {
+    try {
+      patchSet(context.reference, patch);
+    } catch (error) {
+      errorAlert(error);
+    }
   };
   usePreventRemove(true, ({ data }) => {
     if (allowRemoval.current) {
@@ -211,46 +159,37 @@ function SetEditor({
       navigation.dispatch(data.action);
       return;
     }
-    if (removalRef.current || actionRef.current) return;
-    removalRef.current = true;
-    setPending(true);
-    void flushAndReconcile()
-      .then(() => {
-        if (current()) {
-          allowRemoval.current = true;
-          navigation.dispatch(data.action);
-        }
-      })
-      .catch((error: unknown) => {
-        if (current()) errorAlert(error);
-      })
-      .finally(() => {
-        removalRef.current = false;
-        if (current()) setPending(false);
-      });
-  });
-  const navigate = async (route: "insights" | "exercise") => {
-    if (actionRef.current || !current()) return;
-    actionRef.current = true;
-    setPending(true);
+    if (leavingRef.current) return;
     try {
-      await flush();
-      if (!current()) return;
-      Keyboard.dismiss();
-      if (route === "insights")
-        router.push(
-          `/(public)/(app)/program/${encodeURIComponent(context.reference.programId)}/session/${encodeURIComponent(context.reference.sessionId)}/set/insights?activityId=${encodeURIComponent(context.reference.activityId)}&workoutSetId=${encodeURIComponent(context.reference.setId)}`,
-        );
-      else if (context.exercise)
-        router.push(
-          `/(public)/(app)/exercise/form?exerciseId=${encodeURIComponent(context.exercise.id)}`,
-        );
+      validateInputs();
+      if (
+        context.session.status === "Done" ||
+        context.session.status === "Incomplete"
+      )
+        reconcileSet(context.reference, parseInput(repsInput) ?? null);
     } catch (error) {
-      if (current()) errorAlert(error);
-    } finally {
-      actionRef.current = false;
-      if (current()) setPending(false);
+      errorAlert(error);
+      return;
     }
+    allowRemoval.current = true;
+    navigation.dispatch(data.action);
+  });
+  const navigate = (route: "insights" | "exercise") => {
+    try {
+      validateInputs();
+    } catch (error) {
+      errorAlert(error);
+      return;
+    }
+    Keyboard.dismiss();
+    if (route === "insights")
+      router.push(
+        `/(public)/(app)/program/${encodeURIComponent(context.reference.programId)}/session/${encodeURIComponent(context.reference.sessionId)}/set/insights?activityId=${encodeURIComponent(context.reference.activityId)}&workoutSetId=${encodeURIComponent(context.reference.setId)}`,
+      );
+    else if (context.exercise)
+      router.push(
+        `/(public)/(app)/exercise/form?exerciseId=${encodeURIComponent(context.exercise.id)}`,
+      );
   };
   const actual = parseInput(repsInput);
   const canComplete =
@@ -264,17 +203,16 @@ function SetEditor({
     : canComplete
       ? "complete"
       : null;
-  const isActionVisible = !!action && !pending;
+  const isActionVisible = !!action;
   const [lastAction, setLastAction] = useState<"start" | "complete">(
     action ?? "complete",
   );
   const [shouldRenderAction, setShouldRenderAction] = useState(isActionVisible);
+  if (action && action !== lastAction) setLastAction(action);
+  if (isActionVisible && !shouldRenderAction) setShouldRenderAction(true);
   const displayedAction = action ?? lastAction;
   const actionLabel = `${displayedAction === "start" ? "Start" : "Complete"} ${context.set.kind} Set`;
   const actionAccessibilityLabel = `${displayedAction === "start" ? "Start" : "Complete"} ${context.set.kind.toLowerCase()} set`;
-  useEffect(() => {
-    if (action) setLastAction(action);
-  }, [action]);
   useEffect(() => {
     const listeners = [
       "keyboardWillShow",
@@ -289,10 +227,7 @@ function SetEditor({
     return () => listeners.forEach((listener) => listener.remove());
   }, []);
   useEffect(() => {
-    if (isActionVisible) {
-      setShouldRenderAction(true);
-      return;
-    }
+    if (isActionVisible) return;
     const timeout = setTimeout(() => setShouldRenderAction(false), 250);
     return () => clearTimeout(timeout);
   }, [isActionVisible]);
@@ -319,41 +254,27 @@ function SetEditor({
     });
   };
   const runAction = async () => {
-    if (!action || actionRef.current || !current()) return;
-    actionRef.current = true;
-    setPending(true);
+    if (!action || leavingRef.current) return;
     try {
-      await flush();
-      const reps = parseInput(repsRef.current);
-      const weight = parseInput(weightRef.current);
-      if (reps === undefined || weight === undefined)
-        throw new Error("Enter valid numbers before continuing.");
+      validateInputs();
+      const reps = parseInput(repsInput) ?? null;
+      const weight = parseInput(weightInput) ?? null;
       const measurements = {
         actualReps: reps,
-        weight:
-          weight === null ? null : { value: weight, unit: unitRef.current },
-        feedback: feedbackRef.current,
+        weight: weight === null ? null : { value: weight, unit: unit },
+        feedback,
       };
-      if (action === "start")
-        await runtime
-          .getSnapshot()
-          .service.startSet(context.reference, measurements);
-      else
-        await runtime
-          .getSnapshot()
-          .service.completeSet(context.reference, measurements);
-      if (current() && action === "complete") {
-        await dismissKeyboardBeforePop();
-        if (!current()) return;
-        allowRemoval.current = true;
-        router.back();
-      }
+      if (action === "start") startSet(context.reference, measurements);
+      else completeSet(context.reference, measurements);
     } catch (error) {
-      if (current()) errorAlert(error);
-    } finally {
-      actionRef.current = false;
-      if (current()) setPending(false);
+      errorAlert(error);
+      return;
     }
+    if (action !== "complete") return;
+    leavingRef.current = true;
+    await dismissKeyboardBeforePop();
+    allowRemoval.current = true;
+    router.back();
   };
   const displayWeight = parseInput(weightInput);
   const barbell = equipment.barbells.find(
@@ -405,7 +326,7 @@ function SetEditor({
             <HeaderIconAction
               className="rounded-full"
               accessibilityLabel={`View insights for ${context.exercise.name}`}
-              onPress={() => void navigate("insights")}
+              onPress={() => navigate("insights")}
             >
               <Text maxFontSizeMultiplier={2.5} className="text-primary">
                 <MaterialCommunityIcons
@@ -439,7 +360,6 @@ function SetEditor({
           ))}
       </Stack.Toolbar>
       <KeyboardAwareScrollView
-        pointerEvents={pending ? "none" : "auto"}
         bottomOffset={Platform.OS === "ios" && shouldRenderAction ? 86 : 30}
         className="flex-1"
         contentContainerClassName={twMerge(
@@ -463,7 +383,7 @@ function SetEditor({
                   <PressableThemed
                     className="-mt-3 -mr-3 -mb-3 h-11 w-11 items-center justify-center"
                     accessibilityLabel={`Edit exercise ${context.exercise.name}`}
-                    onPress={() => void navigate("exercise")}
+                    onPress={() => navigate("exercise")}
                   >
                     <Text maxFontSizeMultiplier={2.5} className="text-primary">
                       <MaterialCommunityIcons
@@ -532,8 +452,8 @@ function SetEditor({
                 stack={{ index: 0, size: 3 }}
                 label={
                   context.exercise?.loadKind === "WEIGHT_PAIR"
-                    ? `Weight Each (${unitRef.current})`
-                    : `Weight (${unitRef.current})`
+                    ? `Weight Each (${unit})`
+                    : `Weight (${unit})`
                 }
                 value={weightInput}
                 keyboardType="decimal-pad"
@@ -543,23 +463,14 @@ function SetEditor({
                 placeholder="0"
                 selectTextOnFocus
                 onChangeText={(text) => {
-                  weightRef.current = text;
                   setWeightInput(text);
                   const value = parseInput(text);
                   if (value !== undefined) {
-                    controller.change({
-                      weight:
-                        value === null
-                          ? null
-                          : { value, unit: unitRef.current },
+                    savePatch({
+                      weight: value === null ? null : { value, unit: unit },
                     });
                   }
                 }}
-                onBlur={() =>
-                  void controller.flush().catch((error: unknown) => {
-                    if (current()) errorAlert(error);
-                  })
-                }
               />
               <TextInputThemed
                 stack={{ index: 1, size: 3 }}
@@ -571,17 +482,10 @@ function SetEditor({
                 placeholder="0"
                 selectTextOnFocus
                 onChangeText={(text) => {
-                  repsRef.current = text;
                   setRepsInput(text);
                   const value = parseInput(text);
-                  if (value !== undefined)
-                    controller.change({ actualReps: value });
+                  if (value !== undefined) savePatch({ actualReps: value });
                 }}
-                onBlur={() =>
-                  void controller.flush().catch((error: unknown) => {
-                    if (current()) errorAlert(error);
-                  })
-                }
               />
               <ElapsedTime
                 stack={{ index: 2, size: 3 }}
@@ -613,9 +517,8 @@ function SetEditor({
                   { label: "Hard", value: "Hard", tone: "primary" },
                 ]}
                 onChange={(value) => {
-                  feedbackRef.current = value;
                   setFeedback(value);
-                  controller.change({ feedback: value });
+                  savePatch({ feedback: value });
                 }}
               />
             </Animated.View>
@@ -633,7 +536,15 @@ function SetEditor({
                 value={notes}
                 onChangeText={(text) => {
                   setNotes(text);
-                  controller.changeNotes(text.trim() ? text : null);
+                  if (!context.exercise) return;
+                  try {
+                    setExerciseNotes(
+                      context.exercise.id,
+                      text.trim() ? text : null,
+                    );
+                  } catch (error) {
+                    errorAlert(error);
+                  }
                 }}
               />
             </Animated.View>
@@ -649,16 +560,16 @@ function SetEditor({
               displayWeight !== undefined &&
               displayWeight > 0 &&
               context.exercise?.loadKind === "BARBELL" &&
-              barbell?.unit === unitRef.current && (
+              barbell?.unit === unit && (
                 <PlateChart
                   className="mx-5"
                   totalWeight={displayWeight}
                   equipment={{
                     barbells: equipment.barbells.filter(
-                      (item) => item.unit === unitRef.current,
+                      (item) => item.unit === unit,
                     ),
                     plates: equipment.plates.filter(
-                      (item) => item.unit === unitRef.current,
+                      (item) => item.unit === unit,
                     ),
                   }}
                   barbell={barbell}
@@ -672,7 +583,7 @@ function SetEditor({
               <DumbbellChart
                 className="mx-5"
                 weight={displayWeight}
-                unit={unitRef.current}
+                unit={unit}
               />
             )}
           {displayWeight !== null &&
@@ -682,7 +593,7 @@ function SetEditor({
               <SingleWeightChart
                 className="mx-5"
                 weight={displayWeight}
-                unit={unitRef.current}
+                unit={unit}
               />
             )}
         </AnimatedViewStyled>

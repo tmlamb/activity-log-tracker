@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { Alert } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
@@ -12,8 +12,6 @@ import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import type { Equipment } from "@activity-log/ui/utils";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
-
 import "react-native-get-random-values";
 
 import { v4 as uuidv4 } from "uuid";
@@ -22,14 +20,10 @@ import { PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import InventoryCounterInputRow from "~/components/InventoryCounterInputRow";
-import { QueryStatus } from "~/components/query-status";
 import { HelperText, SectionHeading } from "~/components/Typography";
+import { replaceEquipmentInventory } from "~/data/actions";
 import { createDefaultEquipment } from "~/data/legacy/workout-defaults";
-import {
-  useApplicationDataRuntime,
-  useApplicationDataSnapshot,
-} from "~/data/react/application-data";
-import { useEquipment } from "~/data/react/settings-queries";
+import { useEquipment } from "~/data/queries";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 
 type FormEquipmentBarbell = Omit<Equipment["barbells"][number], "value"> & {
@@ -107,54 +101,12 @@ const validateUniqueWeight = <T extends { value: number | string }>(
 };
 
 export default function EquipmentScreen() {
-  const runtime = useApplicationDataRuntime();
-  return <EquipmentScreenContent runtime={runtime} />;
-}
-
-function EquipmentScreenContent({
-  runtime,
-}: {
-  runtime: ApplicationDataRuntime;
-}) {
-  const snapshot = useApplicationDataSnapshot(runtime);
-  const query = useEquipment(runtime);
-  if (query.data === undefined)
-    return (
-      <QueryStatus error={query.isError} onRetry={() => void query.refetch()} />
-    );
-  return (
-    <EquipmentEditor
-      key={snapshot.generation}
-      equipment={query.data}
-      save={snapshot.service.replaceEquipment}
-      isCurrent={() => runtime.getSnapshot().generation === snapshot.generation}
-    />
-  );
-}
-
-function EquipmentEditor({
-  equipment,
-  save,
-  isCurrent,
-}: {
-  equipment: Equipment;
-  save: (value: Equipment, expected: Equipment) => Promise<void>;
-  isCurrent: () => boolean;
-}) {
+  const equipment = useEquipment();
   const router = useRouter();
-  const [pending, setPending] = useState(false);
-  const pendingRef = useRef(false);
-  const mounted = useRef(false);
   const base = useRef<Equipment>({
     barbells: equipment.barbells.map((item) => ({ ...item })),
     plates: equipment.plates.map((item) => ({ ...item })),
   });
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   const defaultValues = normalizeEquipmentFormData(equipment);
 
   const {
@@ -167,7 +119,7 @@ function EquipmentEditor({
   } = useForm<FormData>({
     defaultValues,
   });
-  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
+  const { leaveWithoutWarning, hasLeft } = useUnsavedChangesWarning(isDirty);
 
   const {
     fields: barbellFields,
@@ -188,35 +140,26 @@ function EquipmentEditor({
   });
 
   const plates = useWatch({ control, name: "plates" });
-  const canUpdate = () => mounted.current && isCurrent();
-
-  const saveEquipment = async (equipment: Equipment, onSuccess: () => void) => {
-    if (pendingRef.current || !canUpdate()) return;
-    pendingRef.current = true;
-    setPending(true);
+  const saveEquipment = (equipment: Equipment, onSuccess: () => void) => {
     try {
-      await save(equipment, base.current);
+      replaceEquipmentInventory(equipment, base.current);
       base.current = {
         barbells: equipment.barbells.map((item) => ({ ...item })),
         plates: equipment.plates.map((item) => ({ ...item })),
       };
-      if (canUpdate()) onSuccess();
+      onSuccess();
     } catch (error) {
-      if (canUpdate())
-        Alert.alert(
-          "Save Failed",
-          error instanceof Error &&
-            error.message.startsWith("Equipment changed.")
-            ? "Equipment changed while this form was open. Your draft is still here; reopen the form before saving."
-            : "Equipment changes could not be saved. Please try again.",
-        );
-    } finally {
-      pendingRef.current = false;
-      if (canUpdate()) setPending(false);
+      Alert.alert(
+        "Save Failed",
+        error instanceof Error && error.message.startsWith("Equipment changed.")
+          ? "Equipment changed while this form was open. Your draft is still here; reopen the form before saving."
+          : "Equipment changes could not be saved. Please try again.",
+      );
     }
   };
 
   const onSubmit = (data: FormData) => {
+    if (hasLeft()) return;
     const next = {
       ...data,
       barbells: data.barbells
@@ -235,7 +178,7 @@ function EquipmentEditor({
         }))
         .sort((a, b) => a.value - b.value),
     };
-    void saveEquipment(next, () => leaveWithoutWarning(() => router.back()));
+    saveEquipment(next, () => leaveWithoutWarning(() => router.back()));
   };
 
   const changePlateQuantity = (index: number, delta: number) => {
@@ -274,7 +217,7 @@ function EquipmentEditor({
   const restoreEquipmentDefaults = () => {
     const defaultEquipment = createDefaultEquipment();
 
-    void saveEquipment(defaultEquipment, () => reset(defaultEquipment));
+    saveEquipment(defaultEquipment, () => reset(defaultEquipment));
   };
 
   return (
@@ -284,7 +227,6 @@ function EquipmentEditor({
           headerLeft: () => (
             <HeaderTextAction
               label="Cancel"
-              disabled={pending}
               onPress={() => router.back()}
               accessibilityLabel="Go Back Without Saving"
               color="foreground"
@@ -293,7 +235,6 @@ function EquipmentEditor({
           headerRight: () => (
             <HeaderTextAction
               label="Save"
-              disabled={pending}
               onPress={handleSubmit(onSubmit)}
               accessibilityLabel="Save Equipment Settings"
               weight="bold"
@@ -303,7 +244,6 @@ function EquipmentEditor({
       />
 
       <KeyboardAwareScrollView
-        pointerEvents={pending ? "none" : "auto"}
         bottomOffset={40}
         className="flex-1"
         contentContainerClassName="px-5 pt-5 pb-18"

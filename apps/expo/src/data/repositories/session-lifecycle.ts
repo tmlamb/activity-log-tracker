@@ -3,20 +3,7 @@ import {
   SESSION_INACTIVITY_TIMEOUT_MS,
 } from "@activity-log/ui/utils";
 
-interface LifecycleTransaction {
-  getFirstAsync<T>(
-    sql: string,
-    ...parameters: (string | number | null)[]
-  ): Promise<T | null>;
-  getAllAsync<T>(
-    sql: string,
-    ...parameters: (string | number | null)[]
-  ): Promise<T[]>;
-  runAsync(
-    sql: string,
-    ...parameters: (string | number | null)[]
-  ): Promise<{ changes: number }>;
-}
+import type { Db } from "../database/db";
 
 interface Candidate {
   programId: string;
@@ -28,13 +15,13 @@ interface Candidate {
 }
 
 /** Equivalent to finalizeWorkoutSet for all sets owned by one session. */
-async function finalizeSets(
-  transaction: LifecycleTransaction,
+function finalizeSets(
+  transaction: Db,
   programId: string,
   sessionId: string,
   endMs: number,
 ) {
-  await transaction.runAsync(
+  transaction.runSync(
     `UPDATE workout_sets SET
        start_ms = CASE
          WHEN actual_reps > 0 AND status = 'Done' THEN start_ms
@@ -59,14 +46,14 @@ async function finalizeSets(
 }
 
 /** Complete a ready session or acknowledge an already timed-out session. */
-export async function completeSession(
-  transaction: LifecycleTransaction,
+export function completeSession(
+  transaction: Db,
   programId: string,
   sessionId: string,
   requestedEndMs: number | null,
   nowMs: number,
-): Promise<boolean> {
-  const current = await transaction.getFirstAsync<Candidate>(
+): boolean {
+  const current = transaction.getFirstSync<Candidate>(
     `SELECT program_id AS programId, id AS sessionId, status, start_ms AS startMs,
        end_ms AS endMs, last_activity_at_ms AS lastActivityAtMs
      FROM sessions WHERE program_id = ? AND id = ? AND status IN ('Ready', 'Incomplete')`,
@@ -78,8 +65,8 @@ export async function completeSession(
     current.status === "Incomplete"
       ? (current.endMs ?? nowMs)
       : (requestedEndMs ?? nowMs);
-  await finalizeSets(transaction, programId, sessionId, endMs);
-  await transaction.runAsync(
+  finalizeSets(transaction, programId, sessionId, endMs);
+  transaction.runSync(
     `UPDATE sessions SET status = 'Done', end_ms = ?, last_activity_at_ms = ?, revision = revision + 1
      WHERE program_id = ? AND id = ?`,
     endMs,
@@ -91,11 +78,8 @@ export async function completeSession(
 }
 
 /** Visit only ready sessions that could have exceeded the inactivity timeout. */
-export async function cleanupInactiveSessions(
-  transaction: LifecycleTransaction,
-  nowMs: number,
-) {
-  const candidates = await transaction.getAllAsync<Candidate>(
+export function cleanupInactiveSessions(transaction: Db, nowMs: number) {
+  const candidates = transaction.getAllSync<Candidate>(
     `SELECT program_id AS programId, id AS sessionId, status, start_ms AS startMs,
        end_ms AS endMs, last_activity_at_ms AS lastActivityAtMs
      FROM sessions WHERE status = 'Ready'
@@ -106,7 +90,7 @@ export async function cleanupInactiveSessions(
   for (const candidate of candidates) {
     let endMs = candidate.lastActivityAtMs;
     if (endMs === null) {
-      const latest = await transaction.getFirstAsync<{ endMs: number | null }>(
+      const latest = transaction.getFirstSync<{ endMs: number | null }>(
         `SELECT MAX(end_ms) AS endMs FROM workout_sets
          WHERE program_id = ? AND session_id = ? AND status = 'Done'`,
         candidate.programId,
@@ -118,13 +102,8 @@ export async function cleanupInactiveSessions(
           ? nowMs
           : candidate.startMs + LEGACY_SESSION_DURATION_MS);
     }
-    await finalizeSets(
-      transaction,
-      candidate.programId,
-      candidate.sessionId,
-      endMs,
-    );
-    await transaction.runAsync(
+    finalizeSets(transaction, candidate.programId, candidate.sessionId, endMs);
+    transaction.runSync(
       `UPDATE sessions SET status = 'Incomplete', end_ms = ?, last_activity_at_ms = ?, revision = revision + 1
        WHERE program_id = ? AND id = ? AND status = 'Ready'`,
       endMs,
@@ -140,14 +119,14 @@ export async function cleanupInactiveSessions(
   return expired;
 }
 
-export async function setSessionDeload(
-  transaction: LifecycleTransaction,
+export function setSessionDeload(
+  transaction: Db,
   programId: string,
   sessionId: string,
   deload: boolean,
   nowMs: number,
 ) {
-  const result = await transaction.runAsync(
+  const result = transaction.runSync(
     `UPDATE sessions SET deload = ?, last_activity_at_ms = ?, revision = revision + 1
      WHERE program_id = ? AND id = ?`,
     Number(deload),
@@ -159,15 +138,15 @@ export async function setSessionDeload(
 }
 
 /** Reset execution while preserving planning, weights, feedback, and lineage. */
-export async function resetSession(
-  transaction: LifecycleTransaction,
+export function resetSession(
+  transaction: Db,
   programId: string,
   sessionId: string,
   baseRevision: number,
   nowMs: number,
 ) {
   if (!Number.isFinite(nowMs)) throw new Error("Invalid reset time.");
-  const current = await transaction.getFirstAsync<{ revision: number }>(
+  const current = transaction.getFirstSync<{ revision: number }>(
     "SELECT revision FROM sessions WHERE program_id = ? AND id = ?",
     programId,
     sessionId,
@@ -175,13 +154,13 @@ export async function resetSession(
   if (!current) throw new Error("Session not found.");
   if (current.revision !== baseRevision)
     throw new Error("The session changed. Reload before resetting.");
-  await transaction.runAsync(
+  transaction.runSync(
     `UPDATE workout_sets SET status = 'Planned', start_ms = NULL, end_ms = NULL, actual_reps = 0
      WHERE program_id = ? AND session_id = ?`,
     programId,
     sessionId,
   );
-  const updated = await transaction.runAsync(
+  const updated = transaction.runSync(
     `UPDATE sessions SET status = 'Planned', start_ms = NULL, end_ms = NULL,
        last_activity_at_ms = ?, revision = revision + 1
      WHERE program_id = ? AND id = ? AND revision = ?`,
@@ -194,13 +173,13 @@ export async function resetSession(
     throw new Error("The session changed. Reload before resetting.");
 }
 
-export async function deleteSession(
-  transaction: LifecycleTransaction,
+export function deleteSession(
+  transaction: Db,
   programId: string,
   sessionId: string,
   baseRevision: number,
 ) {
-  const current = await transaction.getFirstAsync<{ revision: number }>(
+  const current = transaction.getFirstSync<{ revision: number }>(
     "SELECT revision FROM sessions WHERE program_id = ? AND id = ?",
     programId,
     sessionId,
@@ -208,7 +187,7 @@ export async function deleteSession(
   if (!current) throw new Error("Session not found.");
   if (current.revision !== baseRevision)
     throw new Error("The session changed. Reload before deleting.");
-  await transaction.runAsync(
+  transaction.runSync(
     "DELETE FROM sessions WHERE program_id = ? AND id = ?",
     programId,
     sessionId,

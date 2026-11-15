@@ -1,7 +1,7 @@
-import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
-import { SCHEMA_V1 } from "../database/schema";
+import { transaction } from "../database/db";
+import { createTestDb } from "../database/test-db";
 import {
   createProgram,
   deleteProgram,
@@ -9,88 +9,64 @@ import {
   renameProgram,
 } from "./programs";
 
-function adapter(db: DatabaseSync) {
-  return {
-    getAllAsync: <T>(
-      sql: string,
-      ...parameters: (string | number | null | Uint8Array)[]
-    ) => Promise.resolve(db.prepare(sql).all(...parameters) as T[]),
-    runAsync: (
-      sql: string,
-      ...parameters: (string | number | null | Uint8Array)[]
-    ) => {
-      const result = db.prepare(sql).run(...parameters);
-      return Promise.resolve({ changes: Number(result.changes) });
-    },
-  };
-}
-
 describe("program repository", () => {
-  it("lists counts without loading sessions and preserves order after deletion", async () => {
-    const db = new DatabaseSync(":memory:");
+  it("lists counts without loading sessions and preserves order after deletion", () => {
+    const db = createTestDb();
     try {
-      db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1} BEGIN IMMEDIATE`);
-      const transaction = adapter(db);
-      await createProgram(transaction, "a", "  First   Program ");
-      await createProgram(transaction, "b", "Second");
-      db.exec(
+      createProgram(db, "a", "  First   Program ");
+      createProgram(db, "b", "Second");
+      db.raw.exec(
         "INSERT INTO sessions(program_id, id, name, position, status, deload) VALUES ('a', 's', 'Session', 0, 'Done', 0)",
       );
-      expect(await listProgramSummaries(transaction)).toEqual([
+      expect(listProgramSummaries(db)).toEqual([
         { id: "a", name: "First Program", sessionCount: 1 },
         { id: "b", name: "Second", sessionCount: 0 },
       ]);
-      await renameProgram(transaction, "a", "Updated");
+      renameProgram(db, "a", "Updated");
       expect(
-        db.prepare("SELECT count(*) AS count FROM sessions").get(),
+        db.raw.prepare("SELECT count(*) AS count FROM sessions").get(),
       ).toEqual({ count: 1 });
-      await deleteProgram(transaction, "a");
-      await createProgram(transaction, "c", "Third");
-      expect(await listProgramSummaries(transaction)).toEqual([
+      deleteProgram(db, "a");
+      createProgram(db, "c", "Third");
+      expect(listProgramSummaries(db)).toEqual([
         { id: "b", name: "Second", sessionCount: 0 },
         { id: "c", name: "Third", sessionCount: 0 },
       ]);
       expect(
-        db.prepare("SELECT count(*) AS count FROM sessions").get(),
+        db.raw.prepare("SELECT count(*) AS count FROM sessions").get(),
       ).toEqual({ count: 0 });
-      db.exec("COMMIT");
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("rejects edits and deletion of missing programs", async () => {
-    const db = new DatabaseSync(":memory:");
+  it("rejects edits and deletion of missing programs", () => {
+    const db = createTestDb();
     try {
-      db.exec(`${SCHEMA_V1} BEGIN IMMEDIATE`);
-      await expect(
-        renameProgram(adapter(db), "missing", "Name"),
-      ).rejects.toThrow("Program not found");
-      await expect(deleteProgram(adapter(db), "missing")).rejects.toThrow(
+      expect(() => renameProgram(db, "missing", "Name")).toThrow(
         "Program not found",
       );
-      db.exec("ROLLBACK");
+      expect(() => deleteProgram(db, "missing")).toThrow("Program not found");
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("rolls back Drizzle writes with the owning transaction", async () => {
-    const db = new DatabaseSync(":memory:");
+  it("rolls back program writes with the owning transaction", () => {
+    const db = createTestDb();
     try {
-      db.exec(`${SCHEMA_V1} BEGIN IMMEDIATE`);
-      const transaction = adapter(db);
-      await createProgram(transaction, "a", "Program");
-      await renameProgram(transaction, "a", "Changed");
-      await expect(
-        createProgram(transaction, "a", "Duplicate"),
-      ).rejects.toThrow();
-      db.exec("ROLLBACK");
+      expect(() =>
+        transaction(db, () => {
+          createProgram(db, "a", "Program");
+          renameProgram(db, "a", "Changed");
+          createProgram(db, "a", "Duplicate");
+        }),
+      ).toThrow();
       expect(
-        db.prepare("SELECT count(*) AS count FROM programs").get(),
+        db.raw.prepare("SELECT count(*) AS count FROM programs").get(),
       ).toEqual({ count: 0 });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });

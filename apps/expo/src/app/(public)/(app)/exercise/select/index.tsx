@@ -1,7 +1,7 @@
 import "react-native-get-random-values";
 
 import type { Href } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Alert, View } from "react-native";
 import { useNativeVariable } from "react-native-css";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
@@ -12,24 +12,20 @@ import { v4 as uuidv4 } from "uuid";
 
 import { normalizeExerciseName } from "@activity-log/ui/utils";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
-import type { SelectionTicket } from "~/data/react/selection-handoff";
+import type { SelectionTicket } from "~/data/selection-handoff";
 import { SelectableCardRow } from "~/components/CardRow";
 import { Text } from "~/components/font-scale-text";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
-import { QueryStatus } from "~/components/query-status";
 import { LegendSectionListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
-import { getMemoryExercise } from "~/data/application-memory";
-import {
-  useApplicationDataRuntime,
-  useApplicationDataSnapshot,
-} from "~/data/react/application-data";
-import { useSelectionHandoff } from "~/data/react/selection-handoff";
-import { useExerciseLibrary } from "~/data/react/settings-queries";
+import { materializeExercisePreset } from "~/data/actions";
+import { useExerciseLibrary } from "~/data/queries";
+import { getSavedExercise } from "~/data/repositories/exercises";
+import { useSelectionHandoff } from "~/data/selection-handoff";
+import { read, useGeneration } from "~/data/store";
 
-type Library = NonNullable<ReturnType<typeof useExerciseLibrary>["data"]>;
+type Library = ReturnType<typeof useExerciseLibrary>;
 interface Choice {
   kind: "saved" | "preset";
   id: string;
@@ -43,7 +39,6 @@ interface Section {
 }
 
 export default function ExerciseSelectScreen() {
-  const runtime = useApplicationDataRuntime();
   const params = useLocalSearchParams<{
     requestId?: string;
     ownerId?: string;
@@ -51,44 +46,34 @@ export default function ExerciseSelectScreen() {
     activityId?: string;
     currentExerciseId?: string;
   }>();
-  const snapshot = useApplicationDataSnapshot(runtime);
+  const generation = useGeneration();
   const entry = useSelectionHandoff((state) =>
     params.requestId ? state.entries[params.requestId] : undefined,
   );
-  const library = useExerciseLibrary(runtime);
+  const library = useExerciseLibrary();
   if (
     entry?.kind !== "exercise" ||
     entry.ticket.ownerId !== params.ownerId ||
     entry.ticket.activityId !== params.activityId ||
     String(entry.ticket.generation) !== params.generation ||
-    entry.ticket.generation !== snapshot.generation
+    entry.ticket.generation !== generation
   )
     return <Redirect href="/(public)/(app)" />;
-  if (library.data === undefined)
-    return (
-      <QueryStatus
-        error={library.isError}
-        onRetry={() => void library.refetch()}
-      />
-    );
   return (
     <ExercisePicker
       key={entry.ticket.requestId}
-      runtime={runtime}
       ticket={entry.ticket}
-      library={library.data}
+      library={library}
       currentExerciseId={params.currentExerciseId}
     />
   );
 }
 
 function ExercisePicker({
-  runtime,
   ticket,
   library,
   currentExerciseId,
 }: {
-  runtime: ApplicationDataRuntime;
   ticket: SelectionTicket;
   library: Library;
   currentExerciseId?: string;
@@ -106,15 +91,6 @@ function ExercisePicker({
       : null,
   );
   const [filter, setFilter] = useState("");
-  const [pending, setPending] = useState(false);
-  const pendingRef = useRef(false);
-  const mounted = useRef(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   const names = new Set(
     library.saved.map(({ name }) => normalizeExerciseName(name)),
   );
@@ -155,28 +131,18 @@ function ExercisePicker({
       key: "unused",
       data: presets,
     });
-  const isCurrent = () =>
-    mounted.current && runtime.getSnapshot().generation === ticket.generation;
-
-  const done = async () => {
-    if (!selected || pendingRef.current || !isCurrent()) return;
-    pendingRef.current = true;
-    setPending(true);
+  const done = () => {
+    if (!selected) return;
     try {
-      const service = runtime.getSnapshot().service;
       const id =
         selected.kind === "preset"
-          ? await service.materializeExercisePreset(selected.id, uuidv4())
+          ? materializeExercisePreset(selected.id, uuidv4())
           : selected.id;
       if (selected.kind === "saved") {
-        const memory = runtime.getSnapshot().memory;
-        const savedExercise = memory
-          ? getMemoryExercise(memory, id)
-          : await service.exercise(id);
+        const savedExercise = read((db) => getSavedExercise(db, id));
         if (!savedExercise || savedExercise.deleted)
           throw new Error("The selected exercise is no longer available.");
       }
-      if (!isCurrent()) return;
       if (
         !useSelectionHandoff
           .getState()
@@ -185,16 +151,12 @@ function ExercisePicker({
         throw new Error("This selection request is no longer active.");
       router.back();
     } catch (error) {
-      if (isCurrent())
-        Alert.alert(
-          "Selection Failed",
-          error instanceof Error
-            ? error.message
-            : "The exercise could not be selected.",
-        );
-    } finally {
-      pendingRef.current = false;
-      if (isCurrent()) setPending(false);
+      Alert.alert(
+        "Selection Failed",
+        error instanceof Error
+          ? error.message
+          : "The exercise could not be selected.",
+      );
     }
   };
   const formHref = (choice: Choice): Href =>
@@ -209,8 +171,8 @@ function ExercisePicker({
           headerRight: () => (
             <HeaderTextAction
               label="Done"
-              onPress={() => void done()}
-              disabled={!selected || pending}
+              onPress={done}
+              disabled={!selected}
               accessibilityLabel="Confirm exercise selection"
               weight="bold"
             />
@@ -218,7 +180,6 @@ function ExercisePicker({
           headerLeft: () => (
             <HeaderTextAction
               label="Cancel"
-              disabled={pending}
               onPress={() => router.back()}
               color="foreground"
             />
@@ -258,7 +219,6 @@ function ExercisePicker({
               cardVariants={["multiline"]}
               selected={selected?.kind === item.kind && selected.id === item.id}
               onPress={() => setSelected({ kind: item.kind, id: item.id })}
-              disabled={pending}
               trailingAccessory={
                 <PressableThemed
                   className="-mr-3 h-11 w-11 items-center justify-center"

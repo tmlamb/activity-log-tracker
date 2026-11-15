@@ -1,20 +1,17 @@
-import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { Activity, WorkoutSet } from "@activity-log/ui/utils";
 import { plannedWeightForWorkoutSet } from "@activity-log/ui/utils";
 
-import {
-  buildApplicationMemory,
-  getMemorySetContext,
-  readApplicationMemoryFacts,
-} from "../application-memory";
-import { SCHEMA_V1 } from "../database/schema";
+import type { Db, SqlValue } from "../database/db";
+import { createTestDb } from "../database/test-db";
 import { plannedSetWeight } from "../domain/set-execution";
 import { getSetExecutionContext } from "./set-context";
 
-const databases: DatabaseSync[] = [];
-afterEach(() => databases.splice(0).forEach((database) => database.close()));
+const databases: ReturnType<typeof createTestDb>[] = [];
+afterEach(() =>
+  databases.splice(0).forEach((database) => database.raw.close()),
+);
 
 const reference = {
   programId: "p",
@@ -24,9 +21,7 @@ const reference = {
 };
 
 function setup() {
-  const db = new DatabaseSync(":memory:");
-  databases.push(db);
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1}
+  const db = createTestDb(`
     INSERT INTO programs VALUES ('p', 'Program', 0), ('other', 'Other', 1);
     INSERT INTO session_lineages VALUES ('p', 'lineage'), ('other', 'lineage');
     INSERT INTO sessions(program_id, id, lineage_id, name, position, status, deload, revision)
@@ -46,44 +41,37 @@ function setup() {
              ('p', 's', 'a', 'main-2', 'Main', 9, 'Planned', 'Easy', NULL, NULL, NULL),
              ('p', 's', 'repeated', 'warmup', 'Main', 0, 'Ready', 'Neutral', 12, 10, 'kg'),
              ('other', 's', 'a', 'warmup', 'Main', 0, 'Done', 'Easy', 3, 100, 'lbs');`);
-  const calls: { sql: string; parameters: string[] }[] = [];
-  const reader = {
-    getFirstAsync: <T>(sql: string, ...parameters: string[]) => {
+  databases.push(db);
+  const calls: { sql: string; parameters: SqlValue[] }[] = [];
+  const reader: Db = {
+    ...db,
+    getFirstSync: (sql, ...parameters) => {
       calls.push({ sql, parameters });
-      return Promise.resolve(
-        (db.prepare(sql).get(...parameters) as T | undefined) ?? null,
-      );
+      return db.getFirstSync(sql, ...parameters);
     },
   };
   return { db, reader, calls };
 }
 
 describe("set execution context", () => {
-  it("matches the synchronous memory projection including sparse set positions", async () => {
-    const { db, reader } = setup();
-    const memory = buildApplicationMemory(
-      await readApplicationMemoryFacts({
-        getAllAsync: <T>(sql: string) =>
-          Promise.resolve(db.prepare(sql).all() as T[]),
-      }),
-      1,
-    );
+  it("loads sparse set positions and scoped references", () => {
+    const { reader } = setup();
     for (const entry of [
       reference,
       { ...reference, setId: "warmup-2" },
       { ...reference, setId: "main" },
       { ...reference, activityId: "repeated" },
       { ...reference, programId: "other" },
-      { ...reference, setId: "missing" },
     ])
-      expect(getMemorySetContext(memory, entry)).toEqual(
-        await getSetExecutionContext(reader, entry),
-      );
+      expect(getSetExecutionContext(reader, entry)?.reference).toEqual(entry);
+    expect(
+      getSetExecutionContext(reader, { ...reference, setId: "missing" }),
+    ).toBeNull();
   });
 
-  it("loads scoped context, live deleted exercises, and positional targets without a session graph", async () => {
+  it("loads scoped context, live deleted exercises, and positional targets without a session graph", () => {
     const { reader, calls } = setup();
-    const result = await getSetExecutionContext(reader, reference);
+    const result = getSetExecutionContext(reader, reference);
     expect(calls).toHaveLength(2);
     expect(result).toMatchObject({
       reference,
@@ -124,13 +112,13 @@ describe("set execution context", () => {
     expect(result?.session).not.toHaveProperty("activities");
     expect(result?.exercise).not.toHaveProperty("notes");
     expect(result?.activity).not.toHaveProperty("mainSets");
-    const second = await getSetExecutionContext(reader, {
+    const second = getSetExecutionContext(reader, {
       ...reference,
       setId: "warmup-2",
     });
     expect(second?.targetWeight).toEqual({ value: 60, unit: "kg" });
     expect(second?.isStartable).toBe(false);
-    const repeated = await getSetExecutionContext(reader, {
+    const repeated = getSetExecutionContext(reader, {
       ...reference,
       activityId: "repeated",
     });
@@ -139,101 +127,85 @@ describe("set execution context", () => {
     expect(repeated?.activity.warmupSetCount).toBe(0);
   });
 
-  it("matches Start/Complete policy without crossing activities or reopening terminal sessions", async () => {
+  it("matches Start/Complete policy without crossing activities or reopening terminal sessions", () => {
     const { db, reader } = setup();
     const main = { ...reference, setId: "main" };
-    expect((await getSetExecutionContext(reader, main))?.isStartable).toBe(
-      false,
-    );
-    db.exec(`UPDATE workout_sets SET status = 'Done'
+    expect(getSetExecutionContext(reader, main)?.isStartable).toBe(false);
+    db.raw.exec(`UPDATE workout_sets SET status = 'Done'
       WHERE program_id = 'p' AND activity_id = 'a' AND kind = 'Warmup'`);
-    expect((await getSetExecutionContext(reader, main))?.isStartable).toBe(
-      true,
-    );
-    db.exec(`UPDATE sessions SET status = 'Ready' WHERE program_id = 'p' AND id = 's';
+    expect(getSetExecutionContext(reader, main)?.isStartable).toBe(true);
+    db.raw
+      .exec(`UPDATE sessions SET status = 'Ready' WHERE program_id = 'p' AND id = 's';
       UPDATE workout_sets SET status = 'Ready' WHERE program_id = 'p' AND activity_id = 'a' AND id = 'main'`);
-    expect((await getSetExecutionContext(reader, main))?.canComplete).toBe(
-      true,
-    );
-    db.exec(
+    expect(getSetExecutionContext(reader, main)?.canComplete).toBe(true);
+    db.raw.exec(
       `UPDATE workout_sets SET actual_reps = 0 WHERE program_id = 'p' AND activity_id = 'a' AND id = 'main'`,
     );
-    expect((await getSetExecutionContext(reader, main))?.canComplete).toBe(
-      false,
-    );
+    expect(getSetExecutionContext(reader, main)?.canComplete).toBe(false);
     for (const status of ["Done", "Incomplete"]) {
-      db.prepare(
-        "UPDATE sessions SET status = ? WHERE program_id = 'p' AND id = 's'",
-      ).run(status);
-      const terminal = await getSetExecutionContext(reader, main);
+      db.raw
+        .prepare(
+          "UPDATE sessions SET status = ? WHERE program_id = 'p' AND id = 's'",
+        )
+        .run(status);
+      const terminal = getSetExecutionContext(reader, main);
       expect(terminal?.isStartable).toBe(false);
       expect(terminal?.canComplete).toBe(false);
     }
   });
 
-  it("preserves unavailable references and unknown targets, and distinguishes missing sets", async () => {
+  it("preserves unavailable references and unknown targets, and distinguishes missing sets", () => {
     const { db, reader, calls } = setup();
-    db.exec(
+    db.raw.exec(
       "UPDATE activities SET exercise_id = NULL, reps = NULL, load_type = NULL, load_value = NULL WHERE program_id = 'p' AND id = 'a'",
     );
-    const recovered = await getSetExecutionContext(reader, reference);
+    const recovered = getSetExecutionContext(reader, reference);
     expect(recovered?.exercise).toBeNull();
     expect(recovered?.activity.reps).toBeNull();
     expect(recovered?.targetWeight).toBeNull();
     expect(recovered?.set.actualReps).toBeNull();
     calls.length = 0;
     expect(
-      await getSetExecutionContext(reader, { ...reference, setId: "missing" }),
+      getSetExecutionContext(reader, { ...reference, setId: "missing" }),
     ).toBeNull();
     expect(calls).toHaveLength(1);
-    db.exec(
+    db.raw.exec(
       "DELETE FROM workout_sets WHERE program_id = 'p' AND activity_id = 'a' AND kind = 'Main'",
     );
-    const withoutMain = await getSetExecutionContext(reader, reference);
+    const withoutMain = getSetExecutionContext(reader, reference);
     expect(withoutMain?.firstMainSet).toBeNull();
     expect(withoutMain?.mainTargetWeight).toBeNull();
   });
 
-  it("resolves lineage history by program and position, with live exercise targets", async () => {
+  it("resolves lineage history by program and position, with live exercise targets", () => {
     const { db, reader } = setup();
     expect(
-      (
-        await getSetExecutionContext(reader, {
-          ...reference,
-          programId: "other",
-        })
-      )?.hasTemplateHistory,
+      getSetExecutionContext(reader, {
+        ...reference,
+        programId: "other",
+      })?.hasTemplateHistory,
     ).toBe(false);
-    db.exec(`DELETE FROM sessions WHERE program_id = 'p' AND id = 'previous';
+    db.raw
+      .exec(`DELETE FROM sessions WHERE program_id = 'p' AND id = 'previous';
       UPDATE exercises SET one_rep_max_value = 200, revision = revision + 1 WHERE id = 'e'`);
-    const changed = await getSetExecutionContext(reader, reference);
+    const changed = getSetExecutionContext(reader, reference);
     expect(changed?.hasTemplateHistory).toBe(false);
     expect(changed?.targetWeight).toEqual({ value: 80, unit: "kg" });
     expect(changed?.exercise?.revision).toBe(1);
   });
 
-  it("preserves the in-memory set context when unrelated history grows", async () => {
-    const { db } = setup();
-    const reader = {
-      getAllAsync: <T>(sql: string) =>
-        Promise.resolve(db.prepare(sql).all() as T[]),
-    };
-    const before = getMemorySetContext(
-      buildApplicationMemory(await readApplicationMemoryFacts(reader), 1),
-      reference,
-    );
-    db.exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
+  it("preserves the set context when unrelated history grows", () => {
+    const { db, reader } = setup();
+    const before = getSetExecutionContext(reader, reference);
+    db.raw
+      .exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
       INSERT INTO sessions(program_id, id, lineage_id, name, position, status, deload)
         SELECT 'p', 'history-' || x, 'lineage', 'History', x + 2, 'Done', 0 FROM n;
       INSERT INTO activities(program_id, session_id, id, exercise_id, position)
         SELECT program_id, id, 'a', 'e', 0 FROM sessions WHERE id LIKE 'history-%';
       INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback)
         SELECT program_id, session_id, id, 'set', 'Main', 0, 'Done', 'Neutral' FROM activities WHERE session_id LIKE 'history-%';`);
-    const memory = buildApplicationMemory(
-      await readApplicationMemoryFacts(reader),
-      1,
-    );
-    expect(getMemorySetContext(memory, reference)).toEqual(before);
+    expect(getSetExecutionContext(reader, reference)).toEqual(before);
   });
 });
 

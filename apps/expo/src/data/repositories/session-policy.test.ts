@@ -1,4 +1,3 @@
-import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 import type { Session } from "@activity-log/ui/utils";
@@ -7,21 +6,20 @@ import {
   isLatestCompletedSessionInTemplateSeries,
 } from "@activity-log/ui/utils";
 
-import { SCHEMA_V1, SCHEMA_V2 } from "../database/schema";
+import type { Db, SqlValue } from "../database/db";
+import { createTestDb } from "../database/test-db";
 import { getSessionPolicy } from "./session-policy";
 
 function setup() {
-  const db = new DatabaseSync(":memory:");
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1} ${SCHEMA_V2}
+  const db = createTestDb(`
     INSERT INTO programs VALUES ('p', 'P', 0), ('other', 'Other', 1);
     INSERT INTO session_lineages VALUES ('p', 'lineage'), ('p', 'another'), ('other', 'lineage');`);
-  const calls: { sql: string; parameters: string[] }[] = [];
-  const reader = {
-    getFirstAsync: <T>(sql: string, ...parameters: string[]) => {
+  const calls: { sql: string; parameters: SqlValue[] }[] = [];
+  const reader: Db = {
+    ...db,
+    getFirstSync: (sql, ...parameters) => {
       calls.push({ sql, parameters });
-      return Promise.resolve(
-        (db.prepare(sql).get(...parameters) as T | undefined) ?? null,
-      );
+      return db.getFirstSync(sql, ...parameters);
     },
   };
   const insert = (
@@ -33,10 +31,12 @@ function setup() {
     endMs: number | null,
     program = "p",
   ): Session => {
-    db.prepare(
-      `INSERT INTO sessions(program_id, id, lineage_id, name, position, status, deload, start_ms, end_ms)
+    db.raw
+      .prepare(
+        `INSERT INTO sessions(program_id, id, lineage_id, name, position, status, deload, start_ms, end_ms)
       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-    ).run(program, id, lineage, id, position, status, startMs, endMs);
+      )
+      .run(program, id, lineage, id, position, status, startMs, endMs);
     return {
       sessionId: id,
       name: id,
@@ -52,7 +52,7 @@ function setup() {
 }
 
 describe("session lineage policy projection", () => {
-  it("matches existing policy for ordering, missing timestamps, ties and statuses", async () => {
+  it("matches existing policy for ordering, missing timestamps, ties and statuses", () => {
     const { db, reader, insert } = setup();
     try {
       const sessions = [
@@ -68,7 +68,7 @@ describe("session lineage policy projection", () => {
       insert("tie", 0, "Done", "lineage", 9999, null, "other");
       for (const session of sessions) {
         expect(
-          await getSessionPolicy(reader, "p", session.sessionId),
+          getSessionPolicy(reader, "p", session.sessionId),
           session.sessionId,
         ).toEqual({
           canSetDeload: canSetSessionDeload(sessions, session),
@@ -78,29 +78,30 @@ describe("session lineage policy projection", () => {
           ),
         });
       }
-      expect(await getSessionPolicy(reader, "p", "missing")).toBeNull();
-      expect(await getSessionPolicy(reader, "other", "tie")).toEqual({
+      expect(getSessionPolicy(reader, "p", "missing")).toBeNull();
+      expect(getSessionPolicy(reader, "other", "tie")).toEqual({
         canSetDeload: false,
         isLatestCompletedInLineage: true,
       });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("finds the latest completed session in a long lineage", async () => {
+  it("finds the latest completed session in a long lineage", () => {
     const { db, reader, insert } = setup();
     try {
       insert("current", 0, "Done", "lineage", 100, 200);
-      db.exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
+      db.raw
+        .exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
         INSERT INTO sessions(program_id, id, lineage_id, name, position, status, deload, start_ms)
         SELECT 'p', 'history-' || x, 'lineage', 'History', x, 'Done', 0, x + 100 FROM n;`);
-      expect(await getSessionPolicy(reader, "p", "current")).toEqual({
+      expect(getSessionPolicy(reader, "p", "current")).toEqual({
         canSetDeload: false,
         isLatestCompletedInLineage: false,
       });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });

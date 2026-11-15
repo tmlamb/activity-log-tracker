@@ -1,30 +1,13 @@
 import { View } from "react-native";
 import { Link, Stack } from "expo-router";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
-import type { ProgramSummary } from "~/data/repositories/programs";
 import { NavigationCardRow } from "~/components/CardRow";
 import { HeaderPlusAction } from "~/components/HeaderAction";
-import { QueryStatus } from "~/components/query-status";
 import { LegendListStyled } from "~/components/Styled";
-import { useApplicationDataRuntime } from "~/data/react/application-data";
-import { useProgramSummaries } from "~/data/react/program-queries";
+import { useProgramSummaries } from "~/data/queries";
 
 export default function ProgramSettingsScreen() {
-  const runtime = useApplicationDataRuntime();
-  return <ProgramSettings runtime={runtime} />;
-}
-
-function ProgramSettings({ runtime }: { runtime: ApplicationDataRuntime }) {
-  const query = useProgramSummaries(runtime);
-  if (query.data === undefined)
-    return (
-      <QueryStatus error={query.isError} onRetry={() => void query.refetch()} />
-    );
-  return <ProgramSettingsContent programs={query.data} />;
-}
-
-function ProgramSettingsContent({ programs }: { programs: ProgramSummary[] }) {
+  const programs = useProgramSummaries();
   return (
     <View className="flex-1">
       <Stack.Screen

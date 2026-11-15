@@ -1,57 +1,31 @@
-import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { Session } from "@activity-log/ui/utils";
 
-import type {
-  ProgramWeekPage,
-  TimelineCursor,
-} from "../domain/program-timeline";
 import { buildProgramWeeks } from "../../utils/program-weeks";
-import {
-  buildApplicationMemory,
-  getMemoryProgramWeek,
-  readApplicationMemoryFacts,
-} from "../application-memory";
-import { SCHEMA_V1 } from "../database/schema";
+import { createTestDb } from "../database/test-db";
 import {
   buildProgramOverview,
   programWeekWindow,
 } from "../domain/program-timeline";
 import {
   getProgramHeader,
-  getProgramWeekPage,
+  getProgramWeek,
   readProgramTimeline,
 } from "./program-timeline";
 
-const databases: DatabaseSync[] = [];
-afterEach(() => databases.splice(0).forEach((database) => database.close()));
+const databases: ReturnType<typeof createTestDb>[] = [];
+afterEach(() =>
+  databases.splice(0).forEach((database) => database.raw.close()),
+);
 
 const localDate = (day: number, hour = 12) => new Date(2026, 0, day, hour);
 const nowMs = localDate(20).getTime();
 
 function setup() {
-  const db = new DatabaseSync(":memory:");
-  databases.push(db);
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1}
+  const db = createTestDb(`
     INSERT INTO programs VALUES ('p', 'Program', 0), ('other', 'Other', 1);`);
-  const calls: {
-    sql: string;
-    parameters: (string | number)[];
-    rows: number;
-  }[] = [];
-  const reader = {
-    getFirstAsync: <T>(sql: string, ...parameters: (string | number)[]) => {
-      const result = db.prepare(sql).get(...parameters) as T | undefined;
-      calls.push({ sql, parameters, rows: result === undefined ? 0 : 1 });
-      return Promise.resolve(result ?? null);
-    },
-    getAllAsync: <T>(sql: string, ...parameters: (string | number)[]) => {
-      const result = db.prepare(sql).all(...parameters) as T[];
-      calls.push({ sql, parameters, rows: result.length });
-      return Promise.resolve(result);
-    },
-  };
+  databases.push(db);
   const insert = (
     id: string,
     position: number,
@@ -59,10 +33,12 @@ function setup() {
     start?: Date,
     programId = "p",
   ): Session => {
-    db.prepare(
-      `INSERT INTO sessions(program_id, id, name, position, status, deload, start_ms)
+    db.raw
+      .prepare(
+        `INSERT INTO sessions(program_id, id, name, position, status, deload, start_ms)
       VALUES (?, ?, ?, ?, ?, 0, ?)`,
-    ).run(programId, id, id, position, status, start?.getTime() ?? null);
+      )
+      .run(programId, id, id, position, status, start?.getTime() ?? null);
     return {
       sessionId: id,
       name: id,
@@ -72,11 +48,11 @@ function setup() {
       activities: [],
     };
   };
-  return { db, reader, calls, insert };
+  return { db, reader: db, insert };
 }
 
 describe("program timeline projections", () => {
-  it("matches legacy week grouping and display order across bounded pages, ties, and missing dates", async () => {
+  it("matches legacy week grouping and display order across weeks, ties, and missing dates", () => {
     const { reader, insert } = setup();
     const sessions = [
       insert("done-day-6", 0, "Done", localDate(6)),
@@ -95,11 +71,7 @@ describe("program timeline projections", () => {
     ];
     insert("program-start", 0, "Done", localDate(-30), "other");
     const legacy = buildProgramWeeks(sessions, new Date(nowMs));
-    const memory = buildApplicationMemory(
-      await readApplicationMemoryFacts(reader),
-      1,
-    );
-    const facts = await readProgramTimeline(reader, "p");
+    const facts = readProgramTimeline(reader, "p");
     expect(facts).not.toBeNull();
     if (!facts) throw new Error("Missing timeline facts");
     expect(buildProgramOverview(facts.anchor, facts.dates, nowMs)).toEqual({
@@ -113,33 +85,13 @@ describe("program timeline projections", () => {
       })),
     });
     for (const week of legacy.weeks) {
-      const items: ProgramWeekPage["items"] = [];
-      let after: TimelineCursor | undefined;
-      do {
-        const page = await getProgramWeekPage(reader, "p", {
-          week: week.week,
-          nowMs,
-          limit: 2,
-          after,
-        });
-        if (!page) throw new Error("Missing program week");
-        expect(page.items.length).toBeLessThanOrEqual(2);
-        items.push(...page.items);
-        after = page.nextCursor ?? undefined;
-      } while (after);
+      const result = getProgramWeek(reader, "p", week.week, nowMs);
+      if (!result) throw new Error("Missing program week");
+      expect(result.week).toBe(week.week);
+      const { items } = result;
       expect(items.map(({ id }) => id)).toEqual(
         week.sessions.map(({ sessionId }) => sessionId),
       );
-      expect(
-        getMemoryProgramWeek(
-          memory,
-          "p",
-          week.week,
-          legacy.programStart.getTime(),
-          legacy.currentWeek,
-          nowMs,
-        )?.items,
-      ).toEqual(items);
       expect(items.every((item) => !("activities" in item))).toBe(true);
       expect(
         items
@@ -149,18 +101,16 @@ describe("program timeline projections", () => {
     }
   });
 
-  it("distinguishes missing and empty programs and keeps empty current weeks", async () => {
+  it("distinguishes missing and empty programs and keeps empty current weeks", () => {
     const { reader, insert } = setup();
-    expect(await getProgramHeader(reader, "p")).toEqual({
+    expect(getProgramHeader(reader, "p")).toEqual({
       id: "p",
       name: "Program",
     });
-    expect(await getProgramHeader(reader, "missing")).toBeNull();
-    expect(await readProgramTimeline(reader, "missing")).toBeNull();
-    expect(
-      await getProgramWeekPage(reader, "missing", { week: 1, nowMs }),
-    ).toBeNull();
-    let facts = await readProgramTimeline(reader, "p");
+    expect(getProgramHeader(reader, "missing")).toBeNull();
+    expect(readProgramTimeline(reader, "missing")).toBeNull();
+    expect(getProgramWeek(reader, "missing", 1, nowMs)).toBeNull();
+    let facts = readProgramTimeline(reader, "p");
     if (!facts) throw new Error("Missing timeline facts");
     expect(
       buildProgramOverview(facts.anchor, facts.dates, nowMs),
@@ -169,13 +119,12 @@ describe("program timeline projections", () => {
       sessionCount: 0,
       weeks: [{ week: 1, sessionCount: 0 }],
     });
-    expect(await getProgramWeekPage(reader, "p", { week: 1, nowMs })).toEqual({
+    expect(getProgramWeek(reader, "p", 1, nowMs)).toEqual({
       week: 1,
       items: [],
-      nextCursor: null,
     });
     insert("old", 0, "Done", localDate(1));
-    facts = await readProgramTimeline(reader, "p");
+    facts = readProgramTimeline(reader, "p");
     if (!facts) throw new Error("Missing timeline facts");
     expect(
       buildProgramOverview(facts.anchor, facts.dates, nowMs).weeks,
@@ -185,79 +134,22 @@ describe("program timeline projections", () => {
     ]);
   });
 
-  it("rejects stale calendar/anchor cursors and invalid page sizes", async () => {
-    const { reader, insert } = setup();
-    insert("first", 0, "Done", localDate(1));
-    insert("second", 1, "Done", localDate(2));
-    const page = await getProgramWeekPage(reader, "p", {
-      week: 1,
-      nowMs,
-      limit: 1,
-    });
-    const after = page?.nextCursor;
-    if (!after) throw new Error("Missing next page cursor");
-    await expect(
-      getProgramWeekPage(reader, "p", {
-        week: 2,
-        nowMs,
-        after,
-      }),
-    ).rejects.toThrow("timeline changed");
-    await expect(
-      getProgramWeekPage(reader, "p", {
-        week: 1,
-        nowMs: localDate(22).getTime(),
-        after,
-      }),
-    ).rejects.toThrow("timeline changed");
-    await expect(
-      getProgramWeekPage(reader, "p", {
-        week: 1,
-        nowMs,
-        after: { ...after, windowStartMs: after.windowStartMs + 1 },
-      }),
-    ).rejects.toThrow("timeline changed");
-    insert("earlier", 2, "Done", localDate(-5));
-    await expect(
-      getProgramWeekPage(reader, "p", {
-        week: 1,
-        nowMs,
-        after,
-      }),
-    ).rejects.toThrow("timeline changed");
-    for (const limit of [0, -1, 101, 1.5, NaN, Infinity]) {
-      await expect(
-        getProgramWeekPage(reader, "p", { week: 1, nowMs, limit }),
-      ).rejects.toThrow("page size");
-    }
-  });
-
-  it("can page an undated program while the clock advances within the same day", async () => {
+  it("lists an undated program in the current week while the clock advances within the same day", () => {
     const { reader, insert } = setup();
     insert("first", 0, "Planned");
     insert("second", 1, "Planned");
-    const page = await getProgramWeekPage(reader, "p", {
-      week: 1,
-      nowMs,
-      limit: 1,
-    });
-    if (!page?.nextCursor) throw new Error("Missing next page cursor");
-    const next = await getProgramWeekPage(reader, "p", {
-      week: 1,
-      nowMs: nowMs + 1000,
-      limit: 1,
-      after: page.nextCursor,
-    });
-    expect(next?.items.map(({ id }) => id)).toEqual(["first"]);
-    expect(next?.nextCursor).toBeNull();
+    for (const at of [nowMs, nowMs + 1000])
+      expect(
+        getProgramWeek(reader, "p", 1, at)?.items.map(({ id }) => id),
+      ).toEqual(["second", "first"]);
   });
 
-  it("uses local midnight and exclusive calendar-week ends", async () => {
+  it("uses local midnight and exclusive calendar-week ends", () => {
     const { reader, insert } = setup();
     insert("start", 0, "Done", localDate(1, 23));
     insert("before-boundary", 1, "Done", new Date(2026, 0, 7, 23, 59, 59, 999));
     insert("at-boundary", 2, "Done", localDate(8, 0));
-    const page = await getProgramWeekPage(reader, "p", { week: 1, nowMs });
+    const page = getProgramWeek(reader, "p", 1, nowMs);
     expect(page?.items.map(({ id, day }) => ({ id, day }))).toEqual([
       { id: "before-boundary", day: 7 },
       { id: "start", day: 1 },
@@ -267,34 +159,23 @@ describe("program timeline projections", () => {
       sessionCount: 3,
       earliestStartMs: new Date(2026, 2, 5, 23).getTime(),
     };
-    const window = programWeekWindow(anchor, { week: 1, nowMs });
+    const window = programWeekWindow(anchor, 1, nowMs);
     expect(new Date(window.startMs)).toEqual(new Date(2026, 2, 5));
     expect(new Date(window.endMs)).toEqual(new Date(2026, 2, 12));
   });
 
-  it("returns the complete in-memory week with years of history", async () => {
+  it("returns the complete week with years of history", () => {
     const { db, reader, insert } = setup();
     insert("start", 0, "Done", localDate(1));
-    db.exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
+    db.raw
+      .exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
       INSERT INTO sessions(program_id, id, name, position, status, deload, start_ms)
         SELECT 'p', 'history-' || x, 'History', x, 'Done', 0, ${localDate(1).getTime()} + x * 86400000 FROM n;
       INSERT INTO activities(program_id, session_id, id, position)
         SELECT program_id, id, 'a', 0 FROM sessions;
       INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback)
         SELECT program_id, session_id, id, 'set', 'Main', 0, 'Done', 'Neutral' FROM activities;`);
-    const memory = buildApplicationMemory(
-      await readApplicationMemoryFacts(reader),
-      1,
-    );
-    const page = getMemoryProgramWeek(
-      memory,
-      "p",
-      1,
-      localDate(1).getTime(),
-      3,
-      nowMs,
-    );
+    const page = getProgramWeek(reader, "p", 1, nowMs);
     expect(page?.items).toHaveLength(7);
-    expect(page?.nextCursor).toBeNull();
   });
 });

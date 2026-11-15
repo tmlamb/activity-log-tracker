@@ -4,15 +4,7 @@ import {
   normalizeSingleLineText,
 } from "@activity-log/ui/utils";
 
-type Parameter = string | number | null;
-interface ExerciseTransaction {
-  getFirstAsync<T>(sql: string, ...parameters: Parameter[]): Promise<T | null>;
-  getAllAsync<T>(sql: string, ...parameters: Parameter[]): Promise<T[]>;
-  runAsync(
-    sql: string,
-    ...parameters: Parameter[]
-  ): Promise<{ changes: number }>;
-}
+import type { Db } from "../database/db";
 
 export interface ExerciseInput {
   name: string;
@@ -66,13 +58,11 @@ function materialize(
 }
 
 /** List the saved catalog with two bounded queries, including soft-deleted rows. */
-export async function listSavedExercises(
-  transaction: ExerciseTransaction,
-): Promise<SavedExercise[]> {
-  const rows = await transaction.getAllAsync<ExerciseRow>(
+export function listSavedExercises(transaction: Db): SavedExercise[] {
+  const rows = transaction.getAllSync<ExerciseRow>(
     `SELECT ${EXERCISE_COLUMNS} FROM exercises ORDER BY position`,
   );
-  const memberships = await transaction.getAllAsync<{
+  const memberships = transaction.getAllSync<{
     exerciseId: string;
     name: string;
   }>(
@@ -88,16 +78,16 @@ export async function listSavedExercises(
   return rows.map((row) => materialize(row, byExercise.get(row.id) ?? []));
 }
 
-export async function getSavedExercise(
-  transaction: ExerciseTransaction,
+export function getSavedExercise(
+  transaction: Db,
   exerciseId: string,
-): Promise<SavedExercise | null> {
-  const row = await transaction.getFirstAsync<ExerciseRow>(
+): SavedExercise | null {
+  const row = transaction.getFirstSync<ExerciseRow>(
     `SELECT ${EXERCISE_COLUMNS} FROM exercises WHERE id = ?`,
     exerciseId,
   );
   if (!row) return null;
-  const memberships = await transaction.getAllAsync<{ name: string }>(
+  const memberships = transaction.getAllSync<{ name: string }>(
     `SELECT l.name FROM exercise_muscles m JOIN muscle_labels l ON l.id = m.muscle_id
      WHERE m.exercise_id = ? ORDER BY m.position`,
     exerciseId,
@@ -108,38 +98,31 @@ export async function getSavedExercise(
   );
 }
 
-export async function isExerciseUsed(
-  transaction: ExerciseTransaction,
-  exerciseId: string,
-): Promise<boolean> {
-  const row = await transaction.getFirstAsync<{ found: number }>(
+export function isExerciseUsed(transaction: Db, exerciseId: string): boolean {
+  const row = transaction.getFirstSync<{ found: number }>(
     "SELECT EXISTS(SELECT 1 FROM activities WHERE exercise_id = ?) AS found",
     exerciseId,
   );
   return row?.found === 1;
 }
 
-async function replaceMuscles(
-  transaction: ExerciseTransaction,
-  exerciseId: string,
-  labels: string[],
-) {
-  await transaction.runAsync(
+function replaceMuscles(transaction: Db, exerciseId: string, labels: string[]) {
+  transaction.runSync(
     "DELETE FROM exercise_muscles WHERE exercise_id = ?",
     exerciseId,
   );
   for (const [position, label] of normalizeMuscleGroups(labels).entries()) {
-    await transaction.runAsync(
+    transaction.runSync(
       "INSERT INTO muscle_labels(name, normalized_name) VALUES (?, ?) ON CONFLICT(name) DO NOTHING",
       label,
       label.toLocaleLowerCase(),
     );
-    const row = await transaction.getFirstAsync<{ id: number }>(
+    const row = transaction.getFirstSync<{ id: number }>(
       "SELECT id FROM muscle_labels WHERE name = ?",
       label,
     );
     if (!row) throw new Error("Muscle label could not be saved.");
-    await transaction.runAsync(
+    transaction.runSync(
       "INSERT INTO exercise_muscles(exercise_id, position, muscle_id) VALUES (?, ?, ?)",
       exerciseId,
       position,
@@ -148,12 +131,12 @@ async function replaceMuscles(
   }
 }
 
-async function ensureAvailableName(
-  transaction: ExerciseTransaction,
+function ensureAvailableName(
+  transaction: Db,
   normalizedName: string,
   exceptId: string,
 ) {
-  const duplicate = await transaction.getFirstAsync<{ id: string }>(
+  const duplicate = transaction.getFirstSync<{ id: string }>(
     "SELECT id FROM exercises WHERE normalized_name = ? AND deleted = 0 AND id <> ? LIMIT 1",
     normalizedName,
     exceptId,
@@ -167,16 +150,16 @@ function validateExercise(input: ExerciseInput) {
 }
 
 /** Exercise writes and membership changes require one writer transaction. */
-export async function createExercise(
-  transaction: ExerciseTransaction,
+export function createExercise(
+  transaction: Db,
   id: string,
   input: ExerciseInput,
 ) {
   validateExercise(input);
   const name = normalizeSingleLineText(input.name);
   const key = normalizeExerciseName(name);
-  await ensureAvailableName(transaction, key, id);
-  await transaction.runAsync(
+  ensureAvailableName(transaction, key, id);
+  transaction.runSync(
     `INSERT INTO exercises(id, name, normalized_name, position, load_kind, barbell_id, one_rep_max_value, one_rep_max_unit, notes)
      VALUES (?, ?, ?, (SELECT COALESCE(MAX(position) + 1, 0) FROM exercises), ?, ?, ?, ?, ?)`,
     id,
@@ -188,17 +171,17 @@ export async function createExercise(
     input.oneRepMax?.unit ?? null,
     input.notes,
   );
-  await replaceMuscles(transaction, id, input.primaryMuscles);
+  replaceMuscles(transaction, id, input.primaryMuscles);
 }
 
-export async function editExercise(
-  transaction: ExerciseTransaction,
+export function editExercise(
+  transaction: Db,
   id: string,
   baseRevision: number,
   input: ExerciseInput,
 ) {
   validateExercise(input);
-  const current = await transaction.getFirstAsync<{
+  const current = transaction.getFirstSync<{
     revision: number;
     deleted: number;
   }>("SELECT revision, deleted FROM exercises WHERE id = ?", id);
@@ -207,8 +190,8 @@ export async function editExercise(
     throw new Error("The exercise changed. Reload before saving.");
   const name = normalizeSingleLineText(input.name);
   const key = normalizeExerciseName(name);
-  if (!current.deleted) await ensureAvailableName(transaction, key, id);
-  await transaction.runAsync(
+  if (!current.deleted) ensureAvailableName(transaction, key, id);
+  transaction.runSync(
     `UPDATE exercises SET name = ?, normalized_name = ?, load_kind = ?, barbell_id = ?,
        one_rep_max_value = ?, one_rep_max_unit = ?, notes = ?, revision = revision + 1 WHERE id = ?`,
     name,
@@ -220,16 +203,16 @@ export async function editExercise(
     input.notes,
     id,
   );
-  await replaceMuscles(transaction, id, input.primaryMuscles);
+  replaceMuscles(transaction, id, input.primaryMuscles);
 }
 
-export async function setExerciseDeleted(
-  transaction: ExerciseTransaction,
+export function setExerciseDeleted(
+  transaction: Db,
   id: string,
   deleted: boolean,
   expectedRevision?: number,
 ) {
-  const current = await transaction.getFirstAsync<{
+  const current = transaction.getFirstSync<{
     normalizedName: string;
     deleted: number;
     revision: number;
@@ -241,9 +224,8 @@ export async function setExerciseDeleted(
   if (expectedRevision !== undefined && current.revision !== expectedRevision)
     throw new Error("The exercise changed. Reload before saving.");
   if ((current.deleted === 1) === deleted) return false;
-  if (!deleted)
-    await ensureAvailableName(transaction, current.normalizedName, id);
-  await transaction.runAsync(
+  if (!deleted) ensureAvailableName(transaction, current.normalizedName, id);
+  transaction.runSync(
     "UPDATE exercises SET deleted = ?, revision = revision + 1 WHERE id = ?",
     Number(deleted),
     id,
@@ -251,18 +233,18 @@ export async function setExerciseDeleted(
   return true;
 }
 
-export async function setExerciseNotes(
-  transaction: ExerciseTransaction,
+export function setExerciseNotes(
+  transaction: Db,
   id: string,
   notes: string | null,
 ) {
-  const current = await transaction.getFirstAsync<{ notes: string | null }>(
+  const current = transaction.getFirstSync<{ notes: string | null }>(
     "SELECT notes FROM exercises WHERE id = ?",
     id,
   );
   if (!current) throw new Error("Exercise not found");
   if (current.notes === notes) return false;
-  await transaction.runAsync(
+  transaction.runSync(
     "UPDATE exercises SET notes = ?, revision = revision + 1 WHERE id = ?",
     notes,
     id,
@@ -271,15 +253,15 @@ export async function setExerciseNotes(
 }
 
 /** Change only the live 1RM reference, without overwriting a stale editor draft. */
-export async function setExerciseOneRepMax(
-  transaction: ExerciseTransaction,
+export function setExerciseOneRepMax(
+  transaction: Db,
   id: string,
   weight: ExerciseInput["oneRepMax"],
   expected?: ExerciseInput["oneRepMax"],
 ) {
   if (weight !== null && !Number.isFinite(weight.value))
     throw new Error("One-rep max must be a finite number.");
-  const current = await transaction.getFirstAsync<{
+  const current = transaction.getFirstSync<{
     value: number | null;
     unit: "lbs" | "kg" | null;
   }>(
@@ -300,7 +282,7 @@ export async function setExerciseOneRepMax(
     current.unit === (weight?.unit ?? null)
   )
     return false;
-  await transaction.runAsync(
+  transaction.runSync(
     "UPDATE exercises SET one_rep_max_value = ?, one_rep_max_unit = ?, revision = revision + 1 WHERE id = ?",
     weight?.value ?? null,
     weight?.unit ?? null,

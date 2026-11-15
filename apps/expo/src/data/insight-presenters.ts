@@ -3,8 +3,8 @@ import type {
   ProgramInsights,
 } from "@activity-log/ui/utils";
 
-import type { ExerciseSeriesProjection } from "../domain/exercise-series";
-import type { ProgramInsightProjection } from "../domain/program-insights";
+import type { ExerciseSeriesProjection } from "./domain/exercise-series";
+import type { ProgramInsightProjection } from "./domain/program-insights";
 
 /** Presentation adapters leave primitive timestamps in the shared query cache. */
 export function presentProgramInsights(

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Alert, KeyboardAvoidingView, ScrollView, View } from "react-native";
 import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";
 import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -6,20 +6,16 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 
 import type { Exercise, Load } from "@activity-log/ui/utils";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import { Text } from "~/components/font-scale-text";
 import { HeaderTextAction } from "~/components/HeaderAction";
-import { QueryStatus } from "~/components/query-status";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import { AnimatedViewStyled } from "~/components/Styled";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText, SectionHeading } from "~/components/Typography";
-import {
-  useApplicationDataRuntime,
-  useApplicationDataSnapshot,
-} from "~/data/react/application-data";
-import { useSelectionHandoff } from "~/data/react/selection-handoff";
-import { useExerciseDetail } from "~/data/react/settings-queries";
+import { setExerciseOneRepMax } from "~/data/actions";
+import { useExerciseDetail } from "~/data/queries";
+import { useSelectionHandoff } from "~/data/selection-handoff";
+import { useGeneration } from "~/data/store";
 
 type FormData = Partial<Load> & { oneRepMaxVal?: number };
 
@@ -40,14 +36,9 @@ const percentStringToNum = (value: string) => {
   return percentValue == null ? undefined : percentValue / 100;
 };
 
-export default function LoadScreen() {
-  const runtime = useApplicationDataRuntime();
-  return <LoadScreenContent runtime={runtime} />;
-}
-
 type LoadExercise = Pick<Exercise, "exerciseId" | "name" | "oneRepMax">;
 
-function LoadScreenContent({ runtime }: { runtime: ApplicationDataRuntime }) {
+export default function LoadScreen() {
   const params = useLocalSearchParams<{
     requestId?: string;
     ownerId?: string;
@@ -55,27 +46,19 @@ function LoadScreenContent({ runtime }: { runtime: ApplicationDataRuntime }) {
     activityId?: string;
     exerciseId?: string;
   }>();
-  const snapshot = useApplicationDataSnapshot(runtime);
+  const generation = useGeneration();
   const entry = useSelectionHandoff((state) =>
     params.requestId ? state.entries[params.requestId] : undefined,
   );
-  const exercise = useExerciseDetail(runtime, params.exerciseId);
+  const record = useExerciseDetail(params.exerciseId);
   if (
     entry?.kind !== "load" ||
     entry.ticket.ownerId !== params.ownerId ||
     entry.ticket.activityId !== params.activityId ||
     String(entry.ticket.generation) !== params.generation ||
-    entry.ticket.generation !== snapshot.generation
+    entry.ticket.generation !== generation
   )
     return <Redirect href="/(public)/(app)" />;
-  if (params.exerciseId && exercise.data === undefined)
-    return (
-      <QueryStatus
-        error={exercise.isError}
-        onRetry={() => void exercise.refetch()}
-      />
-    );
-  const record = exercise.data;
   const initial: LoadExercise | undefined = record
     ? {
         exerciseId: record.id,
@@ -89,16 +72,14 @@ function LoadScreenContent({ runtime }: { runtime: ApplicationDataRuntime }) {
       key={ticket.requestId}
       exercise={initial}
       freezeSeed
-      isCurrent={() => runtime.getSnapshot().generation === ticket.generation}
-      onDone={async (load, max) => {
+      onDone={(load, max) => {
         if (load.type === "PERCENT" && record && max)
-          await snapshot.service.setExerciseOneRepMax(
+          setExerciseOneRepMax(
             record.id,
             { value: max, unit: record.oneRepMax?.unit ?? "lbs" },
             record.oneRepMax,
           );
         if (
-          runtime.getSnapshot().generation !== ticket.generation ||
           !useSelectionHandoff
             .getState()
             .complete(ticket, { kind: "load", load })
@@ -112,12 +93,10 @@ function LoadScreenContent({ runtime }: { runtime: ApplicationDataRuntime }) {
 function LoadEditor({
   exercise: suppliedExercise,
   onDone,
-  isCurrent,
   freezeSeed,
 }: {
   exercise?: LoadExercise;
-  onDone: (load: Load, max: number | undefined) => Promise<void>;
-  isCurrent: () => boolean;
+  onDone: (load: Load, max: number | undefined) => void;
   freezeSeed: boolean;
 }) {
   const { loadType, loadValue } = useLocalSearchParams<{
@@ -129,15 +108,6 @@ function LoadEditor({
   const [initialDone] = useState(() => onDone);
   const exercise = freezeSeed ? initialExercise : suppliedExercise;
   const done = freezeSeed ? initialDone : onDone;
-  const [pending, setPending] = useState(false);
-  const pendingRef = useRef(false);
-  const mounted = useRef(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   const [oneRepMaxInput, setOneRepMaxInput] = useState(
     exercise?.oneRepMax?.value && exercise.oneRepMax.value > 0
       ? String(exercise.oneRepMax.value)
@@ -173,28 +143,19 @@ function LoadEditor({
     selectedType != null && selectedValue != null
       ? { type: selectedType, value: selectedValue }
       : undefined;
-  const canUpdate = () => mounted.current && isCurrent();
-
   const onSubmit = async () => {
-    if (pendingRef.current || !canUpdate()) return;
-    pendingRef.current = true;
-    setPending(true);
+    if (!(await trigger("value")) || !selected) return;
     try {
-      if (!(await trigger("value")) || !selected || !canUpdate()) return;
-      await done(selected, selectedOneRepMaxVal);
-      if (canUpdate()) router.back();
+      done(selected, selectedOneRepMaxVal);
+      router.back();
     } catch (error) {
-      if (canUpdate())
-        Alert.alert(
-          "Save Failed",
-          error instanceof Error &&
-            error.message.startsWith("The one-rep max changed.")
-            ? "The one-rep max changed while this form was open. Your draft is still here; reopen the form before saving."
-            : "The load could not be saved. Please try again.",
-        );
-    } finally {
-      pendingRef.current = false;
-      if (canUpdate()) setPending(false);
+      Alert.alert(
+        "Save Failed",
+        error instanceof Error &&
+          error.message.startsWith("The one-rep max changed.")
+          ? "The one-rep max changed while this form was open. Your draft is still here; reopen the form before saving."
+          : "The load could not be saved. Please try again.",
+      );
     }
   };
 
@@ -205,7 +166,6 @@ function LoadEditor({
           headerRight: () => (
             <HeaderTextAction
               label="Done"
-              disabled={pending}
               onPress={handleSubmit(onSubmit)}
               accessibilityLabel="Confirm load selection"
               weight="bold"
@@ -214,7 +174,6 @@ function LoadEditor({
           headerLeft: () => (
             <HeaderTextAction
               label="Cancel"
-              disabled={pending}
               onPress={() => router.back()}
               color="foreground"
             />
@@ -224,7 +183,6 @@ function LoadEditor({
 
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView
-          pointerEvents={pending ? "none" : "auto"}
           className="flex-1"
           contentContainerClassName="pt-5 gap-10"
           contentInsetAdjustmentBehavior="automatic"

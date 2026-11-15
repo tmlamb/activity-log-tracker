@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { Alert } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
@@ -14,17 +14,12 @@ import "react-native-get-random-values";
 
 import { v4 as uuidv4 } from "uuid";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import { PrimaryCardAction } from "~/components/CardRow";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import InventoryCounterInputRow from "~/components/InventoryCounterInputRow";
-import { QueryStatus } from "~/components/query-status";
 import { HelperText, SectionHeading } from "~/components/Typography";
-import {
-  useApplicationDataRuntime,
-  useApplicationDataSnapshot,
-} from "~/data/react/application-data";
-import { useMuscleCatalog } from "~/data/react/settings-queries";
+import { replaceMuscles } from "~/data/actions";
+import { useMuscleCatalog } from "~/data/queries";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 
 interface FormData {
@@ -32,47 +27,9 @@ interface FormData {
 }
 
 export default function ExerciseMusclesScreen() {
-  const runtime = useApplicationDataRuntime();
-  return <MuscleScreenContent runtime={runtime} />;
-}
-
-function MuscleScreenContent({ runtime }: { runtime: ApplicationDataRuntime }) {
-  const snapshot = useApplicationDataSnapshot(runtime);
-  const query = useMuscleCatalog(runtime);
-  if (query.data === undefined)
-    return (
-      <QueryStatus error={query.isError} onRetry={() => void query.refetch()} />
-    );
-  return (
-    <MuscleEditor
-      key={snapshot.generation}
-      muscleGroups={query.data}
-      save={snapshot.service.replaceMuscles}
-      isCurrent={() => runtime.getSnapshot().generation === snapshot.generation}
-    />
-  );
-}
-
-function MuscleEditor({
-  muscleGroups,
-  save,
-  isCurrent,
-}: {
-  muscleGroups: string[];
-  save: (next: string[], expected: readonly string[]) => Promise<void>;
-  isCurrent: () => boolean;
-}) {
+  const muscleGroups = useMuscleCatalog();
   const router = useRouter();
-  const [pending, setPending] = useState(false);
-  const pendingRef = useRef(false);
-  const mounted = useRef(false);
   const base = useRef([...muscleGroups]);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   const {
     control,
     getValues,
@@ -86,7 +43,7 @@ function MuscleEditor({
       })),
     },
   });
-  const leaveWithoutWarning = useUnsavedChangesWarning(isDirty);
+  const { leaveWithoutWarning, hasLeft } = useUnsavedChangesWarning(isDirty);
   const { fields, append, remove } = useFieldArray({
     control,
     name: "muscleGroups",
@@ -98,30 +55,22 @@ function MuscleEditor({
       { focusName: `muscleGroups.${fields.length}.name` },
     );
   };
-  const canUpdate = () => mounted.current && isCurrent();
-
-  const onSubmit = async (data: FormData) => {
-    if (pendingRef.current || !canUpdate()) return;
-    pendingRef.current = true;
-    setPending(true);
+  const onSubmit = (data: FormData) => {
+    if (hasLeft()) return;
     try {
-      await save(
+      replaceMuscles(
         data.muscleGroups.map((muscleGroup) => muscleGroup.name),
         base.current,
       );
-      if (canUpdate()) leaveWithoutWarning(() => router.back());
+      leaveWithoutWarning(() => router.back());
     } catch (error) {
-      if (canUpdate())
-        Alert.alert(
-          "Save Failed",
-          error instanceof Error &&
-            error.message.startsWith("Muscle groups changed.")
-            ? "Muscle groups changed while this form was open. Your draft is still here; reopen the form before saving."
-            : "Muscle groups could not be saved. Please try again.",
-        );
-    } finally {
-      pendingRef.current = false;
-      if (canUpdate()) setPending(false);
+      Alert.alert(
+        "Save Failed",
+        error instanceof Error &&
+          error.message.startsWith("Muscle groups changed.")
+          ? "Muscle groups changed while this form was open. Your draft is still here; reopen the form before saving."
+          : "Muscle groups could not be saved. Please try again.",
+      );
     }
   };
 
@@ -132,7 +81,6 @@ function MuscleEditor({
           headerLeft: () => (
             <HeaderTextAction
               label="Cancel"
-              disabled={pending}
               onPress={() => router.back()}
               accessibilityLabel="Go back without saving muscle changes"
               color="foreground"
@@ -141,7 +89,6 @@ function MuscleEditor({
           headerRight: () => (
             <HeaderTextAction
               label="Save"
-              disabled={pending}
               onPress={handleSubmit(onSubmit)}
               accessibilityLabel="Save muscle groups"
               weight="bold"
@@ -150,7 +97,6 @@ function MuscleEditor({
         }}
       />
       <KeyboardAwareScrollView
-        pointerEvents={pending ? "none" : "auto"}
         bottomOffset={40}
         className="flex-1"
         contentContainerClassName="px-5 pt-5 pb-18"

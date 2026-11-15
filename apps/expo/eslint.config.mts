@@ -5,7 +5,7 @@ import { reactConfig } from "@activity-log/eslint-config/react";
 
 export default defineConfig(
   {
-    ignores: [".expo/**", "expo-plugins/**", "drizzle/**"],
+    ignores: [".expo/**", "expo-plugins/**"],
   },
   baseConfig,
   reactConfig,

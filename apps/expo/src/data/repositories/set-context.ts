@@ -1,5 +1,6 @@
 import type { Weight } from "@activity-log/ui/utils";
 
+import type { Db } from "../database/db";
 import type { SavedExercise } from "./exercises";
 import type {
   SessionActivity,
@@ -8,10 +9,6 @@ import type {
 } from "./session-detail";
 import type { SetReference } from "./sets";
 import { plannedSetWeight } from "../domain/set-execution";
-
-interface ContextReader {
-  getFirstAsync<T>(sql: string, ...parameters: string[]): Promise<T | null>;
-}
 
 export interface SetExecutionContext {
   reference: SetReference;
@@ -71,12 +68,12 @@ interface ContextRow {
 }
 
 /** Read only the selected set/activity, scalar policy facts, and first main set. */
-export async function getSetExecutionContext(
-  reader: ContextReader,
+export function getSetExecutionContext(
+  reader: Db,
   reference: SetReference,
-): Promise<SetExecutionContext | null> {
+): SetExecutionContext | null {
   const { programId, sessionId, activityId, setId } = reference;
-  const row = await reader.getFirstAsync<ContextRow>(
+  const row = reader.getFirstSync<ContextRow>(
     `SELECT s.name AS sessionName, s.lineage_id AS lineageId, s.status AS sessionStatus,
        s.deload, s.start_ms AS sessionStartMs, s.end_ms AS sessionEndMs,
        s.last_activity_at_ms AS lastActivityAtMs, s.revision,
@@ -111,7 +108,7 @@ export async function getSetExecutionContext(
     setId,
   );
   if (!row) return null;
-  const firstMainSet = await reader.getFirstAsync<SessionSet>(
+  const firstMainSet = reader.getFirstSync<SessionSet>(
     `SELECT id, kind, position, status, feedback, actual_reps AS actualReps,
        weight_value AS weightValue, weight_unit AS weightUnit, start_ms AS startMs, end_ms AS endMs
      FROM workout_sets WHERE program_id = ? AND session_id = ? AND activity_id = ? AND kind = 'Main'

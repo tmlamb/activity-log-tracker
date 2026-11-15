@@ -1,17 +1,8 @@
+import type { Db } from "../database/db";
+
 type Status = "Planned" | "Ready" | "Done" | "Incomplete";
 type Feedback = "Easy" | "Neutral" | "Hard";
 type Unit = "lbs" | "kg";
-
-interface SetTransaction {
-  getFirstAsync<T>(
-    sql: string,
-    ...parameters: (string | number | null)[]
-  ): Promise<T | null>;
-  runAsync(
-    sql: string,
-    ...parameters: (string | number | null)[]
-  ): Promise<{ changes: number }>;
-}
 
 export interface SetReference {
   programId: string;
@@ -49,11 +40,8 @@ interface CurrentSet {
   startMs: number | null;
 }
 
-async function getCurrentSet(
-  transaction: SetTransaction,
-  reference: SetReference,
-): Promise<CurrentSet> {
-  const current = await transaction.getFirstAsync<CurrentSet>(
+function getCurrentSet(transaction: Db, reference: SetReference): CurrentSet {
+  const current = transaction.getFirstSync<CurrentSet>(
     `SELECT session.status AS sessionStatus, workout_set.status AS setStatus,
        workout_set.kind, workout_set.position, workout_set.start_ms AS startMs
      FROM workout_sets workout_set
@@ -71,12 +59,12 @@ async function getCurrentSet(
 }
 
 /** Apply only explicitly edited fields; never write stale status or timestamps. */
-export async function patchSetRecording(
-  transaction: SetTransaction,
+export function patchSetRecording(
+  transaction: Db,
   reference: SetReference,
   patch: SetRecordingPatch,
   nowMs: number,
-): Promise<boolean> {
+): boolean {
   if (
     !Number.isFinite(nowMs) ||
     (patch.actualReps !== undefined &&
@@ -85,7 +73,7 @@ export async function patchSetRecording(
     (patch.weight != null && !Number.isFinite(patch.weight.value))
   )
     throw new Error("Workout set values must be finite numbers.");
-  const current = await transaction.getFirstAsync<{
+  const current = transaction.getFirstSync<{
     actualReps: number | null;
     weightValue: number | null;
     weightUnit: Unit | null;
@@ -121,7 +109,7 @@ export async function patchSetRecording(
     values.push(patch.feedback);
   }
   if (!fields.length) return false;
-  await transaction.runAsync(
+  transaction.runSync(
     `UPDATE workout_sets SET ${fields.join(", ")} WHERE program_id = ? AND session_id = ? AND activity_id = ? AND id = ?`,
     ...values,
     reference.programId,
@@ -129,7 +117,7 @@ export async function patchSetRecording(
     reference.activityId,
     reference.setId,
   );
-  await transaction.runAsync(
+  transaction.runSync(
     "UPDATE sessions SET last_activity_at_ms = ?, revision = revision + 1 WHERE program_id = ? AND id = ?",
     nowMs,
     reference.programId,
@@ -151,14 +139,14 @@ function validateMeasurements(measurements: SetMeasurements, nowMs: number) {
 }
 
 /** Start the first pending set and, when necessary, its planned session. */
-export async function startSet(
-  transaction: SetTransaction,
+export function startSet(
+  transaction: Db,
   reference: SetReference,
   measurements: SetMeasurements,
   nowMs: number,
 ) {
   validateMeasurements(measurements, nowMs);
-  const current = await getCurrentSet(transaction, reference);
+  const current = getCurrentSet(transaction, reference);
   if (
     (current.sessionStatus !== "Planned" &&
       current.sessionStatus !== "Ready") ||
@@ -166,7 +154,7 @@ export async function startSet(
   ) {
     throw new Error("Workout set cannot be started.");
   }
-  const firstPending = await transaction.getFirstAsync<{ id: string }>(
+  const firstPending = transaction.getFirstSync<{ id: string }>(
     `SELECT id FROM workout_sets
      WHERE program_id = ? AND session_id = ? AND activity_id = ?
        AND status IN ('Planned', 'Ready')
@@ -178,7 +166,7 @@ export async function startSet(
   if (firstPending?.id !== reference.setId) {
     throw new Error("Only the first pending set can be started.");
   }
-  const result = await transaction.runAsync(
+  const result = transaction.runSync(
     `UPDATE workout_sets SET actual_reps = ?, weight_value = ?, weight_unit = ?,
        feedback = ?, start_ms = ?, status = 'Ready'
      WHERE program_id = ? AND session_id = ? AND activity_id = ? AND id = ? AND status = 'Planned'`,
@@ -194,7 +182,7 @@ export async function startSet(
   );
   if (result.changes !== 1)
     throw new Error("Workout set could not be started.");
-  await transaction.runAsync(
+  transaction.runSync(
     `UPDATE sessions SET start_ms = CASE WHEN status = 'Planned' THEN ? ELSE start_ms END,
        status = CASE WHEN status = 'Planned' THEN 'Ready' ELSE status END,
        last_activity_at_ms = ?, revision = revision + 1
@@ -207,14 +195,14 @@ export async function startSet(
 }
 
 /** Complete a ready set and start the immediately following planned set. */
-export async function completeSetAndAdvance(
-  transaction: SetTransaction,
+export function completeSetAndAdvance(
+  transaction: Db,
   reference: SetReference,
   measurements: SetMeasurements,
   nowMs: number,
-): Promise<string | null> {
+): string | null {
   validateMeasurements(measurements, nowMs);
-  const current = await getCurrentSet(transaction, reference);
+  const current = getCurrentSet(transaction, reference);
   if (
     current.sessionStatus !== "Ready" ||
     current.setStatus !== "Ready" ||
@@ -227,7 +215,7 @@ export async function completeSetAndAdvance(
     current.startMs === null
       ? nowMs
       : Math.min(nowMs, current.startMs + 20 * 60 * 1000);
-  const result = await transaction.runAsync(
+  const result = transaction.runSync(
     `UPDATE workout_sets SET actual_reps = ?, weight_value = ?, weight_unit = ?,
        feedback = ?, end_ms = ?, status = 'Done'
      WHERE program_id = ? AND session_id = ? AND activity_id = ? AND id = ? AND status = 'Ready'`,
@@ -243,7 +231,7 @@ export async function completeSetAndAdvance(
   );
   if (result.changes !== 1)
     throw new Error("Workout set could not be completed.");
-  const next = await transaction.getFirstAsync<{ id: string; status: Status }>(
+  const next = transaction.getFirstSync<{ id: string; status: Status }>(
     `SELECT id, status FROM workout_sets
      WHERE program_id = ? AND session_id = ? AND activity_id = ?
        AND ((kind = ? AND position > ?) OR (? = 'Warmup' AND kind = 'Main'))
@@ -257,7 +245,7 @@ export async function completeSetAndAdvance(
   );
   let nextId: string | null = null;
   if (next?.status === "Planned") {
-    const advanced = await transaction.runAsync(
+    const advanced = transaction.runSync(
       `UPDATE workout_sets SET start_ms = ?, status = 'Ready'
        WHERE program_id = ? AND session_id = ? AND activity_id = ? AND id = ? AND status = 'Planned'`,
       nowMs,
@@ -270,7 +258,7 @@ export async function completeSetAndAdvance(
       throw new Error("The next workout set could not be started.");
     nextId = next.id;
   }
-  await transaction.runAsync(
+  transaction.runSync(
     "UPDATE sessions SET last_activity_at_ms = ?, revision = revision + 1 WHERE program_id = ? AND id = ?",
     nowMs,
     reference.programId,
@@ -284,21 +272,21 @@ export async function completeSetAndAdvance(
  * transaction. Terminal session status and set timestamps cannot be reopened
  * by a stale recording submission.
  */
-export async function saveSetRecording(
-  transaction: SetTransaction,
+export function saveSetRecording(
+  transaction: Db,
   reference: SetReference,
   recording: SetRecording,
   nowMs: number,
 ) {
   const { programId, sessionId, activityId, setId } = reference;
-  const session = await transaction.getFirstAsync<{ status: Status }>(
+  const session = transaction.getFirstSync<{ status: Status }>(
     "SELECT status FROM sessions WHERE program_id = ? AND id = ?",
     programId,
     sessionId,
   );
   if (!session) throw new Error("Session not found");
   const terminal = session.status === "Done" || session.status === "Incomplete";
-  const result = await transaction.runAsync(
+  const result = transaction.runSync(
     `UPDATE workout_sets SET actual_reps = ?, weight_value = ?, weight_unit = ?,
        feedback = ?, status = CASE WHEN ? THEN status ELSE ? END,
        start_ms = CASE WHEN ? THEN start_ms ELSE ? END,
@@ -320,7 +308,7 @@ export async function saveSetRecording(
     setId,
   );
   if (result.changes === 0) throw new Error("Workout set not found");
-  await transaction.runAsync(
+  transaction.runSync(
     "UPDATE sessions SET last_activity_at_ms = ?, revision = revision + 1 WHERE program_id = ? AND id = ?",
     nowMs,
     programId,
@@ -329,19 +317,19 @@ export async function saveSetRecording(
 }
 
 /** Reconcile a terminal session's edited reps without reopening the session. */
-export async function reconcileTerminalSet(
-  transaction: SetTransaction,
+export function reconcileTerminalSet(
+  transaction: Db,
   reference: SetReference,
   actualReps: number | null,
   nowMs: number,
-): Promise<boolean> {
+): boolean {
   if (
     (actualReps !== null && !Number.isFinite(actualReps)) ||
     !Number.isFinite(nowMs)
   ) {
     throw new Error("Workout set values must be finite numbers.");
   }
-  const current = await transaction.getFirstAsync<{
+  const current = transaction.getFirstSync<{
     sessionStatus: Status;
     sessionEndMs: number | null;
     setStatus: Status;
@@ -380,7 +368,7 @@ export async function reconcileTerminalSet(
         ? current.startMs
         : endMs;
   }
-  await transaction.runAsync(
+  transaction.runSync(
     `UPDATE workout_sets SET actual_reps = ?, status = ?, start_ms = ?, end_ms = ?
      WHERE program_id = ? AND session_id = ? AND activity_id = ? AND id = ?`,
     actualReps,
@@ -392,7 +380,7 @@ export async function reconcileTerminalSet(
     reference.activityId,
     reference.setId,
   );
-  await transaction.runAsync(
+  transaction.runSync(
     `UPDATE sessions SET end_ms = COALESCE(end_ms, ?), last_activity_at_ms = ?, revision = revision + 1
      WHERE program_id = ? AND id = ?`,
     sessionEnd,

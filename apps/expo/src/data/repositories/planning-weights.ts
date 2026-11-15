@@ -1,15 +1,6 @@
 import type { Weight } from "@activity-log/ui/utils";
 
-interface PlanningReader {
-  getFirstAsync<T>(
-    sql: string,
-    ...parameters: (string | number | null)[]
-  ): Promise<T | null>;
-  getAllAsync<T>(
-    sql: string,
-    ...parameters: (string | number | null)[]
-  ): Promise<T[]>;
-}
+import type { Db } from "../database/db";
 
 export interface PlanningWeightActivity {
   exerciseId: string | null;
@@ -30,13 +21,13 @@ export interface PlanningWeightHint {
  * the last recorded weight for the same exercise occurrence and set kind.
  * Call inside one reader snapshot. Requests are batched, not loaded per row.
  */
-export async function getPlanningWeightHints(
-  reader: PlanningReader,
+export function getPlanningWeightHints(
+  reader: Db,
   programId: string,
   source: PlanningWeightSource,
   activities: readonly PlanningWeightActivity[],
   kind: "Warmup" | "Main",
-): Promise<PlanningWeightHint[]> {
+): PlanningWeightHint[] {
   const counts = new Map<string, number>();
   const requests: {
     activityIndex: number;
@@ -60,7 +51,7 @@ export async function getPlanningWeightHints(
       activityIndex,
       weight: null,
     }));
-  const selected = await reader.getFirstAsync<{ lineageId: string | null }>(
+  const selected = reader.getFirstSync<{ lineageId: string | null }>(
     "SELECT lineage_id AS lineageId FROM sessions WHERE program_id = ? AND id = ?",
     programId,
     source.sessionId,
@@ -70,7 +61,7 @@ export async function getPlanningWeightHints(
   // Keep well under SQLite's host-parameter limits even for unusually large drafts.
   for (let offset = 0; offset < requests.length; offset += 200) {
     const batch = requests.slice(offset, offset + 200);
-    const rows = await reader.getAllAsync<{
+    const rows = reader.getAllSync<{
       activityIndex: number;
       value: number | null;
       unit: "lbs" | "kg" | null;

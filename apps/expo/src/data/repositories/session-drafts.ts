@@ -1,17 +1,7 @@
 import { normalizeSingleLineText } from "@activity-log/ui/utils";
 
+import type { Db } from "../database/db";
 import type { SessionActivity, SessionSet } from "./session-detail";
-
-interface DraftTransaction {
-  getFirstAsync<T>(
-    sql: string,
-    ...parameters: (string | number | null)[]
-  ): Promise<T | null>;
-  runAsync(
-    sql: string,
-    ...parameters: (string | number | null)[]
-  ): Promise<{ changes: number }>;
-}
 
 export type DraftSet = Omit<SessionSet, "kind" | "position">;
 export type DraftActivity = Omit<
@@ -84,14 +74,14 @@ function validateDraft(draft: SessionDraft) {
   }
 }
 
-async function insertActivities(
-  transaction: DraftTransaction,
+function insertActivities(
+  transaction: Db,
   programId: string,
   sessionId: string,
   activities: DraftActivity[],
 ) {
   for (const [position, activity] of activities.entries()) {
-    await transaction.runAsync(
+    transaction.runSync(
       `INSERT INTO activities(program_id, session_id, id, exercise_id, position, reps, load_type, load_value, rest_minutes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       programId,
@@ -109,7 +99,7 @@ async function insertActivities(
       ["Main", activity.mainSets],
     ] as const) {
       for (const [setPosition, set] of sets.entries()) {
-        await transaction.runAsync(
+        transaction.runSync(
           `INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback, actual_reps, weight_value, weight_unit, start_ms, end_ms)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           programId,
@@ -132,8 +122,8 @@ async function insertActivities(
 }
 
 /** Create a planned session and establish its lineage atomically. */
-export async function createPlannedSession(
-  transaction: DraftTransaction,
+export function createPlannedSession(
+  transaction: Db,
   programId: string,
   sessionId: string,
   draft: SessionDraft,
@@ -143,7 +133,7 @@ export async function createPlannedSession(
   validateDraft(draft);
   let lineageId: string | null = null;
   if (template) {
-    const source = await transaction.getFirstAsync<CurrentSession>(
+    const source = transaction.getFirstSync<CurrentSession>(
       "SELECT revision, status, end_ms AS endMs, lineage_id AS lineageId FROM sessions WHERE program_id = ? AND id = ?",
       programId,
       template.sessionId,
@@ -153,12 +143,12 @@ export async function createPlannedSession(
       throw new Error("The template session changed. Reload before saving.");
     lineageId = source.lineageId ?? template.newLineageId;
     if (source.lineageId === null) {
-      await transaction.runAsync(
+      transaction.runSync(
         "INSERT INTO session_lineages(program_id, id) VALUES (?, ?)",
         programId,
         lineageId,
       );
-      await transaction.runAsync(
+      transaction.runSync(
         "UPDATE sessions SET lineage_id = ?, last_activity_at_ms = ?, revision = revision + 1 WHERE program_id = ? AND id = ?",
         lineageId,
         nowMs,
@@ -167,7 +157,7 @@ export async function createPlannedSession(
       );
     }
   }
-  await transaction.runAsync(
+  transaction.runSync(
     `INSERT INTO sessions(program_id, id, lineage_id, name, position, status, deload, last_activity_at_ms)
      VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(position) + 1, 0) FROM sessions WHERE program_id = ?), 'Planned', ?, ?)`,
     programId,
@@ -178,12 +168,12 @@ export async function createPlannedSession(
     Number(draft.deload),
     nowMs,
   );
-  await insertActivities(transaction, programId, sessionId, draft.activities);
+  insertActivities(transaction, programId, sessionId, draft.activities);
 }
 
 /** Save one session's draft without replacing newer or finalized workout data. */
-export async function saveSessionDraft(
-  transaction: DraftTransaction,
+export function saveSessionDraft(
+  transaction: Db,
   programId: string,
   sessionId: string,
   baseRevision: number,
@@ -192,7 +182,7 @@ export async function saveSessionDraft(
   nowMs: number,
 ) {
   validateDraft(draft);
-  const current = await transaction.getFirstAsync<CurrentSession>(
+  const current = transaction.getFirstSync<CurrentSession>(
     "SELECT revision, status, end_ms AS endMs, lineage_id AS lineageId FROM sessions WHERE program_id = ? AND id = ?",
     programId,
     sessionId,
@@ -208,7 +198,7 @@ export async function saveSessionDraft(
   );
   const nextName = normalizeSingleLineText(draft.name);
   if (renameLineage) {
-    await transaction.runAsync(
+    transaction.runSync(
       `UPDATE sessions SET name = ?, revision = revision + 1
        WHERE program_id = ? AND COALESCE(lineage_id, id) = ? AND id <> ?`,
       nextName,
@@ -217,7 +207,7 @@ export async function saveSessionDraft(
       sessionId,
     );
   }
-  await transaction.runAsync(
+  transaction.runSync(
     `UPDATE sessions SET name = ?, deload = ?, start_ms = ?, end_ms = ?,
        last_activity_at_ms = ?, revision = revision + 1 WHERE program_id = ? AND id = ?`,
     nextName,
@@ -229,11 +219,11 @@ export async function saveSessionDraft(
     sessionId,
   );
   if (!terminal || !hasNonterminalSets) {
-    await transaction.runAsync(
+    transaction.runSync(
       "DELETE FROM activities WHERE program_id = ? AND session_id = ?",
       programId,
       sessionId,
     );
-    await insertActivities(transaction, programId, sessionId, draft.activities);
+    insertActivities(transaction, programId, sessionId, draft.activities);
   }
 }

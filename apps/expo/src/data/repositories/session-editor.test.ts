@@ -3,17 +3,13 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
-import {
-  buildApplicationMemory,
-  getMemorySessionEditorSeed,
-  readApplicationMemoryFacts,
-} from "../application-memory";
-import { SCHEMA_V1, SCHEMA_V2 } from "../database/schema";
+import type { Db, SqlValue } from "../database/db";
+import { SCHEMA } from "../database/schema";
+import { createTestDb, nodeDb } from "../database/test-db";
 import { getSessionEditorSeed } from "./session-editor";
 
 function setup() {
-  const db = new DatabaseSync(":memory:");
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1} ${SCHEMA_V2}
+  const db = createTestDb(`
     INSERT INTO programs VALUES ('p', 'Program', 0), ('other', 'Other', 1);
     INSERT INTO session_lineages VALUES ('p', 'lineage'), ('other', 'lineage');
     INSERT INTO sessions(program_id,id,lineage_id,name,position,status,deload,revision)
@@ -31,53 +27,27 @@ function setup() {
              ('p','s','first','m1','Main',0,'Done','Hard'),
              ('p','s','repeat','m1','Main',0,'Ready','Easy');`);
   const calls: string[] = [];
-  const reader = {
-    getFirstAsync: <T>(sql: string, ...parameters: string[]) => {
+  const reader: Db = {
+    ...db,
+    getFirstSync: (sql, ...parameters) => {
       calls.push(sql);
-      return Promise.resolve(
-        (db.prepare(sql).get(...parameters) as T | undefined) ?? null,
-      );
+      return db.getFirstSync(sql, ...parameters);
     },
-    getAllAsync: <T>(sql: string, ...parameters: string[]) => {
+    getAllSync: (sql, ...parameters) => {
       calls.push(sql);
-      return Promise.resolve(db.prepare(sql).all(...parameters) as T[]);
+      return db.getAllSync(sql, ...parameters);
     },
   };
   return { db, reader, calls };
 }
 
 describe("session editor seed", () => {
-  it("matches the in-memory projection for lineage policy, missing references and scoped IDs", async () => {
-    const { db, reader } = setup();
-    try {
-      const memory = buildApplicationMemory(
-        await readApplicationMemoryFacts(reader),
-        12,
-      );
-      for (const [programId, sessionId] of [
-        ["p", "s"],
-        ["p", "earlier"],
-        ["other", "s"],
-        ["p", "missing"],
-      ] as const) {
-        expect(
-          getMemorySessionEditorSeed(memory, programId, sessionId),
-        ).toEqual(await getSessionEditorSeed(reader, 12, programId, sessionId));
-      }
-    } finally {
-      db.close();
-    }
-  });
-
-  it("loads a single consistent seed with scoped activities and only referenced live exercises", async () => {
+  it("loads a single consistent seed with scoped activities and only referenced live exercises", () => {
     const { db, reader, calls } = setup();
     try {
-      db.exec("BEGIN");
-      const seed = await getSessionEditorSeed(reader, 12, "p", "s");
-      db.exec("COMMIT");
+      const seed = getSessionEditorSeed(reader, "p", "s");
       expect(calls).toHaveLength(6);
       expect(seed).toMatchObject({
-        generation: 12,
         program: { id: "p", name: "Program" },
         session: {
           id: "s",
@@ -101,53 +71,43 @@ describe("session editor seed", () => {
       });
       expect(seed?.exercises).toHaveLength(1);
       expect(seed?.exercises[0]).not.toHaveProperty("notes");
-      expect(await getSessionEditorSeed(reader, 12, "p", null)).toEqual({
-        generation: 12,
+      expect(getSessionEditorSeed(reader, "p", null)).toEqual({
         program: { id: "p", name: "Program" },
         session: null,
         policy: null,
         exercises: [],
       });
-      expect(await getSessionEditorSeed(reader, 12, "p", "missing")).toBeNull();
+      expect(getSessionEditorSeed(reader, "p", "missing")).toBeNull();
+      expect(getSessionEditorSeed(reader, "missing", null)).toBeNull();
       expect(
-        await getSessionEditorSeed(reader, 12, "missing", null),
-      ).toBeNull();
-      expect(
-        (await getSessionEditorSeed(reader, 12, "other", "s"))?.exercises.map(
+        getSessionEditorSeed(reader, "other", "s")?.exercises.map(
           ({ id }) => id,
         ),
       ).toEqual(["unused"]);
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("preserves the in-memory editor seed when unrelated history grows", async () => {
+  it("preserves the editor seed when unrelated history grows", () => {
     const { db, reader } = setup();
     try {
-      const before = getMemorySessionEditorSeed(
-        buildApplicationMemory(await readApplicationMemoryFacts(reader), 1),
-        "p",
-        "s",
-      );
-      db.exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
+      const before = getSessionEditorSeed(reader, "p", "s");
+      db.raw
+        .exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
         INSERT INTO sessions(program_id,id,name,position,status,deload)
           SELECT 'p','history-' || x,'History',x + 2,'Done',0 FROM n;
         INSERT INTO activities(program_id,session_id,id,exercise_id,position)
           SELECT program_id,id,'a','unused',0 FROM sessions WHERE id LIKE 'history-%';
         INSERT INTO workout_sets(program_id,session_id,activity_id,id,kind,position,status,feedback)
           SELECT program_id,session_id,id,'set','Main',0,'Done','Neutral' FROM activities WHERE session_id LIKE 'history-%';`);
-      const memory = buildApplicationMemory(
-        await readApplicationMemoryFacts(reader),
-        1,
-      );
-      expect(getMemorySessionEditorSeed(memory, "p", "s")).toEqual(before);
+      expect(getSessionEditorSeed(reader, "p", "s")).toEqual(before);
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("reads program and session from the same snapshot when another connection commits", async () => {
+  it("reads program and session from the same snapshot when another connection commits", () => {
     const directory = mkdtempSync(
       join(process.cwd(), ".sqlite-editor-snapshot-"),
     );
@@ -155,27 +115,26 @@ describe("session editor seed", () => {
     const writer = new DatabaseSync(path);
     const readerDb = new DatabaseSync(path);
     try {
-      writer.exec(`PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; ${SCHEMA_V1} ${SCHEMA_V2}
+      writer.exec(`PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; ${SCHEMA}
         INSERT INTO programs VALUES ('p','Before',0);
         INSERT INTO sessions(program_id,id,name,position,status,deload) VALUES ('p','s','Before',0,'Planned',0);`);
       readerDb.exec("PRAGMA foreign_keys = ON; BEGIN");
       let firstRead = true;
-      const reader = {
-        getFirstAsync: <T>(sql: string, ...parameters: string[]) => {
-          const row =
-            (readerDb.prepare(sql).get(...parameters) as T | undefined) ?? null;
+      const base = nodeDb(readerDb);
+      const reader: Db = {
+        ...base,
+        getFirstSync: <T>(sql: string, ...parameters: SqlValue[]) => {
+          const row = base.getFirstSync<T>(sql, ...parameters);
           if (firstRead) {
             firstRead = false;
             writer.exec(
               "BEGIN IMMEDIATE; UPDATE programs SET name = 'After'; UPDATE sessions SET name = 'After'; COMMIT;",
             );
           }
-          return Promise.resolve(row);
+          return row;
         },
-        getAllAsync: <T>(sql: string, ...parameters: string[]) =>
-          Promise.resolve(readerDb.prepare(sql).all(...parameters) as T[]),
       };
-      const seed = await getSessionEditorSeed(reader, 1, "p", "s");
+      const seed = getSessionEditorSeed(reader, "p", "s");
       readerDb.exec("COMMIT");
       expect(seed?.program.name).toBe("Before");
       expect(seed?.session?.name).toBe("Before");

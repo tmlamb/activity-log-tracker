@@ -11,7 +11,6 @@ import {
 import { useIsFocused } from "expo-router/react-navigation";
 import { format } from "date-fns";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import type {
   SessionActivity,
   SessionDetail,
@@ -27,17 +26,13 @@ import ElapsedTime from "~/components/ElapsedTime";
 import { Text } from "~/components/font-scale-text";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
-import { QueryStatus } from "~/components/query-status";
 import SwitchThemed from "~/components/SwitchThemed";
 import { HelperText, ScreenHeading } from "~/components/Typography";
-import {
-  useApplicationDataRuntime,
-  useApplicationDataSnapshot,
-} from "~/data/react/application-data";
+import { completeSession, setSessionDeload } from "~/data/actions";
 import {
   useSessionDeloadCandidate,
   useSessionEditorSeed,
-} from "~/data/react/session-queries";
+} from "~/data/queries";
 
 const completed = (
   set: SessionDetail["activities"][number]["mainSets"][number],
@@ -48,67 +43,45 @@ const allDone = (activity: SessionActivity) => {
 };
 
 export default function SessionDetailScreen() {
-  const runtime = useApplicationDataRuntime();
   const { programId, sessionId } = useLocalSearchParams<{
     programId: string;
     sessionId: string;
   }>();
-  const snapshot = useApplicationDataSnapshot(runtime);
-  const seed = useSessionEditorSeed(runtime, programId, sessionId);
-  const session = seed.data?.session;
+  const seed = useSessionEditorSeed(programId, sessionId);
+  const session = seed?.session;
   const candidate = useSessionDeloadCandidate(
-    runtime,
     programId,
     sessionId,
-    !!seed.data?.policy?.canSetDeload &&
+    !!seed?.policy?.canSetDeload &&
       session?.status === "Done" &&
       !session.deload,
   );
-  if (seed.data === undefined)
-    return (
-      <QueryStatus error={seed.isError} onRetry={() => void seed.refetch()} />
-    );
-  if (!seed.data?.session || !seed.data.policy)
+  if (!seed?.session || !seed.policy)
     return <Redirect href="/(public)/(app)" />;
   return (
     <SessionContent
-      key={`${snapshot.generation}:${programId}:${sessionId}`}
-      runtime={runtime}
-      generation={snapshot.generation}
-      session={seed.data.session}
-      policy={seed.data.policy}
-      candidate={candidate.data}
+      key={`${programId}:${sessionId}`}
+      session={seed.session}
+      policy={seed.policy}
+      candidate={candidate}
     />
   );
 }
 
 const SessionContent = memo(function SessionContent({
-  runtime,
-  generation,
   session,
   policy,
   candidate,
 }: {
-  runtime: ApplicationDataRuntime;
-  generation: number;
   session: SessionDetail;
   policy: { canSetDeload: boolean; isLatestCompletedInLineage: boolean };
-  candidate: ReturnType<typeof useSessionDeloadCandidate>["data"];
+  candidate: ReturnType<typeof useSessionDeloadCandidate>;
 }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(
     () => new Set(session.activities.filter(allDone).map(({ id }) => id)),
   );
   const autoCollapsed = useRef(new Set(collapsed));
-  const [pending, setPending] = useState(false);
-  const pendingRef = useRef(false);
-  const mounted = useRef(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   useEffect(() => {
     const done = new Set(
       session.activities.filter(allDone).map(({ id }) => id),
@@ -118,23 +91,12 @@ const SessionContent = memo(function SessionContent({
     if (newlyDone.length)
       setCollapsed((previous) => new Set([...previous, ...newlyDone]));
   }, [session.activities]);
-  const current = () =>
-    mounted.current && runtime.getSnapshot().generation === generation;
   const changeDeload = (value: boolean) => {
-    const commit = async () => {
-      if (pendingRef.current || !current()) return;
-      pendingRef.current = true;
-      setPending(true);
+    const commit = () => {
       try {
-        await runtime
-          .getSnapshot()
-          .service.setSessionDeload(session.programId, session.id, value);
+        setSessionDeload(session.programId, session.id, value);
       } catch {
-        if (current())
-          Alert.alert("Save Failed", "The deload setting could not be saved.");
-      } finally {
-        pendingRef.current = false;
-        if (current()) setPending(false);
+        Alert.alert("Save Failed", "The deload setting could not be saved.");
       }
     };
     if (
@@ -147,38 +109,28 @@ const SessionContent = memo(function SessionContent({
         "This session will be ignored when planning the next session from this template. The last completed non-deload session will be used instead.",
         [
           { text: "Cancel", style: "cancel" },
-          { text: "Mark as Deload", onPress: () => void commit() },
+          { text: "Mark as Deload", onPress: commit },
         ],
       );
-    else void commit();
+    else commit();
   };
-  const finish = async () => {
-    if (pendingRef.current || !current()) return;
-    pendingRef.current = true;
-    setPending(true);
+  const finish = () => {
+    let done: boolean;
     try {
-      const done = await runtime
-        .getSnapshot()
-        .service.completeSession(session.programId, session.id);
-      if (done && current())
-        router.dismissTo(
-          `/(public)/(app)/program/${encodeURIComponent(session.programId)}`,
-        );
-      else if (current())
-        Alert.alert(
-          "Session Changed",
-          "The session can no longer be completed.",
-        );
+      done = completeSession(session.programId, session.id);
     } catch {
-      if (current())
-        Alert.alert(
-          "Complete Failed",
-          "The session could not be completed. Please try again.",
-        );
-    } finally {
-      pendingRef.current = false;
-      if (current()) setPending(false);
+      Alert.alert(
+        "Complete Failed",
+        "The session could not be completed. Please try again.",
+      );
+      return;
     }
+    if (done)
+      router.dismissTo(
+        `/(public)/(app)/program/${encodeURIComponent(session.programId)}`,
+      );
+    else
+      Alert.alert("Session Changed", "The session can no longer be completed.");
   };
   const setsPending = session.activities
     .flatMap((activity) => [...activity.warmupSets, ...activity.mainSets])
@@ -258,7 +210,6 @@ const SessionContent = memo(function SessionContent({
                   accessibilityLabel="Deload session"
                   accessibilityHint="Marks this workout as a deload session"
                   accessibilityState={{ checked: session.deload }}
-                  disabled={pending}
                   onPress={() => changeDeload(!session.deload)}
                 >
                   <Card
@@ -411,8 +362,8 @@ const SessionContent = memo(function SessionContent({
         <BottomActionBar
           label="Complete Workout Session"
           accessibilityLabel="Complete workout session"
-          hidden={!completable || pending}
-          onPress={() => void finish()}
+          hidden={!completable}
+          onPress={finish}
         />
       </View>
     </>

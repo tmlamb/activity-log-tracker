@@ -1,31 +1,16 @@
-import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
-import { SCHEMA_V1 } from "../database/schema";
+import { transaction } from "../database/db";
+import { createTestDb } from "../database/test-db";
 import { getEquipment, replaceEquipment } from "./equipment";
 
-function adapter(db: DatabaseSync) {
-  return {
-    getFirstAsync: <T>(sql: string) =>
-      Promise.resolve((db.prepare(sql).get() as T | undefined) ?? null),
-    getAllAsync: <T>(sql: string) =>
-      Promise.resolve(db.prepare(sql).all() as T[]),
-    runAsync: (sql: string, ...parameters: (string | number)[]) =>
-      Promise.resolve({
-        changes: Number(db.prepare(sql).run(...parameters).changes),
-      }),
-  };
-}
-
 describe("equipment inventory", () => {
-  it("reorders existing equipment without breaking references and clears removed barbells", async () => {
-    const db = new DatabaseSync(":memory:");
+  it("reorders existing equipment without breaking references and clears removed barbells", () => {
+    const db = createTestDb(`
+      INSERT INTO barbells VALUES ('a', 0, 25, 'lbs'), ('b', 1, 45, 'lbs');
+      INSERT INTO exercises(id, name, normalized_name, position, barbell_id) VALUES ('e', 'Exercise', 'exercise', 0, 'a');`);
     try {
-      db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1}
-        INSERT INTO barbells VALUES ('a', 0, 25, 'lbs'), ('b', 1, 45, 'lbs');
-        INSERT INTO exercises(id, name, normalized_name, position, barbell_id) VALUES ('e', 'Exercise', 'exercise', 0, 'a');
-        BEGIN IMMEDIATE`);
-      await replaceEquipment(adapter(db), {
+      replaceEquipment(db, {
         barbells: [
           { barbellId: "b", value: 45, unit: "lbs" },
           { barbellId: "a", value: 30, unit: "lbs" },
@@ -33,32 +18,28 @@ describe("equipment inventory", () => {
         plates: [{ plateId: "1", value: 2.5, unit: "kg", quantity: 3 }],
       });
       expect(
-        (await getEquipment(adapter(db))).barbells.map(
-          ({ barbellId }) => barbellId,
-        ),
+        getEquipment(db).barbells.map(({ barbellId }) => barbellId),
       ).toEqual(["b", "a"]);
-      expect(db.prepare("SELECT barbell_id FROM exercises").get()).toEqual({
+      expect(db.raw.prepare("SELECT barbell_id FROM exercises").get()).toEqual({
         barbell_id: "a",
       });
-      await replaceEquipment(adapter(db), {
+      replaceEquipment(db, {
         barbells: [{ barbellId: "b", value: 45, unit: "lbs" }],
         plates: [],
       });
-      db.exec("COMMIT");
       expect(
-        db.prepare("SELECT barbell_id, revision FROM exercises").get(),
+        db.raw.prepare("SELECT barbell_id, revision FROM exercises").get(),
       ).toEqual({ barbell_id: null, revision: 1 });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("rolls back all inventory changes on a duplicate ID", async () => {
-    const db = new DatabaseSync(":memory:");
+  it("rolls back all inventory changes on a duplicate ID", () => {
+    const db = createTestDb(
+      "INSERT INTO barbells VALUES ('old', 0, 45, 'lbs');",
+    );
     try {
-      db.exec(
-        `PRAGMA foreign_keys = ON; ${SCHEMA_V1} INSERT INTO barbells VALUES ('old', 0, 45, 'lbs'); BEGIN IMMEDIATE`,
-      );
       const equipment = {
         barbells: [
           { barbellId: "duplicate", value: 10, unit: "lbs" as const },
@@ -66,13 +47,14 @@ describe("equipment inventory", () => {
         ],
         plates: [],
       };
-      await expect(replaceEquipment(adapter(db), equipment)).rejects.toThrow();
-      db.exec("ROLLBACK");
-      expect((await getEquipment(adapter(db))).barbells).toEqual([
+      expect(() =>
+        transaction(db, () => replaceEquipment(db, equipment)),
+      ).toThrow();
+      expect(getEquipment(db).barbells).toEqual([
         { barbellId: "old", value: 45, unit: "lbs" },
       ]);
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });

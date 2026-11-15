@@ -1,6 +1,4 @@
-interface PolicyReader {
-  getFirstAsync<T>(sql: string, ...parameters: string[]): Promise<T | null>;
-}
+import type { Db } from "../database/db";
 
 export interface SessionPolicy {
   canSetDeload: boolean;
@@ -8,12 +6,12 @@ export interface SessionPolicy {
 }
 
 /** Resolve lineage policy using indexed scalar lookups, without session graphs. */
-export async function getSessionPolicy(
-  reader: PolicyReader,
+export function getSessionPolicy(
+  reader: Db,
   programId: string,
   sessionId: string,
-): Promise<SessionPolicy | null> {
-  const row = await reader.getFirstAsync<{
+): SessionPolicy | null {
+  const row = reader.getFirstSync<{
     canSetDeload: number;
     isLatestCompletedInLineage: number;
   }>(

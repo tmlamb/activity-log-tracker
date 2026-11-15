@@ -8,14 +8,11 @@ import {
   sortRecordsByName,
 } from "@activity-log/ui/utils";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import { NavigationCardRow } from "~/components/CardRow";
 import { HeaderPlusAction, HeaderTextAction } from "~/components/HeaderAction";
-import { QueryStatus } from "~/components/query-status";
 import { LegendSectionListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
-import { useApplicationDataRuntime } from "~/data/react/application-data";
-import { useExerciseLibrary } from "~/data/react/settings-queries";
+import { useExerciseLibrary } from "~/data/queries";
 
 interface ExerciseListItem {
   name: string;
@@ -31,26 +28,17 @@ interface ExerciseSection {
 }
 
 export default function ExerciseSettingsScreen() {
-  const runtime = useApplicationDataRuntime();
-  return <ExerciseSettings runtime={runtime} />;
-}
-
-function ExerciseSettings({ runtime }: { runtime: ApplicationDataRuntime }) {
-  const query = useExerciseLibrary(runtime);
-  if (query.data === undefined)
-    return (
-      <QueryStatus error={query.isError} onRetry={() => void query.refetch()} />
-    );
+  const library = useExerciseLibrary();
   return (
     <ExerciseSettingsContent
-      availableExercises={query.data.presets.map(
+      availableExercises={library.presets.map(
         ({ name, loadKind, primaryMuscles }) => ({
           name,
           loadKind: loadKind ?? undefined,
           primaryMuscles,
         }),
       )}
-      storedExercises={query.data.saved.map(
+      storedExercises={library.saved.map(
         ({ id, name, loadKind, primaryMuscles, deleted }) => ({
           exerciseId: id,
           name,

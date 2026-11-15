@@ -1,15 +1,10 @@
-import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 import type { Exercise, Program } from "@activity-log/ui/utils";
 import { buildProgramInsights } from "@activity-log/ui/utils";
 
-import {
-  buildApplicationMemory,
-  getMemoryProgramInsightFacts,
-  readApplicationMemoryFacts,
-} from "../application-memory";
-import { SCHEMA_V1 } from "../database/schema";
+import type { Db } from "../database/db";
+import { createTestDb } from "../database/test-db";
 import { buildProgramInsightProjection } from "../domain/program-insights";
 import { readProgramInsightFacts } from "./program-insights";
 
@@ -17,8 +12,7 @@ const now = new Date(2026, 0, 20, 12);
 const start = new Date(2026, 0, 1, 12);
 
 function setup() {
-  const db = new DatabaseSync(":memory:");
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1}
+  const db = createTestDb(`
     INSERT INTO programs VALUES ('p', 'Program', 0), ('other', 'Other', 1);
     INSERT INTO sessions(program_id, id, name, position, status, deload, start_ms)
       VALUES ('p', 'done', 'Done', 0, 'Done', 0, ${start.getTime()}),
@@ -39,37 +33,22 @@ function setup() {
              ('p', 'planned', 'a', 'w1', 'Warmup', 0, 'Planned', 'Neutral', 0, 1, 'lbs'),
              ('other', 'done', 'a', 'm1', 'Main', 0, 'Done', 'Hard', 99, 100, 'lbs');`);
   let calls = 0;
-  const reader = {
-    getFirstAsync: <T>(sql: string, ...parameters: string[]) => {
+  const reader: Db = {
+    ...db,
+    getFirstSync: (sql, ...params) => {
       calls++;
-      return Promise.resolve(
-        (db.prepare(sql).get(...parameters) as T | undefined) ?? null,
-      );
+      return db.getFirstSync(sql, ...params);
     },
-    getAllAsync: <T>(sql: string, ...parameters: string[]) => {
+    getAllSync: (sql, ...params) => {
       calls++;
-      return Promise.resolve(db.prepare(sql).all(...parameters) as T[]);
+      return db.getAllSync(sql, ...params);
     },
   };
   return { db, reader, calls: () => calls };
 }
 
 describe("program insights projection", () => {
-  it("derives the same analytics facts from the hydrated model", async () => {
-    const { db, reader } = setup();
-    try {
-      const facts = await readProgramInsightFacts(reader, "p");
-      const memory = buildApplicationMemory(
-        await readApplicationMemoryFacts(reader),
-        1,
-      );
-      expect(getMemoryProgramInsightFacts(memory, "p")).toEqual(facts);
-      expect(getMemoryProgramInsightFacts(memory, "missing")).toBeNull();
-    } finally {
-      db.close();
-    }
-  });
-  it("matches existing insights for completed, pending, paired weights, deleted references, and missing weeks", async () => {
+  it("matches existing insights for completed, pending, paired weights, deleted references, and missing weeks", () => {
     const { db, reader, calls } = setup();
     try {
       const exercise: Exercise = {
@@ -146,7 +125,7 @@ describe("program insights projection", () => {
           },
         ],
       };
-      const facts = await readProgramInsightFacts(reader, "p");
+      const facts = readProgramInsightFacts(reader, "p");
       if (!facts) throw new Error("Missing program");
       expect(calls()).toBe(4);
       expect(facts.sets).toHaveLength(3);
@@ -164,20 +143,21 @@ describe("program insights projection", () => {
           ),
         })),
       }).toEqual(legacy);
-      expect(await readProgramInsightFacts(reader, "missing")).toBeNull();
+      expect(readProgramInsightFacts(reader, "missing")).toBeNull();
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("marks unknown measurements and missing exercise references as partial without fabricating totals", async () => {
+  it("marks unknown measurements and missing exercise references as partial without fabricating totals", () => {
     const { db, reader } = setup();
     try {
-      db.exec(`UPDATE workout_sets SET weight_value = NULL, weight_unit = NULL WHERE program_id = 'p' AND session_id = 'done' AND id = 'm1';
+      db.raw
+        .exec(`UPDATE workout_sets SET weight_value = NULL, weight_unit = NULL WHERE program_id = 'p' AND session_id = 'done' AND id = 'm1';
         UPDATE activities SET reps = NULL WHERE program_id = 'p' AND session_id = 'planned';
         INSERT INTO activities(program_id, session_id, id, position) VALUES ('p', 'planned', 'missing', 1);
         INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback) VALUES ('p', 'planned', 'missing', 'set', 'Main', 0, 'Planned', 'Neutral');`);
-      const facts = await readProgramInsightFacts(reader, "p");
+      const facts = readProgramInsightFacts(reader, "p");
       if (!facts) throw new Error("Missing program");
       const result = buildProgramInsightProjection(facts, now.getTime());
       expect(result.partial).toBe(true);
@@ -192,7 +172,7 @@ describe("program insights projection", () => {
         partial: true,
       });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });

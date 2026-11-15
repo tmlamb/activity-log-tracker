@@ -1,9 +1,5 @@
+import type { Db } from "../database/db";
 import type { SetReference } from "./sets";
-
-interface SeriesReader {
-  getFirstAsync<T>(sql: string, ...parameters: string[]): Promise<T | null>;
-  getAllAsync<T>(sql: string, ...parameters: (string | number)[]): Promise<T[]>;
-}
 
 export interface SeriesSelection {
   sessionName: string;
@@ -43,12 +39,12 @@ export interface ExerciseSeriesFacts {
 }
 
 /** Read a single exercise occurrence per lineage session in one read snapshot. */
-export async function readExerciseSeriesFacts(
-  reader: SeriesReader,
+export function readExerciseSeriesFacts(
+  reader: Db,
   reference: SetReference,
-): Promise<ExerciseSeriesFacts | null> {
+): ExerciseSeriesFacts | null {
   const { programId, sessionId, activityId, setId } = reference;
-  const selection = await reader.getFirstAsync<SeriesSelection>(
+  const selection = reader.getFirstSync<SeriesSelection>(
     `SELECT s.name AS sessionName, e.name AS exerciseName, e.id AS exerciseId,
        s.lineage_id AS lineageId, e.one_rep_max_value AS maxValue, e.one_rep_max_unit AS maxUnit,
        (SELECT COUNT(*) FROM activities previous WHERE previous.program_id = a.program_id
@@ -64,13 +60,13 @@ export async function readExerciseSeriesFacts(
     setId,
   );
   if (!selection) return null;
-  const sessions = await reader.getAllAsync<SeriesSession>(
+  const sessions = reader.getAllSync<SeriesSession>(
     `SELECT id, start_ms AS startMs, end_ms AS endMs FROM sessions
      WHERE program_id = ? AND lineage_id = ? ORDER BY position`,
     programId,
     selection.lineageId,
   );
-  const sets = await reader.getAllAsync<SeriesSetFact>(
+  const sets = reader.getAllSync<SeriesSetFact>(
     `WITH occurrences AS (
        SELECT a.program_id, a.session_id, a.id, a.reps, a.load_type, a.load_value,
          ROW_NUMBER() OVER (PARTITION BY a.session_id ORDER BY a.position) - 1 AS occurrence

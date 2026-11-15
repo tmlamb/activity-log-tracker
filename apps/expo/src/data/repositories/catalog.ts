@@ -1,16 +1,6 @@
 import { normalizeMuscleGroups } from "@activity-log/ui/utils";
 
-interface CatalogTransaction {
-  getFirstAsync<T>(
-    sql: string,
-    ...parameters: (string | number)[]
-  ): Promise<T | null>;
-  getAllAsync<T>(sql: string, ...parameters: (string | number)[]): Promise<T[]>;
-  runAsync(
-    sql: string,
-    ...parameters: (string | number)[]
-  ): Promise<{ changes: number }>;
-}
+import type { Db } from "../database/db";
 
 export interface ExercisePreset {
   id: string;
@@ -19,15 +9,11 @@ export interface ExercisePreset {
   primaryMuscles: string[];
 }
 
-export async function listExercisePresets(
-  transaction: CatalogTransaction,
-): Promise<ExercisePreset[]> {
-  const rows = await transaction.getAllAsync<
-    Omit<ExercisePreset, "primaryMuscles">
-  >(
+export function listExercisePresets(transaction: Db): ExercisePreset[] {
+  const rows = transaction.getAllSync<Omit<ExercisePreset, "primaryMuscles">>(
     "SELECT id, name, load_kind AS loadKind FROM exercise_presets ORDER BY position",
   );
-  const memberships = await transaction.getAllAsync<{
+  const memberships = transaction.getAllSync<{
     presetId: string;
     name: string;
   }>(
@@ -46,51 +32,49 @@ export async function listExercisePresets(
   }));
 }
 
-export async function listMuscleCatalog(
-  transaction: CatalogTransaction,
-): Promise<string[]> {
-  const rows = await transaction.getAllAsync<{ name: string }>(
+export function listMuscleCatalog(transaction: Db): string[] {
+  const rows = transaction.getAllSync<{ name: string }>(
     `SELECT l.name FROM muscle_catalog c JOIN muscle_labels l ON l.id = c.muscle_id ORDER BY c.position`,
   );
   return rows.map(({ name }) => name);
 }
 
 /** Replace the catalog and prune saved exercise assignments in one transaction. */
-export async function replaceMuscleCatalog(
-  transaction: CatalogTransaction,
+export function replaceMuscleCatalog(
+  transaction: Db,
   input: string[],
-): Promise<string[]> {
+): string[] {
   const labels = normalizeMuscleGroups(input).sort((a, b) =>
     a.localeCompare(b),
   );
-  await transaction.runAsync("DELETE FROM muscle_catalog");
+  transaction.runSync("DELETE FROM muscle_catalog");
   for (const [position, label] of labels.entries()) {
-    await transaction.runAsync(
+    transaction.runSync(
       "INSERT INTO muscle_labels(name, normalized_name) VALUES (?, ?) ON CONFLICT(name) DO NOTHING",
       label,
       label.toLocaleLowerCase(),
     );
-    const row = await transaction.getFirstAsync<{ id: number }>(
+    const row = transaction.getFirstSync<{ id: number }>(
       "SELECT id FROM muscle_labels WHERE name = ?",
       label,
     );
     if (!row) throw new Error("Muscle label could not be saved.");
-    await transaction.runAsync(
+    transaction.runSync(
       "INSERT INTO muscle_catalog(position, muscle_id) VALUES (?, ?)",
       position,
       row.id,
     );
   }
-  const changed = await transaction.getAllAsync<{ id: string }>(
+  const changed = transaction.getAllSync<{ id: string }>(
     `SELECT DISTINCT exercise_id AS id FROM exercise_muscles
      WHERE muscle_id NOT IN (SELECT muscle_id FROM muscle_catalog)`,
   );
-  await transaction.runAsync(
+  transaction.runSync(
     `UPDATE exercises SET revision = revision + 1 WHERE id IN (
        SELECT exercise_id FROM exercise_muscles WHERE muscle_id NOT IN (SELECT muscle_id FROM muscle_catalog)
      )`,
   );
-  await transaction.runAsync(
+  transaction.runSync(
     "DELETE FROM exercise_muscles WHERE muscle_id NOT IN (SELECT muscle_id FROM muscle_catalog)",
   );
   return changed.map(({ id }) => id);

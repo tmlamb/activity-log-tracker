@@ -1,37 +1,7 @@
-/** The first relational schema. Persisted independently of legacy store versions. */
-export const SCHEMA_VERSION = 2;
+/** The relational schema, stamped into PRAGMA user_version. */
+export const SCHEMA_VERSION = 1;
 
-export const SCHEMA_V1 = `
-CREATE TABLE schema_migrations (
-  version INTEGER PRIMARY KEY,
-  applied_at INTEGER NOT NULL
-);
-CREATE TABLE bootstrap_state (
-  singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
-  database_id TEXT NOT NULL,
-  state TEXT NOT NULL CHECK (state IN ('source-captured', 'awaiting-verification', 'ready')),
-  generation INTEGER NOT NULL DEFAULT 0 CHECK (generation >= 0)
-);
-CREATE TABLE conversion_snapshots (
-  id INTEGER PRIMARY KEY,
-  workout TEXT,
-  exercises TEXT,
-  restore_journal TEXT,
-  captured_at INTEGER NOT NULL
-);
-CREATE TABLE conversion_reports (
-  id INTEGER PRIMARY KEY,
-  snapshot_id INTEGER NOT NULL REFERENCES conversion_snapshots(id) ON DELETE CASCADE,
-  converter_version INTEGER NOT NULL,
-  report TEXT NOT NULL,
-  verified_at INTEGER
-);
-CREATE TABLE lifecycle_operations (
-  id TEXT PRIMARY KEY,
-  kind TEXT NOT NULL,
-  state TEXT NOT NULL,
-  created_at INTEGER NOT NULL
-);
+export const SCHEMA = `
 CREATE TABLE programs (
   id TEXT PRIMARY KEY CHECK (length(trim(id)) > 0),
   name TEXT NOT NULL,
@@ -155,10 +125,7 @@ CREATE INDEX activities_exercise ON activities(exercise_id, program_id, session_
 CREATE INDEX activities_occurrence ON activities(program_id, session_id, exercise_id, position);
 CREATE INDEX exercise_muscles_label ON exercise_muscles(muscle_id, exercise_id);
 CREATE INDEX preset_muscles_label ON preset_muscles(muscle_id, preset_id);
-`;
-
-/** Supports finding the latest completed session without scanning its history. */
-export const SCHEMA_V2 = `
+-- Supports finding the latest completed session without scanning its history.
 CREATE INDEX sessions_lineage_completed_chrono
   ON sessions(program_id, lineage_id, COALESCE(start_ms, end_ms, 0) DESC, position DESC)
   WHERE status = 'Done';

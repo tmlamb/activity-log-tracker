@@ -8,17 +8,11 @@ import {
   useRouter,
 } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useQueryClient } from "@tanstack/react-query";
 import { addDays, format, isSameMonth } from "date-fns";
 
 import type { ProgramOverview } from "~/data/domain/program-timeline";
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import BottomActionBar from "~/components/BottomActionBar";
-import {
-  DetailCardRow,
-  NavigationCardRow,
-  PrimaryCardAction,
-} from "~/components/CardRow";
+import { DetailCardRow, NavigationCardRow } from "~/components/CardRow";
 import {
   CollapsibleSection,
   CollapsibleSectionList,
@@ -26,22 +20,16 @@ import {
 import { Text } from "~/components/font-scale-text";
 import { HeaderIconAction } from "~/components/HeaderAction";
 import PressableThemed from "~/components/PressableThemed";
-import { QueryStatus } from "~/components/query-status";
 import {
   HelperText,
   ScreenHeading,
   SectionHeading,
 } from "~/components/Typography";
-import { workoutKeys } from "~/data/cache/keys";
-import {
-  useApplicationDataRuntime,
-  useApplicationDataSnapshot,
-} from "~/data/react/application-data";
 import {
   useProgramHeader,
   useProgramOverview,
   useProgramWeek,
-} from "~/data/react/program-queries";
+} from "~/data/queries";
 
 interface WeekItem {
   key: string;
@@ -52,63 +40,15 @@ interface WeekItem {
 }
 
 function WeekSessions({
-  runtime,
   programId,
-  overview,
   week,
-  expanded,
 }: {
-  runtime: ApplicationDataRuntime;
   programId: string;
-  overview: ProgramOverview;
   week: number;
-  expanded: boolean;
 }) {
-  const { generation } = useApplicationDataSnapshot(runtime);
-  const cache = useQueryClient();
-  const query = useProgramWeek(
-    runtime,
-    programId,
-    week,
-    overview.programStartMs,
-    overview.currentWeek,
-    expanded,
-  );
-  if (query.data === undefined)
-    return (
-      <View className="gap-3 pb-3">
-        <HelperText>
-          {query.isError ? "Unable to load sessions." : "Loading sessions…"}
-        </HelperText>
-        {query.isError && (
-          <PrimaryCardAction
-            label="Try Again"
-            accessibilityLabel="Retry loading sessions"
-            onPress={() => void query.refetch()}
-          />
-        )}
-      </View>
-    );
-  const sessions = query.data.pages.flatMap((page) => page.items);
-  const hasPreviousPages = query.data.pageParams[0] !== undefined;
-  const queryKey = workoutKeys.programWeek(
-    generation,
-    programId,
-    week,
-    overview.programStartMs,
-    overview.currentWeek,
-  );
+  const sessions = useProgramWeek(programId, week)?.items ?? [];
   return (
     <View>
-      {hasPreviousPages && (
-        <PrimaryCardAction
-          label="Back to First Page"
-          accessibilityLabel="Return to the first sessions in this week"
-          onPress={() => {
-            void cache.resetQueries({ queryKey, exact: true });
-          }}
-        />
-      )}
       {sessions.map((session, index) => (
         <Link
           key={session.id}
@@ -137,32 +77,17 @@ function WeekSessions({
           />
         </Link>
       ))}
-      {query.isFetchNextPageError && (
-        <HelperText accessibilityRole="alert">
-          Unable to load more sessions.
-        </HelperText>
-      )}
-      {query.hasNextPage && (
-        <PrimaryCardAction
-          label={query.isFetchingNextPage ? "Loading…" : "Load More Sessions"}
-          disabled={query.isFetchingNextPage}
-          accessibilityLabel="Load more sessions in this week"
-          onPress={() => void query.fetchNextPage()}
-        />
-      )}
     </View>
   );
 }
 
 function WeekRow({
-  runtime,
   programId,
   overview,
   item,
   initiallyOverridden,
   onOverride,
 }: {
-  runtime: ApplicationDataRuntime;
   programId: string;
   overview: ProgramOverview;
   item: WeekItem;
@@ -198,49 +123,23 @@ function WeekRow({
         setOverridden(changed);
       }}
     >
-      <WeekSessions
-        runtime={runtime}
-        programId={programId}
-        overview={overview}
-        week={item.week}
-        expanded={!collapsed}
-      />
+      <WeekSessions programId={programId} week={item.week} />
     </CollapsibleSection>
   );
 }
 
 export default function ProgramDetailScreen() {
-  const runtime = useApplicationDataRuntime();
   const { programId } = useLocalSearchParams<{ programId: string }>();
-  const header = useProgramHeader(runtime, programId);
-  const overview = useProgramOverview(runtime, programId);
-  if (header.data === undefined || overview.data === undefined)
-    return (
-      <QueryStatus
-        error={header.isError || overview.isError}
-        onRetry={() => {
-          void header.refetch();
-          void overview.refetch();
-        }}
-      />
-    );
-  if (header.data === null || overview.data === null)
-    return <Redirect href="/(public)/(app)" />;
-  return (
-    <ProgramContent
-      runtime={runtime}
-      program={header.data}
-      overview={overview.data}
-    />
-  );
+  const program = useProgramHeader(programId);
+  const overview = useProgramOverview(programId);
+  if (!program || !overview) return <Redirect href="/(public)/(app)" />;
+  return <ProgramContent program={program} overview={overview} />;
 }
 
 function ProgramContent({
-  runtime,
   program,
   overview,
 }: {
-  runtime: ApplicationDataRuntime;
   program: { id: string; name: string };
   overview: ProgramOverview;
 }) {
@@ -325,7 +224,6 @@ function ProgramContent({
         }
         renderItem={({ item }) => (
           <WeekRow
-            runtime={runtime}
             programId={program.id}
             overview={overview}
             item={item}

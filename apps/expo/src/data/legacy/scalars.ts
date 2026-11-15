@@ -1,73 +1,54 @@
-export interface Repair {
-  pointer: string;
-  reason: string;
-  original: unknown;
-  replacement: unknown;
-}
+import { z } from "zod";
 
-/** Repair only values that can be interpreted without inventing measurements. */
-export function repairNumber(
-  value: unknown,
-  pointer: string,
-  repairs: Repair[],
-): number | null {
-  if (value === undefined || value === null) return null;
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      repairs.push({
-        pointer,
-        reason: "numeric-string",
-        original: value,
-        replacement: parsed,
-      });
-      return parsed;
-    }
-  }
-  repairs.push({
-    pointer,
-    reason: "invalid-number",
-    original: value,
-    replacement: null,
-  });
-  return null;
-}
+import { dateRegex } from "@activity-log/ui/utils";
 
-/** Accept the Date produced by the legacy reviver, not guessed raw date formats. */
-export function repairDate(
-  value: unknown,
-  pointer: string,
-  repairs: Repair[],
-): number | null {
-  if (value === undefined || value === null) return null;
-  if (value instanceof Date && Number.isFinite(value.getTime())) {
-    return value.getTime();
-  }
-  repairs.push({
-    pointer,
-    reason: "invalid-date",
-    original: value,
-    replacement: null,
-  });
-  return null;
-}
+/**
+ * Lenient field schemas for the retired stores. A field that cannot be read
+ * becomes null (or a safe default) rather than failing the whole import.
+ */
 
-export function repairEnum<T extends string>(
-  value: unknown,
-  allowed: readonly T[],
-  fallback: T,
-  pointer: string,
-  repairs: Repair[],
-): T {
-  if (typeof value === "string" && allowed.some((item) => item === value)) {
-    return value as T;
-  }
-  repairs.push({
-    pointer,
-    reason: "invalid-enum",
-    original: value,
-    replacement: fallback,
-  });
-  return fallback;
+/** A finite number, also accepting numeric strings such as "8". */
+export const measurement = z.union([
+  z.number(),
+  z.string().trim().min(1).pipe(z.coerce.number()),
+]);
+export const number = measurement.nullable().catch(null);
+
+/** A non-blank string, or null. */
+export const text = z
+  .string()
+  .refine((value) => value.trim().length > 0)
+  .nullable()
+  .catch(null);
+
+export const unit = z.enum(["lbs", "kg"]);
+export const weight = z
+  .object({ value: measurement, unit })
+  .nullable()
+  .catch(null);
+export const loadKind = z
+  .enum(["BARBELL", "WEIGHT_PAIR", "SINGLE_WEIGHT"])
+  .nullable()
+  .catch(null);
+
+/** The stores persisted Dates as ISO strings; read them as epoch ms. */
+export const instant = z
+  .string()
+  .regex(dateRegex)
+  .pipe(z.coerce.date())
+  .transform((date) => date.getTime())
+  .nullable()
+  .catch(null);
+
+/** An array that skips items which don't match (e.g. nulls); [] if missing. */
+export function list<T extends z.ZodType>(item: T) {
+  return z
+    .array(z.unknown())
+    .catch([])
+    .transform((items) =>
+      items.flatMap((value) => {
+        const parsed = item.safeParse(value);
+        return parsed.success ? [parsed.data] : [];
+      }),
+    );
 }

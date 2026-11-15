@@ -1,45 +1,16 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import { URL } from "node:url";
-import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 import {
   parseActivityLogBackup,
   serializeActivityLogBackup,
 } from "~/utils/app-data-backup";
-import { SCHEMA_V1 } from "../database/schema";
-import { archiveLegacySource } from "./archive";
-import { populateLegacyData, verifyAndMarkLegacyDataReady } from "./population";
+import { createTestDb } from "../database/test-db";
+import { prepareLegacyConversion } from "./conversion";
+import { insertConvertedData } from "./population";
 
-function adapter(db: DatabaseSync) {
-  return {
-    getFirstAsync: <T>(
-      sql: string,
-      ...parameters: (string | number | null)[]
-    ) =>
-      Promise.resolve(
-        (db.prepare(sql).get(...parameters) as T | undefined) ?? null,
-      ),
-    getAllAsync: <T>(sql: string) =>
-      Promise.resolve(db.prepare(sql).all() as T[]),
-    runAsync: (sql: string, ...parameters: (string | number | null)[]) =>
-      Promise.resolve({
-        changes: Number(db.prepare(sql).run(...parameters).changes),
-      }),
-    prepareAsync: (sql: string) => {
-      const statement = db.prepare(sql);
-      return Promise.resolve({
-        executeAsync: (...parameters: (string | number | null)[]) =>
-          Promise.resolve(statement.run(...parameters)),
-        finalizeAsync: () => Promise.resolve(),
-      });
-    },
-  };
-}
-
-/** A backup-based dry run never opens or modifies the app's own databases. */
-async function verifyBackupConversion(contents: string) {
+function verifyBackupConversion(contents: string) {
   const stores = parseActivityLogBackup(contents);
   const workout = stores["workout-storage"];
   const sessions = workout.programs.flatMap((program) => program.sessions);
@@ -58,62 +29,26 @@ async function verifyBackupConversion(contents: string) {
     barbells: workout.equipment.barbells.length,
     plates: workout.equipment.plates.length,
   };
-  const directory = mkdtempSync(join(process.cwd(), ".sqlite-backup-check-"));
-  const path = join(directory, "converted.sqlite");
-  let db: DatabaseSync | undefined;
-  try {
-    db = new DatabaseSync(path);
-    db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1} BEGIN IMMEDIATE`);
-    await archiveLegacySource(
-      adapter(db),
-      {
-        workout: JSON.stringify({ version: 2, state: workout }),
-        exercises: JSON.stringify({
-          version: 2,
-          state: stores["exercise-storage"],
-        }),
-        restoreJournal: null,
-      },
-      "backup-dry-run",
-      Date.now(),
-    );
-    db.exec("COMMIT; BEGIN IMMEDIATE");
-    await populateLegacyData(adapter(db), 1);
-    db.exec("COMMIT");
-    db.close();
-    db = new DatabaseSync(path);
-    db.exec("PRAGMA foreign_keys = ON; BEGIN IMMEDIATE");
-    await verifyAndMarkLegacyDataReady(adapter(db), 1, Date.now());
-    db.exec("COMMIT");
-    for (const [table, count] of Object.entries(expected)) {
-      expect(
-        db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get(),
-      ).toEqual({ count });
-    }
-    const reportRow = db
-      .prepare("SELECT report FROM conversion_reports WHERE snapshot_id = 1")
-      .get() as { report: string } | undefined;
-    if (!reportRow) throw new Error("The conversion report is missing.");
-    const report = JSON.parse(reportRow.report) as {
-      repairs: { reason: string }[];
-      identities: { pointer: string; reason: string }[];
-    };
-    const repairCounts: Record<string, number> = {};
-    for (const { reason } of report.repairs)
-      repairCounts[reason] = (repairCounts[reason] ?? 0) + 1;
-    const remappedIds = report.identities.filter(
-      ({ pointer, reason }) =>
-        reason !== "unchanged" && !pointer.startsWith("/presets/"),
-    ).length;
-    return { counts: expected, repairCounts, remappedIds };
-  } finally {
-    db?.close();
-    rmSync(directory, { recursive: true, force: true });
-  }
+  const db = createTestDb();
+  const conversion = prepareLegacyConversion({
+    workout: JSON.stringify({ version: 2, state: workout }),
+    exercises: JSON.stringify({
+      version: 2,
+      state: stores["exercise-storage"],
+    }),
+  });
+  insertConvertedData(db, conversion);
+  expect(db.raw.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+  for (const [table, count] of Object.entries(expected))
+    expect(
+      db.raw.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get(),
+    ).toEqual({ count });
+  db.raw.close();
+  return { counts: expected };
 }
 
 describe("portable backup conversion dry run", () => {
-  it("converts and verifies a representative official backup", async () => {
+  it("converts and verifies a representative official backup", () => {
     const backup = serializeActivityLogBackup({
       "workout-storage": {
         programs: [
@@ -157,7 +92,7 @@ describe("portable backup conversion dry run", () => {
       },
       "exercise-storage": { exercises: [] },
     });
-    expect(await verifyBackupConversion(backup)).toMatchObject({
+    expect(verifyBackupConversion(backup)).toMatchObject({
       counts: {
         programs: 1,
         sessions: 1,
@@ -168,12 +103,12 @@ describe("portable backup conversion dry run", () => {
     });
   });
 
-  it("converts and verifies the historical backup fixture", async () => {
+  it("converts and verifies the historical backup fixture", () => {
     const backup = readFileSync(
       new URL("./fixtures/backup-v1.json", import.meta.url),
       "utf8",
     );
-    expect(await verifyBackupConversion(backup)).toMatchObject({
+    expect(verifyBackupConversion(backup)).toMatchObject({
       counts: {
         programs: 1,
         sessions: 1,

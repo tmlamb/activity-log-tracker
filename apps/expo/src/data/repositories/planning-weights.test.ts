@@ -1,20 +1,13 @@
-import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 import type { Activity, Session, Weight } from "@activity-log/ui/utils";
 
 import { fallbackSetWeight } from "../../utils/workout-set-count";
-import {
-  buildApplicationMemory,
-  getMemoryPlanningWeightHints,
-  readApplicationMemoryFacts,
-} from "../application-memory";
-import { SCHEMA_V1 } from "../database/schema";
+import { createTestDb } from "../database/test-db";
 import { getPlanningWeightHints } from "./planning-weights";
 
 function setup() {
-  const db = new DatabaseSync(":memory:");
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1}
+  const db = createTestDb(`
     INSERT INTO programs VALUES ('p','P',0), ('other','Other',1);
     INSERT INTO session_lineages VALUES ('p','lineage'), ('p','unrelated'), ('other','lineage');
     INSERT INTO sessions(program_id,id,lineage_id,name,position,status,deload)
@@ -34,20 +27,7 @@ function setup() {
              ('p','new','a','m','Main',0,'Done','Neutral',40,'lbs'), ('p','new','b','m','Main',0,'Done','Neutral',50,'lbs'),
              ('p','new','b','w','Warmup',0,'Done','Neutral',0,'kg'),
              ('p','unrelated','a','m','Main',0,'Done','Neutral',900,'lbs'), ('other','current','a','m','Main',0,'Done','Neutral',999,'lbs');`);
-  const calls: { sql: string; params: (string | number | null)[] }[] = [];
-  const reader = {
-    getFirstAsync: <T>(sql: string, ...params: (string | number | null)[]) => {
-      calls.push({ sql, params });
-      return Promise.resolve(
-        (db.prepare(sql).get(...params) as T | undefined) ?? null,
-      );
-    },
-    getAllAsync: <T>(sql: string, ...params: (string | number | null)[]) => {
-      calls.push({ sql, params });
-      return Promise.resolve(db.prepare(sql).all(...params) as T[]);
-    },
-  };
-  return { db, reader, calls };
+  return { db, reader: db };
 }
 
 function sourceSession(
@@ -84,34 +64,7 @@ function sourceSession(
 }
 
 describe("session editor planning weights", () => {
-  it("derives the same hints from hydrated sessions", async () => {
-    const { db, reader } = setup();
-    try {
-      const memory = buildApplicationMemory(
-        await readApplicationMemoryFacts(reader),
-        1,
-      );
-      const activities = [
-        { exerciseId: "e", loadType: "RPE" as const },
-        { exerciseId: "e", loadType: "RPE" as const },
-        { exerciseId: "f", loadType: "RPE" as const },
-      ];
-      for (const source of [
-        { kind: "session" as const, sessionId: "current" },
-        { kind: "template" as const, sessionId: "new" },
-        null,
-      ])
-        for (const kind of ["Warmup", "Main"] as const)
-          expect(
-            getMemoryPlanningWeightHints(memory, "p", source, activities, kind),
-          ).toEqual(
-            await getPlanningWeightHints(reader, "p", source, activities, kind),
-          );
-    } finally {
-      db.close();
-    }
-  });
-  it("matches existing fallback priority and keeps repeated exercise occurrences distinct", async () => {
+  it("matches existing fallback priority and keeps repeated exercise occurrences distinct", () => {
     const { db, reader } = setup();
     try {
       const draft = [
@@ -120,7 +73,7 @@ describe("session editor planning weights", () => {
         { exerciseId: "e", loadType: "RPE" as const },
         { exerciseId: "f", loadType: "RPE" as const },
       ];
-      const hints = await getPlanningWeightHints(
+      const hints = getPlanningWeightHints(
         reader,
         "p",
         { kind: "session", sessionId: "current" },
@@ -167,7 +120,7 @@ describe("session editor planning weights", () => {
       const thirdActivity = draft[2];
       if (!firstActivity || !thirdActivity)
         throw new Error("Missing draft activities");
-      const secondOccurrence = await getPlanningWeightHints(
+      const secondOccurrence = getPlanningWeightHints(
         reader,
         "p",
         { kind: "session", sessionId: "current" },
@@ -176,44 +129,40 @@ describe("session editor planning weights", () => {
       );
       expect(secondOccurrence[1]?.weight).toEqual({ value: 50, unit: "lbs" });
       expect(
-        (
-          await getPlanningWeightHints(
-            reader,
-            "p",
-            { kind: "template", sessionId: "current" },
-            [firstActivity, thirdActivity],
-            "Main",
-          )
+        getPlanningWeightHints(
+          reader,
+          "p",
+          { kind: "template", sessionId: "current" },
+          [firstActivity, thirdActivity],
+          "Main",
         )[1]?.weight,
       ).toBeNull();
       expect(
-        (
-          await getPlanningWeightHints(
-            reader,
-            "p",
-            { kind: "session", sessionId: "current" },
-            [firstActivity, thirdActivity],
-            "Warmup",
-          )
+        getPlanningWeightHints(
+          reader,
+          "p",
+          { kind: "session", sessionId: "current" },
+          [firstActivity, thirdActivity],
+          "Warmup",
         )[1]?.weight,
       ).toEqual({ value: 0, unit: "kg" });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("handles empty sources and rejects a missing source without leaking other program data", async () => {
+  it("handles empty sources and rejects a missing source without leaking other program data", () => {
     const { db, reader } = setup();
     try {
       const draft = [
         { exerciseId: "e", loadType: "RPE" as const },
         { exerciseId: null, loadType: "RPE" as const },
       ];
+      expect(getPlanningWeightHints(reader, "p", null, draft, "Main")).toEqual([
+        { activityIndex: 0, weight: null },
+      ]);
       expect(
-        await getPlanningWeightHints(reader, "p", null, draft, "Main"),
-      ).toEqual([{ activityIndex: 0, weight: null }]);
-      expect(
-        await getPlanningWeightHints(
+        getPlanningWeightHints(
           reader,
           "p",
           { kind: "session", sessionId: "current" },
@@ -221,7 +170,7 @@ describe("session editor planning weights", () => {
           "Main",
         ),
       ).toEqual([]);
-      await expect(
+      expect(() =>
         getPlanningWeightHints(
           reader,
           "p",
@@ -229,9 +178,9 @@ describe("session editor planning weights", () => {
           draft,
           "Main",
         ),
-      ).rejects.toThrow("planning source");
+      ).toThrow("planning source");
       expect(
-        await getPlanningWeightHints(
+        getPlanningWeightHints(
           reader,
           "other",
           { kind: "session", sessionId: "current" },
@@ -240,18 +189,18 @@ describe("session editor planning weights", () => {
         ),
       ).toEqual([{ activityIndex: 0, weight: { value: 999, unit: "lbs" } }]);
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("matches in-memory planning for large drafts", async () => {
+  it("plans large drafts", () => {
     const { db, reader } = setup();
     try {
       const activities = Array.from({ length: 405 }, () => ({
         exerciseId: "e",
         loadType: "RPE" as const,
       }));
-      const hints = await getPlanningWeightHints(
+      const hints = getPlanningWeightHints(
         reader,
         "p",
         { kind: "template", sessionId: "current" },
@@ -261,21 +210,8 @@ describe("session editor planning weights", () => {
       expect(hints).toHaveLength(405);
       expect(hints[0]?.weight).toEqual({ value: 35, unit: "kg" });
       expect(hints[1]?.weight).toBeNull();
-      const memory = buildApplicationMemory(
-        await readApplicationMemoryFacts(reader),
-        1,
-      );
-      expect(
-        getMemoryPlanningWeightHints(
-          memory,
-          "p",
-          { kind: "template", sessionId: "current" },
-          activities,
-          "Main",
-        ),
-      ).toEqual(hints);
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });

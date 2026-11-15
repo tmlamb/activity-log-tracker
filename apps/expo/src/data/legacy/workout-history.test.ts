@@ -10,7 +10,7 @@ describe("workout history conversion", () => {
       status: "Done",
       feedback: "Hard",
       actualReps: 5,
-      start: new Date("2025-01-01T00:00:00.123Z"),
+      start: "2025-01-01T00:00:00.123Z",
       weight: { value: 45, unit: "lbs" },
     });
     const input = [
@@ -49,6 +49,7 @@ describe("workout history conversion", () => {
       id: "s",
       lineage_id: "lineage",
       deload: 1,
+      start_ms: null,
     });
     expect(
       result.activities.map(({ id, exercise_id, position, load_value }) => ({
@@ -74,79 +75,66 @@ describe("workout history conversion", () => {
       { id: "m1", kind: "Main", position: 0, start_ms: 1735689600123 },
       { id: "w1", kind: "Warmup", position: 0, start_ms: 1735689600123 },
     ]);
-    expect(result.repairs.map(({ reason }) => reason)).toEqual([
-      "numeric-string",
-      "numeric-string",
-    ]);
   });
 
-  it("repairs duplicate sets using main-set precedence and reports missing references", () => {
-    const input = [
-      {
-        programId: "p",
-        name: "P",
-        sessions: [
-          {
-            sessionId: "s",
-            name: "S",
-            status: "Done",
-            activities: [
-              {
-                activityId: "a",
-                exerciseId: "missing",
-                reps: 5,
-                load: { type: "RPE", value: 8 },
-                rest: 2,
-                mainSets: [
-                  {
-                    workoutSetId: "same",
-                    type: "Main",
-                    status: "Done",
-                    feedback: "Neutral",
-                  },
-                ],
-                warmupSets: [
-                  {
-                    workoutSetId: "same",
-                    type: "Main",
-                    status: "Done",
-                    feedback: "Neutral",
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ];
-    const result = convertWorkoutHistory(input, new Map());
+  it("repairs duplicate sets using main-set precedence and falls back on unreadable values", () => {
+    const result = convertWorkoutHistory(
+      [
+        {
+          programId: "p",
+          name: "P",
+          sessions: [
+            {
+              sessionId: "s",
+              name: "S",
+              status: "Bogus",
+              start: "not a date",
+              activities: [
+                {
+                  activityId: "a",
+                  exerciseId: "missing",
+                  reps: "x",
+                  load: { type: "KG", value: 8 },
+                  rest: 2,
+                  mainSets: [{ workoutSetId: "same", status: "Done" }],
+                  warmupSets: [
+                    { workoutSetId: "same", feedback: "?", weight: {} },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      new Map(),
+    );
+    expect(result.sessions[0]).toMatchObject({
+      status: "Incomplete",
+      start_ms: null,
+    });
+    expect(result.activities[0]).toMatchObject({
+      exercise_id: null,
+      reps: null,
+      load_type: null,
+      load_value: null,
+    });
     expect(result.sets[0]).toMatchObject({ id: "same", kind: "Main" });
-    expect(result.sets[1]).toMatchObject({ kind: "Warmup" });
+    expect(result.sets[1]).toMatchObject({
+      kind: "Warmup",
+      status: "Incomplete",
+      feedback: "Neutral",
+      weight_value: null,
+      weight_unit: null,
+    });
     expect(result.sets[1]?.id).not.toBe("same");
-    expect(result.activities[0]?.exercise_id).toBeNull();
-    expect(result.repairs.map(({ reason }) => reason)).toContain(
-      "missing-exercise-reference",
-    );
-    expect(result.repairs.map(({ reason }) => reason)).toContain(
-      "set-kind-mismatch",
-    );
-    expect(
-      result.identities.find(({ reason }) => reason === "duplicate")?.pointer,
-    ).toBe("/programs/0/sessions/0/activities/0/warmupSets/0");
-    expect(convertWorkoutHistory(input, new Map())).toEqual(result);
   });
 
-  it("accounts for quarantined entries and refuses ambiguous collection shapes", () => {
+  it("skips entries that are not records", () => {
     const result = convertWorkoutHistory(
       [null, { programId: "p", name: "P", sessions: [] }],
       new Map(),
     );
-    expect(result.programs).toHaveLength(1);
-    expect(result.repairs).toMatchObject([
-      { pointer: "/programs/0", reason: "quarantined-record" },
-    ]);
-    expect(() => convertWorkoutHistory({ not: "an array" }, new Map())).toThrow(
-      "not an array",
-    );
+    expect(result.programs).toEqual([{ id: "p", name: "P", position: 0 }]);
+    expect(convertWorkoutHistory(undefined, new Map()).programs).toEqual([]);
   });
 });

@@ -1,9 +1,6 @@
-type Status = "Planned" | "Ready" | "Done" | "Incomplete";
+import type { Db } from "../database/db";
 
-interface SessionReader {
-  getFirstAsync<T>(sql: string, ...parameters: string[]): Promise<T | null>;
-  getAllAsync<T>(sql: string, ...parameters: string[]): Promise<T[]>;
-}
+type Status = "Planned" | "Ready" | "Done" | "Incomplete";
 
 export interface SessionSet {
   id: string;
@@ -55,12 +52,12 @@ type ActivityRow = Omit<
 type SetRow = SessionSet & { activityId: string };
 
 /** Call in one read transaction so all three queries see the same snapshot. */
-export async function getSessionDetail(
-  reader: SessionReader,
+export function getSessionDetail(
+  reader: Db,
   programId: string,
   sessionId: string,
-): Promise<SessionDetail | null> {
-  const session = await reader.getFirstAsync<SessionRow>(
+): SessionDetail | null {
+  const session = reader.getFirstSync<SessionRow>(
     `SELECT id, program_id AS programId, name, lineage_id AS lineageId, deload,
        status, start_ms AS startMs, end_ms AS endMs,
        last_activity_at_ms AS lastActivityAtMs, revision
@@ -69,7 +66,7 @@ export async function getSessionDetail(
     sessionId,
   );
   if (!session) return null;
-  const activityRows = await reader.getAllAsync<ActivityRow>(
+  const activityRows = reader.getAllSync<ActivityRow>(
     `SELECT a.id, a.exercise_id AS exerciseId, e.name AS exerciseName,
        e.deleted AS exerciseDeleted, a.reps, a.load_type AS loadType,
        a.load_value AS loadValue, a.rest_minutes AS restMinutes
@@ -78,7 +75,7 @@ export async function getSessionDetail(
     programId,
     sessionId,
   );
-  const setRows = await reader.getAllAsync<SetRow>(
+  const setRows = reader.getAllSync<SetRow>(
     `SELECT activity_id AS activityId, id, kind, position, status, feedback,
        actual_reps AS actualReps, weight_value AS weightValue,
        weight_unit AS weightUnit, start_ms AS startMs, end_ms AS endMs

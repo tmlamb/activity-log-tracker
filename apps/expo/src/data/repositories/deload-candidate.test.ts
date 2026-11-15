@@ -1,18 +1,11 @@
-import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
-import {
-  buildApplicationMemory,
-  getMemoryDeloadFacts,
-  readApplicationMemoryFacts,
-} from "../application-memory";
-import { SCHEMA_V1, SCHEMA_V2 } from "../database/schema";
+import { createTestDb } from "../database/test-db";
 import { calculateDeloadCandidate } from "../domain/deload-candidate";
 import { readDeloadCandidateFacts } from "./deload-candidate";
 
 function setup() {
-  const db = new DatabaseSync(":memory:");
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA_V1} ${SCHEMA_V2}
+  return createTestDb(`
     INSERT INTO programs VALUES ('p','P',0), ('other','Other',1);
     INSERT INTO session_lineages VALUES ('p','l'), ('other','l');
     INSERT INTO sessions(program_id,id,lineage_id,name,position,status,deload,start_ms)
@@ -24,74 +17,54 @@ function setup() {
     INSERT INTO workout_sets(program_id,session_id,activity_id,id,kind,position,status,feedback,actual_reps,weight_value,weight_unit)
       VALUES ('p','old','a','m','Main',0,'Done','Neutral',10,100,'lbs'), ('p','deload','a','m','Main',0,'Done','Neutral',10,20,'lbs'),
              ('p','current','a','m','Main',0,'Done','Neutral',10,50,'lbs'), ('other','old','a','m','Main',0,'Done','Neutral',10,1,'lbs');`);
-  const reader = {
-    getFirstAsync: <T>(sql: string, ...params: string[]) =>
-      Promise.resolve(
-        (db.prepare(sql).get(...params) as T | undefined) ?? null,
-      ),
-    getAllAsync: <T>(sql: string, ...params: string[]) =>
-      Promise.resolve(db.prepare(sql).all(...params) as T[]),
-  };
-  return { db, reader };
 }
 
 describe("deload candidate", () => {
-  it("uses the previous completed non-deload lineage session and live exercise data", async () => {
-    const { db, reader } = setup();
+  it("uses the previous completed non-deload lineage session and live exercise data", () => {
+    const db = setup();
     try {
-      const facts = await readDeloadCandidateFacts(reader, "p", "current");
+      const facts = readDeloadCandidateFacts(db, "p", "current");
       if (!facts) throw new Error("Missing facts");
-      const memory = buildApplicationMemory(
-        await readApplicationMemoryFacts(reader),
-        1,
-      );
-      const memoryFacts = getMemoryDeloadFacts(memory, "p", "current");
-      if (!memoryFacts) throw new Error("Missing memory facts");
-      expect(calculateDeloadCandidate(memoryFacts)).toEqual(
-        calculateDeloadCandidate(facts),
-      );
       expect(facts.previous?.id).toBe("old");
       expect(calculateDeloadCandidate(facts)).toEqual({
         candidate: true,
         partial: false,
       });
-      db.exec(
+      db.raw.exec(
         "UPDATE workout_sets SET weight_value = 90 WHERE program_id = 'p' AND session_id = 'current'",
       );
-      const changed = await readDeloadCandidateFacts(reader, "p", "current");
+      const changed = readDeloadCandidateFacts(db, "p", "current");
       if (!changed) throw new Error("Missing facts");
       expect(calculateDeloadCandidate(changed)).toEqual({
         candidate: false,
         partial: false,
       });
-      expect(
-        await readDeloadCandidateFacts(reader, "missing", "current"),
-      ).toBeNull();
+      expect(readDeloadCandidateFacts(db, "missing", "current")).toBeNull();
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 
-  it("marks unavailable measurements as unknown rather than inventing a candidate", async () => {
-    const { db, reader } = setup();
+  it("marks unavailable measurements as unknown rather than inventing a candidate", () => {
+    const db = setup();
     try {
-      db.exec(
+      db.raw.exec(
         "UPDATE workout_sets SET weight_value = NULL, weight_unit = NULL WHERE program_id = 'p' AND session_id = 'current'",
       );
-      const facts = await readDeloadCandidateFacts(reader, "p", "current");
+      const facts = readDeloadCandidateFacts(db, "p", "current");
       if (!facts) throw new Error("Missing facts");
       expect(calculateDeloadCandidate(facts)).toEqual({
         candidate: null,
         partial: true,
       });
-      const first = await readDeloadCandidateFacts(reader, "p", "old");
+      const first = readDeloadCandidateFacts(db, "p", "old");
       if (!first) throw new Error("Missing facts");
       expect(calculateDeloadCandidate(first)).toEqual({
         candidate: false,
         partial: false,
       });
     } finally {
-      db.close();
+      db.raw.close();
     }
   });
 });

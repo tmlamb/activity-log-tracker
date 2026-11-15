@@ -2,14 +2,11 @@ import type { PropsWithChildren } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
 import ProgramFormScreen from "~/app/(public)/(app)/program/form/index";
-import { workoutKeys } from "~/data/cache/keys";
-import { createWorkoutQueryClient } from "~/data/cache/query-client";
-import { ApplicationDataProvider } from "~/data/react/application-data";
 
 const environment = vi.hoisted(() => ({
-  programId: "p",
+  programId: undefined as string | undefined,
+  program: null as { id: string; name: string } | null,
 }));
 vi.mock("react-native-get-random-values", () => ({}));
 vi.mock("react-native", () => ({
@@ -17,15 +14,34 @@ vi.mock("react-native", () => ({
   ScrollView: ({ children }: PropsWithChildren) => <div>{children}</div>,
   View: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
-vi.mock("expo-router/react-navigation", () => ({ useIsFocused: () => true }));
 vi.mock("expo-router", () => ({
   Redirect: () => <div>Redirect</div>,
   Stack: { Screen: () => null },
   useLocalSearchParams: () => ({ programId: environment.programId }),
   useRouter: () => ({ back: vi.fn() }),
 }));
-vi.mock("~/hooks/use-unsaved-changes-warning", () => ({
-  default: () => (navigate: () => void) => navigate(),
+vi.mock("~/hooks/use-unsaved-changes-warning", async () => {
+  const { useRef } = await import("react");
+  return {
+    default: function useUnsavedChangesWarning() {
+      const left = useRef(false);
+      return {
+        leaveWithoutWarning: (navigate: () => void) => {
+          left.current = true;
+          navigate();
+        },
+        hasLeft: () => left.current,
+      };
+    },
+  };
+});
+vi.mock("~/data/queries", () => ({
+  useProgramHeader: () => environment.program,
+}));
+vi.mock("~/data/actions", () => ({
+  createProgram: vi.fn(),
+  renameProgram: vi.fn(),
+  deleteProgram: vi.fn(),
 }));
 vi.mock("./ConfirmButton", () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,
@@ -37,57 +53,29 @@ vi.mock("./MultilineTextInputThemed", () => ({
 vi.mock("./Typography", () => ({
   HelperText: ({ children }: PropsWithChildren) => <p>{children}</p>,
 }));
-vi.mock("./CardRow", () => ({
-  PrimaryCardAction: ({ label }: { label: string }) => <div>{label}</div>,
-}));
-
-function setup() {
-  const cache = createWorkoutQueryClient();
-  const snapshot = {
-    generation: 2,
-    service: {
-      programHeader: vi.fn(),
-      createProgram: vi.fn(),
-      renameProgram: vi.fn(),
-      deleteProgram: vi.fn(),
-    },
-  };
-  const runtime = {
-    cache,
-    getSnapshot: () => snapshot,
-    subscribe: () => () => undefined,
-  } as unknown as ApplicationDataRuntime;
-  return { cache, runtime };
-}
 
 describe("program editor initialization", () => {
-  it("waits for an edit seed rather than mounting a blank draft", () => {
+  it("redirects when the edited program does not exist", () => {
     environment.programId = "p";
-    const { cache, runtime } = setup();
-    const output = renderToStaticMarkup(
-      <ApplicationDataProvider runtime={runtime}>
-        <ProgramFormScreen />
-      </ApplicationDataProvider>,
-    );
-    expect(output).toContain("Loading workout data");
+    environment.program = null;
+    const output = renderToStaticMarkup(<ProgramFormScreen />);
+    expect(output).toContain("Redirect");
     expect(output).not.toContain("<input");
-    cache.clear();
   });
 
-  it("initializes the edit form from the resolved program header", () => {
+  it("initializes the edit form from the program header", () => {
     environment.programId = "p";
-    const { cache, runtime } = setup();
-    cache.setQueryData(workoutKeys.programHeader(2, "p"), {
-      id: "p",
-      name: "Existing program",
-    });
-    const output = renderToStaticMarkup(
-      <ApplicationDataProvider runtime={runtime}>
-        <ProgramFormScreen />
-      </ApplicationDataProvider>,
-    );
+    environment.program = { id: "p", name: "Existing program" };
+    const output = renderToStaticMarkup(<ProgramFormScreen />);
     expect(output).toContain('value="Existing program"');
     expect(output).toContain("Delete This Program");
-    cache.clear();
+  });
+
+  it("starts a blank form when creating a program", () => {
+    environment.programId = undefined;
+    environment.program = null;
+    const output = renderToStaticMarkup(<ProgramFormScreen />);
+    expect(output).toContain('value=""');
+    expect(output).not.toContain("Delete This Program");
   });
 });

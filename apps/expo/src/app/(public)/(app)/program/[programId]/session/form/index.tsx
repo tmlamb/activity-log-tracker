@@ -1,6 +1,6 @@
 import "react-native-get-random-values";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
@@ -14,11 +14,6 @@ import { useIsFocused } from "expo-router/react-navigation";
 import { AntDesign, Entypo, Feather } from "@expo/vector-icons";
 import { v4 as uuidv4 } from "uuid";
 
-import type { ApplicationDataRuntime } from "~/data/react/application-data";
-import type {
-  SelectionKind,
-  SelectionTicket,
-} from "~/data/react/selection-handoff";
 import type {
   SessionDraft,
   TemplateSource,
@@ -27,6 +22,7 @@ import type {
   SessionEditorExercise,
   SessionEditorSeed,
 } from "~/data/repositories/session-editor";
+import type { SelectionKind, SelectionTicket } from "~/data/selection-handoff";
 import Card from "~/components/Card";
 import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
@@ -35,61 +31,47 @@ import { Text } from "~/components/font-scale-text";
 import { HeaderTextAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PressableThemed from "~/components/PressableThemed";
-import { QueryStatus } from "~/components/query-status";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import { AnimatedViewStyled } from "~/components/Styled";
 import SwitchThemed from "~/components/SwitchThemed";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText } from "~/components/Typography";
 import {
-  getMemoryExercise,
-  getMemoryPlanningWeightHints,
-  getMemorySessionEditorSeed,
-  resolveMemoryTemplateChoice,
-} from "~/data/application-memory";
+  createSession,
+  deleteSession,
+  resetSession,
+  saveAndCompleteSession,
+  saveSession,
+} from "~/data/actions";
 import {
   draftFromSession,
   newDraftActivity,
   newDraftSet,
   shiftDraftStart,
 } from "~/data/domain/session-editor-draft";
-import {
-  useApplicationDataRuntime,
-  useApplicationDataSnapshot,
-} from "~/data/react/application-data";
-import { useProgramSummaries } from "~/data/react/program-queries";
-import { useSelectionHandoff } from "~/data/react/selection-handoff";
-import { useSessionEditorSeed } from "~/data/react/session-queries";
+import { useProgramSummaries, useSessionEditorSeed } from "~/data/queries";
+import { getSavedExercise } from "~/data/repositories/exercises";
+import { getPlanningWeightHints } from "~/data/repositories/planning-weights";
+import { getSessionEditorSeed } from "~/data/repositories/session-editor";
 import { createTemplateDraft } from "~/data/repositories/template-draft";
+import { resolveTemplateChoice } from "~/data/repositories/templates";
+import { useSelectionHandoff } from "~/data/selection-handoff";
+import { read, useGeneration } from "~/data/store";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 
 export default function SessionFormScreen() {
-  const runtime = useApplicationDataRuntime();
   const { programId, sessionId } = useLocalSearchParams<{
     programId: string;
     sessionId?: string;
   }>();
-  const snapshot = useApplicationDataSnapshot(runtime);
-  const query = useSessionEditorSeed(runtime, programId, sessionId ?? null);
-  const programs = useProgramSummaries(runtime);
-  if (query.data === undefined || programs.data === undefined)
-    return (
-      <QueryStatus
-        error={query.isError || programs.isError}
-        onRetry={() => {
-          void query.refetch();
-          void programs.refetch();
-        }}
-      />
-    );
-  const program = programs.data.find((item) => item.id === programId);
-  if (query.data === null || !program)
-    return <Redirect href="/(public)/(app)" />;
+  const seed = useSessionEditorSeed(programId, sessionId ?? null);
+  const programs = useProgramSummaries();
+  const program = programs.find((item) => item.id === programId);
+  if (!seed || !program) return <Redirect href="/(public)/(app)" />;
   return (
     <SessionEditor
-      key={`${snapshot.generation}:${programId}:${sessionId ?? "new"}`}
-      runtime={runtime}
-      seed={query.data}
+      key={`${programId}:${sessionId ?? "new"}`}
+      seed={seed}
       sessionCount={program.sessionCount}
     />
   );
@@ -139,11 +121,9 @@ function NumberDraftInput({
 }
 
 function SessionEditor({
-  runtime,
   seed,
   sessionCount,
 }: {
-  runtime: ApplicationDataRuntime;
   seed: SessionEditorSeed;
   sessionCount: number;
 }) {
@@ -167,26 +147,19 @@ function SessionEditor({
   const templateRef = useRef<TemplateSource | null>(null);
   const [renameLineage, setRenameLineage] = useState(true);
   const [showValidation, setShowValidation] = useState(false);
-  const [pending, setPending] = useState(false);
-  const pendingRef = useRef(false);
-  const hintTasks = useRef(new Set<Promise<void>>());
-  const mounted = useRef(false);
   const activeTicket = useRef<{
     ticket: SelectionTicket;
     kind: SelectionKind;
   } | null>(null);
-  const selectionVersion = useRef(0);
   const sawBlur = useRef(false);
   const entries = useSelectionHandoff((state) => state.entries);
-  const generation = initial.generation;
+  const generation = useGeneration();
   const session = initial.session;
   const terminal =
     session?.status === "Done" || session?.status === "Incomplete";
   const dirty =
     JSON.stringify(draft) !== JSON.stringify(initialDraft) || template !== null;
-  const leaveWithoutWarning = useUnsavedChangesWarning(dirty);
-  const current = () =>
-    mounted.current && runtime.getSnapshot().generation === generation;
+  const { leaveWithoutWarning, hasLeft } = useUnsavedChangesWarning(dirty);
   const updateDraft = (next: SessionDraft) => {
     draftRef.current = next;
     setDraft(next);
@@ -206,17 +179,12 @@ function SessionEditor({
     });
   };
   useEffect(() => {
-    const version = selectionVersion;
-    mounted.current = true;
     return () => {
-      mounted.current = false;
-      version.current++;
       useSelectionHandoff.getState().clearOwner(generation, ownerId);
     };
   }, [generation, ownerId]);
 
   const openSelection = (kind: SelectionKind, activityId?: string) => {
-    if (pendingRef.current || !current()) return;
     if (activeTicket.current)
       useSelectionHandoff.getState().cancel(activeTicket.current.ticket);
     const ticket: SelectionTicket = {
@@ -225,7 +193,6 @@ function SessionEditor({
       requestId: uuidv4(),
       ...(activityId ? { activityId } : {}),
     };
-    selectionVersion.current++;
     useSelectionHandoff.getState().begin(ticket, kind);
     activeTicket.current = { ticket, kind };
     const common = `requestId=${encodeURIComponent(ticket.requestId)}&ownerId=${encodeURIComponent(ownerId)}&generation=${generation}`;
@@ -246,7 +213,8 @@ function SessionEditor({
       );
   };
 
-  useEffect(() => {
+  // Apply a selection made on another screen when this one regains focus.
+  const applySelection = useEffectEvent(() => {
     if (!focused) {
       sawBlur.current = true;
       return;
@@ -264,8 +232,7 @@ function SessionEditor({
       .getState()
       .consume(active.ticket, active.kind);
     activeTicket.current = null;
-    const version = selectionVersion.current;
-    if (!result || !current()) return;
+    if (!result) return;
     if (result.kind === "load" && active.ticket.activityId) {
       updateActivity(active.ticket.activityId, (activity) => ({
         ...activity,
@@ -288,81 +255,55 @@ function SessionEditor({
       }));
     } else if (result.kind === "exercise" && active.ticket.activityId) {
       const activityId = active.ticket.activityId;
-      const currentSnapshot = runtime.getSnapshot();
-      void (
-        currentSnapshot.memory
-          ? Promise.resolve(
-              getMemoryExercise(currentSnapshot.memory, result.exerciseId),
-            )
-          : currentSnapshot.service.exercise(result.exerciseId)
-      )
-        .then((exercise) => {
-          if (
-            !current() ||
-            version !== selectionVersion.current ||
-            !exercise ||
-            exercise.deleted
-          )
-            return;
-          setExercises((previous) => ({
-            ...previous,
-            [exercise.id]: {
-              id: exercise.id,
-              name: exercise.name,
-              deleted: exercise.deleted,
-              loadKind: exercise.loadKind,
-              oneRepMax: exercise.oneRepMax,
-            },
-          }));
-          updateActivity(activityId, (activity) => ({
-            ...activity,
-            exerciseId: exercise.id,
-            loadType:
-              exercise.oneRepMax && exercise.oneRepMax.value > 0
-                ? "PERCENT"
-                : "RPE",
-            loadValue:
-              exercise.oneRepMax && exercise.oneRepMax.value > 0 ? 0.75 : 8,
-            warmupSets: activity.warmupSets.map((set) => ({
-              ...set,
-              weightValue: null,
-              weightUnit: null,
-              feedback: "Neutral",
-            })),
-            mainSets: activity.mainSets.map((set) => ({
-              ...set,
-              weightValue: null,
-              weightUnit: null,
-              feedback: "Neutral",
-            })),
-          }));
-        })
-        .catch(() => {
-          if (current())
-            Alert.alert(
-              "Selection Failed",
-              "The exercise could not be loaded.",
-            );
-        });
+      let exercise;
+      try {
+        exercise = read((db) => getSavedExercise(db, result.exerciseId));
+      } catch {
+        Alert.alert("Selection Failed", "The exercise could not be loaded.");
+        return;
+      }
+      if (!exercise || exercise.deleted) return;
+      setExercises((previous) => ({
+        ...previous,
+        [exercise.id]: {
+          id: exercise.id,
+          name: exercise.name,
+          deleted: exercise.deleted,
+          loadKind: exercise.loadKind,
+          oneRepMax: exercise.oneRepMax,
+        },
+      }));
+      updateActivity(activityId, (activity) => ({
+        ...activity,
+        exerciseId: exercise.id,
+        loadType:
+          exercise.oneRepMax && exercise.oneRepMax.value > 0
+            ? "PERCENT"
+            : "RPE",
+        loadValue:
+          exercise.oneRepMax && exercise.oneRepMax.value > 0 ? 0.75 : 8,
+        warmupSets: activity.warmupSets.map((set) => ({
+          ...set,
+          weightValue: null,
+          weightUnit: null,
+          feedback: "Neutral",
+        })),
+        mainSets: activity.mainSets.map((set) => ({
+          ...set,
+          weightValue: null,
+          weightUnit: null,
+          feedback: "Neutral",
+        })),
+      }));
     } else if (
       result.kind === "template" &&
       result.programId === initial.program.id &&
       !session
     ) {
-      void (async () => {
-        const currentSnapshot = runtime.getSnapshot();
-        const service = currentSnapshot.service;
-        const resolved = currentSnapshot.memory
-          ? resolveMemoryTemplateChoice(
-              currentSnapshot.memory,
-              result.programId,
-              result.sessionId,
-            )
-          : await service.resolveTemplateChoice(
-              result.programId,
-              result.sessionId,
-            );
-        if (!current() || version !== selectionVersion.current) return;
+      try {
+        const resolved = read((db) =>
+          resolveTemplateChoice(db, result.programId, result.sessionId),
+        );
         if (!resolved)
           throw new Error("The selected template is no longer available.");
         if (resolved.kind === "planned") {
@@ -373,18 +314,9 @@ function SessionEditor({
           );
           return;
         }
-        const latestSnapshot = runtime.getSnapshot();
-        const sourceSeed = latestSnapshot.memory
-          ? getMemorySessionEditorSeed(
-              latestSnapshot.memory,
-              result.programId,
-              resolved.sessionId,
-            )
-          : await service.sessionEditorSeed(
-              result.programId,
-              resolved.sessionId,
-            );
-        if (!current() || version !== selectionVersion.current) return;
+        const sourceSeed = read((db) =>
+          getSessionEditorSeed(db, result.programId, resolved.sessionId),
+        );
         if (!sourceSeed?.session)
           throw new Error("The selected template is no longer available.");
         const source = sourceSeed.session;
@@ -402,17 +334,17 @@ function SessionEditor({
           ),
         );
         updateDraft(createTemplateDraft(source, uuidv4));
-      })().catch((error: unknown) => {
-        if (current())
-          Alert.alert(
-            "Template Failed",
-            error instanceof Error
-              ? error.message
-              : "The template could not be loaded.",
-          );
-      });
+      } catch (error) {
+        Alert.alert(
+          "Template Failed",
+          error instanceof Error
+            ? error.message
+            : "The template could not be loaded.",
+        );
+      }
     }
-  }, [focused, entries]); // eslint-disable-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => applySelection(), [focused, entries]);
 
   const changeSetCount = (
     activityId: string,
@@ -459,73 +391,38 @@ function SessionEditor({
             sessionId: templateRef.current.sessionId,
           }
         : null;
-    const signature = JSON.stringify(
-      previous.activities.map(({ id, exerciseId, loadType }) => [
-        id,
-        exerciseId,
-        loadType,
-      ]),
-    );
-    const snapshot = runtime.getSnapshot();
-    const memory = snapshot.memory;
-    const task = (
-      memory
-        ? Promise.resolve().then(() =>
-            getMemoryPlanningWeightHints(
-              memory,
-              initial.program.id,
-              source,
-              previous.activities,
-              kind,
-            ),
-          )
-        : snapshot.service.planningWeightHints(
-            initial.program.id,
-            source,
-            previous.activities,
-            kind,
-          )
-    ).then((hints) => {
-      if (
-        !current() ||
-        JSON.stringify(
-          draftRef.current.activities.map(({ id, exerciseId, loadType }) => [
-            id,
-            exerciseId,
-            loadType,
-          ]),
-        ) !== signature
-      )
-        return;
-      const weight = hints.find((hint) => hint.activityIndex === index)?.weight;
-      if (!weight) return;
-      updateActivity(activityId, (item) => ({
-        ...item,
-        [field]: item[field].map((set) =>
-          added.has(set.id) && set.weightValue === null
-            ? { ...set, weightValue: weight.value, weightUnit: weight.unit }
-            : set,
+    let hints;
+    try {
+      hints = read((db) =>
+        getPlanningWeightHints(
+          db,
+          initial.program.id,
+          source,
+          previous.activities,
+          kind,
         ),
-      }));
-    });
-    hintTasks.current.add(task);
-    void task.then(
-      () => {
-        hintTasks.current.delete(task);
-      },
-      () => {
-        hintTasks.current.delete(task);
-        if (current() && !pendingRef.current)
-          Alert.alert(
-            "Weight Hint Unavailable",
-            "The session draft was kept. You can enter weights while recording sets.",
-          );
-      },
-    );
+      );
+    } catch {
+      Alert.alert(
+        "Weight Hint Unavailable",
+        "The session draft was kept. You can enter weights while recording sets.",
+      );
+      return;
+    }
+    const weight = hints.find((hint) => hint.activityIndex === index)?.weight;
+    if (!weight) return;
+    updateActivity(activityId, (item) => ({
+      ...item,
+      [field]: item[field].map((set) =>
+        added.has(set.id) && set.weightValue === null
+          ? { ...set, weightValue: weight.value, weightUnit: weight.unit }
+          : set,
+      ),
+    }));
   };
 
-  const save = async (action: "save" | "complete" | "delete" | "reset") => {
-    if (pendingRef.current || !current()) return;
+  const save = (action: "save" | "complete" | "delete" | "reset") => {
+    if (hasLeft()) return;
     const value = draftRef.current;
     if (
       (action === "save" || action === "complete") &&
@@ -543,72 +440,53 @@ function SessionEditor({
       setShowValidation(true);
       return;
     }
-    pendingRef.current = true;
-    setPending(true);
     try {
-      if (action === "save" || action === "complete")
-        await Promise.all([...hintTasks.current]);
-      if (!current()) return;
-      const submitted = draftRef.current;
-      const service = runtime.getSnapshot().service;
       if (action === "delete" && session)
-        await service.deleteSession(
-          initial.program.id,
-          session.id,
-          session.revision,
-        );
+        deleteSession(initial.program.id, session.id, session.revision);
       else if (action === "reset" && session)
-        await service.resetSession(
-          initial.program.id,
-          session.id,
-          session.revision,
-        );
+        resetSession(initial.program.id, session.id, session.revision);
       else if (action === "complete" && session)
-        await service.saveAndCompleteSession(
+        saveAndCompleteSession(
           initial.program.id,
           session.id,
           session.revision,
-          submitted,
+          value,
         );
       else if (action === "save" && session)
-        await service.saveSession(
+        saveSession(
           initial.program.id,
           session.id,
           session.revision,
-          submitted,
-          renameLineage && submitted.name !== session.name,
+          value,
+          renameLineage && value.name !== session.name,
         );
       else if (action === "save")
-        await service.createSession(
+        createSession(
           initial.program.id,
           newSessionId,
-          submitted,
+          value,
           templateRef.current,
         );
       else throw new Error("The session cannot be updated.");
-      if (current())
-        leaveWithoutWarning(() => {
-          if (action === "complete")
-            router.dismissTo(
-              `/(public)/(app)/program/${encodeURIComponent(initial.program.id)}`,
-            );
-          else if (action === "delete") {
-            router.back();
-            router.back();
-          } else router.back();
-        });
     } catch (error) {
-      if (current())
-        Alert.alert(
-          "Session Not Saved",
-          error instanceof Error
-            ? error.message
-            : "The session could not be saved. Your draft is still here.",
-        );
-    } finally {
-      pendingRef.current = false;
-      if (current()) setPending(false);
+      Alert.alert(
+        "Session Not Saved",
+        error instanceof Error
+          ? error.message
+          : "The session could not be saved. Your draft is still here.",
+      );
+      return;
     }
+    leaveWithoutWarning(() => {
+      if (action === "complete")
+        router.dismissTo(
+          `/(public)/(app)/program/${encodeURIComponent(initial.program.id)}`,
+        );
+      else if (action === "delete") {
+        router.back();
+        router.back();
+      } else router.back();
+    });
   };
 
   const chooseTemplate = () => {
@@ -631,7 +509,6 @@ function SessionEditor({
   };
   const chooseScratch = () => {
     const apply = () => {
-      selectionVersion.current++;
       templateRef.current = null;
       setTemplate(null);
       setFromType("Scratch");
@@ -681,8 +558,8 @@ function SessionEditor({
           headerRight: () => (
             <HeaderTextAction
               label="Save"
-              disabled={pending || (!session && sessionCount > 0 && !fromType)}
-              onPress={() => void save("save")}
+              disabled={!session && sessionCount > 0 && !fromType}
+              onPress={() => save("save")}
               accessibilityLabel="Save session and close form"
               weight="bold"
             />
@@ -690,7 +567,6 @@ function SessionEditor({
           headerLeft: () => (
             <HeaderTextAction
               label="Cancel"
-              disabled={pending}
               onPress={() => router.back()}
               color="foreground"
             />
@@ -698,7 +574,6 @@ function SessionEditor({
         }}
       />
       <KeyboardAwareScrollView
-        pointerEvents={pending ? "none" : "auto"}
         bottomOffset={40}
         className="flex-1"
         contentContainerClassName="pt-5 gap-10 pb-18"
@@ -1183,7 +1058,7 @@ function SessionEditor({
                   {
                     text: "Complete Session",
                     style: missing ? "destructive" : "default",
-                    onPress: () => void save("complete"),
+                    onPress: () => save("complete"),
                   },
                 ],
               );
@@ -1197,7 +1072,7 @@ function SessionEditor({
             confirmText="Delete Session"
             accessibilityLabel={`Delete Workout Session with name ${session.name}`}
             cardVariants={["square"]}
-            onConfirm={() => void save("delete")}
+            onConfirm={() => save("delete")}
           >
             Delete This Session
           </ConfirmButton>
@@ -1210,7 +1085,7 @@ function SessionEditor({
               confirmText="Reset Session"
               accessibilityLabel={`Reset Workout Session with name ${session.name}`}
               cardVariants={["square"]}
-              onConfirm={() => void save("reset")}
+              onConfirm={() => save("reset")}
             >
               Reset This Session
             </ConfirmButton>
