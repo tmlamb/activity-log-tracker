@@ -15,7 +15,7 @@ import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 
 import { PrimaryCardAction } from "~/components/CardRow";
-import { HeaderTextAction } from "~/components/HeaderAction";
+import { useHeaderButtonProps } from "~/components/header-toolbar";
 import InventoryCounterInputRow from "~/components/InventoryCounterInputRow";
 import { HelperText, SectionHeading } from "~/components/Typography";
 import { replaceMuscles } from "~/data/actions";
@@ -29,6 +29,7 @@ interface FormData {
 export default function ExerciseMusclesScreen() {
   const muscleGroups = useMuscleCatalog();
   const router = useRouter();
+  const headerButton = useHeaderButtonProps();
   const base = useRef([...muscleGroups]);
   const {
     control,
@@ -76,26 +77,24 @@ export default function ExerciseMusclesScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerLeft: () => (
-            <HeaderTextAction
-              label="Cancel"
-              onPress={() => router.back()}
-              accessibilityLabel="Go back without saving muscle changes"
-              color="foreground"
-            />
-          ),
-          headerRight: () => (
-            <HeaderTextAction
-              label="Save"
-              onPress={handleSubmit(onSubmit)}
-              accessibilityLabel="Save muscle groups"
-              weight="bold"
-            />
-          ),
-        }}
-      />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button
+          {...headerButton("foreground")}
+          accessibilityLabel="Go back without saving muscle changes"
+          onPress={() => router.back()}
+        >
+          Cancel
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          {...headerButton("primary", "bold")}
+          accessibilityLabel="Save muscle groups"
+          onPress={() => void handleSubmit(onSubmit)()}
+        >
+          Save
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       <KeyboardAwareScrollView
         bottomOffset={40}
         className="flex-1"

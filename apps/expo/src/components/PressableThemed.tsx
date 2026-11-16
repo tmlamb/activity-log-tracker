@@ -14,24 +14,22 @@ type PressableThemedProps = {
 } & PressableProps;
 
 export default function PressableThemed({
-  children,
   className,
   variant = "default",
   animated = true,
-  onPress,
   disabled,
-  accessibilityHint,
-  accessibilityLabel,
   accessibilityRole,
   accessibilityState,
-  accessibilityValue,
-  ref,
-}: PressableThemedProps) {
+  // `<Link asChild>` injects web link semantics. `role` would override the
+  // native button role below, so keep announcing these as buttons.
+  role: _role,
+  href: _href,
+  ...pressableProps
+}: PressableThemedProps & { href?: string }) {
   return (
     <Pressable
-      ref={ref}
+      {...pressableProps}
       disabled={disabled}
-      onPress={onPress}
       className={twMerge(
         animated
           ? "opacity-100 transition-opacity active:opacity-60"
@@ -40,14 +38,9 @@ export default function PressableThemed({
         className,
       )}
       accessibilityRole={accessibilityRole ?? "button"}
-      accessibilityHint={accessibilityHint}
-      accessibilityLabel={accessibilityLabel}
       accessibilityState={
         accessibilityState ?? (disabled ? { disabled: true } : undefined)
       }
-      accessibilityValue={accessibilityValue}
-    >
-      {children}
-    </Pressable>
+    />
   );
 }

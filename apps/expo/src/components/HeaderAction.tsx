@@ -1,5 +1,4 @@
 import type { PressableProps } from "react-native";
-import { AntDesign } from "@expo/vector-icons";
 import { twMerge } from "tailwind-merge";
 
 import { Text } from "./font-scale-text";
@@ -23,7 +22,13 @@ export function HeaderTextAction({
 }: HeaderTextActionProps) {
   return (
     <PressableThemed
-      className={twMerge("px-3.5", className)}
+      // Fill the native header item's height (like HeaderIconAction) so taps
+      // above or below the text still press the button. `min-h` lets large
+      // font scales grow it.
+      className={twMerge(
+        "min-h-10 flex-row items-center justify-center px-3.5",
+        className,
+      )}
       {...pressableProps}
     >
       <Text
@@ -61,17 +66,5 @@ export function HeaderIconAction({
     >
       {children}
     </PressableThemed>
-  );
-}
-
-export function HeaderPlusAction(
-  props: Omit<HeaderIconActionProps, "children">,
-) {
-  return (
-    <HeaderIconAction {...props}>
-      <Text maxFontSizeMultiplier={2.5} className="text-primary">
-        <AntDesign name="plus" size={26} />
-      </Text>
-    </HeaderIconAction>
   );
 }

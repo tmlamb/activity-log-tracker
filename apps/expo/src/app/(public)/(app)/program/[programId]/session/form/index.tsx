@@ -28,7 +28,7 @@ import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import DateTimeInputThemed from "~/components/DateTimeInputThemed";
 import { Text } from "~/components/font-scale-text";
-import { HeaderTextAction } from "~/components/HeaderAction";
+import { useHeaderButtonProps } from "~/components/header-toolbar";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PressableThemed from "~/components/PressableThemed";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
@@ -129,6 +129,7 @@ function SessionEditor({
 }) {
   const router = useRouter();
   const focused = useIsFocused();
+  const headerButton = useHeaderButtonProps();
   const [initial] = useState(() => seed);
   const [ownerId] = useState(() => uuidv4());
   const [newSessionId] = useState(() => uuidv4());
@@ -553,26 +554,26 @@ function SessionEditor({
   return (
     <>
       <Stack.Screen
-        options={{
-          title: session ? "Edit Session" : "Add Session",
-          headerRight: () => (
-            <HeaderTextAction
-              label="Save"
-              disabled={!session && sessionCount > 0 && !fromType}
-              onPress={() => save("save")}
-              accessibilityLabel="Save session and close form"
-              weight="bold"
-            />
-          ),
-          headerLeft: () => (
-            <HeaderTextAction
-              label="Cancel"
-              onPress={() => router.back()}
-              color="foreground"
-            />
-          ),
-        }}
+        options={{ title: session ? "Edit Session" : "Add Session" }}
       />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button
+          {...headerButton("foreground")}
+          onPress={() => router.back()}
+        >
+          Cancel
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          {...headerButton("primary", "bold")}
+          disabled={!session && sessionCount > 0 && !fromType}
+          accessibilityLabel="Save session and close form"
+          onPress={() => save("save")}
+        >
+          Save
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       <KeyboardAwareScrollView
         bottomOffset={40}
         className="flex-1"

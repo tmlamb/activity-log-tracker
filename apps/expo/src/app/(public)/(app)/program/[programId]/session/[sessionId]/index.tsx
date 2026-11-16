@@ -24,7 +24,7 @@ import {
 } from "~/components/CollapsibleSection";
 import ElapsedTime from "~/components/ElapsedTime";
 import { Text } from "~/components/font-scale-text";
-import { HeaderTextAction } from "~/components/HeaderAction";
+import { useHeaderButtonProps } from "~/components/header-toolbar";
 import PressableThemed from "~/components/PressableThemed";
 import SwitchThemed from "~/components/SwitchThemed";
 import { HelperText, ScreenHeading } from "~/components/Typography";
@@ -78,6 +78,7 @@ const SessionContent = memo(function SessionContent({
   candidate: ReturnType<typeof useSessionDeloadCandidate>;
 }) {
   const router = useRouter();
+  const headerButton = useHeaderButtonProps();
   const changeDeload = (value: boolean) => {
     const commit = () => {
       try {
@@ -136,19 +137,21 @@ const SessionContent = memo(function SessionContent({
       <Stack.Screen
         options={{
           title: session.deload ? "Deload Session" : "Workout Session",
-          headerRight: () => (
-            <Link
-              href={`/(public)/(app)/program/${encodeURIComponent(session.programId)}/session/form?sessionId=${encodeURIComponent(session.id)}`}
-              asChild
-            >
-              <HeaderTextAction
-                label="Edit"
-                accessibilityLabel="Edit workout session"
-              />
-            </Link>
-          ),
         }}
       />
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          {...headerButton()}
+          accessibilityLabel="Edit workout session"
+          onPress={() =>
+            router.push(
+              `/(public)/(app)/program/${encodeURIComponent(session.programId)}/session/form?sessionId=${encodeURIComponent(session.id)}`,
+            )
+          }
+        >
+          Edit
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       <View className="flex-1">
         <CollapsibleSectionList
           className="flex-1"

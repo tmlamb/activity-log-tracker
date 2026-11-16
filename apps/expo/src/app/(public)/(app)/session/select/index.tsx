@@ -4,7 +4,7 @@ import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import type { TemplateChoice } from "~/data/repositories/templates";
 import type { SelectionTicket } from "~/data/selection-handoff";
 import { SelectableCardRow } from "~/components/CardRow";
-import { HeaderTextAction } from "~/components/HeaderAction";
+import { useHeaderButtonProps } from "~/components/header-toolbar";
 import { LegendListStyled } from "~/components/Styled";
 import { HelperText } from "~/components/Typography";
 import { useTemplateChoices } from "~/data/queries";
@@ -50,6 +50,7 @@ function TemplatePicker({
   choices: TemplateChoice[];
 }) {
   const router = useRouter();
+  const headerButton = useHeaderButtonProps();
   const [selected, setSelected] = useState<string>();
   const done = () => {
     if (!selected) return;
@@ -65,24 +66,26 @@ function TemplatePicker({
       <Stack.Screen
         options={{
           title: "Select Template",
-          headerRight: () => (
-            <HeaderTextAction
-              label="Done"
-              onPress={done}
-              disabled={!selected}
-              accessibilityLabel="Use selected session as template"
-              weight="bold"
-            />
-          ),
-          headerLeft: () => (
-            <HeaderTextAction
-              label="Cancel"
-              onPress={() => router.back()}
-              color="foreground"
-            />
-          ),
         }}
       />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button
+          {...headerButton("foreground")}
+          onPress={() => router.back()}
+        >
+          Cancel
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          {...headerButton("primary", "bold")}
+          disabled={!selected}
+          accessibilityLabel="Use selected session as template"
+          onPress={done}
+        >
+          Done
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       <LegendListStyled
         className="flex-1"
         contentContainerClassName="px-5 pt-5 pb-18"

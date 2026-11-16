@@ -27,7 +27,10 @@ vi.mock("react-native", () => ({
   View: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
 vi.mock("expo-router", () => ({
-  Stack: { Screen: () => null },
+  Stack: {
+    Screen: () => null,
+    Toolbar: Object.assign(() => null, { Button: () => null }),
+  },
   useRouter: () => ({ back: env.back }),
 }));
 vi.mock("expo-updates", () => ({}));
@@ -45,7 +48,10 @@ vi.mock("~/components/CardRow", () => ({
   ),
 }));
 vi.mock("~/components/ConfirmButton", () => ({ default: () => null }));
-vi.mock("~/components/HeaderAction", () => ({ HeaderTextAction: () => null }));
+vi.mock("~/components/header-toolbar", () => ({
+  useHeaderButtonProps: () => () => ({}),
+  headerIcons: { insights: { uri: "icon" }, plus: { uri: "icon" } },
+}));
 vi.mock("~/components/Typography", () => ({ HelperText: () => null }));
 vi.mock("~/components/font-scale-text", () => ({
   Text: ({ children }: PropsWithChildren) => <span>{children}</span>,

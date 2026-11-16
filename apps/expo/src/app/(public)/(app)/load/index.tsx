@@ -7,7 +7,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import type { Exercise, Load } from "@activity-log/ui/utils";
 
 import { Text } from "~/components/font-scale-text";
-import { HeaderTextAction } from "~/components/HeaderAction";
+import { useHeaderButtonProps } from "~/components/header-toolbar";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import { AnimatedViewStyled } from "~/components/Styled";
 import TextInputThemed from "~/components/TextInputThemed";
@@ -101,6 +101,7 @@ function LoadEditor({
     loadValue?: string;
   }>();
   const router = useRouter();
+  const headerButton = useHeaderButtonProps();
   // Work from the exercise as it was when the screen opened.
   const [exercise] = useState(suppliedExercise);
   const [done] = useState(() => onDone);
@@ -157,25 +158,23 @@ function LoadEditor({
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <HeaderTextAction
-              label="Done"
-              onPress={handleSubmit(onSubmit)}
-              accessibilityLabel="Confirm load selection"
-              weight="bold"
-            />
-          ),
-          headerLeft: () => (
-            <HeaderTextAction
-              label="Cancel"
-              onPress={() => router.back()}
-              color="foreground"
-            />
-          ),
-        }}
-      />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button
+          {...headerButton("foreground")}
+          onPress={() => router.back()}
+        >
+          Cancel
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          {...headerButton("primary", "bold")}
+          accessibilityLabel="Confirm load selection"
+          onPress={() => void handleSubmit(onSubmit)()}
+        >
+          Done
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
 
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView

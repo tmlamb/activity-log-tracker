@@ -6,7 +6,7 @@ import { Controller, useForm } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
 
 import ConfirmButton from "~/components/ConfirmButton";
-import { HeaderTextAction } from "~/components/HeaderAction";
+import { useHeaderButtonProps } from "~/components/header-toolbar";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import { HelperText } from "~/components/Typography";
 import { createProgram, deleteProgram, renameProgram } from "~/data/actions";
@@ -35,6 +35,7 @@ function ProgramFormContent({
   initialName: string;
 }) {
   const router = useRouter();
+  const headerButton = useHeaderButtonProps();
   const {
     control,
     handleSubmit,
@@ -77,24 +78,26 @@ function ProgramFormContent({
       <Stack.Screen
         options={{
           headerTitle: programId ? "Edit Program" : "Add Program",
-          headerLeft: () => (
-            <HeaderTextAction
-              label="Cancel"
-              onPress={() => router.back()}
-              accessibilityLabel="Go Back Without Saving"
-              color="foreground"
-            />
-          ),
-          headerRight: () => (
-            <HeaderTextAction
-              label="Save"
-              onPress={() => void handleSubmit((data) => save(data.name))()}
-              accessibilityLabel="Save Workout Program"
-              weight="bold"
-            />
-          ),
         }}
       />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button
+          {...headerButton("foreground")}
+          accessibilityLabel="Go Back Without Saving"
+          onPress={() => router.back()}
+        >
+          Cancel
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          {...headerButton("primary", "bold")}
+          accessibilityLabel="Save Workout Program"
+          onPress={() => void handleSubmit((data) => save(data.name))()}
+        >
+          Save
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       <ScrollView
         className="flex-1"
         contentContainerClassName="pt-5 gap-10 pb-18"

@@ -1,27 +1,27 @@
 import { View } from "react-native";
-import { Link, Stack } from "expo-router";
+import { useNativeVariable } from "react-native-css";
+import { Link, Stack, useRouter } from "expo-router";
 
 import { NavigationCardRow } from "~/components/CardRow";
-import { HeaderPlusAction } from "~/components/HeaderAction";
+import { headerIcons } from "~/components/header-toolbar";
 import { LegendListStyled } from "~/components/Styled";
 import { useProgramSummaries } from "~/data/queries";
 
 export default function ProgramSettingsScreen() {
+  const router = useRouter();
+  const primaryColor = useNativeVariable("--primary") as string;
   const programs = useProgramSummaries();
   return (
     <View className="flex-1">
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <Link href="/(public)/(app)/program/form" asChild>
-              <HeaderPlusAction
-                disabled={programs.length > 100}
-                accessibilityLabel="Navigate to Create Workout Program Form"
-              />
-            </Link>
-          ),
-        }}
-      />
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={headerIcons.plus}
+          tintColor={primaryColor}
+          disabled={programs.length > 100}
+          accessibilityLabel="Navigate to Create Workout Program Form"
+          onPress={() => router.push("/(public)/(app)/program/form")}
+        />
+      </Stack.Toolbar>
       <LegendListStyled
         className="flex-1"
         contentContainerClassName="px-5 pt-5"

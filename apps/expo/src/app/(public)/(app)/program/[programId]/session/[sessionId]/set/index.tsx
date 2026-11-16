@@ -40,6 +40,7 @@ import { DetailCardRow } from "~/components/CardRow";
 import DumbbellChart from "~/components/DumbbellChart";
 import ElapsedTime from "~/components/ElapsedTime";
 import { Text } from "~/components/font-scale-text";
+import { headerIcons } from "~/components/header-toolbar";
 import { HeaderIconAction } from "~/components/HeaderAction";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PlateChart from "~/components/PlateChart";
@@ -322,20 +323,12 @@ function SetEditor({
       )}
       <Stack.Toolbar placement="right">
         {context.hasTemplateHistory && context.exercise && (
-          <Stack.Toolbar.View>
-            <HeaderIconAction
-              className="rounded-full"
-              accessibilityLabel={`View insights for ${context.exercise.name}`}
-              onPress={() => navigate("insights")}
-            >
-              <Text maxFontSizeMultiplier={2.5} className="text-primary">
-                <MaterialCommunityIcons
-                  name="chart-timeline-variant-shimmer"
-                  size={24}
-                />
-              </Text>
-            </HeaderIconAction>
-          </Stack.Toolbar.View>
+          <Stack.Toolbar.Button
+            icon={headerIcons.insights}
+            tintColor={primaryColor}
+            accessibilityLabel={`View insights for ${context.exercise.name}`}
+            onPress={() => navigate("insights")}
+          />
         )}
         {isKeyboardOverlayVisible &&
           (Platform.OS === "ios" ? (

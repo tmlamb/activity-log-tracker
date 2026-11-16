@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { View } from "react-native";
+import { useNativeVariable } from "react-native-css";
 import {
   Link,
   Redirect,
@@ -18,7 +19,7 @@ import {
   CollapsibleSectionList,
 } from "~/components/CollapsibleSection";
 import { Text } from "~/components/font-scale-text";
-import { HeaderIconAction } from "~/components/HeaderAction";
+import { headerIcons } from "~/components/header-toolbar";
 import PressableThemed from "~/components/PressableThemed";
 import {
   HelperText,
@@ -144,6 +145,7 @@ function ProgramContent({
   overview: ProgramOverview;
 }) {
   const router = useRouter();
+  const primaryColor = useNativeVariable("--primary") as string;
   const overrides = useRef(new Set<string>());
   const currentIndex = overview.weeks.findIndex(
     ({ week }) => week === overview.currentWeek,
@@ -166,28 +168,18 @@ function ProgramContent({
   );
   return (
     <View className="flex-1">
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <Link
-              href={`/(public)/(app)/program/${encodeURIComponent(program.id)}/insights`}
-              asChild
-            >
-              <HeaderIconAction
-                className="rounded-full"
-                accessibilityLabel={`View insights for ${program.name}`}
-              >
-                <Text maxFontSizeMultiplier={2.5} className="text-primary">
-                  <MaterialCommunityIcons
-                    name="chart-timeline-variant-shimmer"
-                    size={24}
-                  />
-                </Text>
-              </HeaderIconAction>
-            </Link>
-          ),
-        }}
-      />
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={headerIcons.insights}
+          tintColor={primaryColor}
+          accessibilityLabel={`View insights for ${program.name}`}
+          onPress={() =>
+            router.push(
+              `/(public)/(app)/program/${encodeURIComponent(program.id)}/insights`,
+            )
+          }
+        />
+      </Stack.Toolbar>
       <CollapsibleSectionList
         className="flex-1"
         contentContainerClassName="px-5 pt-5 pb-36"

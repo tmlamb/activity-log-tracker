@@ -6,7 +6,7 @@ import * as Updates from "expo-updates";
 import BusyOverlay, { afterNextPaint } from "~/components/BusyOverlay";
 import { PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
-import { HeaderTextAction } from "~/components/HeaderAction";
+import { useHeaderButtonProps } from "~/components/header-toolbar";
 import { HelperText } from "~/components/Typography";
 import {
   exportBackup,
@@ -22,6 +22,7 @@ import { version as appVersion } from "../../../../../package.json";
 
 export default function SupportScreen() {
   const router = useRouter();
+  const headerButton = useHeaderButtonProps();
   // Sharing and picking a file are still asynchronous.
   const [pending, setPending] = useState(false);
   // Shown while large backups are validated or restored synchronously.
@@ -115,19 +116,16 @@ export default function SupportScreen() {
         : "unavailable"));
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerLeft: () => (
-            <HeaderTextAction
-              label="Done"
-              disabled={pending || progress !== null}
-              onPress={() => router.back()}
-              accessibilityLabel="Close Support"
-              color="foreground"
-            />
-          ),
-        }}
-      />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button
+          {...headerButton("foreground")}
+          disabled={pending || progress !== null}
+          accessibilityLabel="Close Support"
+          onPress={() => router.back()}
+        >
+          Done
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       <ScrollView
         className="flex-1"
         contentContainerClassName="grow px-5 pt-5 gap-6 justify-between pb-18"

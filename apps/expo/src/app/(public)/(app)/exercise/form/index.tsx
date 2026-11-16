@@ -33,7 +33,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { PrimaryCardAction, SelectableCardRow } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
-import { HeaderTextAction } from "~/components/HeaderAction";
+import { useHeaderButtonProps } from "~/components/header-toolbar";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PressableThemed from "~/components/PressableThemed";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
@@ -181,6 +181,7 @@ function ExerciseEditor({
     unknownLoadKind?: string;
   }>();
   const router = useRouter();
+  const headerButton = useHeaderButtonProps();
   // The form works from the data it opened with; saving checks the captured
   // revision, so a change made elsewhere is reported rather than overwritten.
   const [exercise] = useState(suppliedExercise);
@@ -347,25 +348,27 @@ function ExerciseEditor({
       <Stack.Screen
         options={{
           title: exercise ? "Edit Exercise" : "Add Exercise",
-          headerRight: exercise?.deleted
-            ? undefined
-            : () => (
-                <HeaderTextAction
-                  label="Save"
-                  onPress={handleSubmit(onSubmit)}
-                  accessibilityLabel="Save exercise"
-                  weight="bold"
-                />
-              ),
-          headerLeft: () => (
-            <HeaderTextAction
-              label="Cancel"
-              onPress={() => router.back()}
-              color="foreground"
-            />
-          ),
         }}
       />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button
+          {...headerButton("foreground")}
+          onPress={() => router.back()}
+        >
+          Cancel
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
+      <Stack.Toolbar placement="right">
+        {!exercise?.deleted && (
+          <Stack.Toolbar.Button
+            {...headerButton("primary", "bold")}
+            accessibilityLabel="Save exercise"
+            onPress={() => void handleSubmit(onSubmit)()}
+          >
+            Save
+          </Stack.Toolbar.Button>
+        )}
+      </Stack.Toolbar>
       <KeyboardAwareScrollView
         bottomOffset={40}
         className="flex-1"

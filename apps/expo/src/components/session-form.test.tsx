@@ -40,15 +40,22 @@ vi.mock("expo-router", () => ({
     dismissTo: env.dismissTo,
   }),
   Stack: {
-    Screen: ({
-      options,
-    }: {
-      options: { headerRight?: () => ReactNode; headerLeft?: () => ReactNode };
-    }) => (
-      <>
-        {options.headerLeft?.()}
-        {options.headerRight?.()}
-      </>
+    Screen: () => null,
+    Toolbar: Object.assign(
+      ({ children }: { children?: ReactNode }) => <>{children}</>,
+      {
+        Button: ({
+          children,
+          onPress,
+        }: {
+          children?: ReactNode;
+          onPress?: () => void;
+        }) => (
+          <button data-label={children} onClick={onPress}>
+            {children}
+          </button>
+        ),
+      },
     ),
   },
 }));
@@ -138,18 +145,9 @@ vi.mock("./DateTimeInputThemed", () => ({ default: () => null }));
 vi.mock("./font-scale-text", () => ({
   Text: ({ children }: PropsWithChildren) => <span>{children}</span>,
 }));
-vi.mock("./HeaderAction", () => ({
-  HeaderTextAction: ({
-    label,
-    onPress,
-  }: {
-    label: string;
-    onPress: () => void;
-  }) => (
-    <button data-label={label} onClick={onPress}>
-      {label}
-    </button>
-  ),
+vi.mock("./header-toolbar", () => ({
+  useHeaderButtonProps: () => () => ({}),
+  headerIcons: { insights: { uri: "icon" } },
 }));
 vi.mock("./MultilineTextInputThemed", () => ({
   default: ({

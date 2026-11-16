@@ -11,7 +11,10 @@ vi.mock("react-native", () => ({
 vi.mock("expo-router", () => ({
   Link: ({ children }: PropsWithChildren) => <>{children}</>,
   Redirect: () => <div>Redirect</div>,
-  Stack: { Screen: () => null },
+  Stack: {
+    Screen: () => null,
+    Toolbar: Object.assign(() => null, { Button: () => null }),
+  },
   useLocalSearchParams: () => ({ programId: "p" }),
   useRouter: () => ({ push: vi.fn() }),
 }));
@@ -71,8 +74,10 @@ vi.mock("./CollapsibleSection", () => ({
 vi.mock("./font-scale-text", () => ({
   Text: ({ children }: PropsWithChildren) => <span>{children}</span>,
 }));
-vi.mock("./HeaderAction", () => ({
-  HeaderIconAction: ({ children }: PropsWithChildren) => <div>{children}</div>,
+vi.mock("react-native-css", () => ({ useNativeVariable: () => "#000" }));
+vi.mock("./header-toolbar", () => ({
+  useHeaderButtonProps: () => () => ({}),
+  headerIcons: { insights: { uri: "icon" } },
 }));
 vi.mock("./PressableThemed", () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,

@@ -50,7 +50,10 @@ vi.mock("expo-router/react-navigation", async () => {
 vi.mock("expo-router", () => ({
   Link: ({ children }: PropsWithChildren) => <>{children}</>,
   Redirect: () => <div>Redirect</div>,
-  Stack: { Screen: () => null },
+  Stack: {
+    Screen: () => null,
+    Toolbar: Object.assign(() => null, { Button: () => null }),
+  },
   useLocalSearchParams: () => ({ programId: "p", sessionId: "s" }),
   useRouter: () => ({ dismissTo: vi.fn() }),
 }));
@@ -135,7 +138,10 @@ vi.mock("./ElapsedTime", () => ({ default: () => null }));
 vi.mock("./font-scale-text", () => ({
   Text: ({ children }: PropsWithChildren) => <span>{children}</span>,
 }));
-vi.mock("./HeaderAction", () => ({ HeaderTextAction: () => null }));
+vi.mock("./header-toolbar", () => ({
+  useHeaderButtonProps: () => () => ({}),
+  headerIcons: { insights: { uri: "icon" } },
+}));
 vi.mock("./PressableThemed", () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));

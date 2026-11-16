@@ -15,7 +15,7 @@ import { normalizeExerciseName } from "@activity-log/ui/utils";
 import type { SelectionTicket } from "~/data/selection-handoff";
 import { SelectableCardRow } from "~/components/CardRow";
 import { Text } from "~/components/font-scale-text";
-import { HeaderTextAction } from "~/components/HeaderAction";
+import { useHeaderButtonProps } from "~/components/header-toolbar";
 import PressableThemed from "~/components/PressableThemed";
 import { LegendSectionListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
@@ -79,6 +79,7 @@ function ExercisePicker({
   currentExerciseId?: string;
 }) {
   const router = useRouter();
+  const headerButton = useHeaderButtonProps();
   const primaryColor = useNativeVariable("--primary") as string;
   const [selected, setSelected] = useState<{
     kind: "saved" | "preset";
@@ -168,24 +169,26 @@ function ExercisePicker({
       <Stack.Screen
         options={{
           title: "Select Exercise",
-          headerRight: () => (
-            <HeaderTextAction
-              label="Done"
-              onPress={done}
-              disabled={!selected}
-              accessibilityLabel="Confirm exercise selection"
-              weight="bold"
-            />
-          ),
-          headerLeft: () => (
-            <HeaderTextAction
-              label="Cancel"
-              onPress={() => router.back()}
-              color="foreground"
-            />
-          ),
         }}
       />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button
+          {...headerButton("foreground")}
+          onPress={() => router.back()}
+        >
+          Cancel
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          {...headerButton("primary", "bold")}
+          disabled={!selected}
+          accessibilityLabel="Confirm exercise selection"
+          onPress={done}
+        >
+          Done
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       <Stack.SearchBar
         placeholder="Search Exercises"
         onChangeText={(event) => setFilter(event.nativeEvent.text)}

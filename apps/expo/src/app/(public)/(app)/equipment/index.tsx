@@ -18,7 +18,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
-import { HeaderTextAction } from "~/components/HeaderAction";
+import { useHeaderButtonProps } from "~/components/header-toolbar";
 import InventoryCounterInputRow from "~/components/InventoryCounterInputRow";
 import { HelperText, SectionHeading } from "~/components/Typography";
 import { replaceEquipmentInventory } from "~/data/actions";
@@ -103,6 +103,7 @@ const validateUniqueWeight = <T extends { value: number | string }>(
 export default function EquipmentScreen() {
   const equipment = useEquipment();
   const router = useRouter();
+  const headerButton = useHeaderButtonProps();
   const base = useRef<Equipment>({
     barbells: equipment.barbells.map((item) => ({ ...item })),
     plates: equipment.plates.map((item) => ({ ...item })),
@@ -222,26 +223,24 @@ export default function EquipmentScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerLeft: () => (
-            <HeaderTextAction
-              label="Cancel"
-              onPress={() => router.back()}
-              accessibilityLabel="Go Back Without Saving"
-              color="foreground"
-            />
-          ),
-          headerRight: () => (
-            <HeaderTextAction
-              label="Save"
-              onPress={handleSubmit(onSubmit)}
-              accessibilityLabel="Save Equipment Settings"
-              weight="bold"
-            />
-          ),
-        }}
-      />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button
+          {...headerButton("foreground")}
+          accessibilityLabel="Go Back Without Saving"
+          onPress={() => router.back()}
+        >
+          Cancel
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          {...headerButton("primary", "bold")}
+          accessibilityLabel="Save Equipment Settings"
+          onPress={() => void handleSubmit(onSubmit)()}
+        >
+          Save
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
 
       <KeyboardAwareScrollView
         bottomOffset={40}

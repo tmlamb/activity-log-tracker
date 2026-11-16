@@ -16,7 +16,10 @@ vi.mock("react-native", () => ({
 }));
 vi.mock("expo-router", () => ({
   Redirect: () => <div>Redirect</div>,
-  Stack: { Screen: () => null },
+  Stack: {
+    Screen: () => null,
+    Toolbar: Object.assign(() => null, { Button: () => null }),
+  },
   useLocalSearchParams: () => ({ programId: environment.programId }),
   useRouter: () => ({ back: vi.fn() }),
 }));
@@ -46,7 +49,10 @@ vi.mock("~/data/actions", () => ({
 vi.mock("./ConfirmButton", () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
-vi.mock("./HeaderAction", () => ({ HeaderTextAction: () => null }));
+vi.mock("./header-toolbar", () => ({
+  useHeaderButtonProps: () => () => ({}),
+  headerIcons: { insights: { uri: "icon" }, plus: { uri: "icon" } },
+}));
 vi.mock("./MultilineTextInputThemed", () => ({
   default: ({ value }: { value: string }) => <input value={value} readOnly />,
 }));

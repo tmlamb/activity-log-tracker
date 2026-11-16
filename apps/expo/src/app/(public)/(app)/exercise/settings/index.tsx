@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNativeVariable } from "react-native-css";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 
@@ -9,7 +10,7 @@ import {
 } from "@activity-log/ui/utils";
 
 import { NavigationCardRow } from "~/components/CardRow";
-import { HeaderPlusAction, HeaderTextAction } from "~/components/HeaderAction";
+import { headerIcons, useHeaderButtonProps } from "~/components/header-toolbar";
 import { LegendSectionListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
 import { useExerciseLibrary } from "~/data/queries";
@@ -60,6 +61,8 @@ function ExerciseSettingsContent({
 }) {
   const { parentRoute } = useLocalSearchParams<{ parentRoute?: string }>();
   const router = useRouter();
+  const headerButton = useHeaderButtonProps();
+  const primaryColor = useNativeVariable("--primary") as string;
   const usedExercises = storedExercises.filter((exercise) => !exercise.deleted);
   const storedExerciseNames = new Set(
     storedExercises.map((exercise) => normalizeExerciseName(exercise.name)),
@@ -113,25 +116,8 @@ function ExerciseSettingsContent({
     <>
       <Stack.Screen
         options={{
-          headerLeft:
-            parentRoute === "select"
-              ? () => (
-                  <HeaderTextAction
-                    label="Back"
-                    onPress={() => router.back()}
-                    accessibilityLabel="Go back to exercise selection"
-                    color="foreground"
-                  />
-                )
-              : undefined,
-          headerRight: () => (
-            <Link href="/(public)/(app)/exercise/form" asChild>
-              <HeaderPlusAction
-                disabled={exerciseCount > 1000}
-                accessibilityLabel="Navigate to Create Exercise Form"
-              />
-            </Link>
-          ),
+          // The Back toolbar button below replaces the native back button.
+          ...(parentRoute === "select" && { headerBackVisible: false }),
           headerSearchBarOptions: {
             placeholder: "Search Exercises",
             onChangeText: (event) => {
@@ -143,6 +129,26 @@ function ExerciseSettingsContent({
           },
         }}
       />
+      {parentRoute === "select" && (
+        <Stack.Toolbar placement="left">
+          <Stack.Toolbar.Button
+            {...headerButton("foreground")}
+            accessibilityLabel="Go back to exercise selection"
+            onPress={() => router.back()}
+          >
+            Back
+          </Stack.Toolbar.Button>
+        </Stack.Toolbar>
+      )}
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={headerIcons.plus}
+          tintColor={primaryColor}
+          disabled={exerciseCount > 1000}
+          accessibilityLabel="Navigate to Create Exercise Form"
+          onPress={() => router.push("/(public)/(app)/exercise/form")}
+        />
+      </Stack.Toolbar>
       {/* Add Exercise button */}
       <LegendSectionListStyled
         className="flex-1"
