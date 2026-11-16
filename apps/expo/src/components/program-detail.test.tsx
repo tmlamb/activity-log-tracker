@@ -77,7 +77,7 @@ vi.mock("./font-scale-text", () => ({
 vi.mock("react-native-css", () => ({ useNativeVariable: () => "#000" }));
 vi.mock("./header-toolbar", () => ({
   useHeaderButtonProps: () => () => ({}),
-  headerIcons: { insights: { uri: "icon" } },
+  headerIcons: { insights: "chart.line.uptrend.xyaxis", plus: "plus" },
 }));
 vi.mock("./PressableThemed", () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,

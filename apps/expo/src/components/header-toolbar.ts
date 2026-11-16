@@ -1,8 +1,5 @@
 import { useNativeVariable } from "react-native-css";
 
-import insightsIcon from "../../assets/icons/insights.png";
-import plusIcon from "../../assets/icons/plus.png";
-
 /*
  * Header buttons are native `Stack.Toolbar.Button`s rather than React Native
  * views. iOS wraps custom header views in a glass button that is larger than
@@ -37,11 +34,12 @@ export function useHeaderButtonProps() {
 }
 
 /**
- * Header icons are bundled PNGs of the vector icon glyphs they replace
- * (insights: MaterialCommunityIcons at 24pt; plus: AntDesign at 26pt), with
- * @2x and @3x variants. react-native-screens rebuilds native bar items whenever
- * header options update and reloads their images; only bundled images load
- * synchronously, so anything else leaves an empty, resizing button during
- * navigation transitions. Tint them with `tintColor`.
+ * Header icons are SF Symbols. react-native-screens rebuilds native bar items
+ * each time a screen appears; image icons then load asynchronously in release
+ * builds, leaving an empty, resizing button during navigation transitions.
+ * SF Symbols load synchronously. Tint them with `tintColor`.
  */
-export const headerIcons = { insights: insightsIcon, plus: plusIcon };
+export const headerIcons = {
+  insights: "chart.line.uptrend.xyaxis",
+  plus: "plus",
+} as const;

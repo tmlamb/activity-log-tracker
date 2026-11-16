@@ -50,7 +50,7 @@ vi.mock("~/components/CardRow", () => ({
 vi.mock("~/components/ConfirmButton", () => ({ default: () => null }));
 vi.mock("~/components/header-toolbar", () => ({
   useHeaderButtonProps: () => () => ({}),
-  headerIcons: { insights: { uri: "icon" }, plus: { uri: "icon" } },
+  headerIcons: { insights: "chart.line.uptrend.xyaxis", plus: "plus" },
 }));
 vi.mock("~/components/Typography", () => ({ HelperText: () => null }));
 vi.mock("~/components/font-scale-text", () => ({

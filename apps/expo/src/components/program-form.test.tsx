@@ -51,7 +51,7 @@ vi.mock("./ConfirmButton", () => ({
 }));
 vi.mock("./header-toolbar", () => ({
   useHeaderButtonProps: () => () => ({}),
-  headerIcons: { insights: { uri: "icon" }, plus: { uri: "icon" } },
+  headerIcons: { insights: "chart.line.uptrend.xyaxis", plus: "plus" },
 }));
 vi.mock("./MultilineTextInputThemed", () => ({
   default: ({ value }: { value: string }) => <input value={value} readOnly />,
