@@ -128,7 +128,8 @@ export function buildProgramInsightProjection(
     const labels = labelsByExercise.get(group.exerciseId) ?? [];
     if (!labels.length) continue;
     const weightLbs = weightInLbs(group.weightValue, group.weightUnit);
-    const incomplete = group.loadKind === null || weightLbs === null;
+    // No weight means no added load (e.g. bodyweight): zero volume, not unknown.
+    const incomplete = group.loadKind === null;
     partial ||= incomplete;
     for (const { key, label } of labels) {
       const metrics = metricsFor(week, key, label);
@@ -181,7 +182,11 @@ export function buildProgramInsightProjection(
       weightValue = round5(set.maxValue * set.loadValue);
       weightUnit = set.maxUnit;
     }
-    const missingWeight = weightValue === null || weightUnit === null;
+    // Only a percent load without a 1RM is unknown; otherwise no weight means
+    // no added load (e.g. bodyweight) and counts as zero volume.
+    const missingWeight =
+      set.loadType === "PERCENT" &&
+      (weightValue === null || weightUnit === null);
     const incomplete = setPartial || missingWeight;
     partial ||= incomplete;
     const weightLbs = weightInLbs(weightValue, weightUnit);

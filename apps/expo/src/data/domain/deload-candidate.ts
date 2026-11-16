@@ -28,10 +28,10 @@ export function calculateDeloadCandidate(facts: DeloadCandidateFacts): {
         activity.mainSets.length
       )
         return true;
+      // A set without a weight carries no added load (e.g. bodyweight work)
+      // and counts as zero volume, as it always has.
       return activity.mainSets.some(
-        (set) =>
-          (set.status === "Done" && set.actualReps === null) ||
-          (activity.loadType === "RPE" && set.weightValue === null),
+        (set) => set.status === "Done" && set.actualReps === null,
       );
     }),
   );

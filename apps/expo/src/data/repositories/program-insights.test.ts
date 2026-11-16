@@ -150,7 +150,7 @@ describe("program insights projection", () => {
     }
   });
 
-  it("marks unknown measurements and missing exercise references as partial without fabricating totals", () => {
+  it("marks unknown measurements and missing exercise references as partial without fabricating totals, but counts no weight as zero volume", () => {
     const { db, reader } = setup();
     try {
       db.raw
@@ -166,7 +166,7 @@ describe("program insights projection", () => {
         sets: 1,
         reps: 8,
         volumeLbs: 0,
-        partial: true,
+        partial: false,
       });
       expect(result.weeks[2]?.muscleGroups[0]).toMatchObject({
         pending: { sets: 1, reps: 0, volumeLbs: 0 },

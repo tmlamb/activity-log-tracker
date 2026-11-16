@@ -45,11 +45,37 @@ describe("deload candidate", () => {
     }
   });
 
-  it("marks unavailable measurements as unknown rather than inventing a candidate", () => {
+  it("counts sets without a weight as zero volume, like bodyweight work", () => {
     const db = setup();
     try {
       db.raw.exec(
         "UPDATE workout_sets SET weight_value = NULL, weight_unit = NULL WHERE program_id = 'p' AND session_id = 'current'",
+      );
+      const facts = readDeloadCandidateFacts(db, "p", "current");
+      if (!facts) throw new Error("Missing facts");
+      expect(calculateDeloadCandidate(facts)).toEqual({
+        candidate: true,
+        partial: false,
+      });
+      db.raw.exec(
+        "UPDATE workout_sets SET weight_value = NULL, weight_unit = NULL WHERE program_id = 'p' AND session_id = 'old'",
+      );
+      const bodyweight = readDeloadCandidateFacts(db, "p", "current");
+      if (!bodyweight) throw new Error("Missing facts");
+      expect(calculateDeloadCandidate(bodyweight)).toEqual({
+        candidate: false,
+        partial: false,
+      });
+    } finally {
+      db.raw.close();
+    }
+  });
+
+  it("marks unavailable measurements as unknown rather than inventing a candidate", () => {
+    const db = setup();
+    try {
+      db.raw.exec(
+        "UPDATE workout_sets SET actual_reps = NULL WHERE program_id = 'p' AND session_id = 'current'",
       );
       const facts = readDeloadCandidateFacts(db, "p", "current");
       if (!facts) throw new Error("Missing facts");

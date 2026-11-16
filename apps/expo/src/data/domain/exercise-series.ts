@@ -102,7 +102,9 @@ export function buildExerciseSeriesProjection(
         !!set &&
         ((set.status === "Done" && set.actualReps === null) ||
           (current && actual <= 0 && set.plannedReps === null) ||
-          (reps > 0 && weight === null));
+          // No weight means no added load (e.g. bodyweight) unless a percent
+          // load can't be resolved without a 1RM.
+          (reps > 0 && weight === null && set.loadType === "PERCENT"));
       partial ||= pointPartial;
       const weightLbs = weight
         ? weight.unit === "kg"
