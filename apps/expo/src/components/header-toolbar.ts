@@ -40,6 +40,6 @@ export function useHeaderButtonProps() {
  * SF Symbols load synchronously. Tint them with `tintColor`.
  */
 export const headerIcons = {
-  insights: "chart.line.uptrend.xyaxis",
+  insights: "chart.bar.xaxis.ascending",
   plus: "plus",
 } as const;

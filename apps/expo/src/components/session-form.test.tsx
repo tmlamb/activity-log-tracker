@@ -147,7 +147,7 @@ vi.mock("./font-scale-text", () => ({
 }));
 vi.mock("./header-toolbar", () => ({
   useHeaderButtonProps: () => () => ({}),
-  headerIcons: { insights: "chart.line.uptrend.xyaxis", plus: "plus" },
+  headerIcons: { insights: "chart.bar.xaxis.ascending", plus: "plus" },
 }));
 vi.mock("./MultilineTextInputThemed", () => ({
   default: ({
