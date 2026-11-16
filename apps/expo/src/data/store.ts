@@ -74,6 +74,9 @@ export function useGeneration() {
  * in the background keep their last result until they regain focus.
  */
 export function useRead<T>(job: (db: Db) => T): T {
+  // React Compiler would drop `void seen` below and memoize on `job` alone,
+  // so screens would never re-read after a write. Keep this hook uncompiled.
+  "use no memo";
   const focused = useIsFocused();
   const latest = useSyncExternalStore(subscribe, () => version);
   const [seen, setSeen] = useState(latest);
