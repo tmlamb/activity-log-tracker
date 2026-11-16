@@ -248,6 +248,7 @@ export default function EquipmentScreen() {
         className="flex-1"
         contentContainerClassName="px-5 pt-5 pb-18"
         contentInsetAdjustmentBehavior="automatic"
+        mode="layout"
       >
         <Animated.View layout={LinearTransition} className="gap-6">
           <HelperText placement="blockStart">

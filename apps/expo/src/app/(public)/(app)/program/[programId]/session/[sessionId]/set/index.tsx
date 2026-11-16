@@ -367,6 +367,7 @@ function SetEditor({
           isKeyboardOverlayVisible ? "pb-18" : "pb-36",
         )}
         contentInsetAdjustmentBehavior="automatic"
+        mode="layout"
       >
         <AnimatedViewStyled className="gap-10" layout={LinearTransition}>
           <View>

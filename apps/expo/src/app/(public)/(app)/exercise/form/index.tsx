@@ -371,6 +371,7 @@ function ExerciseEditor({
         className="flex-1"
         contentContainerClassName={twMerge("pt-5 pb-18 gap-10")}
         contentInsetAdjustmentBehavior="automatic"
+        mode="layout"
       >
         <View>
           <Controller

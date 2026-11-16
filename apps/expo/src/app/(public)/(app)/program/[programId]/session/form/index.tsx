@@ -579,6 +579,7 @@ function SessionEditor({
         contentContainerClassName="pt-5 gap-10 pb-18"
         contentInsetAdjustmentBehavior="automatic"
         enabled={focused}
+        mode="layout"
       >
         {!session && sessionCount > 0 && (
           <SegmentedInputThemed
