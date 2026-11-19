@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { Redirect, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 
 import { afterNextPaint } from "~/components/BusyOverlay";
+import MissingDataRedirect from "~/components/MissingDataRedirect";
 import ProgramInsights from "~/components/program-insights";
 import { presentProgramInsights } from "~/data/insight-presenters";
 import { useProgramInsights } from "~/data/queries";
@@ -41,7 +42,7 @@ function ProgramInsightsContent({ programId }: { programId: string }) {
     () => (projection ? presentProgramInsights(projection) : null),
     [projection],
   );
-  if (!projection || !insights) return <Redirect href="/(public)/(app)" />;
+  if (!projection || !insights) return <MissingDataRedirect />;
   return (
     <ProgramInsights
       programName={projection.programName}

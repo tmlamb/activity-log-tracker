@@ -14,6 +14,10 @@ vi.mock("react-native", () => ({
   ScrollView: ({ children }: PropsWithChildren) => <div>{children}</div>,
   View: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
+vi.mock("expo-router/react-navigation", () => ({
+  useNavigation: () => ({ addListener: () => () => undefined }),
+  useIsFocused: () => true,
+}));
 vi.mock("expo-router", () => ({
   Redirect: () => <div>Redirect</div>,
   Stack: {

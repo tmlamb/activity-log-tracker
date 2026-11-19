@@ -10,6 +10,7 @@
     "dev:ios": "expo start --ios",
     "build:dev": "eas build --profile development --platform ios",
     "build:preview": "eas build --profile preview --platform ios",
+    "submit:ios": "APP_ENV=production eas submit --profile production --platform ios",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "format": "prettier --check . --ignore-path ../../.gitignore --ignore-path .prettierignore",

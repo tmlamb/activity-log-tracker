@@ -82,6 +82,7 @@ describe("SQLite insight presentation", () => {
           ],
         },
       ],
+      alternatives: [],
     };
     const result = presentExerciseInsights(projection);
     expect(result[0]?.points[0]?.date).toEqual(new Date(0));

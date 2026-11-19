@@ -5,13 +5,7 @@ import Animated, {
   FadeOutUp,
   LinearTransition,
 } from "react-native-reanimated";
-import {
-  Link,
-  Redirect,
-  Stack,
-  useLocalSearchParams,
-  useRouter,
-} from "expo-router";
+import { Link, Stack, useLocalSearchParams } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
@@ -34,6 +28,7 @@ import { v4 as uuidv4 } from "uuid";
 import { PrimaryCardAction, SelectableCardRow } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import { useHeaderButtonProps } from "~/components/header-toolbar";
+import MissingDataRedirect from "~/components/MissingDataRedirect";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PressableThemed from "~/components/PressableThemed";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
@@ -51,6 +46,7 @@ import {
   useExerciseUsage,
   useMuscleCatalog,
 } from "~/data/queries";
+import useRouter from "~/hooks/use-router";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 
 const decimalTextToNumber = (text: string) => {
@@ -115,7 +111,7 @@ export default function ExerciseFormScreen() {
   }));
   const exercise = rows.find((item) => item.exerciseId === exerciseId);
   if (exerciseId && !exercise)
-    return <Redirect href="/(public)/(app)/exercise/settings" />;
+    return <MissingDataRedirect href="/(public)/(app)/exercise/settings" />;
   const revision = exercise?.revision;
   return (
     <ExerciseEditor

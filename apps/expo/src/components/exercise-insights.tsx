@@ -7,7 +7,7 @@ import type { ExerciseSetInsights } from "@activity-log/ui/utils";
 import type { BarChartPoint } from "./BarChart";
 import BarChart from "./BarChart";
 import Card from "./Card";
-import { DetailCardRow } from "./CardRow";
+import { DetailCardRow, NavigationCardRow } from "./CardRow";
 import {
   CollapsibleSection,
   useCollapsibleSectionScroll,
@@ -164,11 +164,14 @@ export default function ExerciseInsights({
   sessionName,
   insights,
   partial = false,
+  alternatives = [],
 }: {
   exerciseName: string;
   sessionName: string;
   insights: ExerciseSetInsights[];
   partial?: boolean;
+  /** The activity's alternatives; pressing one opens its own insights. */
+  alternatives?: { id: string; name: string; onPress: () => void }[];
 }) {
   const currentSetType = insights.find(
     (setInsights) => setInsights.selected,
@@ -185,6 +188,7 @@ export default function ExerciseInsights({
   const [mainSetsCollapsed, setMainSetsCollapsed] = useState(
     currentSetType === "Warmup",
   );
+  const [alternativesCollapsed, setAlternativesCollapsed] = useState(true);
   const collapsibleSectionScroll = useCollapsibleSectionScroll();
 
   const handleWarmupSetsCollapsedChange = (collapsed: boolean) => {
@@ -195,6 +199,11 @@ export default function ExerciseInsights({
   const handleMainSetsCollapsedChange = (collapsed: boolean) => {
     collapsibleSectionScroll.prepareSectionToggle();
     setMainSetsCollapsed(collapsed);
+  };
+
+  const handleAlternativesCollapsedChange = (collapsed: boolean) => {
+    collapsibleSectionScroll.prepareSectionToggle();
+    setAlternativesCollapsed(collapsed);
   };
 
   return (
@@ -252,7 +261,7 @@ export default function ExerciseInsights({
         titleClassName="leading-tight"
         premeasureCollapsedContent
       >
-        <View>
+        <View className={alternatives.length ? "mb-3" : undefined}>
           {mainSetInsights.map((setInsights, index) => (
             <VolumeChart
               key={`${setInsights.setType}-${setInsights.setNumber}`}
@@ -262,6 +271,28 @@ export default function ExerciseInsights({
           ))}
         </View>
       </CollapsibleSection>
+      {alternatives.length ? (
+        <CollapsibleSection
+          title="Alternative Exercises"
+          collapsed={alternativesCollapsed}
+          onCollapsedChange={handleAlternativesCollapsedChange}
+          titleClassName="leading-tight"
+          premeasureCollapsedContent
+        >
+          <View>
+            {alternatives.map((alternative, index) => (
+              <NavigationCardRow
+                key={alternative.id}
+                title={alternative.name}
+                cardVariants={["multiline"]}
+                stack={{ index, size: alternatives.length }}
+                accessibilityLabel={`Navigate to exercise insights for ${alternative.name}`}
+                onPress={alternative.onPress}
+              />
+            ))}
+          </View>
+        </CollapsibleSection>
+      ) : null}
     </ScrollView>
   );
 }

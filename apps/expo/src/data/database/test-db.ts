@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 
 import type { Db, SqlValue } from "./db";
-import { SCHEMA } from "./schema";
+import { CURRENT_SCHEMA } from "./migrations";
 
 /** Adapt a `node:sqlite` database to the app's `Db` interface for tests. */
 export function nodeDb(db: DatabaseSync): Db & { raw: DatabaseSync } {
@@ -29,6 +29,6 @@ export function nodeDb(db: DatabaseSync): Db & { raw: DatabaseSync } {
 /** An in-memory database with the app schema and optional seed SQL. */
 export function createTestDb(seed = "") {
   const db = new DatabaseSync(":memory:");
-  db.exec(`PRAGMA foreign_keys = ON; ${SCHEMA} ${seed}`);
+  db.exec(`PRAGMA foreign_keys = ON; ${CURRENT_SCHEMA} ${seed}`);
   return nodeDb(db);
 }

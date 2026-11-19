@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Alert } from "react-native";
 
 import type { variantClasses } from "./Card";
@@ -28,17 +29,32 @@ export default function ConfirmButton({
   children,
   cardVariants,
 }: Props) {
+  // A quick second tap would queue a second confirmation behind the first.
+  const open = useRef(false);
+  const close = () => {
+    open.current = false;
+  };
   return (
     <PressableThemed
       onPress={() => {
-        Alert.alert(title, message, [
-          { text: cancelText, style: "cancel" },
-          {
-            text: confirmText,
-            style: "destructive",
-            onPress: onConfirm,
-          },
-        ]);
+        if (open.current) return;
+        open.current = true;
+        Alert.alert(
+          title,
+          message,
+          [
+            { text: cancelText, style: "cancel", onPress: close },
+            {
+              text: confirmText,
+              style: "destructive",
+              onPress: () => {
+                close();
+                onConfirm();
+              },
+            },
+          ],
+          { onDismiss: close },
+        );
       }}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"

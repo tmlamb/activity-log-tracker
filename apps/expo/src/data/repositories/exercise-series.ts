@@ -31,14 +31,25 @@ export interface SeriesSetFact {
   startMs: number | null;
   endMs: number | null;
 }
+/** An alternative of the selected activity, with the set to open it at. */
+export interface SeriesAlternative {
+  activityId: string;
+  exerciseName: string;
+  setId: string;
+}
 export interface ExerciseSeriesFacts {
   reference: SetReference;
   selection: SeriesSelection;
   sessions: SeriesSession[];
   sets: SeriesSetFact[];
+  alternatives: SeriesAlternative[];
 }
 
-/** Read a single exercise occurrence per lineage session in one read snapshot. */
+/**
+ * Read a single exercise occurrence per lineage session in one read snapshot.
+ * The reference may be an alternative: its history is the sessions where its
+ * exercise was performed in its main activity's place.
+ */
 export function readExerciseSeriesFacts(
   reader: Db,
   reference: SetReference,
@@ -49,8 +60,11 @@ export function readExerciseSeriesFacts(
        s.lineage_id AS lineageId, e.one_rep_max_value AS maxValue, e.one_rep_max_unit AS maxUnit,
        (SELECT COUNT(*) FROM activities previous WHERE previous.program_id = a.program_id
          AND previous.session_id = a.session_id AND previous.exercise_id = a.exercise_id
-         AND previous.position < a.position) AS occurrence
+         AND previous.parent_activity_id IS NULL
+         AND previous.position < COALESCE(parent.position, a.position)) AS occurrence
      FROM activities a JOIN sessions s ON s.program_id = a.program_id AND s.id = a.session_id
+     LEFT JOIN activities parent ON parent.program_id = a.program_id
+       AND parent.session_id = a.session_id AND parent.id = a.parent_activity_id
      JOIN exercises e ON e.id = a.exercise_id
      JOIN workout_sets w ON w.program_id = a.program_id AND w.session_id = a.session_id AND w.activity_id = a.id
      WHERE a.program_id = ? AND a.session_id = ? AND a.id = ? AND w.id = ? AND s.lineage_id IS NOT NULL`,
@@ -66,12 +80,18 @@ export function readExerciseSeriesFacts(
     programId,
     selection.lineageId,
   );
+  // Other sessions match the exercise's occurrence among main activities; the
+  // current session is always the referenced activity, main or alternative.
   const sets = reader.getAllSync<SeriesSetFact>(
     `WITH occurrences AS (
        SELECT a.program_id, a.session_id, a.id, a.reps, a.load_type, a.load_value,
          ROW_NUMBER() OVER (PARTITION BY a.session_id ORDER BY a.position) - 1 AS occurrence
        FROM sessions s JOIN activities a ON a.program_id = s.program_id AND a.session_id = s.id
        WHERE s.program_id = ? AND s.lineage_id = ? AND a.exercise_id = ?
+         AND a.parent_activity_id IS NULL AND s.id <> ?
+       UNION ALL
+       SELECT program_id, session_id, id, reps, load_type, load_value, ? AS occurrence
+       FROM activities WHERE program_id = ? AND session_id = ? AND id = ?
      )
      SELECT s.id AS sessionId, a.id AS activityId, a.reps AS plannedReps,
        a.load_type AS loadType, a.load_value AS loadValue, w.id, w.kind, w.status, w.feedback,
@@ -83,9 +103,50 @@ export function readExerciseSeriesFacts(
     programId,
     selection.lineageId,
     selection.exerciseId,
+    sessionId,
+    selection.occurrence,
+    programId,
+    sessionId,
+    activityId,
     selection.occurrence,
     programId,
     selection.lineageId,
   );
-  return { reference: { ...reference }, selection, sessions, sets };
+  // Open each alternative at the set matching the selected one, or else at its
+  // first main set, or else its first set.
+  const alternatives = reader.getAllSync<
+    Omit<SeriesAlternative, "setId"> & { setId: string | null }
+  >(
+    `WITH selected AS (
+       SELECT kind, position FROM workout_sets
+       WHERE program_id = ? AND session_id = ? AND activity_id = ? AND id = ?
+     )
+     SELECT a.id AS activityId, e.name AS exerciseName,
+       (SELECT w.id FROM workout_sets w
+        WHERE w.program_id = a.program_id AND w.session_id = a.session_id AND w.activity_id = a.id
+        ORDER BY (w.kind = (SELECT kind FROM selected) AND w.position = (SELECT position FROM selected)) DESC,
+          w.kind = 'Main' DESC, w.position
+        LIMIT 1) AS setId
+     FROM activities a JOIN exercises e ON e.id = a.exercise_id
+     WHERE a.program_id = ? AND a.session_id = ? AND a.parent_activity_id = ?
+     ORDER BY a.position`,
+    programId,
+    sessionId,
+    activityId,
+    setId,
+    programId,
+    sessionId,
+    activityId,
+  );
+  return {
+    reference: { ...reference },
+    selection,
+    sessions,
+    sets,
+    // An alternative without sets has nothing to show.
+    alternatives: alternatives.flatMap(
+      ({ setId: alternativeSetId, ...item }) =>
+        alternativeSetId === null ? [] : [{ ...item, setId: alternativeSetId }],
+    ),
+  };
 }

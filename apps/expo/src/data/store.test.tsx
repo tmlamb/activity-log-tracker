@@ -60,7 +60,7 @@ describe("store", () => {
     db.raw.close();
   });
 
-  it("defers re-reads until the screen is focused again", () => {
+  it("re-reads in the background while covered, without waiting for focus", () => {
     const db = createTestDb();
     setDatabase(db);
     const renders: string[][] = [];
@@ -72,14 +72,18 @@ describe("store", () => {
       renderer = create(element());
     });
     navigation.focused = false;
+    act(() => renderer?.update(element()));
     act(() => {
       write((d) =>
         d.runSync("INSERT INTO programs VALUES ('p', 'Strength', 0)"),
       );
     });
-    expect(renders.at(-1)).toEqual([]);
+    expect(renders.at(-1)).toEqual(["Strength"]);
+    // Regaining focus doesn't read again.
+    const count = renders.length;
     navigation.focused = true;
     act(() => renderer?.update(element()));
+    expect(renders.length).toBe(count + 1);
     expect(renders.at(-1)).toEqual(["Strength"]);
     act(() => renderer?.unmount());
     db.raw.close();

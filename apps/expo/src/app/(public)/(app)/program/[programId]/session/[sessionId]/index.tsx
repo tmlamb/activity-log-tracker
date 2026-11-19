@@ -1,13 +1,7 @@
 import { memo, useEffect, useState } from "react";
 import { Alert, View } from "react-native";
 import Animated, { LinearTransition } from "react-native-reanimated";
-import {
-  Link,
-  Redirect,
-  Stack,
-  useLocalSearchParams,
-  useRouter,
-} from "expo-router";
+import { Link, Stack, useLocalSearchParams } from "expo-router";
 import { useIsFocused } from "expo-router/react-navigation";
 import { format } from "date-fns";
 
@@ -25,6 +19,7 @@ import {
 import ElapsedTime from "~/components/ElapsedTime";
 import { Text } from "~/components/font-scale-text";
 import { useHeaderButtonProps } from "~/components/header-toolbar";
+import MissingDataRedirect from "~/components/MissingDataRedirect";
 import PressableThemed from "~/components/PressableThemed";
 import SwitchThemed from "~/components/SwitchThemed";
 import { HelperText, ScreenHeading } from "~/components/Typography";
@@ -33,6 +28,7 @@ import {
   useSessionDeloadCandidate,
   useSessionEditorSeed,
 } from "~/data/queries";
+import useRouter from "~/hooks/use-router";
 
 const completed = (
   set: SessionDetail["activities"][number]["mainSets"][number],
@@ -56,8 +52,7 @@ export default function SessionDetailScreen() {
       session?.status === "Done" &&
       !session.deload,
   );
-  if (!seed?.session || !seed.policy)
-    return <Redirect href="/(public)/(app)" />;
+  if (!seed?.session || !seed.policy) return <MissingDataRedirect />;
   return (
     <SessionContent
       key={`${programId}:${sessionId}`}
@@ -103,6 +98,8 @@ const SessionContent = memo(function SessionContent({
     else commit();
   };
   const finish = () => {
+    // A second tap would find the session already complete.
+    if (router.isNavigating()) return;
     let done: boolean;
     try {
       done = completeSession(session.programId, session.id);

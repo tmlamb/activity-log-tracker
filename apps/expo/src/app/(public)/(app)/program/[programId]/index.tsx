@@ -1,13 +1,7 @@
 import { useRef, useState } from "react";
 import { View } from "react-native";
 import { useNativeVariable } from "react-native-css";
-import {
-  Link,
-  Redirect,
-  Stack,
-  useLocalSearchParams,
-  useRouter,
-} from "expo-router";
+import { Link, Stack, useLocalSearchParams } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { addDays, format, isSameMonth } from "date-fns";
 
@@ -20,6 +14,7 @@ import {
 } from "~/components/CollapsibleSection";
 import { Text } from "~/components/font-scale-text";
 import { headerIcons } from "~/components/header-toolbar";
+import MissingDataRedirect from "~/components/MissingDataRedirect";
 import PressableThemed from "~/components/PressableThemed";
 import {
   HelperText,
@@ -31,6 +26,7 @@ import {
   useProgramOverview,
   useProgramWeek,
 } from "~/data/queries";
+import useRouter from "~/hooks/use-router";
 
 interface WeekItem {
   key: string;
@@ -133,7 +129,7 @@ export default function ProgramDetailScreen() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
   const program = useProgramHeader(programId);
   const overview = useProgramOverview(programId);
-  if (!program || !overview) return <Redirect href="/(public)/(app)" />;
+  if (!program || !overview) return <MissingDataRedirect />;
   return <ProgramContent program={program} overview={overview} />;
 }
 

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Db, SqlValue } from "../database/db";
 import { transaction } from "../database/db";
-import { SCHEMA } from "../database/schema";
+import { CURRENT_SCHEMA } from "../database/migrations";
 import { createTestDb, nodeDb } from "../database/test-db";
 import { replaceDomainData } from "../lifecycle/replace";
 import { readPortableDataV2 } from "./export-v2";
@@ -112,7 +112,7 @@ describe("portable backup v2 export", () => {
       const json = serializePortableBackupV2(data, 200);
       expect(parsePortableBackupV2(json)).toEqual({
         format: "activity-log-tracker-backup",
-        version: 2,
+        version: 3,
         createdAtMs: 200,
         data,
       });
@@ -138,7 +138,7 @@ describe("portable backup v2 export", () => {
     const writer = new DatabaseSync(path);
     const readerDb = new DatabaseSync(path);
     try {
-      writer.exec(`PRAGMA journal_mode = WAL; ${SCHEMA}
+      writer.exec(`PRAGMA journal_mode = WAL; ${CURRENT_SCHEMA}
         INSERT INTO programs VALUES ('p','Before',0);
         INSERT INTO sessions(program_id,id,name,position,status,deload) VALUES ('p','s','Before',0,'Planned',0);`);
       readerDb.exec("BEGIN");

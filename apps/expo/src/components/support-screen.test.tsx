@@ -20,6 +20,9 @@ const env = vi.hoisted(() => ({
   painted: [] as (() => void)[],
 }));
 
+vi.mock("expo-router/react-navigation", () => ({
+  useNavigation: () => ({ addListener: () => () => undefined }),
+}));
 vi.mock("react-native", () => ({
   Alert: { alert: env.alert },
   ActivityIndicator: () => <i>spinner</i>,

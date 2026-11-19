@@ -3,7 +3,7 @@ import type { Weight } from "@activity-log/ui/utils";
 import type { Db } from "../database/db";
 import type { SavedExercise } from "./exercises";
 import type {
-  SessionActivity,
+  SessionActivityFields,
   SessionDetail,
   SessionSet,
 } from "./session-detail";
@@ -14,7 +14,7 @@ export interface SetExecutionContext {
   reference: SetReference;
   session: Omit<SessionDetail, "activities">;
   activity: Omit<
-    SessionActivity,
+    SessionActivityFields,
     "exerciseName" | "exerciseDeleted" | "warmupSets" | "mainSets"
   > & {
     warmupSetCount: number;
@@ -41,7 +41,7 @@ interface ContextRow {
   revision: number;
   exerciseId: string | null;
   reps: number | null;
-  loadType: SessionActivity["loadType"];
+  loadType: SessionActivityFields["loadType"];
   loadValue: number | null;
   restMinutes: number | null;
   exerciseName: string | null;

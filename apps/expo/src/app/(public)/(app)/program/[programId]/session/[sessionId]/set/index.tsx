@@ -18,7 +18,7 @@ import Animated, {
   FadeOutDown,
   LinearTransition,
 } from "react-native-reanimated";
-import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { useNavigation, usePreventRemove } from "expo-router/react-navigation";
 import { Button, Host } from "@expo/ui";
 import {
@@ -37,11 +37,14 @@ import type { SavedExercise } from "~/data/repositories/exercises";
 import type { SetExecutionContext } from "~/data/repositories/set-context";
 import BottomActionBar from "~/components/BottomActionBar";
 import { DetailCardRow } from "~/components/CardRow";
+import { CollapsibleSection } from "~/components/CollapsibleSection";
+import ConfirmButton from "~/components/ConfirmButton";
 import DumbbellChart from "~/components/DumbbellChart";
 import ElapsedTime from "~/components/ElapsedTime";
 import { Text } from "~/components/font-scale-text";
 import { headerIcons } from "~/components/header-toolbar";
 import { HeaderIconAction } from "~/components/HeaderAction";
+import MissingDataRedirect from "~/components/MissingDataRedirect";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import PlateChart from "~/components/PlateChart";
 import PressableThemed from "~/components/PressableThemed";
@@ -53,10 +56,15 @@ import {
   completeSet,
   patchSet,
   reconcileSet,
+  resetSet,
   setExerciseNotes,
   startSet,
 } from "~/data/actions";
 import { useEquipment, useExerciseDetail, useSetContext } from "~/data/queries";
+import useRouter from "~/hooks/use-router";
+
+/** Presses of the start/complete button closer together than this are one. */
+const ACTION_DOUBLE_PRESS_MS = 800;
 
 function parseInput(text: string): number | null | undefined {
   if (!text.trim()) return null;
@@ -81,7 +89,7 @@ export default function WorkoutSetDetailScreen() {
   const context = useSetContext(reference);
   const exercise = useExerciseDetail(context?.exercise?.id);
   const equipment = useEquipment();
-  if (!context) return <Redirect href="/(public)/(app)" />;
+  if (!context) return <MissingDataRedirect />;
   return (
     <SetEditor
       key={`${reference.programId}:${reference.sessionId}:${reference.activityId}:${reference.setId}`}
@@ -131,6 +139,7 @@ function SetEditor({
   const [notes, setNotes] = useState(exercise?.notes ?? "");
   const [fallbackStart] = useState(Date.now);
   const [unit] = useState<"lbs" | "kg">(initialWeight?.unit ?? "lbs");
+  const [advancedCollapsed, setAdvancedCollapsed] = useState(true);
   const leavingRef = useRef(false);
   const allowRemoval = useRef(false);
   const validateInputs = (before = "leaving this set") => {
@@ -254,8 +263,14 @@ function SetEditor({
       dismissKeyboard();
     });
   };
+  const lastActionAt = useRef(0);
   const runAction = async () => {
     if (!action || leavingRef.current) return;
+    // Starting a set with reps already entered makes Complete the next action
+    // on the same button; a quick second tap mustn't complete it too.
+    const now = Date.now();
+    if (now - lastActionAt.current < ACTION_DOUBLE_PRESS_MS) return;
+    lastActionAt.current = now;
     try {
       validateInputs("continuing");
       const reps = parseInput(repsInput) ?? null;
@@ -276,6 +291,18 @@ function SetEditor({
     await dismissKeyboardBeforePop();
     allowRemoval.current = true;
     router.back();
+  };
+  // A done or running set in a session still in progress can be redone.
+  const canReset =
+    context.session.status === "Ready" &&
+    (context.set.status === "Done" ||
+      (context.set.status === "Ready" && context.set.startMs !== null));
+  const reset = () => {
+    try {
+      resetSet(context.reference);
+    } catch (error) {
+      errorAlert(error);
+    }
   };
   const displayWeight = parseInput(weightInput);
   const barbell = equipment.barbells.find(
@@ -590,6 +617,29 @@ function SetEditor({
                 unit={unit}
               />
             )}
+          {canReset && (
+            <Animated.View
+              entering={FadeInUp.duration(250)}
+              exiting={FadeOutDown.duration(250)}
+            >
+              <CollapsibleSection
+                title="Advanced"
+                collapsed={advancedCollapsed}
+                onCollapsedChange={setAdvancedCollapsed}
+                titleClassName="leading-tight"
+              >
+                <ConfirmButton
+                  title="Reset Set?"
+                  message="This set and any later sets of this exercise that are done or in progress will return to not started. Entered reps and weight are kept."
+                  confirmText="Reset Set"
+                  accessibilityLabel={`Reset ${title}`}
+                  onConfirm={reset}
+                >
+                  Reset This Set
+                </ConfirmButton>
+              </CollapsibleSection>
+            </Animated.View>
+          )}
         </AnimatedViewStyled>
       </KeyboardAwareScrollView>
       <BottomActionBar

@@ -268,6 +268,47 @@ export function completeSetAndAdvance(
 }
 
 /**
+ * Return a done or running set to not started so it can be performed again,
+ * along with any later sets in its activity that are done or in progress.
+ * Recorded reps, weight and difficulty are kept in case the set is repeated
+ * the same way. Only an in-progress session's sets can be reset.
+ */
+export function resetSet(
+  transaction: Db,
+  reference: SetReference,
+  nowMs: number,
+) {
+  if (!Number.isFinite(nowMs)) throw new Error("Invalid reset time.");
+  const current = getCurrentSet(transaction, reference);
+  if (
+    current.sessionStatus !== "Ready" ||
+    (current.setStatus !== "Done" &&
+      (current.setStatus !== "Ready" || current.startMs === null))
+  )
+    throw new Error("Workout set cannot be reset.");
+  const rank = current.kind === "Warmup" ? 0 : 1;
+  transaction.runSync(
+    `UPDATE workout_sets SET status = 'Planned', start_ms = NULL, end_ms = NULL
+     WHERE program_id = ? AND session_id = ? AND activity_id = ?
+       AND status IN ('Done', 'Ready')
+       AND (CASE kind WHEN 'Warmup' THEN 0 ELSE 1 END > ?
+         OR (CASE kind WHEN 'Warmup' THEN 0 ELSE 1 END = ? AND position >= ?))`,
+    reference.programId,
+    reference.sessionId,
+    reference.activityId,
+    rank,
+    rank,
+    current.position,
+  );
+  transaction.runSync(
+    "UPDATE sessions SET last_activity_at_ms = ?, revision = revision + 1 WHERE program_id = ? AND id = ?",
+    nowMs,
+    reference.programId,
+    reference.sessionId,
+  );
+}
+
+/**
  * Persist one set and its session's activity timestamp in one writer
  * transaction. Terminal session status and set timestamps cannot be reopened
  * by a stale recording submission.

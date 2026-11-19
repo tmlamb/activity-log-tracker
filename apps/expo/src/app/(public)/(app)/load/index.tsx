@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Alert, KeyboardAvoidingView, ScrollView, View } from "react-native";
 import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";
-import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
 import type { Exercise, Load } from "@activity-log/ui/utils";
 
 import { Text } from "~/components/font-scale-text";
 import { useHeaderButtonProps } from "~/components/header-toolbar";
+import MissingDataRedirect from "~/components/MissingDataRedirect";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import { AnimatedViewStyled } from "~/components/Styled";
 import TextInputThemed from "~/components/TextInputThemed";
@@ -16,6 +17,7 @@ import { setExerciseOneRepMax } from "~/data/actions";
 import { useExerciseDetail } from "~/data/queries";
 import { useSelectionHandoff } from "~/data/selection-handoff";
 import { useGeneration } from "~/data/store";
+import useRouter from "~/hooks/use-router";
 
 type FormData = Partial<Load> & { oneRepMaxVal?: number };
 
@@ -58,7 +60,7 @@ export default function LoadScreen() {
     String(entry.ticket.generation) !== params.generation ||
     entry.ticket.generation !== generation
   )
-    return <Redirect href="/(public)/(app)" />;
+    return <MissingDataRedirect />;
   const initial: LoadExercise | undefined = record
     ? {
         exerciseId: record.id,
@@ -141,7 +143,9 @@ function LoadEditor({
       ? { type: selectedType, value: selectedValue }
       : undefined;
   const onSubmit = async () => {
-    if (!(await trigger("value")) || !selected) return;
+    // Ignore a second tap while the first is closing this screen.
+    if (router.isNavigating()) return;
+    if (!(await trigger("value")) || !selected || router.isNavigating()) return;
     try {
       done(selected, selectedOneRepMaxVal);
       router.back();

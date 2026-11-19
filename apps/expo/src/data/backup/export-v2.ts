@@ -37,13 +37,15 @@ export function readPortableFactsV2(reader: Db) {
     programId: string;
     sessionId: string;
     id: string;
+    parentActivityId: string | null;
     exerciseId: string | null;
     reps: number | null;
     loadType: "PERCENT" | "RPE" | null;
     loadValue: number | null;
     restMinutes: number | null;
   }>(
-    "SELECT program_id AS programId, session_id AS sessionId, id, exercise_id AS exerciseId, reps, load_type AS loadType, load_value AS loadValue, rest_minutes AS restMinutes FROM activities ORDER BY program_id, session_id, position",
+    // Main activities sort before alternatives so parents exist when nesting.
+    "SELECT program_id AS programId, session_id AS sessionId, id, parent_activity_id AS parentActivityId, exercise_id AS exerciseId, reps, load_type AS loadType, load_value AS loadValue, rest_minutes AS restMinutes FROM activities ORDER BY program_id, session_id, parent_activity_id IS NOT NULL, parent_activity_id, position",
   );
   const sets = reader.getAllSync<{
     programId: string;
@@ -171,10 +173,13 @@ export function buildPortableDataV2(
   }
   type PortableActivity =
     PortableDataV2["programs"][number]["sessions"][number]["activities"][number];
-  const activityMap = new Map<string, PortableActivity>();
+  type PortableAlternative = PortableActivity["alternatives"][number];
+  const mainMap = new Map<string, PortableActivity>();
+  const activityMap = new Map<string, PortableAlternative>();
   for (const {
     programId,
     sessionId,
+    parentActivityId,
     loadType,
     loadValue,
     ...activity
@@ -183,7 +188,7 @@ export function buildPortableDataV2(
     if (!session) throw new Error("An activity has no owning session.");
     if ((loadType === null) !== (loadValue === null))
       throw new Error("A saved load is incomplete.");
-    const item: PortableActivity = {
+    const item: PortableAlternative = {
       ...activity,
       load:
         loadType !== null && loadValue !== null
@@ -192,8 +197,17 @@ export function buildPortableDataV2(
       warmupSets: [],
       mainSets: [],
     };
-    session.activities.push(item);
-    activityMap.set(key(programId, sessionId, activity.id), item);
+    if (parentActivityId === null) {
+      const main: PortableActivity = { ...item, alternatives: [] };
+      session.activities.push(main);
+      mainMap.set(key(programId, sessionId, activity.id), main);
+      activityMap.set(key(programId, sessionId, activity.id), main);
+    } else {
+      const parent = mainMap.get(key(programId, sessionId, parentActivityId));
+      if (!parent) throw new Error("An alternative has no owning activity.");
+      parent.alternatives.push(item);
+      activityMap.set(key(programId, sessionId, activity.id), item);
+    }
   }
   for (const {
     programId,

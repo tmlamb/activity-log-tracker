@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 
 import type { TemplateChoice } from "~/data/repositories/templates";
 import type { SelectionTicket } from "~/data/selection-handoff";
 import { SelectableCardRow } from "~/components/CardRow";
 import { useHeaderButtonProps } from "~/components/header-toolbar";
+import MissingDataRedirect from "~/components/MissingDataRedirect";
 import { LegendListStyled } from "~/components/Styled";
 import { HelperText } from "~/components/Typography";
 import { useTemplateChoices } from "~/data/queries";
 import { useSelectionHandoff } from "~/data/selection-handoff";
 import { useGeneration } from "~/data/store";
+import useRouter from "~/hooks/use-router";
 
 export default function SessionSelectScreen() {
   const params = useLocalSearchParams<{
@@ -29,7 +31,7 @@ export default function SessionSelectScreen() {
     String(entry.ticket.generation) !== params.generation ||
     entry.ticket.generation !== generation
   )
-    return <Redirect href="/(public)/(app)" />;
+    return <MissingDataRedirect />;
   return (
     <TemplatePicker
       key={entry.ticket.requestId}
@@ -53,7 +55,7 @@ function TemplatePicker({
   const headerButton = useHeaderButtonProps();
   const [selected, setSelected] = useState<string>();
   const done = () => {
-    if (!selected) return;
+    if (!selected || router.isNavigating()) return;
     if (
       useSelectionHandoff
         .getState()

@@ -111,6 +111,7 @@ export function convertWorkoutHistory(
           program_id: programId,
           session_id: sessionId,
           id: activityId,
+          parent_activity_id: null,
           exercise_id:
             activity.exerciseId === null
               ? null

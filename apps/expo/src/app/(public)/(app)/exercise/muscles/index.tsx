@@ -6,7 +6,7 @@ import Animated, {
   FadeOutUp,
   LinearTransition,
 } from "react-native-reanimated";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { Entypo } from "@expo/vector-icons";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 
@@ -20,6 +20,7 @@ import InventoryCounterInputRow from "~/components/InventoryCounterInputRow";
 import { HelperText, SectionHeading } from "~/components/Typography";
 import { replaceMuscles } from "~/data/actions";
 import { useMuscleCatalog } from "~/data/queries";
+import useRouter from "~/hooks/use-router";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 
 interface FormData {

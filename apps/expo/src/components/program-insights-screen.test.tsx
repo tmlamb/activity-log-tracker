@@ -12,6 +12,10 @@ vi.mock("react-native", () => ({
   ActivityIndicator: () => <i>spinner</i>,
   View: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
+vi.mock("expo-router/react-navigation", () => ({
+  useNavigation: () => ({ addListener: () => () => undefined }),
+  useIsFocused: () => true,
+}));
 vi.mock("expo-router", () => ({
   Redirect: () => <p>redirect</p>,
   useLocalSearchParams: () => ({ programId: "p" }),

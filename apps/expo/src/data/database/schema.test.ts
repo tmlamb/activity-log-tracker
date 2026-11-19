@@ -1,12 +1,12 @@
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { SCHEMA } from "./schema";
+import { CURRENT_SCHEMA } from "./migrations";
 
 describe("relational schema", () => {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON");
-  db.exec(SCHEMA);
+  db.exec(CURRENT_SCHEMA);
 
   afterEach(() => {
     db.exec(

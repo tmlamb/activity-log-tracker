@@ -1,20 +1,21 @@
 import "react-native-get-random-values";
 
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, {
   FadeInUp,
   FadeOutDown,
-  FadeOutUp,
   LinearTransition,
 } from "react-native-reanimated";
-import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { useIsFocused } from "expo-router/react-navigation";
-import { AntDesign, Entypo, Feather } from "@expo/vector-icons";
+import { Entypo } from "@expo/vector-icons";
 import { v4 as uuidv4 } from "uuid";
 
+import type { PlanningWeightSource } from "~/data/repositories/planning-weights";
 import type {
+  DraftActivity,
   SessionDraft,
   TemplateSource,
 } from "~/data/repositories/session-drafts";
@@ -22,19 +23,24 @@ import type {
   SessionEditorExercise,
   SessionEditorSeed,
 } from "~/data/repositories/session-editor";
-import type { SelectionKind, SelectionTicket } from "~/data/selection-handoff";
+import type {
+  SelectionResult,
+  SelectionTicket,
+} from "~/data/selection-handoff";
+import ActivityRow, { exerciseLabel } from "~/components/ActivityRow";
 import Card from "~/components/Card";
-import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
+import { PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
 import DateTimeInputThemed from "~/components/DateTimeInputThemed";
 import { Text } from "~/components/font-scale-text";
 import { useHeaderButtonProps } from "~/components/header-toolbar";
+import MissingDataRedirect from "~/components/MissingDataRedirect";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
+import NumberDraftInput from "~/components/NumberDraftInput";
 import PressableThemed from "~/components/PressableThemed";
 import SegmentedInputThemed from "~/components/SegmentedInputThemed";
 import { AnimatedViewStyled } from "~/components/Styled";
 import SwitchThemed from "~/components/SwitchThemed";
-import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText } from "~/components/Typography";
 import {
   createSession,
@@ -44,19 +50,27 @@ import {
   saveSession,
 } from "~/data/actions";
 import {
+  applyExerciseSelection,
+  applyLoadSelection,
+  applyWeightHint,
   draftFromSession,
+  exerciseSelectionInput,
+  isActivityValid,
   newDraftActivity,
-  newDraftSet,
+  resizeSets,
   shiftDraftStart,
+  swapAlternative,
 } from "~/data/domain/session-editor-draft";
 import { useProgramSummaries, useSessionEditorSeed } from "~/data/queries";
 import { getSavedExercise } from "~/data/repositories/exercises";
+import { getRecentMainUsage } from "~/data/repositories/main-usage";
 import { getPlanningWeightHints } from "~/data/repositories/planning-weights";
 import { getSessionEditorSeed } from "~/data/repositories/session-editor";
 import { createTemplateDraft } from "~/data/repositories/template-draft";
 import { resolveTemplateChoice } from "~/data/repositories/templates";
-import { useSelectionHandoff } from "~/data/selection-handoff";
 import { read, useGeneration } from "~/data/store";
+import useRouter from "~/hooks/use-router";
+import useSelectionRequests from "~/hooks/use-selection-requests";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 
 export default function SessionFormScreen() {
@@ -67,55 +81,12 @@ export default function SessionFormScreen() {
   const seed = useSessionEditorSeed(programId, sessionId ?? null);
   const programs = useProgramSummaries();
   const program = programs.find((item) => item.id === programId);
-  if (!seed || !program) return <Redirect href="/(public)/(app)" />;
+  if (!seed || !program) return <MissingDataRedirect />;
   return (
     <SessionEditor
       key={`${programId}:${sessionId ?? "new"}`}
       seed={seed}
       sessionCount={program.sessionCount}
-    />
-  );
-}
-
-function NumberDraftInput({
-  label,
-  value,
-  onChange,
-  maxLength = 3,
-  stack,
-  compact = false,
-  error,
-}: {
-  label: string;
-  value: number | null;
-  onChange: (next: number | null) => void;
-  maxLength?: number;
-  stack?: { index: number; size: number };
-  compact?: boolean;
-  error?: string;
-}) {
-  const [text, setText] = useState(value === null ? "" : String(value));
-  return (
-    <TextInputThemed
-      label={label}
-      value={text}
-      keyboardType="number-pad"
-      numeric
-      maxLength={maxLength}
-      stack={stack}
-      error={error}
-      placeholder="0"
-      selectTextOnFocus
-      cardVariants={compact ? ["square", "small", "transparent"] : ["square"]}
-      onChangeText={(next) => {
-        setText(next);
-        const parsed = next.trim() ? Number(next) : NaN;
-        onChange(Number.isFinite(parsed) ? parsed : null);
-      }}
-      onBlur={() => {
-        const parsed = text.trim() ? Number(text) : NaN;
-        setText(Number.isFinite(parsed) ? String(parsed) : "");
-      }}
     />
   );
 }
@@ -131,7 +102,6 @@ function SessionEditor({
   const focused = useIsFocused();
   const headerButton = useHeaderButtonProps();
   const [initial] = useState(() => seed);
-  const [ownerId] = useState(() => uuidv4());
   const [newSessionId] = useState(() => uuidv4());
   const [initialDraft] = useState<SessionDraft>(() =>
     initial.session
@@ -148,16 +118,11 @@ function SessionEditor({
   const templateRef = useRef<TemplateSource | null>(null);
   const [renameLineage, setRenameLineage] = useState(true);
   const [showValidation, setShowValidation] = useState(false);
-  const activeTicket = useRef<{
-    ticket: SelectionTicket;
-    kind: SelectionKind;
-  } | null>(null);
-  const sawBlur = useRef(false);
-  const entries = useSelectionHandoff((state) => state.entries);
   const generation = useGeneration();
   const session = initial.session;
   const terminal =
     session?.status === "Done" || session?.status === "Incomplete";
+  const terminalEndMs = () => (terminal ? draftRef.current.endMs : undefined);
   const dirty =
     JSON.stringify(draft) !== JSON.stringify(initialDraft) || template !== null;
   const { leaveWithoutWarning, hasLeft } = useUnsavedChangesWarning(dirty);
@@ -167,9 +132,7 @@ function SessionEditor({
   };
   const updateActivity = (
     id: string,
-    update: (
-      activity: SessionDraft["activities"][number],
-    ) => SessionDraft["activities"][number],
+    update: (activity: DraftActivity) => DraftActivity,
   ) => {
     const previous = draftRef.current;
     updateDraft({
@@ -179,83 +142,29 @@ function SessionEditor({
       ),
     });
   };
-  useEffect(() => {
-    return () => {
-      useSelectionHandoff.getState().clearOwner(generation, ownerId);
-    };
-  }, [generation, ownerId]);
-
-  const openSelection = (kind: SelectionKind, activityId?: string) => {
-    if (activeTicket.current)
-      useSelectionHandoff.getState().cancel(activeTicket.current.ticket);
-    const ticket: SelectionTicket = {
-      generation,
-      ownerId,
-      requestId: uuidv4(),
-      ...(activityId ? { activityId } : {}),
-    };
-    useSelectionHandoff.getState().begin(ticket, kind);
-    activeTicket.current = { ticket, kind };
-    const common = `requestId=${encodeURIComponent(ticket.requestId)}&ownerId=${encodeURIComponent(ownerId)}&generation=${generation}`;
-    const activity = draftRef.current.activities.find(
-      (item) => item.id === activityId,
-    );
-    if (kind === "template")
-      router.push(
-        `/(public)/(app)/session/select?programId=${encodeURIComponent(initial.program.id)}&${common}`,
-      );
-    else if (kind === "exercise")
-      router.push(
-        `/(public)/(app)/exercise/select?activityId=${encodeURIComponent(activityId ?? "")}&currentExerciseId=${encodeURIComponent(activity?.exerciseId ?? "")}&${common}`,
-      );
-    else
-      router.push(
-        `/(public)/(app)/load?activityId=${encodeURIComponent(activityId ?? "")}&exerciseId=${encodeURIComponent(activity?.exerciseId ?? "")}&loadType=${activity?.loadType ?? ""}&loadValue=${activity?.loadValue ?? ""}&${common}`,
-      );
-  };
+  const weightSource = (): PlanningWeightSource =>
+    session
+      ? { kind: "session", sessionId: session.id }
+      : templateRef.current
+        ? { kind: "template", sessionId: templateRef.current.sessionId }
+        : null;
 
   // Apply a selection made on another screen when this one regains focus.
-  const applySelection = useEffectEvent(() => {
-    if (!focused) {
-      sawBlur.current = true;
-      return;
-    }
-    if (!sawBlur.current || !activeTicket.current) return;
-    sawBlur.current = false;
-    const active = activeTicket.current;
-    const entry = entries[active.ticket.requestId];
-    if (!entry?.result) {
-      useSelectionHandoff.getState().cancel(active.ticket);
-      activeTicket.current = null;
-      return;
-    }
-    const result = useSelectionHandoff
-      .getState()
-      .consume(active.ticket, active.kind);
-    activeTicket.current = null;
-    if (!result) return;
-    if (result.kind === "load" && active.ticket.activityId) {
-      updateActivity(active.ticket.activityId, (activity) => ({
-        ...activity,
-        loadType: result.load.type,
-        loadValue: result.load.value,
-        ...(result.load.type === "PERCENT"
-          ? {
-              warmupSets: activity.warmupSets.map((set) =>
-                set.status === "Planned"
-                  ? { ...set, weightValue: null, weightUnit: null }
-                  : set,
-              ),
-              mainSets: activity.mainSets.map((set) =>
-                set.status === "Planned"
-                  ? { ...set, weightValue: null, weightUnit: null }
-                  : set,
-              ),
-            }
-          : {}),
-      }));
-    } else if (result.kind === "exercise" && active.ticket.activityId) {
-      const activityId = active.ticket.activityId;
+  const applySelection = (result: SelectionResult, ticket: SelectionTicket) => {
+    if (result.kind === "load" && ticket.activityId) {
+      updateActivity(ticket.activityId, (activity) =>
+        applyLoadSelection(activity, result.load),
+      );
+    } else if (result.kind === "exercise" && ticket.activityId) {
+      const activityId = ticket.activityId;
+      const alternativeId = result.alternativeId;
+      if (alternativeId) {
+        updateActivity(
+          activityId,
+          (activity) => swapAlternative(activity, alternativeId) ?? activity,
+        );
+        return;
+      }
       let exercise;
       try {
         exercise = read((db) => getSavedExercise(db, result.exerciseId));
@@ -264,38 +173,28 @@ function SessionEditor({
         return;
       }
       if (!exercise || exercise.deleted) return;
+      const selected = exercise;
       setExercises((previous) => ({
         ...previous,
-        [exercise.id]: {
-          id: exercise.id,
-          name: exercise.name,
-          deleted: exercise.deleted,
-          loadKind: exercise.loadKind,
-          oneRepMax: exercise.oneRepMax,
+        [selected.id]: {
+          id: selected.id,
+          name: selected.name,
+          deleted: selected.deleted,
+          loadKind: selected.loadKind,
+          oneRepMax: selected.oneRepMax,
         },
       }));
-      updateActivity(activityId, (activity) => ({
-        ...activity,
-        exerciseId: exercise.id,
-        loadType:
-          exercise.oneRepMax && exercise.oneRepMax.value > 0
-            ? "PERCENT"
-            : "RPE",
-        loadValue:
-          exercise.oneRepMax && exercise.oneRepMax.value > 0 ? 0.75 : 8,
-        warmupSets: activity.warmupSets.map((set) => ({
-          ...set,
-          weightValue: null,
-          weightUnit: null,
-          feedback: "Neutral",
-        })),
-        mainSets: activity.mainSets.map((set) => ({
-          ...set,
-          weightValue: null,
-          weightUnit: null,
-          feedback: "Neutral",
-        })),
+      updateActivity(activityId, (activity) =>
+        applyExerciseSelection(activity, selected),
+      );
+    } else if (result.kind === "activity" && ticket.activityId) {
+      const activityId = ticket.activityId;
+      setExercises((previous) => ({
+        ...previous,
+        ...Object.fromEntries(result.exercises.map((item) => [item.id, item])),
       }));
+      // Advanced settings may have swapped in an alternative, changing the id.
+      updateActivity(activityId, () => result.activity);
     } else if (
       result.kind === "template" &&
       result.programId === initial.program.id &&
@@ -334,7 +233,10 @@ function SessionEditor({
             sourceSeed.exercises.map((item) => [item.id, item]),
           ),
         );
-        updateDraft(createTemplateDraft(source, uuidv4));
+        const usage = read((db) =>
+          getRecentMainUsage(db, result.programId, source.id),
+        );
+        updateDraft(createTemplateDraft(source, uuidv4, usage));
       } catch (error) {
         Alert.alert(
           "Template Failed",
@@ -344,61 +246,129 @@ function SessionEditor({
         );
       }
     }
+  };
+  const { open } = useSelectionRequests({
+    generation,
+    focused,
+    onResult: applySelection,
   });
-  useEffect(() => applySelection(), [focused, entries]);
+  const openTemplateSelection = () =>
+    open(
+      "template",
+      `/(public)/(app)/session/select?programId=${encodeURIComponent(initial.program.id)}`,
+    );
+  const openExerciseSelection = (activity: DraftActivity) =>
+    open(
+      "exercise",
+      `/(public)/(app)/exercise/select?activityId=${encodeURIComponent(activity.id)}&currentExerciseId=${encodeURIComponent(activity.exerciseId ?? "")}`,
+      activity.id,
+      exerciseSelectionInput(activity, activity.id, (id) =>
+        exerciseLabel(exercises[id], id),
+      ),
+    );
+  const openLoadSelection = (activity: DraftActivity) =>
+    open(
+      "load",
+      `/(public)/(app)/load?activityId=${encodeURIComponent(activity.id)}&exerciseId=${encodeURIComponent(activity.exerciseId ?? "")}&loadType=${activity.loadType ?? ""}&loadValue=${activity.loadValue ?? ""}`,
+      activity.id,
+    );
+  const openAdvancedSettings = (activity: DraftActivity) => {
+    const activities = draftRef.current.activities;
+    const ids = new Set([
+      activity.exerciseId,
+      ...activity.alternatives.map((item) => item.exerciseId),
+    ]);
+    open(
+      "activity",
+      `/(public)/(app)/program/${encodeURIComponent(initial.program.id)}/session/form/advanced?activityId=${encodeURIComponent(activity.id)}`,
+      activity.id,
+      {
+        activity,
+        exercises: Object.values(exercises).filter((item) => ids.has(item.id)),
+        savedRowIds:
+          session?.activities.flatMap((item) => [
+            item.id,
+            ...item.alternatives.map((alternative) => alternative.id),
+          ]) ?? [],
+        terminalEndMs: terminalEndMs(),
+        weights: {
+          programId: initial.program.id,
+          source: weightSource(),
+          parents: activities.map(({ exerciseId, loadType }) => ({
+            exerciseId,
+            loadType,
+          })),
+          parentIndex: activities.findIndex((item) => item.id === activity.id),
+        },
+      },
+    );
+  };
+
+  const removeActivity = (activity: DraftActivity) => {
+    const remove = () =>
+      updateDraft({
+        ...draftRef.current,
+        activities: draftRef.current.activities.filter(
+          (item) => item.id !== activity.id,
+        ),
+      });
+    const count = activity.alternatives.length;
+    if (
+      !count &&
+      !session?.activities.some((item) => item.id === activity.id)
+    ) {
+      remove();
+      return;
+    }
+    Alert.alert(
+      "Delete Activity?",
+      count
+        ? `This will remove the activity and its ${count} alternative${count === 1 ? "" : "s"} from this session.`
+        : "This will remove the activity from this session.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete Activity", style: "destructive", onPress: remove },
+      ],
+    );
+  };
+  const moveActivity = (index: number, offset: -1 | 1) => {
+    const items = [...draftRef.current.activities];
+    const current = items[index];
+    const other = items[index + offset];
+    if (!current || !other) return;
+    items[index + offset] = current;
+    items[index] = other;
+    updateDraft({ ...draftRef.current, activities: items });
+  };
 
   const changeSetCount = (
     activityId: string,
     kind: "Warmup" | "Main",
     text: string,
   ) => {
-    const count = text === "" ? 0 : Number(text);
-    if (!Number.isInteger(count) || count < 0 || count > 99) return;
     const previous = draftRef.current;
     const index = previous.activities.findIndex(
       (item) => item.id === activityId,
     );
     const activity = previous.activities[index];
     if (!activity) return;
-    const field = kind === "Warmup" ? "warmupSets" : "mainSets";
-    const original = activity[field];
-    const sets = original.slice(0, count);
-    while (sets.length < count) {
-      const last = sets.at(-1);
-      const next = newDraftSet(
-        uuidv4,
-        terminal ? draftRef.current.endMs : undefined,
-      );
-      if (activity.loadType === "RPE" && last) {
-        next.weightValue = last.weightValue;
-        next.weightUnit = last.weightUnit;
-      }
-      sets.push(next);
-    }
-    const added = new Set(sets.slice(original.length).map(({ id }) => id));
-    updateActivity(activityId, (item) => ({ ...item, [field]: sets }));
+    const resized = resizeSets(activity, kind, text, uuidv4, terminalEndMs());
+    if (!resized) return;
+    updateActivity(activityId, () => resized.activity);
     if (
-      original.length ||
-      !added.size ||
+      !resized.wasEmpty ||
+      !resized.added.size ||
       activity.loadType !== "RPE" ||
       !activity.exerciseId
     )
       return;
-    const source = session
-      ? { kind: "session" as const, sessionId: session.id }
-      : templateRef.current
-        ? {
-            kind: "template" as const,
-            sessionId: templateRef.current.sessionId,
-          }
-        : null;
     let hints;
     try {
       hints = read((db) =>
         getPlanningWeightHints(
           db,
           initial.program.id,
-          source,
+          weightSource(),
           previous.activities,
           kind,
         ),
@@ -412,14 +382,9 @@ function SessionEditor({
     }
     const weight = hints.find((hint) => hint.activityIndex === index)?.weight;
     if (!weight) return;
-    updateActivity(activityId, (item) => ({
-      ...item,
-      [field]: item[field].map((set) =>
-        added.has(set.id) && set.weightValue === null
-          ? { ...set, weightValue: weight.value, weightUnit: weight.unit }
-          : set,
-      ),
-    }));
+    updateActivity(activityId, (item) =>
+      applyWeightHint(item, kind, resized.added, weight),
+    );
   };
 
   const save = (action: "save" | "complete" | "delete" | "reset") => {
@@ -428,15 +393,9 @@ function SessionEditor({
     if (
       (action === "save" || action === "complete") &&
       (!value.name.trim() ||
-        value.activities.some(
-          (activity) =>
-            !activity.exerciseId ||
-            activity.reps === null ||
-            activity.reps <= 0 ||
-            activity.loadType === null ||
-            activity.loadValue === null ||
-            !activity.mainSets.length,
-        ))
+        !value.activities
+          .flatMap((activity) => [activity, ...activity.alternatives])
+          .every(isActivityValid))
     ) {
       setShowValidation(true);
       return;
@@ -492,7 +451,7 @@ function SessionEditor({
 
   const chooseTemplate = () => {
     if (!dirty) {
-      openSelection("template");
+      openTemplateSelection();
       return;
     }
     Alert.alert(
@@ -503,7 +462,7 @@ function SessionEditor({
         {
           text: "Discard Edits",
           style: "destructive",
-          onPress: () => openSelection("template"),
+          onPress: openTemplateSelection,
         },
       ],
     );
@@ -677,268 +636,37 @@ function SessionEditor({
               )}
             </Animated.View>
             <Animated.View layout={LinearTransition.duration(220)}>
-              {draft.activities.map((activity, index) => {
-                const exercise = activity.exerciseId
-                  ? exercises[activity.exerciseId]
-                  : undefined;
-                const exerciseError = showValidation && !activity.exerciseId;
-                const load =
-                  activity.loadType !== null && activity.loadValue !== null
-                    ? activity.loadType === "PERCENT"
-                      ? `${Number((activity.loadValue * 100).toFixed(2))}%`
-                      : `RPE ${activity.loadValue}`
-                    : "Unavailable";
-                return (
-                  <AnimatedViewStyled
-                    key={activity.id}
-                    collapsable={false}
-                    entering={FadeInUp.duration(220)}
-                    exiting={FadeOutUp.duration(220)}
-                  >
-                    <Card
-                      className="h-auto flex-row items-stretch gap-0 rounded-none p-0"
-                      variants={["square"]}
-                      stack={{ index, size: draft.activities.length + 1 }}
-                    >
-                      <View
-                        className={
-                          exerciseError
-                            ? "relative z-10 flex-initial basis-1/2 justify-evenly"
-                            : "border-border relative flex-initial basis-1/2 justify-evenly border-r"
-                        }
-                      >
-                        {exerciseError && (
-                          <View
-                            pointerEvents="none"
-                            className="border-destructive absolute inset-0 z-10 border"
-                          />
-                        )}
-                        <View className="relative py-2 pb-6">
-                          <PressableThemed
-                            accessibilityLabel="Navigate to select exercise form"
-                            onPress={() =>
-                              openSelection("exercise", activity.id)
-                            }
-                          >
-                            <View className="h-auto w-full flex-row items-center justify-between gap-2 pr-3 pl-5">
-                              <Text
-                                maxFontSizeMultiplier={2.5}
-                                className={
-                                  exerciseError
-                                    ? "text-destructive flex-1 text-xl leading-tight"
-                                    : exercise
-                                      ? "text-foreground flex-1 text-xl leading-tight"
-                                      : "text-primary flex-1 text-xl leading-tight"
-                                }
-                              >
-                                {exercise
-                                  ? `${exercise.name}${exercise.deleted ? " (Deleted)" : ""}`
-                                  : activity.exerciseId
-                                    ? "Unavailable exercise"
-                                    : "Select Exercise"}
-                              </Text>
-                              <Text
-                                maxFontSizeMultiplier={2.5}
-                                className="text-muted text-xl"
-                              >
-                                <AntDesign name="right" size={15} />
-                              </Text>
-                            </View>
-                          </PressableThemed>
-                          {exerciseError && (
-                            <Text
-                              accessibilityRole="alert"
-                              maxFontSizeMultiplier={2}
-                              className="text-destructive absolute bottom-2.5 left-5 z-10 text-sm"
-                            >
-                              Required
-                            </Text>
-                          )}
-                        </View>
-                        <PressableThemed
-                          className="absolute top-1 left-2 p-2"
-                          hitSlop={20}
-                          accessibilityLabel="Remove exercise from Session"
-                          onPress={() => {
-                            const remove = () =>
-                              updateDraft({
-                                ...draftRef.current,
-                                activities: draftRef.current.activities.filter(
-                                  (item) => item.id !== activity.id,
-                                ),
-                              });
-                            if (
-                              !session?.activities.some(
-                                (item) => item.id === activity.id,
-                              )
-                            ) {
-                              remove();
-                              return;
-                            }
-                            Alert.alert(
-                              "Delete Activity?",
-                              "This will remove the activity from this session.",
-                              [
-                                { text: "Cancel", style: "cancel" },
-                                {
-                                  text: "Delete Activity",
-                                  style: "destructive",
-                                  onPress: remove,
-                                },
-                              ],
-                            );
-                          }}
-                        >
-                          <Text
-                            maxFontSizeMultiplier={2.5}
-                            className="text-destructive text-xl"
-                          >
-                            <Feather name="trash-2" size={20} />
-                          </Text>
-                        </PressableThemed>
-                        {index !== 0 && (
-                          <PressableThemed
-                            className="absolute top-2 self-center p-2 opacity-50"
-                            accessibilityLabel="Move exercise up"
-                            onPress={() => {
-                              const items = [...draftRef.current.activities];
-                              const previous = items[index - 1];
-                              const currentItem = items[index];
-                              if (previous && currentItem) {
-                                items[index - 1] = currentItem;
-                                items[index] = previous;
-                                updateDraft({
-                                  ...draftRef.current,
-                                  activities: items,
-                                });
-                              }
-                            }}
-                          >
-                            <Text
-                              maxFontSizeMultiplier={2.5}
-                              className="text-muted"
-                            >
-                              <AntDesign name="up" size={15} />
-                            </Text>
-                          </PressableThemed>
-                        )}
-                        {index !== draft.activities.length - 1 && (
-                          <PressableThemed
-                            className="absolute bottom-2 self-center p-2 opacity-50"
-                            accessibilityLabel="Move exercise down"
-                            onPress={() => {
-                              const items = [...draftRef.current.activities];
-                              const next = items[index + 1];
-                              const currentItem = items[index];
-                              if (next && currentItem) {
-                                items[index + 1] = currentItem;
-                                items[index] = next;
-                                updateDraft({
-                                  ...draftRef.current,
-                                  activities: items,
-                                });
-                              }
-                            }}
-                          >
-                            <Text
-                              maxFontSizeMultiplier={2.5}
-                              className="text-muted"
-                            >
-                              <AntDesign name="down" size={15} />
-                            </Text>
-                          </PressableThemed>
-                        )}
-                      </View>
-                      <View className="flex-initial basis-1/2 justify-between">
-                        <TextInputThemed
-                          label="Warmup Sets"
-                          value={
-                            activity.warmupSets.length
-                              ? String(activity.warmupSets.length)
-                              : ""
-                          }
-                          keyboardType="number-pad"
-                          numeric
-                          maxLength={1}
-                          placeholder="0"
-                          selectTextOnFocus
-                          stack={{ index: 0, size: 5 }}
-                          cardVariants={["square", "small", "transparent"]}
-                          onChangeText={(value) =>
-                            changeSetCount(activity.id, "Warmup", value)
-                          }
-                        />
-                        <TextInputThemed
-                          label="Main Sets"
-                          value={
-                            activity.mainSets.length
-                              ? String(activity.mainSets.length)
-                              : ""
-                          }
-                          keyboardType="number-pad"
-                          numeric
-                          maxLength={2}
-                          placeholder="0"
-                          selectTextOnFocus
-                          stack={{ index: 1, size: 5 }}
-                          cardVariants={["square", "small", "transparent"]}
-                          error={
-                            showValidation && !activity.mainSets.length
-                              ? "Required"
-                              : undefined
-                          }
-                          onChangeText={(value) =>
-                            changeSetCount(activity.id, "Main", value)
-                          }
-                        />
-                        <NumberDraftInput
-                          key={`${activity.id}:reps`}
-                          compact
-                          stack={{ index: 2, size: 5 }}
-                          maxLength={2}
-                          label="Repetitions"
-                          value={activity.reps}
-                          error={
-                            showValidation &&
-                            (activity.reps === null || activity.reps <= 0)
-                              ? "Required"
-                              : undefined
-                          }
-                          onChange={(reps) =>
-                            updateActivity(activity.id, (item) => ({
-                              ...item,
-                              reps,
-                            }))
-                          }
-                        />
-                        <NumberDraftInput
-                          key={`${activity.id}:rest`}
-                          compact
-                          stack={{ index: 3, size: 5 }}
-                          maxLength={2}
-                          label="Rest (minutes)"
-                          value={activity.restMinutes}
-                          onChange={(restMinutes) =>
-                            updateActivity(activity.id, (item) => ({
-                              ...item,
-                              restMinutes,
-                            }))
-                          }
-                        />
-                        <NavigationCardRow
-                          title="Load"
-                          trailingText={load}
-                          stack={{ index: 4, size: 5 }}
-                          cardVariants={["square", "small"]}
-                          titleClassName="pr-0"
-                          onPress={() => openSelection("load", activity.id)}
-                          accessibilityLabel="Navigate to select exercise load form"
-                        />
-                      </View>
-                    </Card>
-                  </AnimatedViewStyled>
-                );
-              })}
+              {draft.activities.map((activity, index) => (
+                <ActivityRow
+                  key={activity.id}
+                  activity={activity}
+                  exercise={
+                    activity.exerciseId
+                      ? exercises[activity.exerciseId]
+                      : undefined
+                  }
+                  stack={{ index, size: draft.activities.length + 1 }}
+                  showValidation={showValidation}
+                  canMoveUp={index !== 0}
+                  canMoveDown={index !== draft.activities.length - 1}
+                  alternativeCount={activity.alternatives.length}
+                  onSelectExercise={() => openExerciseSelection(activity)}
+                  onSelectLoad={() => openLoadSelection(activity)}
+                  onRemove={() => removeActivity(activity)}
+                  onMoveUp={() => moveActivity(index, -1)}
+                  onMoveDown={() => moveActivity(index, 1)}
+                  onChangeSetCount={(kind, text) =>
+                    changeSetCount(activity.id, kind, text)
+                  }
+                  onChange={(update) =>
+                    updateActivity(activity.id, (item) => ({
+                      ...item,
+                      ...update,
+                    }))
+                  }
+                  onOpenAdvanced={() => openAdvancedSettings(activity)}
+                />
+              ))}
               <PrimaryCardAction
                 label="Add Exercise"
                 icon={<Entypo name="circle-with-plus" size={20} />}
@@ -953,10 +681,7 @@ function SessionEditor({
                     ...draftRef.current,
                     activities: [
                       ...draftRef.current.activities,
-                      newDraftActivity(
-                        uuidv4,
-                        terminal ? draftRef.current.endMs : undefined,
-                      ),
+                      newDraftActivity(uuidv4, terminalEndMs()),
                     ],
                   })
                 }

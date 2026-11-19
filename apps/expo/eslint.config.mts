@@ -9,4 +9,28 @@ export default defineConfig(
   },
   baseConfig,
   reactConfig,
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "expo-router",
+              importNames: ["Redirect"],
+              message:
+                "Use ~/components/MissingDataRedirect, which waits until its screen is visible.",
+            },
+            {
+              name: "expo-router",
+              importNames: ["useRouter"],
+              message:
+                "Use ~/hooks/use-router, which ignores a second tap's navigation.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

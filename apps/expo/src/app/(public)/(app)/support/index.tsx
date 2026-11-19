@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Alert, ScrollView, View } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import * as Updates from "expo-updates";
 
 import BusyOverlay, { afterNextPaint } from "~/components/BusyOverlay";
@@ -14,6 +14,7 @@ import {
   restoreApplicationData,
 } from "~/data/actions";
 import { prepareApplicationRestore } from "~/data/backup/prepare-restore";
+import useRouter from "~/hooks/use-router";
 import {
   downloadBackupFile,
   pickBackupFileContents,

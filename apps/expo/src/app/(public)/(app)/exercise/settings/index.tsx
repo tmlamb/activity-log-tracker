@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNativeVariable } from "react-native-css";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Link, Stack, useLocalSearchParams } from "expo-router";
 
 import type { Exercise } from "@activity-log/ui/utils";
 import {
@@ -14,6 +14,7 @@ import { headerIcons, useHeaderButtonProps } from "~/components/header-toolbar";
 import { LegendSectionListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
 import { useExerciseLibrary } from "~/data/queries";
+import useRouter from "~/hooks/use-router";
 
 interface ExerciseListItem {
   name: string;

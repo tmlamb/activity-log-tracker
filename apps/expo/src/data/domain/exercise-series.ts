@@ -2,6 +2,7 @@ import { addWeeks, differenceInCalendarWeeks, startOfWeek } from "date-fns";
 
 import type {
   ExerciseSeriesFacts,
+  SeriesAlternative,
   SeriesSetFact,
 } from "../repositories/exercise-series";
 import { plannedSetWeight } from "./set-execution";
@@ -28,6 +29,7 @@ export interface ExerciseSeriesProjection {
     points: ExerciseSeriesPoint[];
   }[];
   partial: boolean;
+  alternatives: SeriesAlternative[];
 }
 
 /** Construct series from compact facts, after the read transaction releases. */
@@ -166,5 +168,6 @@ export function buildExerciseSeriesProjection(
     sessionName: facts.selection.sessionName,
     series,
     partial,
+    alternatives: facts.alternatives,
   };
 }

@@ -35,6 +35,7 @@ vi.mock("react-native-reanimated", () => ({
 vi.mock("expo-router/react-navigation", async () => {
   const { useSyncExternalStore } = await import("react");
   return {
+    useNavigation: () => ({ addListener: () => () => undefined }),
     useIsFocused: () =>
       useSyncExternalStore(
         (listener) => {
@@ -185,6 +186,33 @@ describe("session detail navigation", () => {
       renderer?.unmount();
       await Promise.resolve();
     });
+  });
+
+  it("doesn't redirect from under the edit modal when the session is deleted", async () => {
+    const seed = env.seed;
+    env.seed = { ...seed, session: null as unknown as typeof seed.session };
+    env.focused = false;
+    let renderer: ReturnType<typeof create> | undefined;
+    try {
+      await act(async () => {
+        renderer = create(<SessionDetailScreen />);
+        await Promise.resolve();
+      });
+      expect(renderer?.toJSON()).toBeNull();
+      await act(async () => {
+        env.focused = true;
+        env.listeners.forEach((listener) => listener());
+        await Promise.resolve();
+      });
+      expect(JSON.stringify(renderer?.toJSON())).toContain("Redirect");
+      await act(async () => {
+        renderer?.unmount();
+        await Promise.resolve();
+      });
+    } finally {
+      env.seed = seed;
+      env.focused = true;
+    }
   });
 
   it("still shows the inactivity warning at the existing threshold", async () => {

@@ -4,7 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 import type { Db, SqlValue } from "../database/db";
-import { SCHEMA } from "../database/schema";
+import { CURRENT_SCHEMA } from "../database/migrations";
 import { createTestDb, nodeDb } from "../database/test-db";
 import { getSessionEditorSeed } from "./session-editor";
 
@@ -115,7 +115,7 @@ describe("session editor seed", () => {
     const writer = new DatabaseSync(path);
     const readerDb = new DatabaseSync(path);
     try {
-      writer.exec(`PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; ${SCHEMA}
+      writer.exec(`PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; ${CURRENT_SCHEMA}
         INSERT INTO programs VALUES ('p','Before',0);
         INSERT INTO sessions(program_id,id,name,position,status,deload) VALUES ('p','s','Before',0,'Planned',0);`);
       readerDb.exec("PRAGMA foreign_keys = ON; BEGIN");

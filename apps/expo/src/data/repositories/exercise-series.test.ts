@@ -230,7 +230,8 @@ describe("exercise-series projection", () => {
       if (!selectedSet) throw new Error("Missing set");
       const facts = readExerciseSeriesFacts(reader, reference);
       if (!facts) throw new Error("Missing facts");
-      expect(queries()).toBe(3);
+      // Selection, sessions, sets and alternatives.
+      expect(queries()).toBe(4);
       expect(facts.selection.occurrence).toBe(1);
       expect(facts.sets).toHaveLength(5);
       const result = buildExerciseSeriesProjection(facts, current.getTime());

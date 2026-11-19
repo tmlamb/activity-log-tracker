@@ -40,6 +40,7 @@ describe("template draft", () => {
           restMinutes: 2,
           warmupSets: [{ ...set, kind: "Warmup" }],
           mainSets: [set, { ...set, id: "second", actualReps: 9 }],
+          alternatives: [],
         },
         {
           id: "percentage",
@@ -52,6 +53,7 @@ describe("template draft", () => {
           restMinutes: 2,
           warmupSets: [],
           mainSets: [{ ...set, actualReps: 0 }],
+          alternatives: [],
         },
       ],
     };

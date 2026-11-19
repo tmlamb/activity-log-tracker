@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 import { transaction } from "../database/db";
+import { MIGRATIONS } from "../database/migrations";
 import { nodeDb } from "../database/test-db";
 import { defaultDomainData, replaceDomainData } from "../lifecycle/replace";
 import { bootstrapDatabase } from "./bootstrap";
@@ -50,7 +51,7 @@ describe("legacy conversion bootstrap", () => {
       test.keys.set("activity-log-restore-transaction", "{}");
       test.bootstrap();
       expect(test.db.prepare("PRAGMA user_version").get()).toEqual({
-        user_version: 1,
+        user_version: MIGRATIONS.length,
       });
       expect(test.db.prepare("SELECT name FROM programs").get()).toEqual({
         name: "Program",

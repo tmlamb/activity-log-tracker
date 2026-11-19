@@ -1,11 +1,12 @@
 import { View } from "react-native";
 import { useNativeVariable } from "react-native-css";
-import { Link, Stack, useRouter } from "expo-router";
+import { Link, Stack } from "expo-router";
 
 import { NavigationCardRow } from "~/components/CardRow";
 import { headerIcons } from "~/components/header-toolbar";
 import { LegendListStyled } from "~/components/Styled";
 import { useProgramSummaries } from "~/data/queries";
+import useRouter from "~/hooks/use-router";
 
 export default function ProgramSettingsScreen() {
   const router = useRouter();

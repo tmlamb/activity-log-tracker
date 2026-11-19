@@ -86,6 +86,8 @@ export function readProgramInsightFacts(
      JOIN workout_sets w ON w.program_id = a.program_id AND w.session_id = a.session_id AND w.activity_id = a.id AND w.kind = 'Main'
      LEFT JOIN exercises e ON e.id = a.exercise_id
      WHERE s.program_id = ? AND NOT (w.status = 'Done' AND COALESCE(w.actual_reps, 0) > 0)
+       -- Unperformed alternatives aren't missed work; only main activities count.
+       AND a.parent_activity_id IS NULL
      ORDER BY s.position, a.position, w.position`,
     programId,
   );

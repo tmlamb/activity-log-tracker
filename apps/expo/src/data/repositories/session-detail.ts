@@ -15,7 +15,8 @@ export interface SessionSet {
   endMs: number | null;
 }
 
-export interface SessionActivity {
+/** One planned exercise row: a main activity or one of its alternatives. */
+export interface SessionActivityFields {
   id: string;
   exerciseId: string | null;
   exerciseName: string | null;
@@ -26,6 +27,11 @@ export interface SessionActivity {
   restMinutes: number | null;
   warmupSets: SessionSet[];
   mainSets: SessionSet[];
+}
+
+/** A main activity with the alternatives the user may swap in for it. */
+export interface SessionActivity extends SessionActivityFields {
+  alternatives: SessionActivityFields[];
 }
 
 export interface SessionDetail {
@@ -46,9 +52,9 @@ type SessionRow = Omit<SessionDetail, "activities" | "deload"> & {
   deload: number;
 };
 type ActivityRow = Omit<
-  SessionActivity,
+  SessionActivityFields,
   "warmupSets" | "mainSets" | "exerciseDeleted"
-> & { exerciseDeleted: number | null };
+> & { exerciseDeleted: number | null; parentActivityId: string | null };
 type SetRow = SessionSet & { activityId: string };
 
 /** Call in one read transaction so all three queries see the same snapshot. */
@@ -67,11 +73,13 @@ export function getSessionDetail(
   );
   if (!session) return null;
   const activityRows = reader.getAllSync<ActivityRow>(
-    `SELECT a.id, a.exercise_id AS exerciseId, e.name AS exerciseName,
+    `SELECT a.id, a.parent_activity_id AS parentActivityId,
+       a.exercise_id AS exerciseId, e.name AS exerciseName,
        e.deleted AS exerciseDeleted, a.reps, a.load_type AS loadType,
        a.load_value AS loadValue, a.rest_minutes AS restMinutes
      FROM activities a LEFT JOIN exercises e ON e.id = a.exercise_id
-     WHERE a.program_id = ? AND a.session_id = ? ORDER BY a.position`,
+     WHERE a.program_id = ? AND a.session_id = ?
+     ORDER BY a.parent_activity_id IS NOT NULL, a.position`,
     programId,
     sessionId,
   );
@@ -84,13 +92,29 @@ export function getSessionDetail(
     programId,
     sessionId,
   );
-  const activities = activityRows.map(({ exerciseDeleted, ...activity }) => ({
-    ...activity,
-    exerciseDeleted: exerciseDeleted === 1,
-    warmupSets: [] as SessionSet[],
-    mainSets: [] as SessionSet[],
-  }));
-  const byId = new Map(activities.map((activity) => [activity.id, activity]));
+  const activities: SessionActivity[] = [];
+  const byId = new Map<string, SessionActivityFields>();
+  const mains = new Map<string, SessionActivity>();
+  // Mains come first, so each alternative's parent is already present.
+  for (const { exerciseDeleted, parentActivityId, ...row } of activityRows) {
+    const fields: SessionActivityFields = {
+      ...row,
+      exerciseDeleted: exerciseDeleted === 1,
+      warmupSets: [],
+      mainSets: [],
+    };
+    byId.set(fields.id, fields);
+    if (parentActivityId === null) {
+      const main = { ...fields, alternatives: [] };
+      byId.set(main.id, main);
+      mains.set(main.id, main);
+      activities.push(main);
+    } else {
+      const parent = mains.get(parentActivityId);
+      if (!parent) throw new Error("An alternative has no owning activity.");
+      parent.alternatives.push(fields);
+    }
+  }
   for (const { activityId, ...set } of setRows) {
     const activity = byId.get(activityId);
     if (!activity) throw new Error("A workout set has no owning activity.");

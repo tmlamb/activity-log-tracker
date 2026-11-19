@@ -12,6 +12,9 @@ const env = vi.hoisted(() => ({
   input: "8",
   beforeRemove: null as null | ((event: { data: { action: unknown } }) => void),
   kind: "Main",
+  setStatus: "Ready",
+  startable: false,
+  resetSet: vi.fn(),
   patchSet: vi.fn(),
   setExerciseNotes: vi.fn(),
   completeSet: vi.fn(),
@@ -76,7 +79,10 @@ vi.mock("./PressableThemed", () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
 vi.mock("expo-router/react-navigation", () => ({
-  useNavigation: () => ({ dispatch: env.dispatch }),
+  useNavigation: () => ({
+    dispatch: env.dispatch,
+    addListener: () => () => undefined,
+  }),
   usePreventRemove: (
     _enabled: boolean,
     callback: (event: { data: { action: unknown } }) => void,
@@ -126,6 +132,7 @@ vi.mock("~/data/actions", () => ({
   completeSet: env.completeSet,
   startSet: env.startSet,
   reconcileSet: env.reconcileSet,
+  resetSet: env.resetSet,
 }));
 vi.mock("~/data/queries", () => ({
   useExerciseDetail: () => ({ id: "e", name: "Exercise", notes: null }),
@@ -172,7 +179,7 @@ vi.mock("~/data/queries", () => ({
       id: "set",
       kind: env.kind,
       position: 0,
-      status: "Ready",
+      status: env.setStatus,
       feedback: "Neutral",
       actualReps: 0,
       weightValue: 40,
@@ -192,7 +199,7 @@ vi.mock("~/data/queries", () => ({
     targetWeight: { value: 40, unit: "kg" },
     mainTargetWeight: null,
     hasTemplateHistory: false,
-    isStartable: false,
+    isStartable: env.startable,
     canComplete: false,
   }),
 }));
@@ -269,6 +276,40 @@ vi.mock("./TextInputThemed", () => ({
     />
   ),
 }));
+vi.mock("./CollapsibleSection", () => ({
+  CollapsibleSection: ({
+    title,
+    collapsed,
+    onCollapsedChange,
+    children,
+  }: PropsWithChildren<{
+    title: string;
+    collapsed: boolean;
+    onCollapsedChange: (collapsed: boolean) => void;
+  }>) => (
+    <section>
+      <button
+        data-label={title}
+        onClick={() => onCollapsedChange(!collapsed)}
+      />
+      {!collapsed && children}
+    </section>
+  ),
+}));
+vi.mock("./ConfirmButton", () => ({
+  default: ({
+    children,
+    accessibilityLabel,
+    onConfirm,
+  }: PropsWithChildren<{
+    accessibilityLabel: string;
+    onConfirm: () => void;
+  }>) => (
+    <button data-label={accessibilityLabel} onClick={onConfirm}>
+      {children}
+    </button>
+  ),
+}));
 vi.mock("./Typography", () => ({
   HelperText: ({ children }: PropsWithChildren) => <p>{children}</p>,
 }));
@@ -284,6 +325,9 @@ beforeEach(() => {
   env.beforeRemove = null;
   env.input = "8";
   env.kind = "Main";
+  env.setStatus = "Ready";
+  env.startable = false;
+  env.resetSet.mockReset();
   env.patchSet.mockReset();
   env.setExerciseNotes.mockReset();
   env.completeSet.mockReset();
@@ -319,6 +363,51 @@ function change(renderer: ReturnType<typeof create>, label: string) {
 }
 
 describe("set screen interactions", () => {
+  it("treats a quick second press of the action button as the same press", async () => {
+    env.setStatus = "Planned";
+    env.startable = true;
+    const renderer = render();
+    await act(async () => {
+      press(renderer, "Start Main Set");
+      press(renderer, "Start Main Set");
+      await Promise.resolve();
+    });
+    expect(env.startSet).toHaveBeenCalledOnce();
+    act(() => renderer.unmount());
+  });
+
+  it("offers resetting a done or running set, under a collapsed Advanced section", () => {
+    env.setStatus = "Planned";
+    let renderer = render();
+    expect(
+      renderer.root.findAllByProps({ "data-label": "Advanced" }),
+    ).toHaveLength(0);
+    act(() => renderer.unmount());
+
+    // A running set (the fixture's clock started at 1).
+    env.setStatus = "Ready";
+    renderer = render();
+    expect(
+      renderer.root.findAllByProps({ "data-label": "Advanced" }),
+    ).toHaveLength(1);
+    act(() => renderer.unmount());
+
+    env.setStatus = "Done";
+    renderer = render();
+    expect(
+      renderer.root.findAllByProps({ "data-label": "Reset Workout Set" }),
+    ).toHaveLength(0);
+    act(() => press(renderer, "Advanced"));
+    act(() => press(renderer, "Reset Workout Set"));
+    expect(env.resetSet).toHaveBeenCalledWith({
+      programId: "p",
+      sessionId: "s",
+      activityId: "a",
+      setId: "set",
+    });
+    act(() => renderer.unmount());
+  });
+
   it("keeps warmup targets and recording inputs in the original card groups", () => {
     env.kind = "Warmup";
     const renderer = render();

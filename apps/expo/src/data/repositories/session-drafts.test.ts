@@ -53,6 +53,7 @@ const draft: SessionDraft = {
           endMs: null,
         },
       ],
+      alternatives: [],
     },
   ],
 };

@@ -6,7 +6,7 @@ import Animated, {
   FadeOutUp,
   LinearTransition,
 } from "react-native-reanimated";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { Entypo } from "@expo/vector-icons";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 
@@ -24,6 +24,7 @@ import { HelperText, SectionHeading } from "~/components/Typography";
 import { replaceEquipmentInventory } from "~/data/actions";
 import { createDefaultEquipment } from "~/data/legacy/workout-defaults";
 import { useEquipment } from "~/data/queries";
+import useRouter from "~/hooks/use-router";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 
 type FormEquipmentBarbell = Omit<Equipment["barbells"][number], "value"> & {

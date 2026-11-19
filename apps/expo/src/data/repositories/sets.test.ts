@@ -7,6 +7,7 @@ import {
   completeSetAndAdvance,
   patchSetRecording,
   reconcileTerminalSet,
+  resetSet,
   saveSetRecording,
   startSet,
 } from "./sets";
@@ -219,6 +220,144 @@ describe("transactional workout set actions", () => {
           .prepare("SELECT status FROM workout_sets WHERE id = 'other'")
           .get(),
       ).toEqual({ status: "Planned" });
+    } finally {
+      db.raw.close();
+    }
+  });
+});
+
+describe("set reset", () => {
+  function progressed() {
+    const db = createTestDb(`
+      INSERT INTO programs VALUES ('p', 'Program', 0);
+      INSERT INTO sessions(program_id, id, name, position, status, deload, revision)
+        VALUES ('p', 's', 'Session', 0, 'Ready', 0, 3);
+      INSERT INTO activities(program_id, session_id, id, position) VALUES ('p', 's', 'a', 0), ('p', 's', 'b', 1);
+      INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback, actual_reps, weight_value, weight_unit, start_ms, end_ms)
+        VALUES ('p', 's', 'a', 'w0', 'Warmup', 0, 'Done', 'Neutral', 10, 45, 'lbs', 100, 110),
+               ('p', 's', 'a', 'w1', 'Warmup', 1, 'Done', 'Neutral', 8, 95, 'lbs', 120, 130),
+               ('p', 's', 'a', 'm0', 'Main', 0, 'Done', 'Hard', 5, 135, 'lbs', 140, 150),
+               ('p', 's', 'a', 'm1', 'Main', 1, 'Ready', 'Easy', 4, 135, 'lbs', 160, NULL),
+               ('p', 's', 'a', 'm2', 'Main', 2, 'Planned', 'Neutral', 0, NULL, NULL, NULL, NULL),
+               ('p', 's', 'b', 'x0', 'Main', 0, 'Done', 'Neutral', 5, 50, 'lbs', 170, 180);
+    `);
+    return db;
+  }
+  const rows = (
+    db: Db & { raw: { prepare: (sql: string) => { all: () => unknown[] } } },
+  ) =>
+    db.raw
+      .prepare(
+        "SELECT id, status, actual_reps AS reps, weight_value AS weight, feedback, start_ms AS startMs, end_ms AS endMs FROM workout_sets ORDER BY activity_id, kind DESC, position",
+      )
+      .all();
+
+  it("resets a done set and later done or in-progress sets, keeping recorded values", () => {
+    const db = progressed();
+    try {
+      transaction(db, () => resetSet(db, { ...reference, setId: "w1" }, 900));
+      expect(rows(db)).toEqual([
+        {
+          id: "w0",
+          status: "Done",
+          reps: 10,
+          weight: 45,
+          feedback: "Neutral",
+          startMs: 100,
+          endMs: 110,
+        },
+        {
+          id: "w1",
+          status: "Planned",
+          reps: 8,
+          weight: 95,
+          feedback: "Neutral",
+          startMs: null,
+          endMs: null,
+        },
+        {
+          id: "m0",
+          status: "Planned",
+          reps: 5,
+          weight: 135,
+          feedback: "Hard",
+          startMs: null,
+          endMs: null,
+        },
+        {
+          id: "m1",
+          status: "Planned",
+          reps: 4,
+          weight: 135,
+          feedback: "Easy",
+          startMs: null,
+          endMs: null,
+        },
+        {
+          id: "m2",
+          status: "Planned",
+          reps: 0,
+          weight: null,
+          feedback: "Neutral",
+          startMs: null,
+          endMs: null,
+        },
+        // Another activity's sets are untouched.
+        {
+          id: "x0",
+          status: "Done",
+          reps: 5,
+          weight: 50,
+          feedback: "Neutral",
+          startMs: 170,
+          endMs: 180,
+        },
+      ]);
+      expect(
+        db.raw
+          .prepare("SELECT revision, last_activity_at_ms AS at FROM sessions")
+          .get(),
+      ).toEqual({ revision: 4, at: 900 });
+      // The reset set is now the first pending one, so it can be started again
+      // with its recorded values.
+      transaction(db, () =>
+        startSet(
+          db,
+          { ...reference, setId: "w1" },
+          {
+            actualReps: 8,
+            weight: { value: 95, unit: "lbs" },
+            feedback: "Neutral",
+          },
+          1000,
+        ),
+      );
+    } finally {
+      db.raw.close();
+    }
+  });
+
+  it("resets a running set, but not a pending one or a finished session's", () => {
+    const db = progressed();
+    try {
+      expect(() => resetSet(db, { ...reference, setId: "m2" }, 900)).toThrow(
+        "cannot be reset",
+      );
+      transaction(db, () => resetSet(db, { ...reference, setId: "m1" }, 900));
+      expect(
+        db.raw
+          .prepare(
+            "SELECT id, status, actual_reps AS reps, start_ms AS startMs FROM workout_sets WHERE id IN ('m0', 'm1') ORDER BY id",
+          )
+          .all(),
+      ).toEqual([
+        { id: "m0", status: "Done", reps: 5, startMs: 140 },
+        { id: "m1", status: "Planned", reps: 4, startMs: null },
+      ]);
+      db.raw.exec("UPDATE sessions SET status = 'Done'");
+      expect(() => resetSet(db, { ...reference, setId: "m0" }, 900)).toThrow(
+        "cannot be reset",
+      );
     } finally {
       db.raw.close();
     }

@@ -51,7 +51,9 @@ export function DetailCardRow({
     return (
       <Card stack={stack} variants={cardVariants} className={className}>
         <View className="w-full flex-row items-start gap-2">
-          <View className="min-w-0 flex-1 flex-row flex-wrap items-baseline justify-between gap-x-5 gap-y-0.5 py-3">
+          {/* Center the text when a taller accessory sets the row's height;
+              a wrapped value is taller than any accessory, so it's unchanged. */}
+          <View className="min-w-0 flex-1 flex-row flex-wrap items-baseline justify-between gap-x-5 gap-y-0.5 self-center py-3">
             <Text
               maxFontSizeMultiplier={2.5}
               className={twMerge(

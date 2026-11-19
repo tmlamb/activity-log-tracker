@@ -1,23 +1,25 @@
 import "react-native-get-random-values";
 
 import { Alert, ScrollView, View } from "react-native";
-import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
 
 import ConfirmButton from "~/components/ConfirmButton";
 import { useHeaderButtonProps } from "~/components/header-toolbar";
+import MissingDataRedirect from "~/components/MissingDataRedirect";
 import MultilineTextInputThemed from "~/components/MultilineTextInputThemed";
 import { HelperText } from "~/components/Typography";
 import { createProgram, deleteProgram, renameProgram } from "~/data/actions";
 import { useProgramHeader } from "~/data/queries";
+import useRouter from "~/hooks/use-router";
 import useUnsavedChangesWarning from "~/hooks/use-unsaved-changes-warning";
 
 export default function ProgramFormScreen() {
   const { programId } = useLocalSearchParams<{ programId?: string }>();
   const program = useProgramHeader(programId);
   if (programId !== undefined && !program)
-    return <Redirect href="/(public)/(app)/program/settings" />;
+    return <MissingDataRedirect href="/(public)/(app)/program/settings" />;
   return (
     <ProgramFormContent
       key={programId ?? "new"}

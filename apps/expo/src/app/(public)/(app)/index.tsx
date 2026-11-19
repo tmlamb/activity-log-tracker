@@ -1,10 +1,11 @@
 import { Platform } from "react-native";
-import { Link, Stack, useRouter } from "expo-router";
+import { Link, Stack } from "expo-router";
 
 import { NavigationCardRow, PrimaryCardAction } from "~/components/CardRow";
 import { LegendListStyled } from "~/components/Styled";
 import { HelperText, SectionHeading } from "~/components/Typography";
 import { useProgramSummaries } from "~/data/queries";
+import useRouter from "~/hooks/use-router";
 
 export default function DashboardScreen() {
   const router = useRouter();

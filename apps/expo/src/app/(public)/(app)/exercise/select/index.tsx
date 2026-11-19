@@ -5,17 +5,21 @@ import { useState } from "react";
 import { Alert, View } from "react-native";
 import { useNativeVariable } from "react-native-css";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { Host } from "@expo/ui";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { v4 as uuidv4 } from "uuid";
 
 import { normalizeExerciseName } from "@activity-log/ui/utils";
 
-import type { SelectionTicket } from "~/data/selection-handoff";
+import type {
+  ExerciseSelectionInput,
+  SelectionTicket,
+} from "~/data/selection-handoff";
 import { SelectableCardRow } from "~/components/CardRow";
 import { Text } from "~/components/font-scale-text";
 import { useHeaderButtonProps } from "~/components/header-toolbar";
+import MissingDataRedirect from "~/components/MissingDataRedirect";
 import PressableThemed from "~/components/PressableThemed";
 import { LegendSectionListStyled } from "~/components/Styled";
 import { SectionHeading } from "~/components/Typography";
@@ -24,17 +28,20 @@ import { useExerciseLibrary } from "~/data/queries";
 import { getSavedExercise } from "~/data/repositories/exercises";
 import { useSelectionHandoff } from "~/data/selection-handoff";
 import { read, useGeneration } from "~/data/store";
+import useRouter from "~/hooks/use-router";
 
 type Library = ReturnType<typeof useExerciseLibrary>;
 interface Choice {
-  kind: "saved" | "preset";
+  /** An alternative's id is its activity row; others are exercise or preset ids. */
+  kind: "alternative" | "saved" | "preset";
   id: string;
+  exerciseId?: string;
   name: string;
   loadKind: "BARBELL" | "WEIGHT_PAIR" | "SINGLE_WEIGHT" | null;
   muscles: string[];
 }
 interface Section {
-  key: "used" | "unused";
+  key: "alternatives" | "used" | "unused";
   data: Choice[];
 }
 
@@ -58,11 +65,12 @@ export default function ExerciseSelectScreen() {
     String(entry.ticket.generation) !== params.generation ||
     entry.ticket.generation !== generation
   )
-    return <Redirect href="/(public)/(app)" />;
+    return <MissingDataRedirect />;
   return (
     <ExercisePicker
       key={entry.ticket.requestId}
       ticket={entry.ticket}
+      input={entry.input}
       library={library}
       currentExerciseId={params.currentExerciseId}
     />
@@ -71,10 +79,12 @@ export default function ExerciseSelectScreen() {
 
 function ExercisePicker({
   ticket,
+  input,
   library,
   currentExerciseId,
 }: {
   ticket: SelectionTicket;
+  input: ExerciseSelectionInput | null;
   library: Library;
   currentExerciseId?: string;
 }) {
@@ -82,7 +92,7 @@ function ExercisePicker({
   const headerButton = useHeaderButtonProps();
   const primaryColor = useNativeVariable("--primary") as string;
   const [selected, setSelected] = useState<{
-    kind: "saved" | "preset";
+    kind: Choice["kind"];
     id: string;
   } | null>(() =>
     library.saved.some(
@@ -96,10 +106,24 @@ function ExercisePicker({
     library.saved.map(({ name }) => normalizeExerciseName(name)),
   );
   const search = normalizeExerciseName(filter);
+  // Each exercise is used once per activity; its alternatives are listed first.
+  const excluded = new Set(input?.excludeExerciseIds);
+  const alternatives: Choice[] = (input?.alternatives ?? [])
+    .filter((item) => normalizeExerciseName(item.name).includes(search))
+    .map((item) => ({
+      kind: "alternative",
+      id: item.activityId,
+      exerciseId: item.exerciseId,
+      name: item.name,
+      loadKind: null,
+      muscles: [],
+    }));
   const saved: Choice[] = library.saved
     .filter(
       (item) =>
-        !item.deleted && normalizeExerciseName(item.name).includes(search),
+        !item.deleted &&
+        !excluded.has(item.id) &&
+        normalizeExerciseName(item.name).includes(search),
     )
     .map((item) => ({
       kind: "saved",
@@ -122,6 +146,8 @@ function ExercisePicker({
       muscles: item.primaryMuscles,
     }));
   const sections: Section[] = [];
+  if (alternatives.length)
+    sections.push({ key: "alternatives", data: alternatives });
   if (saved.length)
     sections.push({
       key: "used",
@@ -133,7 +159,26 @@ function ExercisePicker({
       data: presets,
     });
   const done = () => {
-    if (!selected) return;
+    // Ignore a second tap while the first is closing this screen.
+    if (!selected || router.isNavigating()) return;
+    if (selected.kind === "alternative") {
+      const alternative = alternatives.find((item) => item.id === selected.id);
+      if (
+        alternative?.exerciseId &&
+        useSelectionHandoff.getState().complete(ticket, {
+          kind: "exercise",
+          exerciseId: alternative.exerciseId,
+          alternativeId: alternative.id,
+        })
+      )
+        router.back();
+      else
+        Alert.alert(
+          "Selection Failed",
+          "This selection request is no longer active.",
+        );
+      return;
+    }
     try {
       const id =
         selected.kind === "preset"
@@ -161,8 +206,8 @@ function ExercisePicker({
     }
   };
   const formHref = (choice: Choice): Href =>
-    choice.kind === "saved"
-      ? `/(public)/(app)/exercise/form?exerciseId=${encodeURIComponent(choice.id)}`
+    choice.kind !== "preset"
+      ? `/(public)/(app)/exercise/form?exerciseId=${encodeURIComponent(choice.exerciseId ?? choice.id)}`
       : `/(public)/(app)/exercise/form?name=${encodeURIComponent(choice.name)}${choice.loadKind ? `&loadKind=${choice.loadKind}` : "&unknownLoadKind=1"}${choice.muscles.length ? `&primaryMuscles=${encodeURIComponent(JSON.stringify(choice.muscles))}` : ""}`;
   return (
     <>
@@ -206,15 +251,21 @@ function ExercisePicker({
         extraData={`${selected?.kind}:${selected?.id}`}
         stickySectionHeadersEnabled={false}
         keyExtractor={(item) => `${item.kind}:${item.id}`}
-        renderSectionHeader={({ section }) =>
-          section.key === "unused" ? (
+        renderSectionHeader={({ section }) => {
+          const title =
+            section.key === "alternatives"
+              ? "Alternative Exercises"
+              : section.key === "unused"
+                ? "More Exercises"
+                : alternatives.length
+                  ? "Exercises"
+                  : null;
+          return title ? (
             <View pointerEvents="none">
-              <SectionHeading placement="inlineInset">
-                More Exercises
-              </SectionHeading>
+              <SectionHeading placement="inlineInset">{title}</SectionHeading>
             </View>
-          ) : null
-        }
+          ) : null;
+        }}
         renderItem={({ item, index, section }) => (
           <Animated.View entering={FadeIn} exiting={FadeOut}>
             <SelectableCardRow

@@ -8,6 +8,10 @@ const { weekQuery } = vi.hoisted(() => ({ weekQuery: vi.fn() }));
 vi.mock("react-native", () => ({
   View: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
+vi.mock("expo-router/react-navigation", () => ({
+  useNavigation: () => ({ addListener: () => () => undefined }),
+  useIsFocused: () => true,
+}));
 vi.mock("expo-router", () => ({
   Link: ({ children }: PropsWithChildren) => <>{children}</>,
   Redirect: () => <div>Redirect</div>,

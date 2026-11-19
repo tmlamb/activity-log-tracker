@@ -28,6 +28,7 @@ vi.mock("react-native-keyboard-controller", () => ({
   ),
 }));
 vi.mock("expo-router/react-navigation", () => ({
+  useNavigation: () => ({ addListener: () => () => undefined }),
   useIsFocused: () => env.focused,
 }));
 vi.mock("expo-router", () => ({
@@ -334,6 +335,183 @@ describe("session editor interactions", () => {
     );
     expect(sessionNames()).toEqual(["Training"]);
     expect(env.back).toHaveBeenCalledOnce();
+    await act(async () => {
+      renderer?.unmount();
+      await Promise.resolve();
+    });
+  });
+
+  it("hands an activity to advanced settings and applies the saved alternatives", async () => {
+    let renderer: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      renderer = create(<SessionFormScreen />);
+      await Promise.resolve();
+    });
+    if (!renderer) throw new Error("Renderer not created");
+    const root = renderer.root;
+    const click = (label: string) => {
+      const item = root
+        .findAllByType("button")
+        .find((button) => button.props["data-label"] === label);
+      if (!item) throw new Error(`Missing button ${label}`);
+      (item.props as { onClick: () => void }).onClick();
+    };
+    const refocus = async (between?: () => void) => {
+      await act(async () => {
+        env.focused = false;
+        renderer?.update(<SessionFormScreen />);
+        await Promise.resolve();
+      });
+      await act(async () => {
+        between?.();
+        await Promise.resolve();
+      });
+      await act(async () => {
+        env.focused = true;
+        renderer?.update(<SessionFormScreen />);
+        await Promise.resolve();
+      });
+    };
+    await act(async () => {
+      (
+        root.findByProps({ "data-label": "Session Name" }).props as {
+          onChange: () => void;
+        }
+      ).onChange();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      click("Add Exercise");
+      await Promise.resolve();
+    });
+    await act(async () => {
+      click("Navigate to advanced activity settings form");
+      await Promise.resolve();
+    });
+    expect(env.push).toHaveBeenCalledOnce();
+    expect(env.push).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^\/\(public\)\/\(app\)\/program\/p\/session\/form\/advanced\?activityId=[^&]+&requestId=/,
+      ),
+    );
+    const entry = Object.values(useSelectionHandoff.getState().entries)[0];
+    if (entry?.kind !== "activity")
+      throw new Error("Missing activity settings request");
+    const input = entry.input;
+    expect(input.activity.id).toBe(entry.ticket.activityId);
+    expect(input.weights.parentIndex).toBe(0);
+
+    // Advanced settings saves a main exercise and two alternatives.
+    const { alternatives: _none, ...fields } = input.activity;
+    const alternative = (id: string) => ({
+      ...fields,
+      id,
+      exerciseId: "e",
+      warmupSets: [],
+      mainSets: input.activity.mainSets
+        .slice(0, 1)
+        .map((item) => ({ ...item, id: `${id}-m` })),
+    });
+    await refocus(() =>
+      expect(
+        useSelectionHandoff.getState().complete(entry.ticket, {
+          kind: "activity",
+          activity: {
+            ...input.activity,
+            exerciseId: "e",
+            alternatives: [alternative("alt-1"), alternative("alt-2")],
+          },
+          exercises: [
+            {
+              id: "e",
+              name: "Exercise",
+              deleted: false,
+              loadKind: null,
+              oneRepMax: null,
+            },
+          ],
+        }),
+      ).toBe(true),
+    );
+    expect(
+      root
+        .findAllByType("span")
+        .some((node) => node.children.includes("2 Alternatives")),
+    ).toBe(true);
+    expect(useSelectionHandoff.getState().entries).toEqual({});
+
+    // Returning from advanced settings must not cancel the next selection,
+    // which lists the alternatives to swap in.
+    await act(async () => {
+      click("Navigate to select exercise form");
+      await Promise.resolve();
+    });
+    const picks = Object.values(useSelectionHandoff.getState().entries);
+    expect(picks).toHaveLength(1);
+    const pick = picks[0];
+    if (pick?.kind !== "exercise") throw new Error("Missing exercise request");
+    expect(pick.input).toEqual({
+      alternatives: [
+        { activityId: "alt-1", exerciseId: "e", name: "Exercise" },
+        { activityId: "alt-2", exerciseId: "e", name: "Exercise" },
+      ],
+      excludeExerciseIds: ["e", "e"],
+    });
+    // Picking an alternative swaps it in; the former main becomes one.
+    await refocus(() =>
+      expect(
+        useSelectionHandoff.getState().complete(pick.ticket, {
+          kind: "exercise",
+          exerciseId: "e",
+          alternativeId: "alt-2",
+        }),
+      ).toBe(true),
+    );
+
+    // A row with alternatives always confirms before it is removed.
+    await act(async () => {
+      click("Remove exercise from Session");
+      await Promise.resolve();
+    });
+    expect(env.alert).toHaveBeenCalledWith(
+      "Delete Activity?",
+      "This will remove the activity and its 2 alternatives from this session.",
+      expect.any(Array),
+    );
+    env.alert.mockClear();
+
+    await act(async () => {
+      click("Save");
+      await Promise.resolve();
+    });
+    expect(env.alert).not.toHaveBeenCalled();
+    expect(actions.createSession).toHaveBeenCalledWith(
+      "p",
+      expect.any(String),
+      expect.objectContaining({
+        activities: [
+          expect.objectContaining({
+            id: "alt-2",
+            exerciseId: "e",
+            alternatives: [
+              expect.objectContaining({ id: "alt-1" }),
+              expect.objectContaining({ id: input.activity.id }),
+            ],
+          }),
+        ],
+      }),
+      null,
+    );
+    expect(
+      raw
+        ?.prepare(
+          "SELECT id, parent_activity_id AS parent, position FROM activities WHERE parent_activity_id IS NOT NULL ORDER BY position",
+        )
+        .all(),
+    ).toEqual([
+      { id: "alt-1", parent: "alt-2", position: 0 },
+      { id: input.activity.id, parent: "alt-2", position: 1 },
+    ]);
     await act(async () => {
       renderer?.unmount();
       await Promise.resolve();

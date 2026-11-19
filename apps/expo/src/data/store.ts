@@ -1,4 +1,10 @@
-import { useMemo, useState, useSyncExternalStore } from "react";
+import {
+  startTransition,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useIsFocused } from "expo-router/react-navigation";
 
 import type { Db } from "./database/db";
@@ -70,8 +76,9 @@ export function useGeneration() {
 /**
  * Synchronously read from the database during render. Pass a stable `job` (a
  * module-level function, or one wrapped in `useCallback`); the result is reused
- * until `job` changes or a write commits while the screen is focused. Screens
- * in the background keep their last result until they regain focus.
+ * until `job` changes or a write commits. A focused screen re-reads in the
+ * same render; a covered screen re-reads at transition priority, so it is
+ * already current when revealed without slowing the screen in front.
  */
 export function useRead<T>(job: (db: Db) => T): T {
   // React Compiler would drop `void seen` below and memoize on `job` alone,
@@ -81,6 +88,9 @@ export function useRead<T>(job: (db: Db) => T): T {
   const latest = useSyncExternalStore(subscribe, () => version);
   const [seen, setSeen] = useState(latest);
   if (focused && seen !== latest) setSeen(latest);
+  useEffect(() => {
+    if (!focused && seen !== latest) startTransition(() => setSeen(latest));
+  }, [focused, seen, latest]);
   // `seen` is the cache key: re-read when it changes, even though `job` doesn't use it.
   return useMemo(() => {
     void seen;

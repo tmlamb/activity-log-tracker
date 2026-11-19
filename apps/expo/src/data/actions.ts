@@ -249,8 +249,12 @@ export function completeSession(programId: string, sessionId: string) {
       hasPendingSets: number;
     }>(
       `SELECT s.status,
-         EXISTS(SELECT 1 FROM activities a WHERE a.program_id = s.program_id AND a.session_id = s.id) AS hasActivities,
-         EXISTS(SELECT 1 FROM workout_sets w WHERE w.program_id = s.program_id AND w.session_id = s.id
+         EXISTS(SELECT 1 FROM activities a WHERE a.program_id = s.program_id AND a.session_id = s.id
+           AND a.parent_activity_id IS NULL) AS hasActivities,
+         -- Unused alternatives never block completion; only main activities count.
+         EXISTS(SELECT 1 FROM workout_sets w JOIN activities a
+             ON a.program_id = w.program_id AND a.session_id = w.session_id AND a.id = w.activity_id
+           WHERE w.program_id = s.program_id AND w.session_id = s.id AND a.parent_activity_id IS NULL
            AND (w.status <> 'Done' OR w.actual_reps IS NULL OR w.actual_reps <= 0)) AS hasPendingSets
        FROM sessions s WHERE s.program_id = ? AND s.id = ?`,
       programId,
@@ -335,6 +339,10 @@ export function startSet(
   measurements: SetMeasurements,
 ) {
   write((db) => sets.startSet(db, reference, measurements, Date.now()));
+}
+
+export function resetSet(reference: SetReference) {
+  write((db) => sets.resetSet(db, reference, Date.now()));
 }
 
 /** Returns the ID of the next set to perform, if any. */

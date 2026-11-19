@@ -5,6 +5,8 @@ import type { PortableDataV2 } from "./portable-v2";
 import { parsePortableBackupV2 } from "./portable-v2";
 
 type PreparedRows = ReturnType<typeof prepareLegacyConversion>;
+type PortableActivityFields =
+  PortableDataV2["programs"][number]["sessions"][number]["activities"][number]["alternatives"][number];
 
 function unique(values: readonly string[], label: string) {
   if (new Set(values).size !== values.length)
@@ -56,10 +58,16 @@ export function prepareVersion2Restore(contents: string): PreparedRows {
       if (session.lineageId !== null && !lineages.has(session.lineageId))
         throw new Error("The backup references a missing lineage.");
       unique(
-        session.activities.map(({ id }) => id),
+        session.activities.flatMap(({ id, alternatives }) => [
+          id,
+          ...alternatives.map((alternative) => alternative.id),
+        ]),
         "activity IDs",
       );
-      for (const activity of session.activities) {
+      for (const activity of session.activities.flatMap((item) => [
+        item,
+        ...item.alternatives,
+      ])) {
         if (
           activity.exerciseId !== null &&
           !exerciseIds.has(activity.exerciseId)
@@ -169,13 +177,18 @@ function toRows(data: PortableDataV2): PreparedRows {
         end_ms: session.endMs,
         last_activity_at_ms: session.lastActivityAtMs,
       });
-      session.activities.forEach((activity, activityPosition) => {
+      const pushActivity = (
+        activity: PortableActivityFields,
+        position: number,
+        parentId: string | null,
+      ) => {
         history.activities.push({
           program_id: program.id,
           session_id: session.id,
           id: activity.id,
+          parent_activity_id: parentId,
           exercise_id: activity.exerciseId,
-          position: activityPosition,
+          position,
           reps: activity.reps,
           load_type: activity.load?.type ?? null,
           load_value: activity.load?.value ?? null,
@@ -203,6 +216,12 @@ function toRows(data: PortableDataV2): PreparedRows {
             }),
           );
         }
+      };
+      session.activities.forEach((activity, activityPosition) => {
+        pushActivity(activity, activityPosition, null);
+        activity.alternatives.forEach((alternative, alternativePosition) =>
+          pushActivity(alternative, alternativePosition, activity.id),
+        );
       });
     });
   });

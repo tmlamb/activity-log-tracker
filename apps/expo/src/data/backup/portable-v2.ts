@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** The version new backups are written with. */
+export const PORTABLE_BACKUP_VERSION = 3;
+
 /** Frozen portable model. Timestamps are epoch milliseconds, never Date objects. */
 const id = z.string().refine((value) => value.trim().length > 0);
 const numeric = z.number().finite();
@@ -20,7 +23,7 @@ const workoutSet = z.object({
   startMs: timestamp,
   endMs: timestamp,
 });
-const activity = z.object({
+const activityFields = {
   id,
   exerciseId: id.nullable(),
   reps: numeric.nullable(),
@@ -30,6 +33,12 @@ const activity = z.object({
   restMinutes: numeric.nullable(),
   warmupSets: z.array(workoutSet),
   mainSets: z.array(workoutSet),
+};
+const alternative = z.object(activityFields);
+/** Version 3 added alternatives; version-2 backups have none. */
+const activity = z.object({
+  ...activityFields,
+  alternatives: z.array(alternative).default([]),
 });
 const session = z.object({
   id,
@@ -60,7 +69,7 @@ const preset = z.object({
 });
 export const portableBackupV2Schema = z.object({
   format: z.literal("activity-log-tracker-backup"),
-  version: z.literal(2),
+  version: z.union([z.literal(2), z.literal(PORTABLE_BACKUP_VERSION)]),
   createdAtMs: validTimestamp,
   data: z.object({
     programs: z.array(
@@ -92,7 +101,7 @@ export function serializePortableBackupV2(
 ): string {
   const backup = portableBackupV2Schema.parse({
     format: "activity-log-tracker-backup",
-    version: 2,
+    version: PORTABLE_BACKUP_VERSION,
     createdAtMs,
     data,
   });

@@ -1,4 +1,5 @@
 import type { Db } from "./db";
+import { ACTIVITY_ALTERNATIVES_MIGRATION } from "./activity-alternatives-migration";
 import { SCHEMA } from "./schema";
 
 /**
@@ -11,7 +12,12 @@ import { SCHEMA } from "./schema";
 export const MIGRATIONS: readonly string[] = [
   // 1: the initial relational schema.
   SCHEMA,
+  // 2: alternative exercises (activities.parent_activity_id).
+  ACTIVITY_ALTERNATIVES_MIGRATION,
 ];
+
+/** Every step in order: the current schema, for tests that build databases. */
+export const CURRENT_SCHEMA = MIGRATIONS.join("\n");
 
 /**
  * Apply the steps this database hasn't run yet and record the new version.
