@@ -255,12 +255,14 @@ function SessionEditor({
   const openTemplateSelection = () =>
     open(
       "template",
-      `/(public)/(app)/session/select?programId=${encodeURIComponent(initial.program.id)}`,
+      (ticket) =>
+        `/(public)/(app)/session/select?programId=${encodeURIComponent(initial.program.id)}&${ticket}`,
     );
   const openExerciseSelection = (activity: DraftActivity) =>
     open(
       "exercise",
-      `/(public)/(app)/exercise/select?activityId=${encodeURIComponent(activity.id)}&currentExerciseId=${encodeURIComponent(activity.exerciseId ?? "")}`,
+      (ticket) =>
+        `/(public)/(app)/exercise/select?activityId=${encodeURIComponent(activity.id)}&currentExerciseId=${encodeURIComponent(activity.exerciseId ?? "")}&${ticket}`,
       activity.id,
       exerciseSelectionInput(activity, activity.id, (id) =>
         exerciseLabel(exercises[id], id),
@@ -269,7 +271,8 @@ function SessionEditor({
   const openLoadSelection = (activity: DraftActivity) =>
     open(
       "load",
-      `/(public)/(app)/load?activityId=${encodeURIComponent(activity.id)}&exerciseId=${encodeURIComponent(activity.exerciseId ?? "")}&loadType=${activity.loadType ?? ""}&loadValue=${activity.loadValue ?? ""}`,
+      (ticket) =>
+        `/(public)/(app)/load?activityId=${encodeURIComponent(activity.id)}&exerciseId=${encodeURIComponent(activity.exerciseId ?? "")}&loadType=${activity.loadType ?? ""}&loadValue=${activity.loadValue ?? ""}&${ticket}`,
       activity.id,
     );
   const openAdvancedSettings = (activity: DraftActivity) => {
@@ -280,7 +283,8 @@ function SessionEditor({
     ]);
     open(
       "activity",
-      `/(public)/(app)/program/${encodeURIComponent(initial.program.id)}/session/form/advanced?activityId=${encodeURIComponent(activity.id)}`,
+      (ticket) =>
+        `/(public)/(app)/program/${encodeURIComponent(initial.program.id)}/session/form/advanced?activityId=${encodeURIComponent(activity.id)}&${ticket}`,
       activity.id,
       {
         activity,

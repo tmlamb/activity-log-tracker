@@ -43,12 +43,13 @@ export default function useSelectionRequests({
   }, [generation, ownerId]);
 
   /**
-   * Begin a request and push `path`, which must already contain a query
-   * string; the ticket's parameters are appended to it.
+   * Begin a request and push the screen `href` builds. It receives the
+   * ticket's query parameters to append to its own query string, so the href
+   * stays a literal route that type-checks with typed routes.
    */
   const open = (
     kind: SelectionKind,
-    path: string,
+    href: (ticketQuery: string) => Href,
     activityId?: string,
     input?: SelectionInput,
   ) => {
@@ -63,7 +64,9 @@ export default function useSelectionRequests({
     useSelectionHandoff.getState().begin(ticket, kind, input);
     active.current = { ticket, kind };
     router.push(
-      `${path}&requestId=${encodeURIComponent(ticket.requestId)}&ownerId=${encodeURIComponent(ownerId)}&generation=${generation}` as Href,
+      href(
+        `requestId=${encodeURIComponent(ticket.requestId)}&ownerId=${encodeURIComponent(ownerId)}&generation=${generation}`,
+      ),
     );
   };
 

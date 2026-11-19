@@ -169,7 +169,8 @@ function AdvancedActivitySettings({
   const openExerciseSelection = (row: DraftAlternative) =>
     open(
       "exercise",
-      `/(public)/(app)/exercise/select?activityId=${encodeURIComponent(row.id)}&currentExerciseId=${encodeURIComponent(row.exerciseId ?? "")}`,
+      (ticket) =>
+        `/(public)/(app)/exercise/select?activityId=${encodeURIComponent(row.id)}&currentExerciseId=${encodeURIComponent(row.exerciseId ?? "")}&${ticket}`,
       row.id,
       exerciseSelectionInput(draft, row.id, (id) =>
         exerciseLabel(exercises[id], id),
@@ -178,7 +179,8 @@ function AdvancedActivitySettings({
   const openLoadSelection = (row: DraftAlternative) =>
     open(
       "load",
-      `/(public)/(app)/load?activityId=${encodeURIComponent(row.id)}&exerciseId=${encodeURIComponent(row.exerciseId ?? "")}&loadType=${row.loadType ?? ""}&loadValue=${row.loadValue ?? ""}`,
+      (ticket) =>
+        `/(public)/(app)/load?activityId=${encodeURIComponent(row.id)}&exerciseId=${encodeURIComponent(row.exerciseId ?? "")}&loadType=${row.loadType ?? ""}&loadValue=${row.loadValue ?? ""}&${ticket}`,
       row.id,
     );
 
