@@ -81,8 +81,12 @@ export function plannedDropSetWeight(
   const drops = ofKind("Drop");
   for (let number = 0; number <= index; number++) {
     if (!weight) return null;
+    // A 0% drop repeats the weight exactly, without rounding it.
     weight = {
-      value: round5(weight.value * (1 - dropPercent)),
+      value:
+        dropPercent === 0
+          ? weight.value
+          : round5(weight.value * (1 - dropPercent)),
       unit: weight.unit,
     };
     if (number < index) weight = recorded(drops[number]?.weight) ?? weight;

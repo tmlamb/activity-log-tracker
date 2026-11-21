@@ -131,14 +131,52 @@ describe("activity drop sets", () => {
         INSERT INTO workout_sets (program_id, session_id, activity_id, id, kind, position, status, feedback)
           VALUES ('p', 's', 'a', 'd', 'Drop', 0, 'Planned', 'Neutral');`);
       expect(db.raw.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
-      // A drop can't take off nothing or everything.
-      for (const value of [0, 1])
+      // A drop can take off nothing, but not everything.
+      db.raw.exec("UPDATE activities SET drop_percent = 0");
+      for (const value of [-0.1, 1])
         expect(() =>
           db.raw.exec(`UPDATE activities SET drop_percent = ${value}`),
         ).toThrow();
       // Sets still go with their activity.
       db.raw.exec("DELETE FROM activities");
       expect(db.raw.prepare("SELECT id FROM workout_sets").all()).toEqual([]);
+    } finally {
+      db.raw.close();
+    }
+  });
+
+  it("allows a 0% drop on a database that already has drop sets", () => {
+    const db = nodeDb(new DatabaseSync(":memory:"));
+    db.raw.exec("PRAGMA foreign_keys = ON");
+    try {
+      migrateDatabase(db, MIGRATIONS.slice(0, 4));
+      db.raw.exec(seed);
+      createPlannedSession(db, "p", "s", draft(), null, 1);
+      const before = getSessionDetail(db, "p", "s");
+      // Step 4 required a drop of more than 0.
+      expect(() =>
+        db.raw.exec("UPDATE activities SET drop_percent = 0 WHERE id = 'a'"),
+      ).toThrow();
+      expect(transaction(db, () => migrateDatabase(db))).toBe(4);
+      // Every activity and set survives, superset and drop sets included.
+      expect(getSessionDetail(db, "p", "s")).toEqual(before);
+      expect(db.raw.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+      db.raw.exec("UPDATE activities SET drop_percent = 0 WHERE id = 'a'");
+      // Indexes are rebuilt with the table: positions stay unique.
+      expect(() =>
+        db.raw.exec(
+          "INSERT INTO activities (program_id, session_id, id, position) VALUES ('p', 's', 'x', 0)",
+        ),
+      ).toThrow();
+      // Deleting a leader still removes its members and their sets.
+      db.raw.exec("DELETE FROM activities WHERE id = 'a'");
+      expect(
+        db.raw
+          .prepare(
+            "SELECT DISTINCT activity_id AS id FROM workout_sets ORDER BY id",
+          )
+          .all(),
+      ).toEqual([{ id: "c" }]);
     } finally {
       db.raw.close();
     }
@@ -187,7 +225,7 @@ describe("activity drop sets", () => {
   it("rejects an invalid drop percentage, but defaults a missing one", () => {
     const db = createTestDb(seed);
     try {
-      for (const dropPercent of [0, 1]) {
+      for (const dropPercent of [-0.1, 1]) {
         const value = draft();
         const activity = value.activities[0];
         if (!activity) throw new Error("Missing activity");
@@ -524,7 +562,8 @@ describe("drop set drafts", () => {
   it("requires a valid percentage with drop sets", () => {
     const on = withDrops(activity());
     expect(activityErrors(on).dropPercent).toBe(false);
-    expect(activityErrors({ ...on, dropPercent: 0 }).dropPercent).toBe(true);
+    expect(activityErrors({ ...on, dropPercent: 0 }).dropPercent).toBe(false);
+    expect(activityErrors({ ...on, dropPercent: 1 }).dropPercent).toBe(true);
     expect(activityErrors(activity()).dropPercent).toBe(false);
   });
 
@@ -572,6 +611,19 @@ describe("drop set drafts", () => {
         null,
       ),
     ).toBeNull();
+    // A 0% drop repeats the weight exactly, without rounding to 5.
+    expect(
+      plannedDropSetWeight(
+        { ...rpe, dropPercent: 0 },
+        [
+          { kind: "Main", weight: weight(47.5) },
+          { kind: "Drop", weight: null },
+          { kind: "Drop", weight: null },
+        ],
+        1,
+        null,
+      ),
+    ).toEqual(weight(47.5));
     // Without a percentage of its own, a row drops by the default 20%.
     expect(
       plannedDropSetWeight(

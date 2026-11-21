@@ -196,15 +196,19 @@ describe("load screen drop percentage", () => {
     expect(env.back).toHaveBeenCalled();
   });
 
-  it("requires a percentage between 0.01 and 99.99", async () => {
+  it("requires a percentage from 0 to 99.99", async () => {
     const view = await render({ dropSetCount: "1", dropPercent: "" });
-    for (const text of ["", "0", "100"]) {
+    for (const text of ["", "100"]) {
       await view.type(label, text);
       await view.done();
       expect(view.result()).toBeNull();
       expect(view.inputs(label)[0]?.props["data-error"]).toBe(
-        "Percentage must be between 0.01 and 99.99",
+        "Percentage must be between 0 and 99.99",
       );
     }
+    // 0% repeats the previous set's weight.
+    await view.type(label, "0");
+    await view.done();
+    expect(view.result()).toMatchObject({ dropPercent: 0 });
   });
 });

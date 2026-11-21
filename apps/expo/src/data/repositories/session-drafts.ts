@@ -91,9 +91,11 @@ function validateDraft(draft: SessionDraft) {
       throw new Error("A workout load requires a value and type.");
     if (
       activity.dropPercent !== null &&
-      !(activity.dropPercent > 0 && activity.dropPercent < 1)
+      !(activity.dropPercent >= 0 && activity.dropPercent < 1)
     )
-      throw new Error("A drop set percentage must be between 0 and 100.");
+      throw new Error(
+        "A drop set percentage must be at least 0 and less than 100.",
+      );
     for (const value of [
       activity.reps,
       activity.loadValue,

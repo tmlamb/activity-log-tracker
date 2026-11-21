@@ -180,9 +180,12 @@ export function dropSetErrors(activity: Pick<DraftAlternative, "dropPercent">) {
   };
 }
 
-/** A drop takes off more than nothing and less than the whole weight. */
+/**
+ * A drop takes off less than the whole weight; nothing at all repeats the
+ * previous set's weight.
+ */
 export function isDropPercentValid(value: number | null) {
-  return value !== null && value >= 0.0001 && value < 1;
+  return value !== null && value >= 0 && value < 1;
 }
 
 export function isActivityValid(activity: DraftAlternative) {

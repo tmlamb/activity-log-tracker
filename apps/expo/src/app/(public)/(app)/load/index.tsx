@@ -538,7 +538,7 @@ function LoadEditor({
                     decimalPlaces={2}
                     error={
                       error
-                        ? "Percentage must be between 0.01 and 99.99"
+                        ? "Percentage must be between 0 and 99.99"
                         : undefined
                     }
                     cardVariants={["square"]}
