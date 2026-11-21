@@ -14,6 +14,7 @@ import { Entypo } from "@expo/vector-icons";
 import { v4 as uuidv4 } from "uuid";
 
 import type { PlanningWeightSource } from "~/data/repositories/planning-weights";
+import type { SetKind } from "~/data/repositories/session-detail";
 import type {
   DraftActivity,
   SessionDraft,
@@ -58,7 +59,7 @@ import {
   exerciseSelectionInput,
   isActivityValid,
   newDraftActivity,
-  normalizeActivity,
+  normalizeSuperset,
   resizeSets,
   shiftDraftStart,
   swapAlternative,
@@ -133,10 +134,7 @@ function SessionEditor({
     draftRef.current = next;
     setDraft(next);
   };
-  /**
-   * Update one activity, keeping its superset's set counts and rest, and its
-   * drop sets, aligned.
-   */
+  /** Update one activity, keeping its superset's set counts and rest aligned. */
   const updateActivity = (
     id: string,
     update: (activity: DraftActivity) => DraftActivity,
@@ -146,7 +144,7 @@ function SessionEditor({
       ...previous,
       activities: previous.activities.map((activity) =>
         activity.id === id
-          ? normalizeActivity(update(activity), uuidv4, terminalEndMs())
+          ? normalizeSuperset(update(activity), uuidv4, terminalEndMs())
           : activity,
       ),
     });
@@ -162,7 +160,7 @@ function SessionEditor({
   const applySelection = (result: SelectionResult, ticket: SelectionTicket) => {
     if (result.kind === "load" && ticket.activityId) {
       updateActivity(ticket.activityId, (activity) =>
-        applyLoadSelection(activity, result.load),
+        applyLoadSelection(activity, result.load, result.dropPercent),
       );
     } else if (result.kind === "exercise" && ticket.activityId) {
       const activityId = ticket.activityId;
@@ -281,7 +279,7 @@ function SessionEditor({
     open(
       "load",
       (ticket) =>
-        `/(public)/(app)/load?activityId=${encodeURIComponent(activity.id)}&exerciseId=${encodeURIComponent(activity.exerciseId ?? "")}&loadType=${activity.loadType ?? ""}&loadValue=${activity.loadValue ?? ""}&${ticket}`,
+        `/(public)/(app)/load?activityId=${encodeURIComponent(activity.id)}&exerciseId=${encodeURIComponent(activity.exerciseId ?? "")}&loadType=${activity.loadType ?? ""}&loadValue=${activity.loadValue ?? ""}&dropSetCount=${activity.dropSets.length}&dropPercent=${activity.dropPercent ?? ""}&${ticket}`,
       activity.id,
     );
   const openAdvancedSettings = (activity: DraftActivity) => {
@@ -363,11 +361,7 @@ function SessionEditor({
     updateDraft({ ...draftRef.current, activities: items });
   };
 
-  const changeSetCount = (
-    activityId: string,
-    kind: "Warmup" | "Main",
-    text: string,
-  ) => {
+  const changeSetCount = (activityId: string, kind: SetKind, text: string) => {
     const previous = draftRef.current;
     const index = previous.activities.findIndex(
       (item) => item.id === activityId,
@@ -376,6 +370,11 @@ function SessionEditor({
     if (!activity) return;
     const resized = resizeSets(activity, kind, text, uuidv4, terminalEndMs());
     if (!resized) return;
+    // Drop set weights follow from the sets before them: no hints to apply.
+    if (kind === "Drop") {
+      updateActivity(activityId, () => resized.activity);
+      return;
+    }
     const field = kind === "Warmup" ? "warmupSets" : "mainSets";
     const existing = new Set(
       supersetRows(activity).flatMap((row) => row[field].map(({ id }) => id)),
@@ -690,7 +689,6 @@ function SessionEditor({
                   canMoveDown={index !== draft.activities.length - 1}
                   alternativeCount={activity.alternatives.length}
                   supersetCount={activity.supersets.length}
-                  dropSetCount={activity.dropSets.length}
                   restLocked={activity.supersets.length > 0}
                   onSelectExercise={() => openExerciseSelection(activity)}
                   onSelectLoad={() => openLoadSelection(activity)}

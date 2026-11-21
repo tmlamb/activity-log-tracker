@@ -679,9 +679,10 @@ describe("session editor interactions", () => {
     ).toBe(true);
     expect(input("Rest (minutes)")["data-editable"]).toBe(false);
 
-    // Superset exercises follow the activity's set counts.
+    // Superset exercises follow the activity's set counts, drop sets too.
     await act(async () => {
       input("Main Sets")["data-change"]("4");
+      input("Drop Sets")["data-change"]("2");
       await Promise.resolve();
     });
     await act(async () => {
@@ -696,6 +697,8 @@ describe("session editor interactions", () => {
     });
     expect(saved?.activities[0]?.mainSets).toHaveLength(4);
     expect(saved?.activities[0]?.supersets[0]?.mainSets).toHaveLength(4);
+    expect(saved?.activities[0]?.dropSets).toHaveLength(2);
+    expect(saved?.activities[0]?.supersets[0]?.dropSets).toHaveLength(2);
     await act(async () => {
       renderer?.unmount();
       await Promise.resolve();

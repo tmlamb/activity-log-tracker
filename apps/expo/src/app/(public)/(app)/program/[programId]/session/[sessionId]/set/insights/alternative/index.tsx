@@ -1,25 +1,8 @@
-import { Stack } from "expo-router";
-
 import ExerciseInsightsScreen from "~/components/ExerciseInsightsScreen";
-import { useHeaderButtonProps } from "~/components/header-toolbar";
-import useRouter from "~/hooks/use-router";
 
-/** An alternative exercise's insights, opened as a modal from its activity's. */
-export default function AlternativeExerciseInsightsScreen() {
-  const router = useRouter();
-  const headerButton = useHeaderButtonProps();
-  return (
-    <>
-      <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button
-          {...headerButton("primary", "bold")}
-          accessibilityLabel="Close exercise insights"
-          onPress={() => router.back()}
-        >
-          Done
-        </Stack.Toolbar.Button>
-      </Stack.Toolbar>
-      <ExerciseInsightsScreen />
-    </>
-  );
-}
+/**
+ * An alternative exercise's insights, pushed from its activity's. It has its
+ * own route because routes are singular: pushing the activity's insights route
+ * again would reuse the open screen instead of drilling down.
+ */
+export default ExerciseInsightsScreen;

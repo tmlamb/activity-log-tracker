@@ -17,12 +17,12 @@ import { buildExerciseSeriesProjection } from "../domain/exercise-series";
 import { buildProgramInsightProjection } from "../domain/program-insights";
 import {
   activityErrors,
+  applyLoadSelection,
   draftFromSession,
   newDraftActivity,
   newDraftSupersetMember,
-  normalizeActivity,
+  normalizeSuperset,
   resizeSets,
-  setDropSetCount,
   swapAlternative,
 } from "../domain/session-editor-draft";
 import { plannedDropSetWeight } from "../domain/set-execution";
@@ -184,10 +184,10 @@ describe("activity drop sets", () => {
     }
   });
 
-  it("rejects drop sets without a valid percentage", () => {
+  it("rejects an invalid drop percentage, but defaults a missing one", () => {
     const db = createTestDb(seed);
     try {
-      for (const dropPercent of [null, 0, 1]) {
+      for (const dropPercent of [0, 1]) {
         const value = draft();
         const activity = value.activities[0];
         if (!activity) throw new Error("Missing activity");
@@ -196,6 +196,15 @@ describe("activity drop sets", () => {
           createPlannedSession(db, "p", "s", value, null, 1),
         ).toThrow();
       }
+      const value = draft();
+      const activity = value.activities[0];
+      if (!activity) throw new Error("Missing activity");
+      activity.dropPercent = null;
+      createPlannedSession(db, "p", "s", value, null, 1);
+      // Without a percentage of its own, a drop set takes off the default 20%.
+      expect(
+        getSetExecutionContext(db, ref("a", "a-d0"))?.targetWeight,
+      ).toEqual({ value: 120, unit: "lbs" });
     } finally {
       db.raw.close();
     }
@@ -445,64 +454,54 @@ describe("drop set drafts", () => {
     ),
   });
 
-  /** `activity` with drop sets of 20%. */
-  const withDrops = (base: DraftActivity, count = "1") => {
-    const next = setDropSetCount(base, count, 0.2, createId, undefined);
+  /** `activity` with `count` drop sets at the default percentage. */
+  const withDrops = <T extends DraftAlternative>(base: T, count = "1"): T => {
+    const next = resizeSets(base, "Drop", count, createId, undefined);
     if (!next) throw new Error("Invalid count");
-    return next;
+    return next.activity;
   };
 
-  it("has drop sets while it has a count, keeping its percentage", () => {
-    const on = withDrops(activity(), "2");
-    expect(on.dropPercent).toBe(0.2);
-    expect(on.dropSets).toHaveLength(2);
-    // An existing percentage stays when the count changes.
-    expect(
-      setDropSetCount(
-        { ...on, dropPercent: 0.3 },
-        "3",
-        0.2,
-        createId,
-        undefined,
-      ),
-    ).toMatchObject({ dropPercent: 0.3, dropSets: [{}, {}, {}] });
-    for (const cleared of ["0", ""]) {
-      const off = setDropSetCount(on, cleared, 0.2, createId, undefined);
-      expect(off?.dropPercent).toBeNull();
-      expect(off?.dropSets).toEqual([]);
-    }
-    expect(setDropSetCount(on, "x", 0.2, createId, undefined)).toBeNull();
-  });
-
-  it("gives alternatives and superset rows the activity's drop sets", () => {
+  it("shares drop set counts across a superset, but not its alternatives", () => {
     const leader = withDrops(activity());
     const withMember = {
       ...leader,
-      supersets: [newDraftSupersetMember(leader, createId, undefined)],
+      supersets: [
+        {
+          ...newDraftSupersetMember(leader, createId, undefined),
+          dropPercent: 0.3,
+        },
+      ],
     };
-    const grown = normalizeActivity(
-      resizeSets(withMember, "Drop", "3", createId, undefined)?.activity ??
-        withMember,
+    const grown = normalizeSuperset(
+      withDrops(withMember, "3"),
       createId,
       undefined,
     );
-    const rows = [grown, ...grown.alternatives, ...grown.supersets];
+    // The member follows the leader's count, keeping its own percentage.
     expect(
-      rows.map((item) => [item.dropPercent, item.dropSets.length]),
+      [grown, ...grown.supersets].map((item) => [
+        item.dropPercent,
+        item.dropSets.length,
+      ]),
     ).toEqual([
-      [0.2, 3],
-      [0.2, 3],
-      [0.2, 3],
+      [null, 3],
+      [0.3, 3],
     ]);
-    // An alternative swapped in keeps dropping the same way.
+    // The leader's alternative plans its own drop sets.
+    expect(grown.alternatives[0]?.dropSets).toEqual([]);
     const alternative = grown.alternatives[0];
     if (!alternative) throw new Error("Missing alternative");
-    expect(swapAlternative(grown, alternative.id)).toMatchObject({
-      dropPercent: 0.2,
-      dropSets: [{}, {}, {}],
-    });
-    // Normalizing again changes nothing.
-    expect(normalizeActivity(grown, createId, undefined)).toEqual(grown);
+    expect(swapAlternative(grown, alternative.id)?.dropSets).toEqual([]);
+  });
+
+  it("applies a drop percentage chosen with the load", () => {
+    const base = withDrops(activity());
+    const load = { type: "RPE" as const, value: 9 };
+    expect(applyLoadSelection(base, load, 0.25).dropPercent).toBe(0.25);
+    // Without drop sets offered, the percentage stays as it was.
+    expect(
+      applyLoadSelection({ ...base, dropPercent: 0.3 }, load).dropPercent,
+    ).toBe(0.3);
   });
 
   it("doesn't copy weights into new drop sets", () => {
@@ -573,6 +572,7 @@ describe("drop set drafts", () => {
         null,
       ),
     ).toBeNull();
+    // Without a percentage of its own, a row drops by the default 20%.
     expect(
       plannedDropSetWeight(
         { ...rpe, dropPercent: null },
@@ -580,6 +580,6 @@ describe("drop set drafts", () => {
         0,
         null,
       ),
-    ).toBeNull();
+    ).toEqual(weight(80));
   });
 });

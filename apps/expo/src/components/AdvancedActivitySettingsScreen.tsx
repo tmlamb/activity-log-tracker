@@ -1,7 +1,7 @@
 import "react-native-get-random-values";
 
 import { useRef, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, { LinearTransition } from "react-native-reanimated";
 import { Stack, useLocalSearchParams } from "expo-router";
@@ -9,6 +9,7 @@ import { useIsFocused } from "expo-router/react-navigation";
 import { Entypo } from "@expo/vector-icons";
 import { v4 as uuidv4 } from "uuid";
 
+import type { SetKind } from "~/data/repositories/session-detail";
 import type {
   DraftActivity,
   DraftAlternative,
@@ -23,7 +24,6 @@ import type {
 import ActivityRow, { exerciseLabel } from "~/components/ActivityRow";
 import { PrimaryCardAction } from "~/components/CardRow";
 import { CollapsibleSection } from "~/components/CollapsibleSection";
-import DropSetSettings from "~/components/DropSetSettings";
 import ExerciseSelectCard from "~/components/ExerciseSelectCard";
 import { useHeaderButtonProps } from "~/components/header-toolbar";
 import MissingDataRedirect from "~/components/MissingDataRedirect";
@@ -33,14 +33,12 @@ import {
   applyExerciseSelection,
   applyLoadSelection,
   applyWeightHint,
-  dropSetErrors,
   exerciseSelectionInput,
   isActivityValid,
   newDraftAlternative,
   newDraftSupersetMember,
-  normalizeActivity,
+  normalizeSuperset,
   resizeSets,
-  setDropSetCount,
   swapAlternative,
 } from "~/data/domain/session-editor-draft";
 import { getSavedExercise } from "~/data/repositories/exercises";
@@ -57,10 +55,9 @@ const MAX_ALTERNATIVES = 20;
 const MAX_SUPERSETS = 10;
 
 /**
- * Advanced settings for one activity: its drop sets, its alternatives and,
- * when it is a superset, the members performed alternately with it. A member
- * opens the same form on its own route with the "superset" role, limited to
- * alternatives; it follows its leader's drop sets.
+ * Advanced settings for one activity: its alternatives and, when it is a
+ * superset, the members performed alternately with it. A member opens the same
+ * form on its own route with the "superset" role, limited to alternatives.
  */
 export default function AdvancedActivitySettingsScreen() {
   const params = useLocalSearchParams<{
@@ -117,9 +114,8 @@ function AdvancedActivitySettings({
 
   /**
    * Store a new draft, keeping a superset aligned: nothing in it rests, and a
-   * member's alternatives (like the member) have the leader's set counts and
-   * drop sets. An activity is a superset while it has at least one superset
-   * exercise. An activity's alternatives always have its drop sets.
+   * member's alternatives (like the member) have the leader's set counts. An
+   * activity is a superset while it has at least one superset exercise.
    */
   const updateDraft = (next: DraftActivity) => {
     const value = member
@@ -130,7 +126,7 @@ function AdvancedActivitySettings({
             alignSupersetRow(row, next, uuidv4, input.terminalEndMs),
           ),
         }
-      : normalizeActivity(next, uuidv4, input.terminalEndMs);
+      : normalizeSuperset(next, uuidv4, input.terminalEndMs);
     draftRef.current = value;
     setDraft(value);
   };
@@ -172,7 +168,9 @@ function AdvancedActivitySettings({
     const rowId = selection.activityId;
     if (!rowId) return;
     if (result.kind === "load") {
-      updateRow(rowId, (row) => applyLoadSelection(row, result.load));
+      updateRow(rowId, (row) =>
+        applyLoadSelection(row, result.load, result.dropPercent),
+      );
     } else if (result.kind === "activity") {
       // A member's own settings, which may have swapped in an alternative.
       const { supersets: _supersets, ...settings } = result.activity;
@@ -246,7 +244,7 @@ function AdvancedActivitySettings({
     open(
       "load",
       (ticket) =>
-        `/(public)/(app)/load?activityId=${encodeURIComponent(row.id)}&exerciseId=${encodeURIComponent(row.exerciseId ?? "")}&loadType=${row.loadType ?? ""}&loadValue=${row.loadValue ?? ""}&${ticket}`,
+        `/(public)/(app)/load?activityId=${encodeURIComponent(row.id)}&exerciseId=${encodeURIComponent(row.exerciseId ?? "")}&loadType=${row.loadType ?? ""}&loadValue=${row.loadValue ?? ""}&dropSetCount=${row.dropSets.length}&dropPercent=${row.dropPercent ?? ""}&${ticket}`,
       row.id,
     );
 
@@ -364,7 +362,7 @@ function AdvancedActivitySettings({
    * resizes the activity's own sets, and every superset row follows it (see
    * updateDraft). The session form gets the new counts with these settings.
    */
-  const changeSupersetSetCount = (kind: "Warmup" | "Main", text: string) => {
+  const changeSupersetSetCount = (kind: SetKind, text: string) => {
     const resized = resizeSets(
       draftRef.current,
       kind,
@@ -377,7 +375,7 @@ function AdvancedActivitySettings({
 
   const changeSetCount = (
     alternativeId: string,
-    kind: "Warmup" | "Main",
+    kind: SetKind,
     text: string,
   ) => {
     const previous = draftRef.current;
@@ -399,7 +397,9 @@ function AdvancedActivitySettings({
         item.id === alternativeId ? resized.activity : item,
       ),
     );
+    // Drop set weights follow from the sets before them: no hints to apply.
     if (
+      kind === "Drop" ||
       !resized.wasEmpty ||
       !resized.added.size ||
       alternative.loadType !== "RPE" ||
@@ -437,10 +437,6 @@ function AdvancedActivitySettings({
   const save = () => {
     if (hasLeft()) return;
     const value = draftRef.current;
-    if (Object.values(dropSetErrors(value)).some(Boolean)) {
-      setShowValidation(true);
-      return;
-    }
     if (!value.alternatives.every(isActivityValid)) {
       setShowValidation(true);
       // Errors are on the alternatives, so make sure they're visible.
@@ -508,145 +504,138 @@ function AdvancedActivitySettings({
           exerciseId={draft.exerciseId}
           onPress={() => openExerciseSelection(draft)}
         />
-        <CollapsibleSection
-          title="Alternative Exercises"
-          collapsed={alternativesCollapsed}
-          onCollapsedChange={setAlternativesCollapsed}
-          headerClassName="pt-0"
-        >
-          <Animated.View layout={LinearTransition.duration(220)}>
-            {draft.alternatives.map((alternative, index) => (
-              <ActivityRow
-                key={alternative.id}
-                activity={alternative}
-                exercise={
-                  alternative.exerciseId
-                    ? exercises[alternative.exerciseId]
-                    : undefined
-                }
-                stack={{ index, size: count + 1 }}
-                showValidation={showValidation}
-                canMoveUp={index !== 0}
-                canMoveDown={index !== count - 1}
-                removeLabel="Remove alternative exercise"
-                // A member's alternatives alternate sets like the member does.
-                setCountsLocked={member}
-                restLocked={member || draft.supersets.length > 0}
-                onSelectExercise={() => openExerciseSelection(alternative)}
-                onSelectLoad={() => openLoadSelection(alternative)}
-                onRemove={() => removeAlternative(alternative)}
-                onMoveUp={() => moveAlternative(index, -1)}
-                onMoveDown={() => moveAlternative(index, 1)}
-                onChangeSetCount={(kind, text) =>
-                  changeSetCount(alternative.id, kind, text)
-                }
-                onChange={(update) =>
-                  updateRow(alternative.id, (row) => ({ ...row, ...update }))
-                }
-              />
-            ))}
-            <PrimaryCardAction
-              label="Add Alternative Exercise"
-              icon={<Entypo name="circle-with-plus" size={20} />}
-              cardVariants={["square"]}
-              stack={{ index: count, size: count + 1 }}
-              disabled={count >= MAX_ALTERNATIVES}
-              onPress={() => {
-                const previous = draftRef.current;
-                const alternative = newDraftAlternative(
-                  uuidv4,
-                  input.terminalEndMs,
-                );
-                updateAlternatives([
-                  ...previous.alternatives,
-                  member
-                    ? alignSupersetRow(
-                        alternative,
-                        previous,
-                        uuidv4,
-                        input.terminalEndMs,
-                      )
-                    : alternative,
-                ]);
-              }}
-            />
-          </Animated.View>
-        </CollapsibleSection>
-        {!member && (
+        {/*
+         * Sections are spaced like the session screen's: no gap between them,
+         * header padding between titles, and a margin closing each expanded
+         * section (inside its body, so it collapses away with the content).
+         */}
+        <View>
           <CollapsibleSection
-            title="Supersets"
-            collapsed={supersetsCollapsed}
-            onCollapsedChange={setSupersetsCollapsed}
+            title="Alternative Exercises"
+            collapsed={alternativesCollapsed}
+            onCollapsedChange={setAlternativesCollapsed}
             headerClassName="pt-0"
           >
-            <Animated.View layout={LinearTransition.duration(220)}>
-              {draft.supersets.map((superset, index) => (
+            <Animated.View
+              className="mb-3"
+              layout={LinearTransition.duration(220)}
+            >
+              {draft.alternatives.map((alternative, index) => (
                 <ActivityRow
-                  key={superset.id}
-                  activity={superset}
+                  key={alternative.id}
+                  activity={alternative}
                   exercise={
-                    superset.exerciseId
-                      ? exercises[superset.exerciseId]
+                    alternative.exerciseId
+                      ? exercises[alternative.exerciseId]
                       : undefined
                   }
-                  stack={{ index, size: supersetCount + 1 }}
+                  stack={{ index, size: count + 1 }}
                   showValidation={showValidation}
                   canMoveUp={index !== 0}
-                  canMoveDown={index !== supersetCount - 1}
-                  removeLabel="Remove superset exercise"
-                  alternativeCount={superset.alternatives.length}
-                  restLocked
-                  onSelectExercise={() => openExerciseSelection(superset)}
-                  onSelectLoad={() => openLoadSelection(superset)}
-                  onRemove={() => removeSuperset(superset)}
-                  onMoveUp={() => moveSuperset(index, -1)}
-                  onMoveDown={() => moveSuperset(index, 1)}
-                  onChangeSetCount={changeSupersetSetCount}
-                  onChange={(update) =>
-                    updateRow(superset.id, (row) => ({ ...row, ...update }))
+                  canMoveDown={index !== count - 1}
+                  removeLabel="Remove alternative exercise"
+                  // A member's alternatives alternate sets like the member does.
+                  setCountsLocked={member}
+                  restLocked={member || draft.supersets.length > 0}
+                  onSelectExercise={() => openExerciseSelection(alternative)}
+                  onSelectLoad={() => openLoadSelection(alternative)}
+                  onRemove={() => removeAlternative(alternative)}
+                  onMoveUp={() => moveAlternative(index, -1)}
+                  onMoveDown={() => moveAlternative(index, 1)}
+                  onChangeSetCount={(kind, text) =>
+                    changeSetCount(alternative.id, kind, text)
                   }
-                  onOpenAdvanced={() => openSupersetSettings(superset)}
+                  onChange={(update) =>
+                    updateRow(alternative.id, (row) => ({ ...row, ...update }))
+                  }
                 />
               ))}
               <PrimaryCardAction
-                label="Add Superset Exercise"
+                label="Add Alternative Exercise"
                 icon={<Entypo name="circle-with-plus" size={20} />}
                 cardVariants={["square"]}
-                stack={{ index: supersetCount, size: supersetCount + 1 }}
-                disabled={supersetCount >= MAX_SUPERSETS}
-                onPress={() =>
-                  updateSupersets([
-                    ...draftRef.current.supersets,
-                    newDraftSupersetMember(
-                      draftRef.current,
-                      uuidv4,
-                      input.terminalEndMs,
-                    ),
-                  ])
-                }
+                stack={{ index: count, size: count + 1 }}
+                disabled={count >= MAX_ALTERNATIVES}
+                onPress={() => {
+                  const previous = draftRef.current;
+                  const alternative = newDraftAlternative(
+                    uuidv4,
+                    input.terminalEndMs,
+                  );
+                  updateAlternatives([
+                    ...previous.alternatives,
+                    member
+                      ? alignSupersetRow(
+                          alternative,
+                          previous,
+                          uuidv4,
+                          input.terminalEndMs,
+                        )
+                      : alternative,
+                  ]);
+                }}
               />
             </Animated.View>
           </CollapsibleSection>
-        )}
-        {!member && (
-          <DropSetSettings
-            activity={draft}
-            showValidation={showValidation}
-            onChangeCount={(text, percent) => {
-              const next = setDropSetCount(
-                draftRef.current,
-                text,
-                percent,
-                uuidv4,
-                input.terminalEndMs,
-              );
-              if (next) updateDraft(next);
-            }}
-            onChangePercent={(dropPercent) =>
-              updateDraft({ ...draftRef.current, dropPercent })
-            }
-          />
-        )}
+          {!member && (
+            <CollapsibleSection
+              title="Supersets"
+              collapsed={supersetsCollapsed}
+              onCollapsedChange={setSupersetsCollapsed}
+            >
+              <Animated.View
+                className="mb-3"
+                layout={LinearTransition.duration(220)}
+              >
+                {draft.supersets.map((superset, index) => (
+                  <ActivityRow
+                    key={superset.id}
+                    activity={superset}
+                    exercise={
+                      superset.exerciseId
+                        ? exercises[superset.exerciseId]
+                        : undefined
+                    }
+                    stack={{ index, size: supersetCount + 1 }}
+                    showValidation={showValidation}
+                    canMoveUp={index !== 0}
+                    canMoveDown={index !== supersetCount - 1}
+                    removeLabel="Remove superset exercise"
+                    alternativeCount={superset.alternatives.length}
+                    restLocked
+                    onSelectExercise={() => openExerciseSelection(superset)}
+                    onSelectLoad={() => openLoadSelection(superset)}
+                    onRemove={() => removeSuperset(superset)}
+                    onMoveUp={() => moveSuperset(index, -1)}
+                    onMoveDown={() => moveSuperset(index, 1)}
+                    onChangeSetCount={changeSupersetSetCount}
+                    onChange={(update) =>
+                      updateRow(superset.id, (row) => ({ ...row, ...update }))
+                    }
+                    onOpenAdvanced={() => openSupersetSettings(superset)}
+                  />
+                ))}
+                <PrimaryCardAction
+                  label="Add Superset Exercise"
+                  icon={<Entypo name="circle-with-plus" size={20} />}
+                  cardVariants={["square"]}
+                  stack={{ index: supersetCount, size: supersetCount + 1 }}
+                  disabled={supersetCount >= MAX_SUPERSETS}
+                  onPress={() =>
+                    updateSupersets([
+                      ...draftRef.current.supersets,
+                      newDraftSupersetMember(
+                        draftRef.current,
+                        uuidv4,
+                        input.terminalEndMs,
+                      ),
+                    ])
+                  }
+                />
+              </Animated.View>
+            </CollapsibleSection>
+          )}
+        </View>
       </KeyboardAwareScrollView>
     </>
   );

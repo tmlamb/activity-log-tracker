@@ -1,6 +1,12 @@
 import type { Weight } from "@activity-log/ui/utils";
 import { round5 } from "@activity-log/ui/utils";
 
+/**
+ * How much lighter each drop set is than the set before it when a row hasn't
+ * chosen its own drop percentage.
+ */
+export const DEFAULT_DROP_PERCENT = 0.2;
+
 /** Frozen equivalent of the existing percentage-planning rule, without graphs. */
 const warmupPercentages: Record<number, readonly number[]> = {
   1: [0.6],
@@ -34,8 +40,8 @@ export function plannedSetWeight(
 }
 
 /**
- * The weight a drop set (the `index`th, from 0) is planned at: `dropPercent`
- * lighter than the set before it, which is the previous drop set, or else the
+ * The weight a drop set (the `index`th, from 0) is planned at: the row's drop
+ * percentage lighter than the set before it, which is the previous drop set, or else the
  * row's last main set, or else its last warmup set. An earlier set counts at
  * its recorded weight, or at its own planned weight when it has none yet.
  * `sets` are the row's sets in performing order: warmups, mains, then drops.
@@ -45,6 +51,7 @@ export function plannedDropSetWeight(
     loadType: "PERCENT" | "RPE" | null;
     loadValue: number | null;
     warmupSetCount: number;
+    /** Null for the default (see DEFAULT_DROP_PERCENT). */
     dropPercent: number | null;
   },
   sets: readonly {
@@ -54,8 +61,7 @@ export function plannedDropSetWeight(
   index: number,
   oneRepMax: Weight | null,
 ): Weight | null {
-  const { dropPercent } = activity;
-  if (dropPercent === null) return null;
+  const dropPercent = activity.dropPercent ?? DEFAULT_DROP_PERCENT;
   const recorded = (value: Weight | null | undefined) =>
     value && value.value > 0 ? value : null;
   const ofKind = (kind: "Warmup" | "Main" | "Drop") =>

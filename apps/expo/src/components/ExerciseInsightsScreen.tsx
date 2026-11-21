@@ -8,8 +8,8 @@ import ExerciseInsights from "./exercise-insights";
 import MissingDataRedirect from "./MissingDataRedirect";
 
 /**
- * Exercise Insights for the set in the route's parameters. Shared by the
- * pushed screen and the modal that opens an alternative's insights.
+ * Exercise Insights for the set in the route's parameters. Shared by an
+ * activity's insights screen and the one pushed for an alternative's.
  */
 export default function ExerciseInsightsScreen() {
   const router = useRouter();

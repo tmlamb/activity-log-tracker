@@ -2,7 +2,7 @@
  * Migration step 4: drop sets.
  *
  * `activities.drop_percent` is the fraction each drop set takes off the set
- * before it; NULL means the activity has no drop sets. Drop sets are workout
+ * before it; NULL means the app's default. Drop sets are workout
  * sets of kind 'Drop', performed after an activity's warmup and main sets.
  * Widening the kind check needs a rebuild of `workout_sets`; nothing
  * references it, so it is copied, dropped and renamed on its own.

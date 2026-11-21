@@ -94,8 +94,6 @@ function validateDraft(draft: SessionDraft) {
       !(activity.dropPercent > 0 && activity.dropPercent < 1)
     )
       throw new Error("A drop set percentage must be between 0 and 100.");
-    if (activity.dropPercent === null && activity.dropSets.length)
-      throw new Error("Drop sets require a drop percentage.");
     for (const value of [
       activity.reps,
       activity.loadValue,

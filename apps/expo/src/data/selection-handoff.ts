@@ -59,7 +59,12 @@ export type SelectionResult =
       /** Set when an alternative was picked: swap that row in. */
       alternativeId?: string;
     }
-  | { kind: "load"; load: { type: "PERCENT" | "RPE"; value: number } }
+  | {
+      kind: "load";
+      load: { type: "PERCENT" | "RPE"; value: number };
+      /** The row's drop percentage, when its drop sets were offered. */
+      dropPercent?: number;
+    }
   | { kind: "template"; programId: string; sessionId: string }
   | {
       kind: "activity";

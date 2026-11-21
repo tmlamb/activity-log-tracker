@@ -116,7 +116,19 @@ vi.mock("./CardRow", () => ({
       {label}
     </button>
   ),
-  NavigationCardRow: ({ title }: { title: string }) => <div>{title}</div>,
+  NavigationCardRow: ({
+    title,
+    accessibilityLabel,
+    onPress,
+  }: {
+    title: string;
+    accessibilityLabel?: string;
+    onPress?: () => void;
+  }) => (
+    <button data-label={accessibilityLabel} onClick={onPress}>
+      {title}
+    </button>
+  ),
   DetailCardRow: ({ label, value }: { label: string; value: string }) => (
     <div>
       <span>{label}</span>
@@ -519,113 +531,122 @@ describe("advanced activity settings", () => {
       view.root
         .findAllByType("input")
         .filter((node) => node.props["data-label"] === label);
-    const type = async (
+    const typeAt = async (
       view: Awaited<ReturnType<typeof render>>,
       label: string,
+      index: number,
       value: string,
     ) =>
       act(async () => {
         (
-          inputs(view, label)[0]?.props as {
+          inputs(view, label)[index]?.props as {
             "data-change": (text: string) => void;
           }
         )["data-change"](value);
         await Promise.resolve();
       });
-
-    const value = (view: Awaited<ReturnType<typeof render>>, label: string) =>
-      inputs(view, label)[0]?.props["data-value"] as string | undefined;
-
-    it("starts with none, then plans 20% drop sets for every row of the activity", async () => {
-      request();
-      const view = await render();
-      // Drop sets come after the other settings, with no percentage yet.
-      expect(view.root.findAllByType("input").at(-1)?.props["data-label"]).toBe(
-        "Drop Sets",
-      );
-      expect(value(view, "Drop Sets")).toBe("");
-      expect(inputs(view, "Drop Percentage (%)")).toHaveLength(0);
-      await view.click("Add Alternative Exercise");
-      await view.click("Add Superset Exercise");
-
-      await type(view, "Drop Sets", "2");
-      expect(value(view, "Drop Percentage (%)")).toBe("20");
-      await type(view, "Drop Percentage (%)", "12.5");
-      // The alternative and the superset exercise each need an exercise.
-      for (const [index, exerciseId] of [
-        [1, "e"],
-        [2, "f"],
-      ] as const) {
-        await view.click("Navigate to select exercise form", index);
+    const pickExercises = async (
+      view: Awaited<ReturnType<typeof render>>,
+      exerciseIds: readonly string[],
+    ) => {
+      // Rows after the main exercise card each need an exercise.
+      for (const [index, exerciseId] of exerciseIds.entries()) {
+        await view.click("Navigate to select exercise form", index + 1);
         await view.pick((pending) =>
           useSelectionHandoff
             .getState()
             .complete(pending, { kind: "exercise", exerciseId }),
         );
       }
+    };
+
+    it("has no drop set settings of its own", async () => {
+      request();
+      const view = await render();
+      expect(inputs(view, "Drop Sets")).toHaveLength(0);
+      expect(inputs(view, "Drop Percentage (%)")).toHaveLength(0);
+    });
+
+    it("shares drop sets between the activity and its superset rows", async () => {
+      request();
+      const view = await render();
+      await view.click("Add Superset Exercise");
+      await view.click("Add Superset Exercise");
+      await typeAt(view, "Drop Sets", 1, "2");
+      expect(
+        inputs(view, "Drop Sets").map(
+          (node) => node.props["data-value"] as string,
+        ),
+      ).toEqual(["2", "2"]);
+      await pickExercises(view, ["e", "f"]);
       await view.click("Save");
       const saved = view.result();
       if (saved?.kind !== "activity") throw new Error("Not saved");
-      // Alternatives and superset rows drop the same way as the activity.
-      const rows = [
-        saved.activity,
-        ...saved.activity.alternatives,
-        ...saved.activity.supersets,
-      ];
-      expect(rows.map((row) => [row.dropPercent, row.dropSets.length])).toEqual(
-        [
-          [0.125, 2],
-          [0.125, 2],
-          [0.125, 2],
-        ],
-      );
+      expect(
+        [saved.activity, ...saved.activity.supersets].map(
+          (row) => row.dropSets.length,
+        ),
+      ).toEqual([2, 2, 2]);
     });
 
-    it("hides the percentage without drop sets and remembers it", async () => {
+    it("plans an alternative's drop sets on their own", async () => {
       request();
       const view = await render();
-      await type(view, "Drop Sets", "1");
-      await type(view, "Drop Percentage (%)", "33");
-      for (const cleared of ["0", ""]) {
-        await type(view, "Drop Sets", cleared);
-        expect(inputs(view, "Drop Percentage (%)")).toHaveLength(0);
-        // No drop sets is the same as never having had any.
-        expect(env.dirty).toBe(false);
-        await type(view, "Drop Sets", "1");
-        expect(value(view, "Drop Percentage (%)")).toBe("33");
-      }
+      await view.click("Add Alternative Exercise");
+      await typeAt(view, "Drop Sets", 0, "3");
+      await pickExercises(view, ["e"]);
       await view.click("Save");
       expect(view.result()).toMatchObject({
-        activity: { dropPercent: 0.33, dropSets: [{}] },
+        activity: { dropSets: [], alternatives: [{ dropSets: [{}, {}, {}] }] },
       });
     });
 
-    it("validates the drop percentage", async () => {
-      request();
+    it("chooses a row's drop percentage with its load", async () => {
+      const main = { ...newDraftActivity(createId, undefined), id: "main" };
+      const {
+        alternatives: _a,
+        supersets: _s,
+        ...alternative
+      } = newDraftActivity(createId, undefined);
+      request({
+        activity: {
+          ...main,
+          alternatives: [{ ...alternative, id: "alt", exerciseId: "e" }],
+        },
+      });
       const view = await render();
-      await type(view, "Drop Sets", "3");
-      const error = () =>
-        inputs(view, "Drop Percentage (%)")[0]?.props["data-error"] as
-          | string
-          | null;
-      for (const text of ["", "0", "100"]) {
-        await type(view, "Drop Percentage (%)", text);
-        await view.click("Save");
-        expect(view.result()).toBeNull();
-        expect(error()).toBe("Percentage must be between 0.01 and 99.99");
-      }
-      // An invalid percentage isn't remembered: drop sets start again at 20%.
-      await type(view, "Drop Sets", "0");
-      await type(view, "Drop Sets", "2");
-      expect(value(view, "Drop Percentage (%)")).toBe("20");
-      expect(error()).toBeNull();
+      await typeAt(view, "Drop Sets", 0, "1");
+      await view.click("Navigate to select exercise load form");
+      expect(env.push).toHaveBeenLastCalledWith(
+        expect.stringContaining("&dropSetCount=1&dropPercent=&"),
+      );
+      await view.pick((pending) =>
+        useSelectionHandoff.getState().complete(pending, {
+          kind: "load",
+          load: { type: "RPE", value: 9 },
+          dropPercent: 0.3,
+        }),
+      );
+      await view.click("Save");
+      expect(view.result()).toMatchObject({
+        activity: {
+          dropPercent: null,
+          alternatives: [{ loadValue: 9, dropPercent: 0.3, dropSets: [{}] }],
+        },
+      });
     });
 
-    it("is not offered on a superset exercise's own settings", async () => {
+    it("follows a superset exercise's drop sets on its alternatives", async () => {
       const member = { ...newDraftActivity(createId, undefined), id: "main" };
-      request({ role: "superset", activity: member });
+      request({
+        role: "superset",
+        activity: { ...member, dropSets: member.mainSets.slice(0, 1) },
+      });
       const view = await render();
-      expect(inputs(view, "Drop Sets")).toHaveLength(0);
+      await view.click("Add Alternative Exercise");
+      const [row] = inputs(view, "Drop Sets");
+      expect(row?.props["data-value"]).toBe("1");
+      expect(row?.props["data-editable"]).toBe(false);
     });
   });
 

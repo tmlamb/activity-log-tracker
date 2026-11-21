@@ -71,6 +71,14 @@ export default function AppLayout() {
       />
       <Stack.Screen
         dangerouslySingular={singular}
+        name="program/[programId]/session/[sessionId]/set/insights/alternative/index"
+        options={{
+          title: "Exercise Insights",
+          headerBackButtonDisplayMode: "minimal",
+        }}
+      />
+      <Stack.Screen
+        dangerouslySingular={singular}
         name="support/index"
         options={{ title: "Support" }}
       />
@@ -111,11 +119,6 @@ export default function AppLayout() {
         dangerouslySingular={singular}
         name="program/[programId]/session/form/advanced/superset/index"
         options={{ title: "Superset Settings", presentation: "modal" }}
-      />
-      <Stack.Screen
-        dangerouslySingular={singular}
-        name="program/[programId]/session/[sessionId]/set/insights/alternative/index"
-        options={{ title: "Exercise Insights", presentation: "modal" }}
       />
       <Stack.Screen
         dangerouslySingular={singular}

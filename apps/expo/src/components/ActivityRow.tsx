@@ -2,6 +2,7 @@ import { View } from "react-native";
 import { FadeInUp, FadeOutUp } from "react-native-reanimated";
 import { AntDesign, Feather } from "@expo/vector-icons";
 
+import type { SetKind } from "~/data/repositories/session-detail";
 import type { DraftAlternative } from "~/data/repositories/session-drafts";
 import type { SessionEditorExercise } from "~/data/repositories/session-editor";
 import { activityErrors } from "~/data/domain/session-editor-draft";
@@ -34,7 +35,8 @@ function loadLabel(activity: DraftAlternative) {
 
 /**
  * One full-bleed planned exercise row: exercise, reorder and remove controls
- * on the left; set counts, reps, rest and load on the right. Used for session
+ * on the left; set counts (warmup, main and drop), reps, rest and load on the
+ * right. Used for session
  * activities, their alternatives and their superset members.
  */
 export default function ActivityRow({
@@ -47,7 +49,6 @@ export default function ActivityRow({
   removeLabel = "Remove exercise from Session",
   alternativeCount = 0,
   supersetCount = 0,
-  dropSetCount = 0,
   setCountsLocked = false,
   restLocked = false,
   onSelectExercise,
@@ -68,7 +69,6 @@ export default function ActivityRow({
   removeLabel?: string;
   alternativeCount?: number;
   supersetCount?: number;
-  dropSetCount?: number;
   /** Set counts follow another row (a superset's leader) and can't be edited. */
   setCountsLocked?: boolean;
   /** Rest is fixed at zero (in a superset) and can't be edited. */
@@ -78,7 +78,7 @@ export default function ActivityRow({
   onRemove: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
-  onChangeSetCount: (kind: "Warmup" | "Main", text: string) => void;
+  onChangeSetCount: (kind: SetKind, text: string) => void;
   onChange: (
     update: Partial<Pick<DraftAlternative, "reps" | "restMinutes">>,
   ) => void;
@@ -145,14 +145,6 @@ export default function ActivityRow({
                       className="text-muted text-base leading-tight"
                     >
                       {`${supersetCount} Superset${supersetCount === 1 ? "" : "s"}`}
-                    </Text>
-                  )}
-                  {dropSetCount > 0 && (
-                    <Text
-                      maxFontSizeMultiplier={2}
-                      className="text-muted text-base leading-tight"
-                    >
-                      {`${dropSetCount} Drop Set${dropSetCount === 1 ? "" : "s"}`}
                     </Text>
                   )}
                 </View>
@@ -235,7 +227,7 @@ export default function ActivityRow({
             maxLength={1}
             placeholder="0"
             selectTextOnFocus
-            stack={{ index: 0, size: 5 }}
+            stack={{ index: 0, size: 6 }}
             cardVariants={["square", "small", "transparent"]}
             error={setsError}
             editable={!setCountsLocked}
@@ -252,17 +244,33 @@ export default function ActivityRow({
             maxLength={2}
             placeholder="0"
             selectTextOnFocus
-            stack={{ index: 1, size: 5 }}
+            stack={{ index: 1, size: 6 }}
             cardVariants={["square", "small", "transparent"]}
             error={setsError}
             editable={!setCountsLocked}
             textInputClassName={setCountsLocked ? "text-muted" : undefined}
             onChangeText={(value) => onChangeSetCount("Main", value)}
           />
+          <TextInputThemed
+            label="Drop Sets"
+            value={
+              activity.dropSets.length ? String(activity.dropSets.length) : ""
+            }
+            keyboardType="number-pad"
+            numeric
+            maxLength={1}
+            placeholder="0"
+            selectTextOnFocus
+            stack={{ index: 2, size: 6 }}
+            cardVariants={["square", "small", "transparent"]}
+            editable={!setCountsLocked}
+            textInputClassName={setCountsLocked ? "text-muted" : undefined}
+            onChangeText={(value) => onChangeSetCount("Drop", value)}
+          />
           <NumberDraftInput
             key={`${activity.id}:reps`}
             compact
-            stack={{ index: 2, size: 5 }}
+            stack={{ index: 3, size: 6 }}
             maxLength={2}
             label="Repetitions"
             value={activity.reps}
@@ -273,7 +281,7 @@ export default function ActivityRow({
             // Remount when unlocked so the input shows the current rest.
             key={`${activity.id}:rest:${restLocked}`}
             compact
-            stack={{ index: 3, size: 5 }}
+            stack={{ index: 4, size: 6 }}
             maxLength={2}
             label="Rest (minutes)"
             editable={!restLocked}
@@ -283,7 +291,7 @@ export default function ActivityRow({
           <NavigationCardRow
             title="Load"
             trailingText={loadLabel(activity)}
-            stack={{ index: 4, size: 5 }}
+            stack={{ index: 5, size: 6 }}
             cardVariants={["square", "small"]}
             titleClassName="pr-0"
             onPress={onSelectLoad}

@@ -40,7 +40,7 @@ export interface SessionActivityFields {
   restMinutes: number | null;
   /**
    * The fraction each drop set takes off the weight of the set before it, or
-   * null when the row has no drop sets.
+   * null for the default (see DEFAULT_DROP_PERCENT). Kept without drop sets.
    */
   dropPercent: number | null;
   warmupSets: SessionSet[];

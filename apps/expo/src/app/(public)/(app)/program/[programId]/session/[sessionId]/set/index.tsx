@@ -60,6 +60,7 @@ import {
   setExerciseNotes,
   startSet,
 } from "~/data/actions";
+import { DEFAULT_DROP_PERCENT } from "~/data/domain/set-execution";
 import { useEquipment, useExerciseDetail, useSetContext } from "~/data/queries";
 import useRouter from "~/hooks/use-router";
 
@@ -318,10 +319,7 @@ function SetEditor({
   const isDrop = context.set.kind === "Drop";
   const showTarget = !isDrop && (isMain || context.firstMainSet !== null);
   const targetSummarySize = isMain ? 4 : isDrop ? 2 : showTarget ? 3 : 1;
-  const dropLoad =
-    context.activity.dropPercent === null
-      ? "Unavailable"
-      : `${Number((context.activity.dropPercent * 100).toFixed(2))}% Drop${context.targetWeight?.value && context.set.status !== "Done" ? ` / ${context.targetWeight.value}${context.targetWeight.unit}` : ""}`;
+  const dropLoad = `${Number(((context.activity.dropPercent ?? DEFAULT_DROP_PERCENT) * 100).toFixed(2))}% Drop${context.targetWeight?.value && context.set.status !== "Done" ? ` / ${context.targetWeight.value}${context.targetWeight.unit}` : ""}`;
   const displayedTarget = isMain
     ? context.targetWeight
     : context.mainTargetWeight;

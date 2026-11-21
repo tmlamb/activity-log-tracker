@@ -281,11 +281,7 @@ export default function ExerciseInsights({
         onCollapsedChange={handleMainSetsCollapsedChange}
         premeasureCollapsedContent
       >
-        <View
-          className={
-            dropSetInsights.length || alternatives.length ? "mb-3" : undefined
-          }
-        >
+        <View className="mb-3">
           {mainSetInsights.map((setInsights, index) => (
             <VolumeChart
               key={`${setInsights.setType}-${setInsights.setNumber}`}
@@ -303,7 +299,7 @@ export default function ExerciseInsights({
           onCollapsedChange={handleDropSetsCollapsedChange}
           premeasureCollapsedContent
         >
-          <View className={alternatives.length ? "mb-3" : undefined}>
+          <View className="mb-3">
             {dropSetInsights.map((setInsights, index) => (
               <VolumeChart
                 key={`${setInsights.setType}-${setInsights.setNumber}`}
@@ -321,7 +317,7 @@ export default function ExerciseInsights({
           onCollapsedChange={handleAlternativesCollapsedChange}
           premeasureCollapsedContent
         >
-          <View>
+          <View className="mb-3">
             {alternatives.map((alternative, index) => (
               <NavigationCardRow
                 key={alternative.id}

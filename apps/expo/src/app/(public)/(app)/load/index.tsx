@@ -14,12 +14,17 @@ import { AnimatedViewStyled } from "~/components/Styled";
 import TextInputThemed from "~/components/TextInputThemed";
 import { HelperText, SectionHeading } from "~/components/Typography";
 import { setExerciseOneRepMax } from "~/data/actions";
+import { isDropPercentValid } from "~/data/domain/session-editor-draft";
+import { DEFAULT_DROP_PERCENT } from "~/data/domain/set-execution";
 import { useExerciseDetail } from "~/data/queries";
 import { useSelectionHandoff } from "~/data/selection-handoff";
 import { useGeneration } from "~/data/store";
 import useRouter from "~/hooks/use-router";
 
-type FormData = Partial<Load> & { oneRepMaxVal?: number };
+type FormData = Partial<Load> & {
+  oneRepMaxVal?: number;
+  dropPercent?: number;
+};
 
 const decimalTextToNumber = (text: string) => {
   if (!text || text === ".") return undefined;
@@ -73,7 +78,7 @@ export default function LoadScreen() {
     <LoadEditor
       key={ticket.requestId}
       exercise={initial}
-      onDone={(load, max) => {
+      onDone={(load, max, dropPercent) => {
         if (load.type === "PERCENT" && record && max)
           setExerciseOneRepMax(
             record.id,
@@ -81,9 +86,11 @@ export default function LoadScreen() {
             record.oneRepMax,
           );
         if (
-          !useSelectionHandoff
-            .getState()
-            .complete(ticket, { kind: "load", load })
+          !useSelectionHandoff.getState().complete(ticket, {
+            kind: "load",
+            load,
+            ...(dropPercent === undefined ? {} : { dropPercent }),
+          })
         )
           throw new Error("This selection request is no longer active.");
       }}
@@ -96,12 +103,28 @@ function LoadEditor({
   onDone,
 }: {
   exercise?: LoadExercise;
-  onDone: (load: Load, max: number | undefined) => void;
+  onDone: (
+    load: Load,
+    max: number | undefined,
+    dropPercent: number | undefined,
+  ) => void;
 }) {
-  const { loadType, loadValue } = useLocalSearchParams<{
-    loadType?: string;
-    loadValue?: string;
-  }>();
+  const { loadType, loadValue, dropSetCount, dropPercent } =
+    useLocalSearchParams<{
+      loadType?: string;
+      loadValue?: string;
+      /** The row's drop sets; their percentage is offered when it has any. */
+      dropSetCount?: string;
+      /** The row's drop percentage, or empty for the default. */
+      dropPercent?: string;
+    }>();
+  const hasDropSets = Number(dropSetCount) > 0;
+  const initialDropPercent = dropPercent
+    ? Number(dropPercent)
+    : DEFAULT_DROP_PERCENT;
+  const [dropPercentInput, setDropPercentInput] = useState(
+    percentNumToString(initialDropPercent),
+  );
   const router = useRouter();
   const headerButton = useHeaderButtonProps();
   // Work from the exercise as it was when the screen opened.
@@ -129,15 +152,17 @@ function LoadEditor({
         type: initialLoad?.type,
         value: initialLoad?.value,
         oneRepMaxVal: exercise?.oneRepMax?.value,
+        dropPercent: initialDropPercent,
       },
       reValidateMode: "onChange",
       mode: "onChange",
     });
 
-  const [selectedType, selectedValue, selectedOneRepMaxVal] = useWatch({
-    control,
-    name: ["type", "value", "oneRepMaxVal"],
-  });
+  const [selectedType, selectedValue, selectedOneRepMaxVal, selectedDrop] =
+    useWatch({
+      control,
+      name: ["type", "value", "oneRepMaxVal", "dropPercent"],
+    });
   const selected =
     selectedType != null && selectedValue != null
       ? { type: selectedType, value: selectedValue }
@@ -145,9 +170,18 @@ function LoadEditor({
   const onSubmit = async () => {
     // Ignore a second tap while the first is closing this screen.
     if (router.isNavigating()) return;
-    if (!(await trigger("value")) || !selected || router.isNavigating()) return;
+    if (
+      !(await trigger(hasDropSets ? ["value", "dropPercent"] : "value")) ||
+      !selected ||
+      router.isNavigating()
+    )
+      return;
     try {
-      done(selected, selectedOneRepMaxVal);
+      done(
+        selected,
+        selectedOneRepMaxVal,
+        hasDropSets ? selectedDrop : undefined,
+      );
       router.back();
     } catch (error) {
       Alert.alert(
@@ -468,6 +502,53 @@ function LoadEditor({
                 </Text>
               </View>
             </AnimatedViewStyled>
+          )}
+
+          {/* Drop set percentage, for a row with drop sets */}
+          {hasDropSets && (
+            <View>
+              <Controller
+                name="dropPercent"
+                control={control}
+                rules={{
+                  validate: (value) => isDropPercentValid(value ?? null),
+                }}
+                render={({
+                  field: { ref, onChange, onBlur },
+                  fieldState: { error },
+                }) => (
+                  <TextInputThemed
+                    label="Drop Set Reduction (%)"
+                    onChangeText={(newValue) => {
+                      setDropPercentInput(newValue);
+                      onChange(percentStringToNum(newValue));
+                    }}
+                    onBlur={() => {
+                      const value = decimalTextToNumber(dropPercentInput);
+                      setDropPercentInput(value != null ? String(value) : "");
+                      onBlur();
+                    }}
+                    innerRef={ref}
+                    value={dropPercentInput}
+                    placeholder="00.00"
+                    maxLength={5}
+                    keyboardType="decimal-pad"
+                    selectTextOnFocus
+                    numeric
+                    decimalPlaces={2}
+                    error={
+                      error
+                        ? "Percentage must be between 0.01 and 99.99"
+                        : undefined
+                    }
+                    cardVariants={["square"]}
+                  />
+                )}
+              />
+              <HelperText>
+                Each drop set is this much lighter than the set before it.
+              </HelperText>
+            </View>
           )}
         </ScrollView>
       </KeyboardAvoidingView>

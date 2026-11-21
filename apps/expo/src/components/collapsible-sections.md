@@ -2,6 +2,18 @@
 
 Import the public components from `~/components/CollapsibleSection`.
 
+## Spacing
+
+Consecutive sections follow the session screen's spacing, in both modes:
+
+- Stack sections directly, with no gap or margin between them; the header's
+  own padding (`pt-3 pb-2`) separates collapsed sections.
+- End each section's content with `mb-3` inside the section (on its last row,
+  or a wrapping view), so the space closes with the body when it collapses.
+- In a parent that spaces its children with `gap-*`, group the sections in one
+  view so the gap only applies around the group. The first header may then use
+  `headerClassName="pt-0"`, since the gap already separates it.
+
 ## Virtualized pages
 
 Use `CollapsibleSectionList` with one `CollapsibleSection` per data row:

@@ -11,10 +11,7 @@ import type {
   SessionDraft,
 } from "../repositories/session-drafts";
 import type { ExerciseSelectionInput } from "../selection-handoff";
-import { setField } from "../repositories/session-detail";
-
-/** How much lighter each drop set is than the set before it, by default. */
-export const DEFAULT_DROP_PERCENT = 0.2;
+import { SET_KINDS, setField } from "../repositories/session-detail";
 
 export function draftFromSession(session: SessionDetail): SessionDraft {
   const cloneSet = ({
@@ -221,50 +218,18 @@ export function swapAlternative<T extends DraftSupersetMember>(
 }
 
 /**
- * Give a row its main row's drop sets: the same percentage and number of drop
- * sets, so a swapped-in alternative or a superset member drops the same way.
- * Drop sets are only turned on from the activity's own settings.
- */
-export function alignDropSets<T extends DraftAlternative>(
-  row: T,
-  main: Pick<DraftAlternative, "dropPercent" | "dropSets">,
-  createId: () => string,
-  terminalEndMs: number | null | undefined,
-): T {
-  if (
-    row.dropPercent === main.dropPercent &&
-    row.dropSets.length === main.dropSets.length
-  )
-    return row;
-  const next = { ...row, dropPercent: main.dropPercent };
-  return (
-    resizeSets(
-      next,
-      "Drop",
-      String(main.dropSets.length),
-      createId,
-      terminalEndMs,
-    )?.activity ?? next
-  );
-}
-
-/**
  * Plan a superset row like its leader: the same number of warmup, main and
- * drop sets (so sets alternate one for one), the same drop percentage and no
- * rest between exercises.
+ * drop sets (so sets alternate one for one) and no rest between exercises.
+ * Each row keeps its own load, drop percentage included.
  */
 export function alignSupersetRow<T extends DraftAlternative>(
   row: T,
-  leader: Pick<
-    DraftAlternative,
-    "warmupSets" | "mainSets" | "dropSets" | "dropPercent"
-  >,
+  leader: Pick<DraftAlternative, "warmupSets" | "mainSets" | "dropSets">,
   createId: () => string,
   terminalEndMs: number | null | undefined,
 ): T {
   let next: T = row.restMinutes === 0 ? row : { ...row, restMinutes: 0 };
-  next = alignDropSets(next, leader, createId, terminalEndMs);
-  for (const kind of ["Warmup", "Main"] as const) {
+  for (const kind of SET_KINDS) {
     const field = setField(kind);
     if (next[field].length === leader[field].length) continue;
     next =
@@ -302,51 +267,6 @@ export function normalizeSuperset(
       ...align(member),
       alternatives: member.alternatives.map(align),
     })),
-  };
-}
-
-/**
- * Keep an activity consistent after any edit: its alternatives have its drop
- * sets (see alignDropSets), and a superset stays aligned (see
- * normalizeSuperset), which gives members and their alternatives the
- * leader's drop sets too.
- */
-export function normalizeActivity(
-  activity: DraftActivity,
-  createId: () => string,
-  terminalEndMs: number | null | undefined,
-): DraftActivity {
-  const alternatives = activity.alternatives.map((row) =>
-    alignDropSets(row, activity, createId, terminalEndMs),
-  );
-  return normalizeSuperset(
-    alternatives.every((row, index) => row === activity.alternatives[index])
-      ? activity
-      : { ...activity, alternatives },
-    createId,
-    terminalEndMs,
-  );
-}
-
-/**
- * Change how many drop sets an activity's main row has. Drop sets are on
- * while there is at least one: going from none to some starts them at
- * `percent`, and going to none turns them off. Returns null for an invalid
- * count. normalizeActivity passes the change on to the activity's other rows.
- */
-export function setDropSetCount<T extends DraftAlternative>(
-  activity: T,
-  text: string,
-  percent: number,
-  createId: () => string,
-  terminalEndMs: number | null | undefined,
-): T | null {
-  const resized = resizeSets(activity, "Drop", text, createId, terminalEndMs);
-  if (!resized) return null;
-  const next = resized.activity;
-  return {
-    ...next,
-    dropPercent: next.dropSets.length ? (next.dropPercent ?? percent) : null,
   };
 }
 
@@ -427,10 +347,14 @@ export function applyExerciseSelection<T extends DraftAlternative>(
   };
 }
 
-/** Apply a chosen load; percentage loads derive weights, so planned ones clear. */
+/**
+ * Apply a chosen load, and its drop percentage when one was chosen with it;
+ * percentage loads derive weights, so planned ones clear.
+ */
 export function applyLoadSelection<T extends DraftAlternative>(
   activity: T,
   load: { type: "PERCENT" | "RPE"; value: number },
+  dropPercent?: number,
 ): T {
   const clear = (set: DraftSet): DraftSet =>
     set.status === "Planned"
@@ -440,6 +364,7 @@ export function applyLoadSelection<T extends DraftAlternative>(
     ...activity,
     loadType: load.type,
     loadValue: load.value,
+    ...(dropPercent === undefined ? {} : { dropPercent }),
     ...(load.type === "PERCENT"
       ? {
           warmupSets: activity.warmupSets.map(clear),
