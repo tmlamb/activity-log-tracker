@@ -1,5 +1,7 @@
 import type { Db } from "../database/db";
+import type { SetKind } from "./session-detail";
 import type { SetReference } from "./sets";
+import { kindRankSql } from "./sets";
 
 export interface SeriesSelection {
   sessionName: string;
@@ -23,8 +25,9 @@ export interface SeriesSetFact {
   plannedReps: number | null;
   loadType: "PERCENT" | "RPE" | null;
   loadValue: number | null;
+  dropPercent: number | null;
   id: string;
-  kind: "Warmup" | "Main";
+  kind: SetKind;
   status: "Planned" | "Ready" | "Done" | "Incomplete";
   feedback: "Easy" | "Neutral" | "Hard";
   actualReps: number | null;
@@ -96,17 +99,17 @@ export function readExerciseSeriesFacts(
   // current session is always the referenced activity, main or alternative.
   const sets = reader.getAllSync<SeriesSetFact>(
     `WITH occurrences AS (
-       SELECT a.program_id, a.session_id, a.id, a.reps, a.load_type, a.load_value,
+       SELECT a.program_id, a.session_id, a.id, a.reps, a.load_type, a.load_value, a.drop_percent,
          ROW_NUMBER() OVER (PARTITION BY a.session_id ORDER BY a.position) - 1 AS occurrence
        FROM sessions s JOIN activities a ON a.program_id = s.program_id AND a.session_id = s.id
        WHERE s.program_id = ? AND s.lineage_id = ? AND a.exercise_id = ?
          AND a.parent_activity_id IS NULL AND s.id <> ?
        UNION ALL
-       SELECT program_id, session_id, id, reps, load_type, load_value, ? AS occurrence
+       SELECT program_id, session_id, id, reps, load_type, load_value, drop_percent, ? AS occurrence
        FROM activities WHERE program_id = ? AND session_id = ? AND id = ?
      )
      SELECT s.id AS sessionId, a.id AS activityId, a.reps AS plannedReps,
-       a.load_type AS loadType, a.load_value AS loadValue, w.id, w.kind, w.status, w.feedback,
+       a.load_type AS loadType, a.load_value AS loadValue, a.drop_percent AS dropPercent, w.id, w.kind, w.status, w.feedback,
        w.actual_reps AS actualReps, w.weight_value AS weightValue, w.weight_unit AS weightUnit,
        w.start_ms AS startMs, w.end_ms AS endMs
      FROM sessions s JOIN occurrences a ON a.program_id = s.program_id AND a.session_id = s.id AND a.occurrence = ?
@@ -137,7 +140,7 @@ export function readExerciseSeriesFacts(
        (SELECT w.id FROM workout_sets w
         WHERE w.program_id = a.program_id AND w.session_id = a.session_id AND w.activity_id = a.id
         ORDER BY (w.kind = (SELECT kind FROM selected) AND w.position = (SELECT position FROM selected)) DESC,
-          w.kind = 'Main' DESC, w.position
+          w.kind = 'Main' DESC, ${kindRankSql("w.kind")}, w.position
         LIMIT 1) AS setId
      FROM activities a JOIN exercises e ON e.id = a.exercise_id
      WHERE a.program_id = ? AND a.session_id = ? AND a.parent_activity_id = ?

@@ -2,9 +2,8 @@ import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { format } from "date-fns";
 
-import type { ExerciseSetInsights } from "@activity-log/ui/utils";
-
 import type { BarChartPoint } from "./BarChart";
+import type { ExerciseSetInsightsView as ExerciseSetInsights } from "~/data/insight-presenters";
 import BarChart from "./BarChart";
 import Card from "./Card";
 import { DetailCardRow, NavigationCardRow } from "./CardRow";
@@ -191,11 +190,20 @@ export default function ExerciseInsights({
   const mainSetInsights = insights.filter(
     (setInsights) => setInsights.setType === "Main",
   );
-  const [warmupSetsCollapsed, setWarmupSetsCollapsed] = useState(
-    currentSetType === "Main",
+  const dropSetInsights = insights.filter(
+    (setInsights) => setInsights.setType === "Drop",
   );
-  const [mainSetsCollapsed, setMainSetsCollapsed] = useState(
-    currentSetType === "Warmup",
+  // Only the current set's kind starts expanded.
+  const startsCollapsed = (setType: ExerciseSetInsights["setType"]) =>
+    currentSetType !== undefined && currentSetType !== setType;
+  const [warmupSetsCollapsed, setWarmupSetsCollapsed] = useState(() =>
+    startsCollapsed("Warmup"),
+  );
+  const [mainSetsCollapsed, setMainSetsCollapsed] = useState(() =>
+    startsCollapsed("Main"),
+  );
+  const [dropSetsCollapsed, setDropSetsCollapsed] = useState(() =>
+    startsCollapsed("Drop"),
   );
   const [alternativesCollapsed, setAlternativesCollapsed] = useState(true);
   const collapsibleSectionScroll = useCollapsibleSectionScroll();
@@ -208,6 +216,11 @@ export default function ExerciseInsights({
   const handleMainSetsCollapsedChange = (collapsed: boolean) => {
     collapsibleSectionScroll.prepareSectionToggle();
     setMainSetsCollapsed(collapsed);
+  };
+
+  const handleDropSetsCollapsedChange = (collapsed: boolean) => {
+    collapsibleSectionScroll.prepareSectionToggle();
+    setDropSetsCollapsed(collapsed);
   };
 
   const handleAlternativesCollapsedChange = (collapsed: boolean) => {
@@ -268,7 +281,11 @@ export default function ExerciseInsights({
         onCollapsedChange={handleMainSetsCollapsedChange}
         premeasureCollapsedContent
       >
-        <View className={alternatives.length ? "mb-3" : undefined}>
+        <View
+          className={
+            dropSetInsights.length || alternatives.length ? "mb-3" : undefined
+          }
+        >
           {mainSetInsights.map((setInsights, index) => (
             <VolumeChart
               key={`${setInsights.setType}-${setInsights.setNumber}`}
@@ -279,6 +296,24 @@ export default function ExerciseInsights({
           ))}
         </View>
       </CollapsibleSection>
+      {dropSetInsights.length ? (
+        <CollapsibleSection
+          title="Drop Sets"
+          collapsed={dropSetsCollapsed}
+          onCollapsedChange={handleDropSetsCollapsedChange}
+          premeasureCollapsedContent
+        >
+          <View className={alternatives.length ? "mb-3" : undefined}>
+            {dropSetInsights.map((setInsights, index) => (
+              <VolumeChart
+                key={`${setInsights.setType}-${setInsights.setNumber}`}
+                insights={setInsights}
+                stack={{ index, size: dropSetInsights.length }}
+              />
+            ))}
+          </View>
+        </CollapsibleSection>
+      ) : null}
       {alternatives.length ? (
         <CollapsibleSection
           title="Alternative Exercises"

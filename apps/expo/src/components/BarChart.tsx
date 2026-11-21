@@ -2,7 +2,13 @@ import { useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { FadeOut } from "react-native-reanimated";
 
+import type { BarChartDisplay, BarChartTone } from "./bar-chart-segments";
 import { getBarChartTickValues } from "./bar-chart-axis";
+import {
+  barSegments,
+  DEFAULT_SEGMENT_HEIGHT,
+  segmentHeights,
+} from "./bar-chart-segments";
 import { Text } from "./font-scale-text";
 import { AnimatedViewStyled, LegendListStyled } from "./Styled";
 
@@ -16,29 +22,12 @@ export const formatBarChartValue = (value: number) => {
   return numberFormatter.format(value);
 };
 
-export type BarChartTone = "primary" | "info" | "muted";
-
-export interface BarChartLine {
-  text: string;
-  strong?: boolean;
-  tabularNumbers?: boolean;
-}
-
-export type BarChartDisplay =
-  | {
-      type: "bar";
-      lines: BarChartLine[];
-      tone?: BarChartTone;
-      heightRatio?: number;
-      minimumHeight?: number;
-      dotted?: boolean;
-      pending?: {
-        value: number;
-        lines: BarChartLine[];
-      };
-    }
-  | { type: "empty"; label: string }
-  | { type: "message"; label: string };
+export type {
+  BarChartDisplay,
+  BarChartLine,
+  BarChartSegment,
+  BarChartTone,
+} from "./bar-chart-segments";
 
 export interface BarChartPoint {
   key: string;
@@ -169,47 +158,29 @@ export default function BarChart({
               const { display } = point;
               const tone =
                 display.type === "bar" ? (display.tone ?? "primary") : null;
-              const dotted = display.type === "bar" && display.dotted;
-              const pending =
-                display.type === "bar" && display.pending?.value
-                  ? display.pending
-                  : undefined;
-              const pendingValue = Math.min(
-                Math.max(pending?.value ?? 0, 0),
-                Math.max(point.value, 0),
-              );
-              const completedValue = Math.max(point.value - pendingValue, 0);
+              const segments =
+                display.type === "bar" ? barSegments(display, point.value) : [];
               const barHeight =
                 display.type === "bar"
-                  ? Math.max(
-                      (display.heightRatio ?? point.value / maxValue) *
-                        maxBarHeight,
-                      display.minimumHeight ?? 58,
-                    )
-                  : 0;
-              const minimumSegmentHeight = Math.min(18, barHeight / 2);
-              const pendingHeight = pendingValue
-                ? completedValue > 0
                   ? Math.min(
                       Math.max(
-                        (pendingValue / point.value) * barHeight,
-                        minimumSegmentHeight,
+                        (display.heightRatio ?? point.value / maxValue) *
+                          maxBarHeight,
+                        display.minimumHeight ?? 58,
+                        segments.length > 1
+                          ? segments.reduce(
+                              (total, segment) =>
+                                total +
+                                (segment.minimumHeight ??
+                                  DEFAULT_SEGMENT_HEIGHT),
+                              0,
+                            )
+                          : 0,
                       ),
-                      barHeight - minimumSegmentHeight,
+                      maxBarHeight,
                     )
-                  : barHeight
-                : 0;
-              const completedHeight = barHeight - pendingHeight;
-              const barClassName = tone
-                ? `${dotted ? `${toneClasses[tone].border} border-2 border-dotted` : toneClasses[tone].container} items-center justify-end rounded-t px-0.5 pb-0.5`
-                : "";
-              const pendingClassName = tone
-                ? `${toneClasses[tone].border} items-center justify-end rounded-t border-2 border-dotted px-0.5 pb-0.5`
-                : "";
-              const completedClassName = tone
-                ? `${toneClasses[tone].container} items-center justify-end px-0.5 pb-0.5`
-                : "";
-
+                  : 0;
+              const heights = segmentHeights(segments, barHeight);
               return (
                 <View
                   key={point.key}
@@ -237,67 +208,35 @@ export default function BarChart({
                         className={point.faded ? "opacity-70" : undefined}
                         style={{ width: barWidth, height: barHeight }}
                       >
-                        {pendingValue && pending ? (
-                          <>
-                            <View
-                              className={pendingClassName}
-                              style={{
-                                width: barWidth,
-                                height: pendingHeight,
-                              }}
-                            >
-                              {pending.lines.map((line, index) => (
-                                <Text
-                                  key={`${point.key}-pending-${index}`}
-                                  maxFontSizeMultiplier={1}
-                                  adjustsFontSizeToFit
-                                  numberOfLines={1}
-                                  className={`${toneClasses[tone].outlinedText} text-[10px] ${line.strong ? "font-bold" : "font-semibold"} ${line.tabularNumbers === false ? "" : "tabular-nums"}`}
-                                >
-                                  {line.text}
-                                </Text>
-                              ))}
-                            </View>
-                            {completedValue > 0 ? (
+                        {segments
+                          .map((segment, index) => ({
+                            segment,
+                            height: heights[index] ?? 0,
+                            index,
+                          }))
+                          .reverse()
+                          .map(({ segment, height, index }, order) => {
+                            const classes = toneClasses[segment.tone];
+                            return (
                               <View
-                                className={completedClassName}
-                                style={{
-                                  width: barWidth,
-                                  height: completedHeight,
-                                }}
+                                key={`${point.key}-segment-${index}`}
+                                className={`${segment.dotted ? `${classes.border} border-2 border-dotted` : classes.container} items-center justify-end px-0.5 pb-0.5 ${order === 0 ? "rounded-t" : ""}`}
+                                style={{ width: barWidth, height }}
                               >
-                                {display.lines.map((line, index) => (
+                                {segment.lines.map((line, lineIndex) => (
                                   <Text
-                                    key={`${point.key}-completed-${index}`}
+                                    key={`${point.key}-${index}-${lineIndex}`}
                                     maxFontSizeMultiplier={1}
                                     adjustsFontSizeToFit
                                     numberOfLines={1}
-                                    className={`${toneClasses[tone].text} text-[10px] ${line.strong ? "font-bold" : "font-semibold"} ${line.tabularNumbers === false ? "" : "tabular-nums"}`}
+                                    className={`${segment.dotted ? classes.outlinedText : classes.text} text-[10px] ${line.strong ? "font-bold" : "font-semibold"} ${line.tabularNumbers === false ? "" : "tabular-nums"}`}
                                   >
                                     {line.text}
                                   </Text>
                                 ))}
                               </View>
-                            ) : null}
-                          </>
-                        ) : (
-                          <View
-                            className={barClassName}
-                            style={{ width: barWidth, height: barHeight }}
-                          >
-                            {display.lines.map((line, index) => (
-                              <Text
-                                key={`${point.key}-${index}`}
-                                maxFontSizeMultiplier={1}
-                                adjustsFontSizeToFit
-                                numberOfLines={1}
-                                className={`${dotted ? toneClasses[tone].outlinedText : toneClasses[tone].text} text-[10px] ${line.strong ? "font-bold" : "font-semibold"} ${line.tabularNumbers === false ? "" : "tabular-nums"}`}
-                              >
-                                {line.text}
-                              </Text>
-                            ))}
-                          </View>
-                        )}
+                            );
+                          })}
                       </View>
                     ) : display.type === "empty" ? (
                       <View

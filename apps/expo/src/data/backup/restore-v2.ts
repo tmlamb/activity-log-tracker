@@ -2,6 +2,7 @@ import { normalizeExerciseName } from "@activity-log/ui/utils";
 
 import type { prepareLegacyConversion } from "../legacy/conversion";
 import type { PortableDataV2 } from "./portable-v2";
+import { SET_KINDS, setField } from "../repositories/session-detail";
 import { parsePortableBackupV2 } from "./portable-v2";
 
 type PreparedRows = ReturnType<typeof prepareLegacyConversion>;
@@ -77,7 +78,11 @@ export function prepareVersion2Restore(contents: string): PreparedRows {
         )
           throw new Error("The backup references a missing exercise.");
         unique(
-          [...activity.warmupSets, ...activity.mainSets].map(({ id }) => id),
+          [
+            ...activity.warmupSets,
+            ...activity.mainSets,
+            ...activity.dropSets,
+          ].map(({ id }) => id),
           "set IDs",
         );
       }
@@ -198,12 +203,10 @@ function toRows(data: PortableDataV2): PreparedRows {
           load_type: activity.load?.type ?? null,
           load_value: activity.load?.value ?? null,
           rest_minutes: activity.restMinutes,
+          drop_percent: activity.dropPercent,
         });
-        for (const [kind, sets] of [
-          ["Warmup", activity.warmupSets],
-          ["Main", activity.mainSets],
-        ] as const) {
-          sets.forEach((set, setPosition) =>
+        for (const kind of SET_KINDS) {
+          activity[setField(kind)].forEach((set, setPosition) =>
             history.sets.push({
               program_id: program.id,
               session_id: session.id,

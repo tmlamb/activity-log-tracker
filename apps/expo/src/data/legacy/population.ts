@@ -106,6 +106,7 @@ function tables(conversion: Conversion): TableSpec[] {
         "load_type",
         "load_value",
         "rest_minutes",
+        "drop_percent",
       ],
       rows: history.activities,
     },

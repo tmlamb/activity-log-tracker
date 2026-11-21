@@ -42,8 +42,10 @@ const row = (id: string, exerciseId: string): DraftAlternative => ({
   loadType: "RPE",
   loadValue: 8,
   restMinutes: 2,
+  dropPercent: null,
   warmupSets: [],
   mainSets: [set(`${id}-m`)],
+  dropSets: [],
 });
 const draft = (): SessionDraft => ({
   name: "Day",
@@ -305,7 +307,7 @@ describe("activity alternatives", () => {
         ),
       ).toEqual(["a1", "a2"]);
       const backup = serializePortableBackupV2(data, 5);
-      expect(JSON.parse(backup)).toMatchObject({ version: 4 });
+      expect(JSON.parse(backup)).toMatchObject({ version: 5 });
       const restored = createTestDb();
       try {
         transaction(restored, () =>

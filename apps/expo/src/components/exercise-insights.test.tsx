@@ -173,4 +173,49 @@ describe("exercise insights alternatives", () => {
       expect.arrayContaining(["Warmup Set 1", "Main Set 1"]),
     );
   });
+
+  it("shows drop sets in their own section after the main sets", () => {
+    const set = (
+      setType: "Warmup" | "Main" | "Drop",
+      setNumber: number,
+      selected = false,
+    ) => ({ setType, setNumber, selected, points: [] });
+    const render = (selectedType: "Main" | "Drop") => {
+      let renderer: ReturnType<typeof create> | undefined;
+      act(() => {
+        renderer = create(
+          <ExerciseInsights
+            exerciseName="Bench"
+            sessionName="Day"
+            insights={[
+              set("Main", 1, selectedType === "Main"),
+              set("Drop", 1, selectedType === "Drop"),
+              set("Drop", 2),
+            ]}
+            superset
+          />,
+        );
+      });
+      if (!renderer) throw new Error("Renderer not created");
+      const root = renderer.root;
+      const result = {
+        titles: root
+          .findAll((node) => typeof node.props["data-title"] === "string")
+          .map((node) => node.props["data-title"] as string),
+        texts: root.findAllByType("span").flatMap((node) => node.children),
+      };
+      act(() => renderer?.unmount());
+      return result;
+    };
+    // Drop sets keep their name in a superset; only the current kind is open.
+    const fromDrop = render("Drop");
+    expect(fromDrop.titles).toEqual(["Supersets", "Drop Sets"]);
+    expect(fromDrop.texts).toEqual(
+      expect.arrayContaining(["Drop Set 1", "Drop Set 2"]),
+    );
+    expect(fromDrop.texts).not.toContain("Superset 1");
+    const fromMain = render("Main");
+    expect(fromMain.texts).toContain("Superset 1");
+    expect(fromMain.texts).not.toContain("Drop Set 1");
+  });
 });

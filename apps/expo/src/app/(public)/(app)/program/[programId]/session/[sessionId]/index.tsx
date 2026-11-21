@@ -41,6 +41,7 @@ const allDone = (activity: SessionActivity) => {
   const sets = supersetRows(activity).flatMap((row) => [
     ...row.warmupSets,
     ...row.mainSets,
+    ...row.dropSets,
   ]);
   return sets.length > 0 && sets.every(completed);
 };
@@ -126,7 +127,11 @@ const SessionContent = memo(function SessionContent({
   };
   const setsPending = session.activities
     .flatMap(supersetRows)
-    .flatMap((activity) => [...activity.warmupSets, ...activity.mainSets])
+    .flatMap((activity) => [
+      ...activity.warmupSets,
+      ...activity.mainSets,
+      ...activity.dropSets,
+    ])
     .some((set) => !completed(set));
   const completable =
     session.status === "Incomplete" ||
@@ -343,7 +348,9 @@ function ActivityRow({
         const title =
           kind === "Warmup"
             ? `Warmup Set ${number + 1}`
-            : `${superset ? "Superset" : "Main Set"} ${number + 1}`;
+            : kind === "Drop"
+              ? `Drop Set ${number + 1}`
+              : `${superset ? "Superset" : "Main Set"} ${number + 1}`;
         const status =
           set.status === "Planned" && setIndex === 0 ? "Ready" : set.status;
         const lines = completed(set)

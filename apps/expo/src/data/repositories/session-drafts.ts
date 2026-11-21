@@ -2,16 +2,17 @@ import { normalizeSingleLineText } from "@activity-log/ui/utils";
 
 import type { Db } from "../database/db";
 import type { SessionActivityFields, SessionSet } from "./session-detail";
-import { supersetRows } from "./session-detail";
+import { SET_KINDS, setField, supersetRows } from "./session-detail";
 
 export type DraftSet = Omit<SessionSet, "kind" | "position">;
 /** One editable exercise row: a main activity's fields or an alternative. */
 export type DraftAlternative = Omit<
   SessionActivityFields,
-  "exerciseName" | "exerciseDeleted" | "warmupSets" | "mainSets"
+  "exerciseName" | "exerciseDeleted" | "warmupSets" | "mainSets" | "dropSets"
 > & {
   warmupSets: DraftSet[];
   mainSets: DraftSet[];
+  dropSets: DraftSet[];
 };
 /** A main exercise row with its alternatives: a superset member, or a leader. */
 export type DraftSupersetMember = DraftAlternative & {
@@ -66,7 +67,11 @@ function validateDraft(draft: SessionDraft) {
       throw new Error("Invalid or duplicate activity ID.");
     activityIds.add(activity.id);
     const setIds = new Set<string>();
-    for (const set of [...activity.warmupSets, ...activity.mainSets]) {
+    for (const set of [
+      ...activity.warmupSets,
+      ...activity.mainSets,
+      ...activity.dropSets,
+    ]) {
       if (!set.id.trim() || setIds.has(set.id))
         throw new Error("Invalid or duplicate workout set ID.");
       setIds.add(set.id);
@@ -84,6 +89,13 @@ function validateDraft(draft: SessionDraft) {
     }
     if ((activity.loadValue === null) !== (activity.loadType === null))
       throw new Error("A workout load requires a value and type.");
+    if (
+      activity.dropPercent !== null &&
+      !(activity.dropPercent > 0 && activity.dropPercent < 1)
+    )
+      throw new Error("A drop set percentage must be between 0 and 100.");
+    if (activity.dropPercent === null && activity.dropSets.length)
+      throw new Error("Drop sets require a drop percentage.");
     for (const value of [
       activity.reps,
       activity.loadValue,
@@ -131,8 +143,8 @@ function insertActivities(
   );
   for (const { activity, position, parentId, supersetId } of rows) {
     transaction.runSync(
-      `INSERT INTO activities(program_id, session_id, id, parent_activity_id, superset_activity_id, exercise_id, position, reps, load_type, load_value, rest_minutes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO activities(program_id, session_id, id, parent_activity_id, superset_activity_id, exercise_id, position, reps, load_type, load_value, rest_minutes, drop_percent)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       programId,
       sessionId,
       activity.id,
@@ -144,12 +156,10 @@ function insertActivities(
       activity.loadType,
       activity.loadValue,
       activity.restMinutes,
+      activity.dropPercent,
     );
-    for (const [kind, sets] of [
-      ["Warmup", activity.warmupSets],
-      ["Main", activity.mainSets],
-    ] as const) {
-      for (const [setPosition, set] of sets.entries()) {
+    for (const kind of SET_KINDS) {
+      for (const [setPosition, set] of activity[setField(kind)].entries()) {
         transaction.runSync(
           `INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback, actual_reps, weight_value, weight_unit, start_ms, end_ms)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -246,7 +256,7 @@ export function saveSessionDraft(
     .flatMap(supersetRows)
     .flatMap((activity) => [activity, ...activity.alternatives])
     .some((activity) =>
-      [...activity.warmupSets, ...activity.mainSets].some(
+      [...activity.warmupSets, ...activity.mainSets, ...activity.dropSets].some(
         (set) => set.status === "Planned" || set.status === "Ready",
       ),
     );

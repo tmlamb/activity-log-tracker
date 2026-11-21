@@ -50,8 +50,10 @@ const row = (id: string, exerciseId: string): DraftAlternative => ({
   loadType: "RPE",
   loadValue: 8,
   restMinutes: 0,
+  dropPercent: null,
   warmupSets: [set(`${id}-w0`)],
   mainSets: [set(`${id}-m0`), set(`${id}-m1`)],
+  dropSets: [],
 });
 /** Bench supersetted with Dumbbell (which has a Machine alternative), then Row. */
 const draft = (): SessionDraft => ({

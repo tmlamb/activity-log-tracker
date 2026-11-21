@@ -8,14 +8,18 @@ import type {
   SessionSet,
 } from "./session-detail";
 import type { SetReference } from "./sets";
-import { plannedSetWeight } from "../domain/set-execution";
+import {
+  plannedDropSetWeight,
+  plannedSetWeight,
+} from "../domain/set-execution";
+import { kindRankSql } from "./sets";
 
 export interface SetExecutionContext {
   reference: SetReference;
   session: Omit<SessionDetail, "activities">;
   activity: Omit<
     SessionActivityFields,
-    "exerciseName" | "exerciseDeleted" | "warmupSets" | "mainSets"
+    "exerciseName" | "exerciseDeleted" | "warmupSets" | "mainSets" | "dropSets"
   > & {
     warmupSetCount: number;
     mainSetCount: number;
@@ -44,6 +48,7 @@ interface ContextRow {
   loadType: SessionActivityFields["loadType"];
   loadValue: number | null;
   restMinutes: number | null;
+  dropPercent: number | null;
   exerciseName: string | null;
   exerciseDeleted: number | null;
   exerciseRevision: number | null;
@@ -79,7 +84,7 @@ export function getSetExecutionContext(
        s.last_activity_at_ms AS lastActivityAtMs, s.revision,
        a.exercise_id AS exerciseId, a.reps, a.load_type AS loadType,
        a.load_value AS loadValue, a.rest_minutes AS restMinutes,
-       e.name AS exerciseName, e.deleted AS exerciseDeleted, e.revision AS exerciseRevision,
+       a.drop_percent AS dropPercent, e.name AS exerciseName, e.deleted AS exerciseDeleted, e.revision AS exerciseRevision,
        e.load_kind AS loadKind, e.barbell_id AS barbellId,
        e.one_rep_max_value AS oneRepMaxValue, e.one_rep_max_unit AS oneRepMaxUnit,
        -- In a superset the first pending set may belong to another exercise.
@@ -89,7 +94,7 @@ export function getSetExecutionContext(
          WHERE pending.program_id = a.program_id AND pending.session_id = a.session_id
            AND COALESCE(member.superset_activity_id, member.id) = COALESCE(a.superset_activity_id, a.id)
            AND pending.status IN ('Planned', 'Ready')
-         ORDER BY CASE pending.kind WHEN 'Warmup' THEN 0 ELSE 1 END, pending.position, member.position
+         ORDER BY ${kindRankSql("pending.kind")}, pending.position, member.position
          LIMIT 1) AS firstPendingKey,
        w.kind, w.position, w.status AS setStatus, w.feedback, w.actual_reps AS actualReps,
        w.weight_value AS weightValue, w.weight_unit AS weightUnit,
@@ -145,6 +150,7 @@ export function getSetExecutionContext(
     loadType: row.loadType,
     loadValue: row.loadValue,
     restMinutes: row.restMinutes,
+    dropPercent: row.dropPercent,
     warmupSetCount: row.warmupSetCount,
     mainSetCount: row.mainSetCount,
   };
@@ -160,10 +166,24 @@ export function getSetExecutionContext(
     startMs: row.startMs,
     endMs: row.endMs,
   };
-  const weight = (value: SessionSet): Weight | null =>
+  const weight = (value: Pick<SessionSet, "weightValue" | "weightUnit">) =>
     value.weightValue !== null && value.weightUnit !== null
       ? { value: value.weightValue, unit: value.weightUnit }
       : null;
+  // A drop set's weight follows from the row's sets before it.
+  const rowSets =
+    row.kind === "Drop"
+      ? reader
+          .getAllSync<Pick<SessionSet, "kind" | "weightValue" | "weightUnit">>(
+            `SELECT kind, weight_value AS weightValue, weight_unit AS weightUnit
+             FROM workout_sets WHERE program_id = ? AND session_id = ? AND activity_id = ?
+             ORDER BY ${kindRankSql("kind")}, position`,
+            programId,
+            sessionId,
+            activityId,
+          )
+          .map((item) => ({ kind: item.kind, weight: weight(item) }))
+      : [];
   return {
     reference: { ...reference },
     session: {
@@ -182,11 +202,19 @@ export function getSetExecutionContext(
     exercise,
     set,
     firstMainSet,
-    targetWeight: plannedSetWeight(
-      activity,
-      { kind: set.kind, index: row.setIndex, weight: weight(set) },
-      exercise?.oneRepMax ?? null,
-    ),
+    targetWeight:
+      set.kind === "Drop"
+        ? plannedDropSetWeight(
+            activity,
+            rowSets,
+            row.setIndex,
+            exercise?.oneRepMax ?? null,
+          )
+        : plannedSetWeight(
+            activity,
+            { kind: set.kind, index: row.setIndex, weight: weight(set) },
+            exercise?.oneRepMax ?? null,
+          ),
     mainTargetWeight: firstMainSet
       ? plannedSetWeight(
           activity,

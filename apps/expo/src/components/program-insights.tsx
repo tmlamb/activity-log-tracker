@@ -2,12 +2,10 @@ import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 
-import type {
-  ProgramInsightMetrics,
-  ProgramInsights as ProgramInsightsData,
-} from "@activity-log/ui/utils";
+import type { ProgramInsightMetrics } from "@activity-log/ui/utils";
 
-import type { BarChartPoint } from "./BarChart";
+import type { BarChartLine, BarChartPoint } from "./BarChart";
+import type { ProgramInsightsView as ProgramInsightsData } from "~/data/insight-presenters";
 import BarChart, { formatBarChartValue } from "./BarChart";
 import Card from "./Card";
 import { DetailCardRow } from "./CardRow";
@@ -59,6 +57,14 @@ const numberFormatter = new Intl.NumberFormat("en-US", {
 });
 
 const formatMetricValue = (value: number) => numberFormatter.format(value);
+
+/** A drop set segment's lines: its value, then "Drop". */
+const dropLines = (value: number): BarChartLine[] => [
+  { text: formatBarChartValue(value), strong: true },
+  { text: "Drop", tabularNumbers: false },
+];
+/** Room for both of a drop set segment's lines. */
+const DROP_SEGMENT_HEIGHT = 30;
 
 function ChoicePills<T extends string>({
   accessibilityLabel,
@@ -134,6 +140,15 @@ function TrendChart({ insights }: { insights: ProgramInsightsData }) {
     const pendingValue = muscleMetrics?.pending[metric] ?? 0;
     const value = completedValue + pendingValue;
     const emphasized = index === insights.weeks.length - 1;
+    // Drop sets count in the totals, and are shown muted on top of the bar.
+    const dropValue = muscleMetrics?.drop[metric] ?? 0;
+    const dropPendingValue = muscleMetrics?.dropPending[metric] ?? 0;
+    const mainCompletedValue = Math.max(completedValue - dropValue, 0);
+    const mainPendingValue = Math.max(pendingValue - dropPendingValue, 0);
+    const dropSummary =
+      dropValue + dropPendingValue > 0
+        ? `, including drop sets: ${formatMetricValue(dropValue)} completed${dropPendingValue > 0 ? ` and ${formatMetricValue(dropPendingValue)} pending` : ""} ${metricOption.valueLabel}`
+        : "";
 
     return {
       key: String(week.week),
@@ -141,8 +156,8 @@ function TrendChart({ insights }: { insights: ProgramInsightsData }) {
       label: `W${week.week}`,
       accessibilityLabel:
         pendingValue > 0
-          ? `Week ${week.week}, ${muscleGroup}, ${formatMetricValue(completedValue)} completed ${metricOption.valueLabel}, ${formatMetricValue(pendingValue)} pending ${metricOption.valueLabel}, ${formatMetricValue(value)} projected total ${metricOption.valueLabel}`
-          : `Week ${week.week}, ${muscleGroup}, ${formatMetricValue(value)} ${metricOption.valueLabel}`,
+          ? `Week ${week.week}, ${muscleGroup}, ${formatMetricValue(completedValue)} completed ${metricOption.valueLabel}, ${formatMetricValue(pendingValue)} pending ${metricOption.valueLabel}, ${formatMetricValue(value)} projected total ${metricOption.valueLabel}${dropSummary}`
+          : `Week ${week.week}, ${muscleGroup}, ${formatMetricValue(value)} ${metricOption.valueLabel}${dropSummary}`,
       emphasized,
       faded: !emphasized,
       display:
@@ -151,27 +166,42 @@ function TrendChart({ insights }: { insights: ProgramInsightsData }) {
               type: "bar",
               tone: "primary",
               lines:
-                completedValue > 0
+                mainCompletedValue > 0
                   ? [
                       {
-                        text: formatBarChartValue(completedValue),
+                        text: formatBarChartValue(mainCompletedValue),
                         strong: true,
                       },
                     ]
                   : [],
-              ...(pendingValue > 0
+              ...(mainPendingValue > 0
                 ? {
                     pending: {
-                      value: pendingValue,
+                      value: mainPendingValue,
                       lines: [
                         {
-                          text: formatBarChartValue(pendingValue),
+                          text: formatBarChartValue(mainPendingValue),
                           strong: true,
                         },
                       ],
                     },
                   }
                 : {}),
+              segments: [
+                {
+                  value: dropValue,
+                  tone: "muted",
+                  lines: dropLines(dropValue),
+                  minimumHeight: DROP_SEGMENT_HEIGHT,
+                },
+                {
+                  value: dropPendingValue,
+                  tone: "muted",
+                  dotted: true,
+                  lines: dropLines(dropPendingValue),
+                  minimumHeight: DROP_SEGMENT_HEIGHT,
+                },
+              ],
             }
           : { type: "empty", label: "0" },
     };

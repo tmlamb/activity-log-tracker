@@ -14,9 +14,9 @@ export function prepareApplicationRestore(contents: string) {
     throw new Error("The selected file is not a valid Activity Log backup.");
   const version = (value as { version?: unknown }).version;
   if (version === 1) return prepareVersion1Restore(contents);
-  // Versions 2 to 4 share a parser; version 3 added alternative exercises and
-  // version 4 supersets.
-  if (version === 2 || version === 3 || version === 4)
+  // Versions 2 to 5 share a parser; version 3 added alternative exercises,
+  // version 4 supersets and version 5 drop sets.
+  if (version === 2 || version === 3 || version === 4 || version === 5)
     return prepareVersion2Restore(contents);
   throw new Error("The selected backup version is not supported.");
 }

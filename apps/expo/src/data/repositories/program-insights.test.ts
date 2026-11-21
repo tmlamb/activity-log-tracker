@@ -127,7 +127,7 @@ describe("program insights projection", () => {
       };
       const facts = readProgramInsightFacts(reader, "p");
       if (!facts) throw new Error("Missing program");
-      expect(calls()).toBe(5);
+      expect(calls()).toBe(6);
       expect(facts.completed).toHaveLength(1);
       expect(facts.sets).toHaveLength(2);
       const actual = buildProgramInsightProjection(facts, now.getTime());
@@ -139,8 +139,14 @@ describe("program insights projection", () => {
           week,
           start: new Date(startMs),
           end: new Date(endMs),
+          // Legacy insights have no drop sets to count separately.
           muscleGroups: muscleGroups.map(
-            ({ partial: _partial, ...metrics }) => metrics,
+            ({
+              partial: _partial,
+              drop: _drop,
+              dropPending: _dropPending,
+              ...metrics
+            }) => metrics,
           ),
         })),
       }).toEqual(legacy);

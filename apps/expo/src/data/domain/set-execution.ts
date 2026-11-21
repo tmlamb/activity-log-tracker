@@ -10,6 +10,7 @@ const warmupPercentages: Record<number, readonly number[]> = {
   5: [0.3, 0.4, 0.5, 0.6, 0.7],
 };
 
+/** The weight a warmup or main set is planned at. */
 export function plannedSetWeight(
   activity: {
     loadType: "PERCENT" | "RPE" | null;
@@ -30,4 +31,55 @@ export function plannedSetWeight(
   return percent
     ? { value: round5(oneRepMax.value * percent), unit: oneRepMax.unit }
     : null;
+}
+
+/**
+ * The weight a drop set (the `index`th, from 0) is planned at: `dropPercent`
+ * lighter than the set before it, which is the previous drop set, or else the
+ * row's last main set, or else its last warmup set. An earlier set counts at
+ * its recorded weight, or at its own planned weight when it has none yet.
+ * `sets` are the row's sets in performing order: warmups, mains, then drops.
+ */
+export function plannedDropSetWeight(
+  activity: {
+    loadType: "PERCENT" | "RPE" | null;
+    loadValue: number | null;
+    warmupSetCount: number;
+    dropPercent: number | null;
+  },
+  sets: readonly {
+    kind: "Warmup" | "Main" | "Drop";
+    weight: Weight | null;
+  }[],
+  index: number,
+  oneRepMax: Weight | null,
+): Weight | null {
+  const { dropPercent } = activity;
+  if (dropPercent === null) return null;
+  const recorded = (value: Weight | null | undefined) =>
+    value && value.value > 0 ? value : null;
+  const ofKind = (kind: "Warmup" | "Main" | "Drop") =>
+    sets.filter((item) => item.kind === kind);
+  const mains = ofKind("Main");
+  const kind = mains.length ? "Main" : "Warmup";
+  const previous = mains.length ? mains : ofKind("Warmup");
+  const last = previous.at(-1);
+  if (!last) return null;
+  let weight =
+    recorded(last.weight) ??
+    plannedSetWeight(
+      activity,
+      { kind, index: previous.length - 1, weight: last.weight },
+      oneRepMax,
+    );
+  const drops = ofKind("Drop");
+  for (let number = 0; number <= index; number++) {
+    if (!weight) return null;
+    weight = {
+      value: round5(weight.value * (1 - dropPercent)),
+      unit: weight.unit,
+    };
+    if (number < index) weight = recorded(drops[number]?.weight) ?? weight;
+  }
+  return weight;
 }

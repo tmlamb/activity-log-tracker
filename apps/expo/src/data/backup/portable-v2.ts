@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** The version new backups are written with. */
-export const PORTABLE_BACKUP_VERSION = 4;
+export const PORTABLE_BACKUP_VERSION = 5;
 
 /** Frozen portable model. Timestamps are epoch milliseconds, never Date objects. */
 const id = z.string().refine((value) => value.trim().length > 0);
@@ -33,6 +33,12 @@ const activityFields = {
   restMinutes: numeric.nullable(),
   warmupSets: z.array(workoutSet),
   mainSets: z.array(workoutSet),
+  /**
+   * Version 5 added drop sets; older backups have none. Older apps reject
+   * version 5 rather than drop them.
+   */
+  dropPercent: numeric.nullable().default(null),
+  dropSets: z.array(workoutSet).default([]),
 };
 const alternative = z.object(activityFields);
 /** Version 3 added alternatives; version-2 backups have none. */
@@ -79,6 +85,7 @@ export const portableBackupV2Schema = z.object({
   version: z.union([
     z.literal(2),
     z.literal(3),
+    z.literal(4),
     z.literal(PORTABLE_BACKUP_VERSION),
   ]),
   createdAtMs: validTimestamp,

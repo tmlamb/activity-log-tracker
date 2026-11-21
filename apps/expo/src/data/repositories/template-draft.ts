@@ -78,12 +78,15 @@ export function createTemplateDraft(
       loadType: activity.loadType,
       loadValue: activity.loadValue,
       restMinutes: activity.restMinutes,
+      dropPercent: activity.dropPercent,
       warmupSets: activity.warmupSets.map((set) =>
         cloneSet(set, activity.loadType === "RPE"),
       ),
       mainSets: activity.mainSets.map((set) =>
         cloneSet(set, activity.loadType === "RPE"),
       ),
+      // Drop set weights follow from the sets before them.
+      dropSets: activity.dropSets.map((set) => cloneSet(set, false)),
     };
   }
   function cloneMain(activity: SessionSupersetMember): DraftSupersetMember {

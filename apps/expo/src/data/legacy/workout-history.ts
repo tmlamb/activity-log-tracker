@@ -122,6 +122,7 @@ export function convertWorkoutHistory(
           load_type: activity.load?.type ?? null,
           load_value: activity.load?.value ?? null,
           rest_minutes: activity.rest,
+          drop_percent: null,
         });
         // Main sets come first so they keep their IDs if a warmup repeats one.
         const sets = [

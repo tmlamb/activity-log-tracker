@@ -315,8 +315,13 @@ function SetEditor({
         ? `${Number((context.activity.loadValue * 100).toFixed(2))}%`
         : `RPE ${context.activity.loadValue}`;
   const isMain = context.set.kind === "Main";
-  const showTarget = isMain || context.firstMainSet !== null;
-  const targetSummarySize = isMain ? 4 : showTarget ? 3 : 1;
+  const isDrop = context.set.kind === "Drop";
+  const showTarget = !isDrop && (isMain || context.firstMainSet !== null);
+  const targetSummarySize = isMain ? 4 : isDrop ? 2 : showTarget ? 3 : 1;
+  const dropLoad =
+    context.activity.dropPercent === null
+      ? "Unavailable"
+      : `${Number((context.activity.dropPercent * 100).toFixed(2))}% Drop${context.targetWeight?.value && context.set.status !== "Done" ? ` / ${context.targetWeight.value}${context.targetWeight.unit}` : ""}`;
   const displayedTarget = isMain
     ? context.targetWeight
     : context.mainTargetWeight;
@@ -437,6 +442,13 @@ function SetEditor({
                     : String(context.activity.reps)
                 }
                 stack={{ index: 2, size: targetSummarySize }}
+              />
+            )}
+            {isDrop && (
+              <DetailCardRow
+                label="Target Load"
+                value={dropLoad}
+                stack={{ index: 1, size: targetSummarySize }}
               />
             )}
             {isMain && (

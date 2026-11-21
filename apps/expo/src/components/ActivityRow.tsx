@@ -47,6 +47,7 @@ export default function ActivityRow({
   removeLabel = "Remove exercise from Session",
   alternativeCount = 0,
   supersetCount = 0,
+  dropSetCount = 0,
   setCountsLocked = false,
   restLocked = false,
   onSelectExercise,
@@ -67,6 +68,7 @@ export default function ActivityRow({
   removeLabel?: string;
   alternativeCount?: number;
   supersetCount?: number;
+  dropSetCount?: number;
   /** Set counts follow another row (a superset's leader) and can't be edited. */
   setCountsLocked?: boolean;
   /** Rest is fixed at zero (in a superset) and can't be edited. */
@@ -143,6 +145,14 @@ export default function ActivityRow({
                       className="text-muted text-base leading-tight"
                     >
                       {`${supersetCount} Superset${supersetCount === 1 ? "" : "s"}`}
+                    </Text>
+                  )}
+                  {dropSetCount > 0 && (
+                    <Text
+                      maxFontSizeMultiplier={2}
+                      className="text-muted text-base leading-tight"
+                    >
+                      {`${dropSetCount} Drop Set${dropSetCount === 1 ? "" : "s"}`}
                     </Text>
                   )}
                 </View>

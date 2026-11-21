@@ -5,7 +5,8 @@ import type {
   SeriesAlternative,
   SeriesSetFact,
 } from "../repositories/exercise-series";
-import { plannedSetWeight } from "./set-execution";
+import type { SetKind } from "../repositories/session-detail";
+import { plannedDropSetWeight, plannedSetWeight } from "./set-execution";
 
 export interface ExerciseSeriesPoint {
   sessionId: string;
@@ -23,7 +24,7 @@ export interface ExerciseSeriesProjection {
   exerciseName: string;
   sessionName: string;
   series: {
-    setType: "Warmup" | "Main";
+    setType: SetKind;
     setNumber: number;
     selected: boolean;
     points: ExerciseSeriesPoint[];
@@ -41,18 +42,31 @@ export function buildExerciseSeriesProjection(
 ): ExerciseSeriesProjection {
   if (!Number.isFinite(new Date(nowMs).getTime()))
     throw new Error("A valid insights clock is required.");
-  const bySession = new Map<
-    string,
-    { warmup: SeriesSetFact[]; main: SeriesSetFact[] }
-  >();
+  // Each session's sets by kind; a set matches the same-numbered set of its
+  // kind in other sessions.
+  const bySession = new Map<string, Record<SetKind, SeriesSetFact[]>>();
   for (const set of facts.sets) {
-    const group = bySession.get(set.sessionId) ?? { warmup: [], main: [] };
-    (set.kind === "Warmup" ? group.warmup : group.main).push(set);
+    const group = bySession.get(set.sessionId) ?? {
+      Warmup: [],
+      Main: [],
+      Drop: [],
+    };
+    group[set.kind].push(set);
     bySession.set(set.sessionId, group);
   }
   const currentSets = bySession.get(facts.reference.sessionId);
   if (!currentSets) throw new Error("The selected workout set is missing.");
-  const selectedSets = [...currentSets.warmup, ...currentSets.main];
+  const selectedSets = [
+    ...currentSets.Warmup,
+    ...currentSets.Main,
+    ...currentSets.Drop,
+  ];
+  const storedWeightOf = (set: SeriesSetFact | undefined) =>
+    set?.weightValue !== null &&
+    set?.weightValue !== undefined &&
+    set.weightUnit !== null
+      ? { value: set.weightValue, unit: set.weightUnit }
+      : null;
   if (!selectedSets.some(({ id }) => id === facts.reference.setId))
     throw new Error("The selected workout set is missing.");
   const max =
@@ -62,15 +76,12 @@ export function buildExerciseSeriesProjection(
   let partial = false;
   const series = selectedSets.map((selected) => {
     const setType = selected.kind;
-    const currentGroup =
-      setType === "Warmup" ? currentSets.warmup : currentSets.main;
+    const currentGroup = currentSets[setType];
     const index = currentGroup.findIndex(({ id }) => id === selected.id);
     const points = facts.sessions.map<ExerciseSeriesPoint>((session) => {
       const current = session.id === facts.reference.sessionId;
       const sessionSets = bySession.get(session.id);
-      const set = (
-        setType === "Warmup" ? sessionSets?.warmup : sessionSets?.main
-      )?.[index];
+      const set = sessionSets?.[setType][index];
       const actual = set?.actualReps ?? 0;
       const completed = set?.status === "Done";
       const notStarted = current && !!set && actual <= 0;
@@ -83,24 +94,30 @@ export function buildExerciseSeriesProjection(
           : set.status === "Done" && actual > 0
             ? actual
             : 0;
-      const storedWeight =
-        set?.weightValue !== null &&
-        set?.weightValue !== undefined &&
-        set.weightUnit !== null
-          ? { value: set.weightValue, unit: set.weightUnit }
-          : null;
+      const activity = set && {
+        loadType: set.loadType,
+        loadValue: set.loadValue,
+        warmupSetCount: currentSets.Warmup.length,
+        dropPercent: set.dropPercent,
+      };
       const weight =
-        storedWeight ??
-        (current && set
-          ? plannedSetWeight(
-              {
-                loadType: set.loadType,
-                loadValue: set.loadValue,
-                warmupSetCount: currentSets.warmup.length,
-              },
-              { kind: set.kind, index, weight: null },
-              max,
-            )
+        storedWeightOf(set) ??
+        (current && set && activity
+          ? set.kind === "Drop"
+            ? plannedDropSetWeight(
+                activity,
+                selectedSets.map((item) => ({
+                  kind: item.kind,
+                  weight: storedWeightOf(item),
+                })),
+                index,
+                max,
+              )
+            : plannedSetWeight(
+                activity,
+                { kind: set.kind, index, weight: null },
+                max,
+              )
           : null);
       const pointPartial =
         !!set &&

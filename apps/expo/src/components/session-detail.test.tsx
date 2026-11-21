@@ -297,8 +297,10 @@ describe("session detail exercises", () => {
     loadType: null,
     loadValue: null,
     restMinutes: null,
+    dropPercent: null,
     warmupSets: [],
     mainSets: [set(`${id}-set`, done)],
+    dropSets: [],
     alternatives: [],
     supersets: [],
   });

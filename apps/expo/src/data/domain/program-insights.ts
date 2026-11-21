@@ -7,11 +7,21 @@ import {
   weekAndDayNumbersFromStart,
 } from "@activity-log/ui/utils";
 
-import type { ProgramInsightFacts } from "../repositories/program-insights";
+import type {
+  InsightDropBasis,
+  ProgramInsightFacts,
+} from "../repositories/program-insights";
+import { plannedDropSetWeight } from "./set-execution";
 
+/**
+ * A muscle group's week. Drop sets count like main sets in the totals and
+ * `pending`; `drop` and `dropPending` are the drop sets' share of each.
+ */
 type MuscleMetrics = ProgramInsightMetrics & {
   muscleGroup: string;
   pending: ProgramInsightMetrics;
+  drop: ProgramInsightMetrics;
+  dropPending: ProgramInsightMetrics;
   partial: boolean;
 };
 export interface ProgramInsightProjection {
@@ -102,6 +112,8 @@ export function buildProgramInsightProjection(
       ...emptyMetrics(),
       muscleGroup: name,
       pending: emptyMetrics(),
+      drop: emptyMetrics(),
+      dropPending: emptyMetrics(),
       partial: false,
     };
     groups.set(key, metrics);
@@ -134,14 +146,26 @@ export function buildProgramInsightProjection(
     for (const { key, label } of labels) {
       const metrics = metricsFor(week, key, label);
       metrics.partial ||= incomplete;
-      metrics.sets += group.sets;
-      metrics.reps += group.reps;
-      if (weightLbs !== null && group.loadKind !== null)
-        metrics.volumeLbs +=
-          group.reps * weightLbs * (group.loadKind === "WEIGHT_PAIR" ? 2 : 1);
-      metrics.hardSets += group.hardSets;
-      metrics.easySets += group.easySets;
+      for (const target of group.kind === "Drop"
+        ? [metrics, metrics.drop]
+        : [metrics]) {
+        target.sets += group.sets;
+        target.reps += group.reps;
+        if (weightLbs !== null && group.loadKind !== null)
+          target.volumeLbs +=
+            group.reps * weightLbs * (group.loadKind === "WEIGHT_PAIR" ? 2 : 1);
+        target.hardSets += group.hardSets;
+        target.easySets += group.easySets;
+      }
     }
+  }
+  // The sets each planned drop set's weight follows from, by activity.
+  const dropBasis = new Map<string, InsightDropBasis[]>();
+  for (const row of facts.dropBasis) {
+    const key = `${row.sessionId}\u001f${row.activityId}`;
+    const rows = dropBasis.get(key) ?? [];
+    rows.push(row);
+    dropBasis.set(key, rows);
   }
   // Pending sets and sets with unknown reps, one row each.
   for (const set of facts.sets) {
@@ -172,7 +196,32 @@ export function buildProgramInsightProjection(
       : set.actualReps;
     let weightValue = set.weightValue;
     let weightUnit = set.weightUnit;
-    if (
+    if (pending && weightValue === null && set.kind === "Drop") {
+      // A planned drop set is lighter than the sets before it.
+      const basis =
+        dropBasis.get(`${set.sessionId}\u001f${set.activityId}`) ?? [];
+      const planned = plannedDropSetWeight(
+        {
+          loadType: set.loadType,
+          loadValue: set.loadValue,
+          warmupSetCount: basis.filter((row) => row.kind === "Warmup").length,
+          dropPercent: set.dropPercent,
+        },
+        basis.map((row) => ({
+          kind: row.kind,
+          weight:
+            row.weightValue !== null && row.weightUnit !== null
+              ? { value: row.weightValue, unit: row.weightUnit }
+              : null,
+        })),
+        set.position,
+        set.maxValue !== null && set.maxUnit !== null
+          ? { value: set.maxValue, unit: set.maxUnit }
+          : null,
+      );
+      weightValue = planned?.value ?? null;
+      weightUnit = planned?.unit ?? null;
+    } else if (
       pending &&
       weightValue === null &&
       set.loadType === "PERCENT" &&
@@ -193,20 +242,24 @@ export function buildProgramInsightProjection(
     for (const { key, label } of labels) {
       const metrics = metricsFor(week, key, label);
       metrics.partial ||= incomplete;
-      const target = pending ? metrics.pending : metrics;
-      if (!unknownCompleted) target.sets++;
-      if (reps !== null && !unknownCompleted) target.reps += reps;
-      if (
-        reps !== null &&
-        weightLbs !== null &&
-        set.loadKind !== null &&
-        !unknownCompleted
-      )
-        target.volumeLbs +=
-          reps * weightLbs * (set.loadKind === "WEIGHT_PAIR" ? 2 : 1);
-      if (completed) {
-        target.hardSets += Number(set.feedback === "Hard");
-        target.easySets += Number(set.feedback === "Easy");
+      const targets = [pending ? metrics.pending : metrics];
+      if (set.kind === "Drop")
+        targets.push(pending ? metrics.dropPending : metrics.drop);
+      for (const target of targets) {
+        if (!unknownCompleted) target.sets++;
+        if (reps !== null && !unknownCompleted) target.reps += reps;
+        if (
+          reps !== null &&
+          weightLbs !== null &&
+          set.loadKind !== null &&
+          !unknownCompleted
+        )
+          target.volumeLbs +=
+            reps * weightLbs * (set.loadKind === "WEIGHT_PAIR" ? 2 : 1);
+        if (completed) {
+          target.hardSets += Number(set.feedback === "Hard");
+          target.easySets += Number(set.feedback === "Easy");
+        }
       }
     }
   }

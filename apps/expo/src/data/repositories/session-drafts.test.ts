@@ -29,6 +29,8 @@ const draft: SessionDraft = {
       loadType: "RPE",
       loadValue: 8,
       restMinutes: 2,
+      dropPercent: null,
+      dropSets: [],
       warmupSets: [
         {
           id: "w",

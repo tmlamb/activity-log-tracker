@@ -2,9 +2,22 @@ import type { Db } from "../database/db";
 
 type Status = "Planned" | "Ready" | "Done" | "Incomplete";
 
+/** Every kind of workout set, in the order an activity performs them. */
+export const SET_KINDS = ["Warmup", "Main", "Drop"] as const;
+export type SetKind = (typeof SET_KINDS)[number];
+const SET_FIELDS = {
+  Warmup: "warmupSets",
+  Main: "mainSets",
+  Drop: "dropSets",
+} as const;
+/** The field of an exercise row that holds its sets of `kind`. */
+export function setField<K extends SetKind>(kind: K): (typeof SET_FIELDS)[K] {
+  return SET_FIELDS[kind];
+}
+
 export interface SessionSet {
   id: string;
-  kind: "Warmup" | "Main";
+  kind: SetKind;
   position: number;
   status: Status;
   feedback: "Easy" | "Neutral" | "Hard";
@@ -25,8 +38,15 @@ export interface SessionActivityFields {
   loadType: "PERCENT" | "RPE" | null;
   loadValue: number | null;
   restMinutes: number | null;
+  /**
+   * The fraction each drop set takes off the weight of the set before it, or
+   * null when the row has no drop sets.
+   */
+  dropPercent: number | null;
   warmupSets: SessionSet[];
   mainSets: SessionSet[];
+  /** Performed after the warmup and main sets, each lighter than the last. */
+  dropSets: SessionSet[];
 }
 
 /** A main activity row with the alternatives the user may swap in for it. */
@@ -49,28 +69,32 @@ export function supersetRows<T extends { supersets: readonly unknown[] }>(
   return [activity, ...activity.supersets];
 }
 
+interface SetRows {
+  warmupSets: readonly unknown[];
+  mainSets: readonly unknown[];
+  dropSets: readonly unknown[];
+}
+
 /** One set of a superset row, in performing order (see supersetSetOrder). */
-export interface OrderedSet<
-  T extends { warmupSets: readonly unknown[]; mainSets: readonly unknown[] },
-> {
+export interface OrderedSet<T extends SetRows> {
   row: T;
-  set: T["warmupSets"][number] | T["mainSets"][number];
-  kind: "Warmup" | "Main";
+  set: T["warmupSets"][number] | T["mainSets"][number] | T["dropSets"][number];
+  kind: SetKind;
   /** The set's number among its row's sets of `kind`, from 0. */
   index: number;
 }
 
 /**
  * The order sets of a superset are performed in: each set number of each kind
- * alternates between the rows, warmups first. Without members this is just
- * the activity's warmup sets, then its main sets.
+ * alternates between the rows, warmups first and drop sets last. Without
+ * members this is just the activity's warmup, main and drop sets in turn.
  */
-export function supersetSetOrder<
-  T extends { warmupSets: readonly unknown[]; mainSets: readonly unknown[] },
->(rows: readonly T[]): OrderedSet<T>[] {
+export function supersetSetOrder<T extends SetRows>(
+  rows: readonly T[],
+): OrderedSet<T>[] {
   const result: OrderedSet<T>[] = [];
-  for (const kind of ["Warmup", "Main"] as const) {
-    const field = kind === "Warmup" ? "warmupSets" : "mainSets";
+  for (const kind of SET_KINDS) {
+    const field = setField(kind);
     const count = Math.max(0, ...rows.map((row) => row[field].length));
     for (let index = 0; index < count; index++)
       for (const row of rows) {
@@ -100,7 +124,7 @@ type SessionRow = Omit<SessionDetail, "activities" | "deload"> & {
 };
 type ActivityRow = Omit<
   SessionActivityFields,
-  "warmupSets" | "mainSets" | "exerciseDeleted"
+  "warmupSets" | "mainSets" | "dropSets" | "exerciseDeleted"
 > & {
   exerciseDeleted: number | null;
   parentActivityId: string | null;
@@ -127,7 +151,8 @@ export function getSessionDetail(
     `SELECT a.id, a.parent_activity_id AS parentActivityId,
        a.superset_activity_id AS supersetActivityId, a.exercise_id AS exerciseId, e.name AS exerciseName,
        e.deleted AS exerciseDeleted, a.reps, a.load_type AS loadType,
-       a.load_value AS loadValue, a.rest_minutes AS restMinutes
+       a.load_value AS loadValue, a.rest_minutes AS restMinutes,
+       a.drop_percent AS dropPercent
      FROM activities a LEFT JOIN exercises e ON e.id = a.exercise_id
      WHERE a.program_id = ? AND a.session_id = ?
      ORDER BY a.parent_activity_id IS NOT NULL, a.position`,
@@ -160,6 +185,7 @@ export function getSessionDetail(
       exerciseDeleted: exerciseDeleted === 1,
       warmupSets: [],
       mainSets: [],
+      dropSets: [],
     };
     byId.set(fields.id, fields);
     if (parentActivityId === null && supersetActivityId !== null) {
@@ -185,7 +211,7 @@ export function getSessionDetail(
   for (const { activityId, ...set } of setRows) {
     const activity = byId.get(activityId);
     if (!activity) throw new Error("A workout set has no owning activity.");
-    (set.kind === "Main" ? activity.mainSets : activity.warmupSets).push(set);
+    activity[setField(set.kind)].push(set);
   }
   return { ...session, deload: session.deload === 1, activities };
 }

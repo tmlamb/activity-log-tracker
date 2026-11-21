@@ -23,6 +23,7 @@ import type {
 import ActivityRow, { exerciseLabel } from "~/components/ActivityRow";
 import { PrimaryCardAction } from "~/components/CardRow";
 import { CollapsibleSection } from "~/components/CollapsibleSection";
+import DropSetSettings from "~/components/DropSetSettings";
 import ExerciseSelectCard from "~/components/ExerciseSelectCard";
 import { useHeaderButtonProps } from "~/components/header-toolbar";
 import MissingDataRedirect from "~/components/MissingDataRedirect";
@@ -32,12 +33,14 @@ import {
   applyExerciseSelection,
   applyLoadSelection,
   applyWeightHint,
+  dropSetErrors,
   exerciseSelectionInput,
   isActivityValid,
   newDraftAlternative,
   newDraftSupersetMember,
-  normalizeSuperset,
+  normalizeActivity,
   resizeSets,
+  setDropSetCount,
   swapAlternative,
 } from "~/data/domain/session-editor-draft";
 import { getSavedExercise } from "~/data/repositories/exercises";
@@ -54,9 +57,10 @@ const MAX_ALTERNATIVES = 20;
 const MAX_SUPERSETS = 10;
 
 /**
- * Advanced settings for one activity: its alternatives and, when it is a
- * superset, the members performed alternately with it. A member opens the same
- * form on its own route with the "superset" role, limited to alternatives.
+ * Advanced settings for one activity: its drop sets, its alternatives and,
+ * when it is a superset, the members performed alternately with it. A member
+ * opens the same form on its own route with the "superset" role, limited to
+ * alternatives; it follows its leader's drop sets.
  */
 export default function AdvancedActivitySettingsScreen() {
   const params = useLocalSearchParams<{
@@ -113,8 +117,9 @@ function AdvancedActivitySettings({
 
   /**
    * Store a new draft, keeping a superset aligned: nothing in it rests, and a
-   * member's alternatives (like the member) have the leader's set counts. An
-   * activity is a superset while it has at least one superset exercise.
+   * member's alternatives (like the member) have the leader's set counts and
+   * drop sets. An activity is a superset while it has at least one superset
+   * exercise. An activity's alternatives always have its drop sets.
    */
   const updateDraft = (next: DraftActivity) => {
     const value = member
@@ -125,7 +130,7 @@ function AdvancedActivitySettings({
             alignSupersetRow(row, next, uuidv4, input.terminalEndMs),
           ),
         }
-      : normalizeSuperset(next, uuidv4, input.terminalEndMs);
+      : normalizeActivity(next, uuidv4, input.terminalEndMs);
     draftRef.current = value;
     setDraft(value);
   };
@@ -432,6 +437,10 @@ function AdvancedActivitySettings({
   const save = () => {
     if (hasLeft()) return;
     const value = draftRef.current;
+    if (Object.values(dropSetErrors(value)).some(Boolean)) {
+      setShowValidation(true);
+      return;
+    }
     if (!value.alternatives.every(isActivityValid)) {
       setShowValidation(true);
       // Errors are on the alternatives, so make sure they're visible.
@@ -618,6 +627,25 @@ function AdvancedActivitySettings({
               />
             </Animated.View>
           </CollapsibleSection>
+        )}
+        {!member && (
+          <DropSetSettings
+            activity={draft}
+            showValidation={showValidation}
+            onChangeCount={(text, percent) => {
+              const next = setDropSetCount(
+                draftRef.current,
+                text,
+                percent,
+                uuidv4,
+                input.terminalEndMs,
+              );
+              if (next) updateDraft(next);
+            }}
+            onChangePercent={(dropPercent) =>
+              updateDraft({ ...draftRef.current, dropPercent })
+            }
+          />
         )}
       </KeyboardAwareScrollView>
     </>

@@ -58,7 +58,7 @@ import {
   exerciseSelectionInput,
   isActivityValid,
   newDraftActivity,
-  normalizeSuperset,
+  normalizeActivity,
   resizeSets,
   shiftDraftStart,
   swapAlternative,
@@ -133,7 +133,10 @@ function SessionEditor({
     draftRef.current = next;
     setDraft(next);
   };
-  /** Update one activity, keeping its superset's set counts and rest aligned. */
+  /**
+   * Update one activity, keeping its superset's set counts and rest, and its
+   * drop sets, aligned.
+   */
   const updateActivity = (
     id: string,
     update: (activity: DraftActivity) => DraftActivity,
@@ -143,7 +146,7 @@ function SessionEditor({
       ...previous,
       activities: previous.activities.map((activity) =>
         activity.id === id
-          ? normalizeSuperset(update(activity), uuidv4, terminalEndMs())
+          ? normalizeActivity(update(activity), uuidv4, terminalEndMs())
           : activity,
       ),
     });
@@ -687,6 +690,7 @@ function SessionEditor({
                   canMoveDown={index !== draft.activities.length - 1}
                   alternativeCount={activity.alternatives.length}
                   supersetCount={activity.supersets.length}
+                  dropSetCount={activity.dropSets.length}
                   restLocked={activity.supersets.length > 0}
                   onSelectExercise={() => openExerciseSelection(activity)}
                   onSelectLoad={() => openLoadSelection(activity)}
@@ -811,9 +815,11 @@ function SessionEditor({
               const missing = draft.activities
                 .flatMap(supersetRows)
                 .some((activity) =>
-                  [...activity.warmupSets, ...activity.mainSets].some(
-                    (set) => (set.actualReps ?? 0) <= 0,
-                  ),
+                  [
+                    ...activity.warmupSets,
+                    ...activity.mainSets,
+                    ...activity.dropSets,
+                  ].some((set) => (set.actualReps ?? 0) <= 0),
                 );
               Alert.alert(
                 "Complete Workout Session?",

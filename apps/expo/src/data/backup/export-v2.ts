@@ -1,5 +1,7 @@
 import type { Db } from "../database/db";
+import type { SetKind } from "../repositories/session-detail";
 import type { PortableDataV2 } from "./portable-v2";
+import { setField } from "../repositories/session-detail";
 
 type Unit = "lbs" | "kg";
 type Status = "Planned" | "Ready" | "Done" | "Incomplete";
@@ -44,17 +46,18 @@ export function readPortableFactsV2(reader: Db) {
     loadType: "PERCENT" | "RPE" | null;
     loadValue: number | null;
     restMinutes: number | null;
+    dropPercent: number | null;
   }>(
     // Main activities sort before alternatives so parents exist when nesting;
     // superset members follow their leader among the main activities.
-    "SELECT program_id AS programId, session_id AS sessionId, id, parent_activity_id AS parentActivityId, superset_activity_id AS supersetActivityId, exercise_id AS exerciseId, reps, load_type AS loadType, load_value AS loadValue, rest_minutes AS restMinutes FROM activities ORDER BY program_id, session_id, parent_activity_id IS NOT NULL, parent_activity_id, position",
+    "SELECT program_id AS programId, session_id AS sessionId, id, parent_activity_id AS parentActivityId, superset_activity_id AS supersetActivityId, exercise_id AS exerciseId, reps, load_type AS loadType, load_value AS loadValue, rest_minutes AS restMinutes, drop_percent AS dropPercent FROM activities ORDER BY program_id, session_id, parent_activity_id IS NOT NULL, parent_activity_id, position",
   );
   const sets = reader.getAllSync<{
     programId: string;
     sessionId: string;
     activityId: string;
     id: string;
-    kind: "Warmup" | "Main";
+    kind: SetKind;
     position: number;
     status: Status;
     feedback: "Easy" | "Neutral" | "Hard";
@@ -201,6 +204,7 @@ export function buildPortableDataV2(
           : null,
       warmupSets: [],
       mainSets: [],
+      dropSets: [],
     };
     if (parentActivityId === null && supersetActivityId !== null) {
       const leader = leaderMap.get(
@@ -241,7 +245,7 @@ export function buildPortableDataV2(
   } of sets) {
     const activity = activityMap.get(key(programId, sessionId, activityId));
     if (!activity) throw new Error("A set has no owning activity.");
-    (kind === "Main" ? activity.mainSets : activity.warmupSets).push({
+    activity[setField(kind)].push({
       ...set,
       weight: weight(value, unit),
     });

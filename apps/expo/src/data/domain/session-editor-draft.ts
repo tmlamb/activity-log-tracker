@@ -1,6 +1,7 @@
 import type {
   SessionActivityFields,
   SessionDetail,
+  SetKind,
 } from "../repositories/session-detail";
 import type {
   DraftActivity,
@@ -10,6 +11,10 @@ import type {
   SessionDraft,
 } from "../repositories/session-drafts";
 import type { ExerciseSelectionInput } from "../selection-handoff";
+import { setField } from "../repositories/session-detail";
+
+/** How much lighter each drop set is than the set before it, by default. */
+export const DEFAULT_DROP_PERCENT = 0.2;
 
 export function draftFromSession(session: SessionDetail): SessionDraft {
   const cloneSet = ({
@@ -24,11 +29,13 @@ export function draftFromSession(session: SessionDetail): SessionDraft {
     exerciseDeleted: _deleted,
     warmupSets,
     mainSets,
+    dropSets,
     ...activity
   }: SessionActivityFields): DraftAlternative => ({
     ...activity,
     warmupSets: warmupSets.map(cloneSet),
     mainSets: mainSets.map(cloneSet),
+    dropSets: dropSets.map(cloneSet),
   });
   const cloneMain = ({
     alternatives,
@@ -105,12 +112,14 @@ export function newDraftAlternative(
     loadType: "RPE",
     loadValue: 8,
     restMinutes: 2,
+    dropPercent: null,
     warmupSets: Array.from({ length: 3 }, () =>
       newDraftSet(createId, terminalEndMs),
     ),
     mainSets: Array.from({ length: 3 }, () =>
       newDraftSet(createId, terminalEndMs),
     ),
+    dropSets: [],
   };
 }
 
@@ -148,6 +157,7 @@ export function shiftDraftStart(
       ...activity,
       warmupSets: activity.warmupSets.map(shiftSet),
       mainSets: activity.mainSets.map(shiftSet),
+      dropSets: activity.dropSets.map(shiftSet),
     };
   }
 }
@@ -160,7 +170,22 @@ export function activityErrors(activity: DraftAlternative) {
     load: activity.loadType === null || activity.loadValue === null,
     // A row needs at least one set of either kind.
     sets: activity.warmupSets.length + activity.mainSets.length === 0,
+    ...dropSetErrors(activity),
   };
+}
+
+/** Whether a row with drop sets is missing a valid drop percentage. */
+export function dropSetErrors(activity: Pick<DraftAlternative, "dropPercent">) {
+  return {
+    dropPercent:
+      activity.dropPercent !== null &&
+      !isDropPercentValid(activity.dropPercent),
+  };
+}
+
+/** A drop takes off more than nothing and less than the whole weight. */
+export function isDropPercentValid(value: number | null) {
+  return value !== null && value >= 0.0001 && value < 1;
 }
 
 export function isActivityValid(activity: DraftAlternative) {
@@ -196,18 +221,51 @@ export function swapAlternative<T extends DraftSupersetMember>(
 }
 
 /**
- * Plan a superset row like its leader: the same number of warmup and main sets
- * (so sets alternate one for one) and no rest between exercises.
+ * Give a row its main row's drop sets: the same percentage and number of drop
+ * sets, so a swapped-in alternative or a superset member drops the same way.
+ * Drop sets are only turned on from the activity's own settings.
+ */
+export function alignDropSets<T extends DraftAlternative>(
+  row: T,
+  main: Pick<DraftAlternative, "dropPercent" | "dropSets">,
+  createId: () => string,
+  terminalEndMs: number | null | undefined,
+): T {
+  if (
+    row.dropPercent === main.dropPercent &&
+    row.dropSets.length === main.dropSets.length
+  )
+    return row;
+  const next = { ...row, dropPercent: main.dropPercent };
+  return (
+    resizeSets(
+      next,
+      "Drop",
+      String(main.dropSets.length),
+      createId,
+      terminalEndMs,
+    )?.activity ?? next
+  );
+}
+
+/**
+ * Plan a superset row like its leader: the same number of warmup, main and
+ * drop sets (so sets alternate one for one), the same drop percentage and no
+ * rest between exercises.
  */
 export function alignSupersetRow<T extends DraftAlternative>(
   row: T,
-  leader: Pick<DraftAlternative, "warmupSets" | "mainSets">,
+  leader: Pick<
+    DraftAlternative,
+    "warmupSets" | "mainSets" | "dropSets" | "dropPercent"
+  >,
   createId: () => string,
   terminalEndMs: number | null | undefined,
 ): T {
   let next: T = row.restMinutes === 0 ? row : { ...row, restMinutes: 0 };
+  next = alignDropSets(next, leader, createId, terminalEndMs);
   for (const kind of ["Warmup", "Main"] as const) {
-    const field = kind === "Warmup" ? "warmupSets" : "mainSets";
+    const field = setField(kind);
     if (next[field].length === leader[field].length) continue;
     next =
       resizeSets(
@@ -244,6 +302,51 @@ export function normalizeSuperset(
       ...align(member),
       alternatives: member.alternatives.map(align),
     })),
+  };
+}
+
+/**
+ * Keep an activity consistent after any edit: its alternatives have its drop
+ * sets (see alignDropSets), and a superset stays aligned (see
+ * normalizeSuperset), which gives members and their alternatives the
+ * leader's drop sets too.
+ */
+export function normalizeActivity(
+  activity: DraftActivity,
+  createId: () => string,
+  terminalEndMs: number | null | undefined,
+): DraftActivity {
+  const alternatives = activity.alternatives.map((row) =>
+    alignDropSets(row, activity, createId, terminalEndMs),
+  );
+  return normalizeSuperset(
+    alternatives.every((row, index) => row === activity.alternatives[index])
+      ? activity
+      : { ...activity, alternatives },
+    createId,
+    terminalEndMs,
+  );
+}
+
+/**
+ * Change how many drop sets an activity's main row has. Drop sets are on
+ * while there is at least one: going from none to some starts them at
+ * `percent`, and going to none turns them off. Returns null for an invalid
+ * count. normalizeActivity passes the change on to the activity's other rows.
+ */
+export function setDropSetCount<T extends DraftAlternative>(
+  activity: T,
+  text: string,
+  percent: number,
+  createId: () => string,
+  terminalEndMs: number | null | undefined,
+): T | null {
+  const resized = resizeSets(activity, "Drop", text, createId, terminalEndMs);
+  if (!resized) return null;
+  const next = resized.activity;
+  return {
+    ...next,
+    dropPercent: next.dropSets.length ? (next.dropPercent ?? percent) : null,
   };
 }
 
@@ -320,6 +423,7 @@ export function applyExerciseSelection<T extends DraftAlternative>(
     loadValue: percent ? 0.75 : 8,
     warmupSets: activity.warmupSets.map(reset),
     mainSets: activity.mainSets.map(reset),
+    dropSets: activity.dropSets.map(reset),
   };
 }
 
@@ -340,31 +444,34 @@ export function applyLoadSelection<T extends DraftAlternative>(
       ? {
           warmupSets: activity.warmupSets.map(clear),
           mainSets: activity.mainSets.map(clear),
+          dropSets: activity.dropSets.map(clear),
         }
       : {}),
   };
 }
 
 /**
- * Change how many sets of one kind a row has. New RPE sets copy the previous
- * set's weight. Returns null for an invalid count; `added` holds the new IDs.
+ * Change how many sets of one kind a row has. New RPE warmup and main sets
+ * copy the previous set's weight; drop set weights follow from the sets
+ * before them when performed. Returns null for an invalid count; `added`
+ * holds the new IDs.
  */
 export function resizeSets<T extends DraftAlternative>(
   activity: T,
-  kind: "Warmup" | "Main",
+  kind: SetKind,
   text: string,
   createId: () => string,
   terminalEndMs: number | null | undefined,
 ): { activity: T; added: Set<string>; wasEmpty: boolean } | null {
   const count = text === "" ? 0 : Number(text);
   if (!Number.isInteger(count) || count < 0 || count > 99) return null;
-  const field = kind === "Warmup" ? "warmupSets" : "mainSets";
+  const field = setField(kind);
   const original = activity[field];
   const sets = original.slice(0, count);
   while (sets.length < count) {
     const last = sets.at(-1);
     const next = newDraftSet(createId, terminalEndMs);
-    if (activity.loadType === "RPE" && last) {
+    if (activity.loadType === "RPE" && kind !== "Drop" && last) {
       next.weightValue = last.weightValue;
       next.weightUnit = last.weightUnit;
     }
@@ -384,7 +491,7 @@ export function applyWeightHint<T extends DraftAlternative>(
   added: Set<string>,
   weight: { value: number; unit: "lbs" | "kg" },
 ): T {
-  const field = kind === "Warmup" ? "warmupSets" : "mainSets";
+  const field = setField(kind);
   return {
     ...activity,
     [field]: activity[field].map((set) =>

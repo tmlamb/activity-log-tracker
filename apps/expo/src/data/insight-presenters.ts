@@ -1,15 +1,35 @@
 import type {
   ExerciseSetInsights,
+  ProgramInsightMetrics,
   ProgramInsights,
 } from "@activity-log/ui/utils";
 
 import type { ExerciseSeriesProjection } from "./domain/exercise-series";
 import type { ProgramInsightProjection } from "./domain/program-insights";
+import type { SetKind } from "./repositories/session-detail";
+
+/** One set's insights; unlike the legacy shape, a set may be a drop set. */
+export type ExerciseSetInsightsView = Omit<ExerciseSetInsights, "setType"> & {
+  setType: SetKind;
+};
+
+/**
+ * Program insights with each muscle group's drop sets: counted in its totals
+ * and pending metrics, and also on their own, which the legacy shape lacks.
+ */
+export type ProgramInsightsView = Omit<ProgramInsights, "weeks"> & {
+  weeks: (Omit<ProgramInsights["weeks"][number], "muscleGroups"> & {
+    muscleGroups: (ProgramInsights["weeks"][number]["muscleGroups"][number] & {
+      drop: ProgramInsightMetrics;
+      dropPending: ProgramInsightMetrics;
+    })[];
+  })[];
+};
 
 /** Presentation adapters leave primitive timestamps in the shared query cache. */
 export function presentProgramInsights(
   projection: ProgramInsightProjection,
-): ProgramInsights {
+): ProgramInsightsView {
   return {
     muscleGroups: projection.muscleGroups,
     weeks: projection.weeks.map(({ week, startMs, endMs, muscleGroups }) => ({
@@ -25,7 +45,7 @@ export function presentProgramInsights(
 
 export function presentExerciseInsights(
   projection: ExerciseSeriesProjection,
-): ExerciseSetInsights[] {
+): ExerciseSetInsightsView[] {
   return projection.series.map(({ setType, setNumber, selected, points }) => ({
     setType,
     setNumber,

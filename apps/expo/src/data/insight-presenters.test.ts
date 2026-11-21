@@ -7,6 +7,13 @@ import {
 
 describe("SQLite insight presentation", () => {
   it("converts primitive timestamps only for presentation", () => {
+    const empty = {
+      sets: 0,
+      reps: 0,
+      volumeLbs: 0,
+      hardSets: 0,
+      easySets: 0,
+    };
     const projection = {
       programName: "Program",
       partial: true,
@@ -25,13 +32,9 @@ describe("SQLite insight presentation", () => {
               hardSets: 0,
               easySets: 0,
               partial: true,
-              pending: {
-                sets: 0,
-                reps: 0,
-                volumeLbs: 0,
-                hardSets: 0,
-                easySets: 0,
-              },
+              pending: empty,
+              drop: empty,
+              dropPending: empty,
             },
           ],
         },

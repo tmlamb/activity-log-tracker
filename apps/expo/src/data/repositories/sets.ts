@@ -1,4 +1,6 @@
 import type { Db } from "../database/db";
+import type { SetKind } from "./session-detail";
+import { SET_KINDS } from "./session-detail";
 
 type Status = "Planned" | "Ready" | "Done" | "Incomplete";
 type Feedback = "Easy" | "Neutral" | "Hard";
@@ -35,7 +37,7 @@ export interface SetRecordingPatch {
 interface CurrentSet {
   sessionStatus: Status;
   setStatus: Status;
-  kind: "Warmup" | "Main";
+  kind: SetKind;
   position: number;
   activityPosition: number;
   startMs: number | null;
@@ -44,7 +46,8 @@ interface CurrentSet {
 /**
  * The sets performed together with one activity's, in order. An activity
  * leading a superset and its members share one sequence that alternates
- * between them for each set number, warmups first; any other activity (an
+ * between them for each set number, warmups first and drop sets last; any
+ * other activity (an
  * alternative included) is a sequence of its own. Selects from `w` joined to
  * its activity `a`; takes program, session, program, session and activity IDs.
  */
@@ -54,11 +57,18 @@ const SET_SEQUENCE_FROM = `workout_sets w JOIN activities a
     AND COALESCE(a.superset_activity_id, a.id) = (
       SELECT COALESCE(superset_activity_id, id) FROM activities
       WHERE program_id = ? AND session_id = ? AND id = ?)`;
+/**
+ * SQL ranking a set's kind (from `column`) in performing order: warmups, then
+ * main sets, then drop sets. Matches kindRank.
+ */
+export function kindRankSql(column: string) {
+  return `CASE ${column} WHEN 'Warmup' THEN 0 WHEN 'Main' THEN 1 ELSE 2 END`;
+}
+/** A set kind's rank in performing order (see kindRankSql). */
+const kindRank = (kind: SetKind) => SET_KINDS.indexOf(kind);
 /** The ordering key of a set within its sequence (see SET_SEQUENCE_FROM). */
-const SET_SEQUENCE_KEY =
-  "(CASE w.kind WHEN 'Warmup' THEN 0 ELSE 1 END, w.position, a.position)";
-const SET_SEQUENCE_ORDER =
-  "CASE w.kind WHEN 'Warmup' THEN 0 ELSE 1 END, w.position, a.position";
+const SET_SEQUENCE_KEY = `(${kindRankSql("w.kind")}, w.position, a.position)`;
+const SET_SEQUENCE_ORDER = `${kindRankSql("w.kind")}, w.position, a.position`;
 
 function sequenceParameters(reference: SetReference) {
   return [
@@ -279,7 +289,7 @@ export function completeSetAndAdvance(
        AND ${SET_SEQUENCE_KEY} > (?, ?, ?)
      ORDER BY ${SET_SEQUENCE_ORDER} LIMIT 1`,
     ...sequenceParameters(reference),
-    current.kind === "Warmup" ? 0 : 1,
+    kindRank(current.kind),
     current.position,
     current.activityPosition,
   );
@@ -333,7 +343,7 @@ export function resetSet(
        SELECT w.rowid FROM ${SET_SEQUENCE_FROM}
          AND ${SET_SEQUENCE_KEY} >= (?, ?, ?))`,
     ...sequenceParameters(reference),
-    current.kind === "Warmup" ? 0 : 1,
+    kindRank(current.kind),
     current.position,
     current.activityPosition,
   );

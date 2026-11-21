@@ -35,9 +35,17 @@ describe("portable backup historical round trip", () => {
         const actual = presentProgramInsights(
           buildProgramInsightProjection(facts, now.getTime()),
         );
-        expect(actual).toEqual(
-          buildProgramInsights(program, original.exercises, now),
-        );
+        // Legacy insights have no drop sets to count separately.
+        expect({
+          ...actual,
+          weeks: actual.weeks.map((week) => ({
+            ...week,
+            muscleGroups: week.muscleGroups.map(
+              ({ drop: _drop, dropPending: _dropPending, ...metrics }) =>
+                metrics,
+            ),
+          })),
+        }).toEqual(buildProgramInsights(program, original.exercises, now));
       }
       const before = buildPortableDataV2(readPortableFactsV2(db));
       const seeds = before.programs.flatMap((program) =>
