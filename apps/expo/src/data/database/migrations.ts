@@ -1,5 +1,6 @@
 import type { Db } from "./db";
 import { ACTIVITY_ALTERNATIVES_MIGRATION } from "./activity-alternatives-migration";
+import { ACTIVITY_SUPERSETS_MIGRATION } from "./activity-supersets-migration";
 import { SCHEMA } from "./schema";
 
 /**
@@ -14,6 +15,8 @@ export const MIGRATIONS: readonly string[] = [
   SCHEMA,
   // 2: alternative exercises (activities.parent_activity_id).
   ACTIVITY_ALTERNATIVES_MIGRATION,
+  // 3: supersets (activities.superset_activity_id).
+  ACTIVITY_SUPERSETS_MIGRATION,
 ];
 
 /** Every step in order: the current schema, for tests that build databases. */

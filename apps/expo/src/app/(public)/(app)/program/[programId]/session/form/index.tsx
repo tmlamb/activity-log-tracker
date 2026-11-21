@@ -50,6 +50,7 @@ import {
   saveSession,
 } from "~/data/actions";
 import {
+  activityRows,
   applyExerciseSelection,
   applyLoadSelection,
   applyWeightHint,
@@ -57,6 +58,7 @@ import {
   exerciseSelectionInput,
   isActivityValid,
   newDraftActivity,
+  normalizeSuperset,
   resizeSets,
   shiftDraftStart,
   swapAlternative,
@@ -65,6 +67,7 @@ import { useProgramSummaries, useSessionEditorSeed } from "~/data/queries";
 import { getSavedExercise } from "~/data/repositories/exercises";
 import { getRecentMainUsage } from "~/data/repositories/main-usage";
 import { getPlanningWeightHints } from "~/data/repositories/planning-weights";
+import { supersetRows } from "~/data/repositories/session-detail";
 import { getSessionEditorSeed } from "~/data/repositories/session-editor";
 import { createTemplateDraft } from "~/data/repositories/template-draft";
 import { resolveTemplateChoice } from "~/data/repositories/templates";
@@ -130,6 +133,7 @@ function SessionEditor({
     draftRef.current = next;
     setDraft(next);
   };
+  /** Update one activity, keeping its superset's set counts and rest aligned. */
   const updateActivity = (
     id: string,
     update: (activity: DraftActivity) => DraftActivity,
@@ -138,7 +142,9 @@ function SessionEditor({
     updateDraft({
       ...previous,
       activities: previous.activities.map((activity) =>
-        activity.id === id ? update(activity) : activity,
+        activity.id === id
+          ? normalizeSuperset(update(activity), uuidv4, terminalEndMs())
+          : activity,
       ),
     });
   };
@@ -276,33 +282,34 @@ function SessionEditor({
       activity.id,
     );
   const openAdvancedSettings = (activity: DraftActivity) => {
-    const activities = draftRef.current.activities;
-    const ids = new Set([
-      activity.exerciseId,
-      ...activity.alternatives.map((item) => item.exerciseId),
-    ]);
+    const mains = draftRef.current.activities.flatMap(supersetRows);
+    const ids = new Set(activityRows(activity).map((item) => item.exerciseId));
     open(
       "activity",
       (ticket) =>
         `/(public)/(app)/program/${encodeURIComponent(initial.program.id)}/session/form/advanced?activityId=${encodeURIComponent(activity.id)}&${ticket}`,
       activity.id,
       {
+        role: "activity",
         activity,
+        otherExerciseIds: [],
         exercises: Object.values(exercises).filter((item) => ids.has(item.id)),
         savedRowIds:
-          session?.activities.flatMap((item) => [
-            item.id,
-            ...item.alternatives.map((alternative) => alternative.id),
-          ]) ?? [],
+          session?.activities
+            .flatMap(supersetRows)
+            .flatMap((item) => [
+              item.id,
+              ...item.alternatives.map((alternative) => alternative.id),
+            ]) ?? [],
         terminalEndMs: terminalEndMs(),
         weights: {
           programId: initial.program.id,
           source: weightSource(),
-          parents: activities.map(({ exerciseId, loadType }) => ({
+          parents: mains.map(({ exerciseId, loadType }) => ({
             exerciseId,
             loadType,
           })),
-          parentIndex: activities.findIndex((item) => item.id === activity.id),
+          parentIndex: mains.findIndex((item) => item.id === activity.id),
         },
       },
     );
@@ -317,17 +324,25 @@ function SessionEditor({
         ),
       });
     const count = activity.alternatives.length;
+    const supersetCount = activity.supersets.length;
     if (
       !count &&
+      !supersetCount &&
       !session?.activities.some((item) => item.id === activity.id)
     ) {
       remove();
       return;
     }
+    const parts = [
+      count ? `${count} alternative${count === 1 ? "" : "s"}` : null,
+      supersetCount
+        ? `${supersetCount} superset exercise${supersetCount === 1 ? "" : "s"}`
+        : null,
+    ].filter(Boolean);
     Alert.alert(
       "Delete Activity?",
-      count
-        ? `This will remove the activity and its ${count} alternative${count === 1 ? "" : "s"} from this session.`
+      parts.length
+        ? `This will remove the activity and its ${parts.join(" and ")} from this session.`
         : "This will remove the activity from this session.",
       [
         { text: "Cancel", style: "cancel" },
@@ -358,14 +373,19 @@ function SessionEditor({
     if (!activity) return;
     const resized = resizeSets(activity, kind, text, uuidv4, terminalEndMs());
     if (!resized) return;
+    const field = kind === "Warmup" ? "warmupSets" : "mainSets";
+    const existing = new Set(
+      supersetRows(activity).flatMap((row) => row[field].map(({ id }) => id)),
+    );
+    // Superset members follow the new count (see updateActivity).
     updateActivity(activityId, () => resized.activity);
-    if (
-      !resized.wasEmpty ||
-      !resized.added.size ||
-      activity.loadType !== "RPE" ||
-      !activity.exerciseId
-    )
-      return;
+    const updated = draftRef.current.activities[index];
+    if (!updated || !resized.wasEmpty || !resized.added.size) return;
+    const rows = supersetRows(updated);
+    if (!rows.some((row) => row.loadType === "RPE" && row.exerciseId)) return;
+    // Hints index main rows in stored order, where members follow leaders.
+    const mains = draftRef.current.activities.flatMap(supersetRows);
+    const offset = mains.findIndex((row) => row.id === updated.id);
     let hints;
     try {
       hints = read((db) =>
@@ -373,7 +393,7 @@ function SessionEditor({
           db,
           initial.program.id,
           weightSource(),
-          previous.activities,
+          mains,
           kind,
         ),
       );
@@ -384,11 +404,25 @@ function SessionEditor({
       );
       return;
     }
-    const weight = hints.find((hint) => hint.activityIndex === index)?.weight;
-    if (!weight) return;
-    updateActivity(activityId, (item) =>
-      applyWeightHint(item, kind, resized.added, weight),
+    const weights = new Map(
+      rows.map((row, rowIndex) => [
+        row.id,
+        hints.find((hint) => hint.activityIndex === offset + rowIndex)?.weight,
+      ]),
     );
+    if (![...weights.values()].some(Boolean)) return;
+    const hint = <T extends DraftActivity["supersets"][number]>(row: T): T => {
+      const weight = weights.get(row.id);
+      if (!weight) return row;
+      const added = new Set(
+        row[field].flatMap(({ id }) => (existing.has(id) ? [] : [id])),
+      );
+      return applyWeightHint(row, kind, added, weight);
+    };
+    updateActivity(activityId, (item) => ({
+      ...hint(item),
+      supersets: item.supersets.map(hint),
+    }));
   };
 
   const save = (action: "save" | "complete" | "delete" | "reset") => {
@@ -397,9 +431,7 @@ function SessionEditor({
     if (
       (action === "save" || action === "complete") &&
       (!value.name.trim() ||
-        !value.activities
-          .flatMap((activity) => [activity, ...activity.alternatives])
-          .every(isActivityValid))
+        !value.activities.flatMap(activityRows).every(isActivityValid))
     ) {
       setShowValidation(true);
       return;
@@ -654,6 +686,8 @@ function SessionEditor({
                   canMoveUp={index !== 0}
                   canMoveDown={index !== draft.activities.length - 1}
                   alternativeCount={activity.alternatives.length}
+                  supersetCount={activity.supersets.length}
+                  restLocked={activity.supersets.length > 0}
                   onSelectExercise={() => openExerciseSelection(activity)}
                   onSelectLoad={() => openLoadSelection(activity)}
                   onRemove={() => removeActivity(activity)}
@@ -774,11 +808,13 @@ function SessionEditor({
             accessibilityLabel="Complete workout session from session form"
             cardVariants={["square"]}
             onPress={() => {
-              const missing = draft.activities.some((activity) =>
-                [...activity.warmupSets, ...activity.mainSets].some(
-                  (set) => (set.actualReps ?? 0) <= 0,
-                ),
-              );
+              const missing = draft.activities
+                .flatMap(supersetRows)
+                .some((activity) =>
+                  [...activity.warmupSets, ...activity.mainSets].some(
+                    (set) => (set.actualReps ?? 0) <= 0,
+                  ),
+                );
               Alert.alert(
                 "Complete Workout Session?",
                 missing

@@ -112,7 +112,7 @@ describe("portable backup v2 export", () => {
       const json = serializePortableBackupV2(data, 200);
       expect(parsePortableBackupV2(json)).toEqual({
         format: "activity-log-tracker-backup",
-        version: 3,
+        version: 4,
         createdAtMs: 200,
         data,
       });

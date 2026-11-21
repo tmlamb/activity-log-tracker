@@ -9,6 +9,8 @@ export interface SeriesSelection {
   occurrence: number;
   maxValue: number | null;
   maxUnit: "lbs" | "kg" | null;
+  /** The selected activity (or the one it is an alternative of) is in a superset. */
+  superset: boolean;
 }
 export interface SeriesSession {
   id: string;
@@ -55,13 +57,19 @@ export function readExerciseSeriesFacts(
   reference: SetReference,
 ): ExerciseSeriesFacts | null {
   const { programId, sessionId, activityId, setId } = reference;
-  const selection = reader.getFirstSync<SeriesSelection>(
+  const selected = reader.getFirstSync<
+    Omit<SeriesSelection, "superset"> & { superset: number }
+  >(
     `SELECT s.name AS sessionName, e.name AS exerciseName, e.id AS exerciseId,
        s.lineage_id AS lineageId, e.one_rep_max_value AS maxValue, e.one_rep_max_unit AS maxUnit,
        (SELECT COUNT(*) FROM activities previous WHERE previous.program_id = a.program_id
          AND previous.session_id = a.session_id AND previous.exercise_id = a.exercise_id
          AND previous.parent_activity_id IS NULL
-         AND previous.position < COALESCE(parent.position, a.position)) AS occurrence
+         AND previous.position < COALESCE(parent.position, a.position)) AS occurrence,
+       (COALESCE(parent.superset_activity_id, a.superset_activity_id) IS NOT NULL
+         OR EXISTS(SELECT 1 FROM activities member WHERE member.program_id = a.program_id
+           AND member.session_id = a.session_id
+           AND member.superset_activity_id = COALESCE(parent.id, a.id))) AS superset
      FROM activities a JOIN sessions s ON s.program_id = a.program_id AND s.id = a.session_id
      LEFT JOIN activities parent ON parent.program_id = a.program_id
        AND parent.session_id = a.session_id AND parent.id = a.parent_activity_id
@@ -73,7 +81,11 @@ export function readExerciseSeriesFacts(
     activityId,
     setId,
   );
-  if (!selection) return null;
+  if (!selected) return null;
+  const selection: SeriesSelection = {
+    ...selected,
+    superset: selected.superset === 1,
+  };
   const sessions = reader.getAllSync<SeriesSession>(
     `SELECT id, start_ms AS startMs, end_ms AS endMs FROM sessions
      WHERE program_id = ? AND lineage_id = ? ORDER BY position`,

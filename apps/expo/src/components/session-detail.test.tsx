@@ -2,6 +2,7 @@ import type { PropsWithChildren, ReactNode } from "react";
 import { act, create } from "react-test-renderer";
 import { describe, expect, it, vi } from "vitest";
 
+import type { SessionActivity } from "~/data/repositories/session-detail";
 import SessionDetailScreen from "~/app/(public)/(app)/program/[programId]/session/[sessionId]/index";
 
 const env = vi.hoisted(() => ({
@@ -49,7 +50,9 @@ vi.mock("expo-router/react-navigation", async () => {
   };
 });
 vi.mock("expo-router", () => ({
-  Link: ({ children }: PropsWithChildren) => <>{children}</>,
+  Link: ({ children, href }: PropsWithChildren<{ href: string }>) => (
+    <div data-href={href}>{children}</div>
+  ),
   Redirect: () => <div>Redirect</div>,
   Stack: {
     Screen: () => null,
@@ -81,7 +84,18 @@ vi.mock("./Card", () => ({
 }));
 vi.mock("./CardRow", () => ({
   DetailCardRow: ({ value }: { value: ReactNode }) => <div>{value}</div>,
-  NavigationCardRow: ({ title }: { title: ReactNode }) => <div>{title}</div>,
+  NavigationCardRow: ({
+    title,
+    subtitle,
+  }: {
+    title: ReactNode;
+    subtitle?: ReactNode;
+  }) => (
+    <div data-subtitle={subtitle}>
+      {title}
+      {subtitle}
+    </div>
+  ),
 }));
 vi.mock("./CollapsibleSection", () => {
   // Like LegendList, rows are rendered from `data`; a screen re-render alone
@@ -90,17 +104,20 @@ vi.mock("./CollapsibleSection", () => {
   return {
     CollapsibleSection: ({
       title,
+      titleParts,
       collapsed,
       onCollapsedChange,
       children,
     }: PropsWithChildren<{
       title: string;
+      titleParts?: string[];
       collapsed: boolean;
       onCollapsedChange: (next: boolean) => void;
     }>) => (
       <section>
         <button
           data-title={title}
+          data-title-parts={titleParts}
           data-collapsed={collapsed}
           onClick={() => onCollapsedChange(!collapsed)}
         />
@@ -253,10 +270,15 @@ describe("session detail navigation", () => {
 });
 
 describe("session detail exercises", () => {
-  const set = (id: string, done: boolean) => ({
+  const set = (
+    id: string,
+    done: boolean,
+    kind: "Warmup" | "Main" = "Main",
+    position = 0,
+  ) => ({
     id,
-    kind: "Main" as const,
-    position: 0,
+    kind,
+    position,
     status: done ? ("Done" as const) : ("Planned" as const),
     feedback: "Neutral" as const,
     actualReps: done ? 5 : null,
@@ -265,7 +287,8 @@ describe("session detail exercises", () => {
     startMs: null,
     endMs: null,
   });
-  const activity = (id: string, done: boolean) => ({
+  type Row = Omit<SessionActivity, "supersets">;
+  const activity = (id: string, done: boolean): Row & { supersets: Row[] } => ({
     id,
     exerciseId: id,
     exerciseName: `Exercise ${id}`,
@@ -276,6 +299,8 @@ describe("session detail exercises", () => {
     restMinutes: null,
     warmupSets: [],
     mainSets: [set(`${id}-set`, done)],
+    alternatives: [],
+    supersets: [],
   });
 
   it("toggles each exercise repeatedly and collapses one when its sets are completed", async () => {
@@ -308,14 +333,19 @@ describe("session detail exercises", () => {
         header(title).onClick();
       });
 
-    // A completed exercise starts collapsed; an unfinished one starts open.
+    // Sets outside a superset have no exercise subtitle.
+    expect(
+      root.findAll((node) => node.props["data-subtitle"] !== undefined),
+    ).toHaveLength(0);
+    // Every exercise starts collapsed, finished or not.
     expect(header("Exercise done")["data-collapsed"]).toBe(true);
-    expect(header("Exercise open")["data-collapsed"]).toBe(false);
+    expect(header("Exercise open")["data-collapsed"]).toBe(true);
     for (const expected of [false, true, false, true]) {
       press("Exercise done");
       expect(header("Exercise done")["data-collapsed"]).toBe(expected);
     }
-    for (const expected of [true, false, true, false]) {
+    // Leave the unfinished exercise open to see it collapse on completion.
+    for (const expected of [false, true, false]) {
       press("Exercise open");
       expect(header("Exercise open")["data-collapsed"]).toBe(expected);
     }
@@ -335,6 +365,106 @@ describe("session detail exercises", () => {
     expect(header("Exercise open")["data-collapsed"]).toBe(true);
     press("Exercise open");
     expect(header("Exercise open")["data-collapsed"]).toBe(false);
+    await act(async () => {
+      renderer?.unmount();
+      await Promise.resolve();
+    });
+  });
+
+  it("lists a superset's exercises in its header and alternates their sets", async () => {
+    (
+      globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
+    ).IS_REACT_ACT_ENVIRONMENT = true;
+    env.focused = true;
+    const sets = (id: string) => ({
+      warmupSets: [0, 1].map((index) =>
+        set(`${id}-w${index}`, false, "Warmup", index),
+      ),
+      mainSets: [0, 1].map((index) =>
+        set(`${id}-m${index}`, false, "Main", index),
+      ),
+    });
+    const { supersets: _none, ...member } = activity("b", false);
+    env.seed = {
+      ...env.seed,
+      session: {
+        ...env.seed.session,
+        lastActivityAtMs: null,
+        activities: [
+          {
+            ...activity("a", false),
+            ...sets("a"),
+            supersets: [
+              { ...member, ...sets("b") },
+              { ...member, id: "c", exerciseName: "Exercise c", ...sets("c") },
+            ],
+          },
+        ],
+      },
+    };
+    let renderer: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      renderer = create(<SessionDetailScreen />);
+      await Promise.resolve();
+    });
+    if (!renderer) throw new Error("Renderer not created");
+    const root = renderer.root;
+    expect(
+      root
+        .findAllByType("button")
+        .map((node) => [
+          node.props["data-title"] as string,
+          node.props["data-title-parts"] as string[],
+        ]),
+    ).toEqual([
+      [
+        "Exercise a, Exercise b, Exercise c",
+        ["Exercise a", "Exercise b", "Exercise c"],
+      ],
+    ]);
+    // The superset starts collapsed; open it to see its sets.
+    await act(async () => {
+      (
+        root.findAllByType("button")[0]?.props as { onClick: () => void }
+      ).onClick();
+      await Promise.resolve();
+    });
+    const links = root
+      .findAll((node) => typeof node.props["data-href"] === "string")
+      .map((node) => {
+        const href = new URL(String(node.props["data-href"]), "https://x");
+        return [
+          href.searchParams.get("title"),
+          href.searchParams.get("activityId"),
+          href.searchParams.get("workoutSetId"),
+        ];
+      });
+    expect(links).toEqual([
+      ["Warmup Set 1", "a", "a-w0"],
+      ["Warmup Set 1", "b", "b-w0"],
+      ["Warmup Set 1", "c", "c-w0"],
+      ["Warmup Set 2", "a", "a-w1"],
+      ["Warmup Set 2", "b", "b-w1"],
+      ["Warmup Set 2", "c", "c-w1"],
+      ["Superset 1", "a", "a-m0"],
+      ["Superset 1", "b", "b-m0"],
+      ["Superset 1", "c", "c-m0"],
+      ["Superset 2", "a", "a-m1"],
+      ["Superset 2", "b", "b-m1"],
+      ["Superset 2", "c", "c-m1"],
+    ]);
+    // Each superset set names its exercise under the set number.
+    expect(
+      root
+        .findAll((node) => node.props["data-subtitle"] !== undefined)
+        .map((node) => node.props["data-subtitle"] as string),
+    ).toEqual(
+      Array.from({ length: 4 }, () => [
+        "Exercise a",
+        "Exercise b",
+        "Exercise c",
+      ]).flat(),
+    );
     await act(async () => {
       renderer?.unmount();
       await Promise.resolve();

@@ -37,16 +37,49 @@ interface CurrentSet {
   setStatus: Status;
   kind: "Warmup" | "Main";
   position: number;
+  activityPosition: number;
   startMs: number | null;
+}
+
+/**
+ * The sets performed together with one activity's, in order. An activity
+ * leading a superset and its members share one sequence that alternates
+ * between them for each set number, warmups first; any other activity (an
+ * alternative included) is a sequence of its own. Selects from `w` joined to
+ * its activity `a`; takes program, session, program, session and activity IDs.
+ */
+const SET_SEQUENCE_FROM = `workout_sets w JOIN activities a
+    ON a.program_id = w.program_id AND a.session_id = w.session_id AND a.id = w.activity_id
+  WHERE w.program_id = ? AND w.session_id = ?
+    AND COALESCE(a.superset_activity_id, a.id) = (
+      SELECT COALESCE(superset_activity_id, id) FROM activities
+      WHERE program_id = ? AND session_id = ? AND id = ?)`;
+/** The ordering key of a set within its sequence (see SET_SEQUENCE_FROM). */
+const SET_SEQUENCE_KEY =
+  "(CASE w.kind WHEN 'Warmup' THEN 0 ELSE 1 END, w.position, a.position)";
+const SET_SEQUENCE_ORDER =
+  "CASE w.kind WHEN 'Warmup' THEN 0 ELSE 1 END, w.position, a.position";
+
+function sequenceParameters(reference: SetReference) {
+  return [
+    reference.programId,
+    reference.sessionId,
+    reference.programId,
+    reference.sessionId,
+    reference.activityId,
+  ];
 }
 
 function getCurrentSet(transaction: Db, reference: SetReference): CurrentSet {
   const current = transaction.getFirstSync<CurrentSet>(
     `SELECT session.status AS sessionStatus, workout_set.status AS setStatus,
-       workout_set.kind, workout_set.position, workout_set.start_ms AS startMs
+       workout_set.kind, workout_set.position, activity.position AS activityPosition,
+       workout_set.start_ms AS startMs
      FROM workout_sets workout_set
      JOIN sessions session ON session.program_id = workout_set.program_id
        AND session.id = workout_set.session_id
+     JOIN activities activity ON activity.program_id = workout_set.program_id
+       AND activity.session_id = workout_set.session_id AND activity.id = workout_set.activity_id
      WHERE workout_set.program_id = ? AND workout_set.session_id = ?
        AND workout_set.activity_id = ? AND workout_set.id = ?`,
     reference.programId,
@@ -154,16 +187,19 @@ export function startSet(
   ) {
     throw new Error("Workout set cannot be started.");
   }
-  const firstPending = transaction.getFirstSync<{ id: string }>(
-    `SELECT id FROM workout_sets
-     WHERE program_id = ? AND session_id = ? AND activity_id = ?
-       AND status IN ('Planned', 'Ready')
-     ORDER BY CASE kind WHEN 'Warmup' THEN 0 ELSE 1 END, position LIMIT 1`,
-    reference.programId,
-    reference.sessionId,
-    reference.activityId,
+  const firstPending = transaction.getFirstSync<{
+    id: string;
+    activityId: string;
+  }>(
+    `SELECT w.id, w.activity_id AS activityId FROM ${SET_SEQUENCE_FROM}
+       AND w.status IN ('Planned', 'Ready')
+     ORDER BY ${SET_SEQUENCE_ORDER} LIMIT 1`,
+    ...sequenceParameters(reference),
   );
-  if (firstPending?.id !== reference.setId) {
+  if (
+    firstPending?.id !== reference.setId ||
+    firstPending.activityId !== reference.activityId
+  ) {
     throw new Error("Only the first pending set can be started.");
   }
   const result = transaction.runSync(
@@ -194,7 +230,10 @@ export function startSet(
   );
 }
 
-/** Complete a ready set and start the immediately following planned set. */
+/**
+ * Complete a ready set and start the immediately following planned set, which
+ * in a superset belongs to the next exercise.
+ */
 export function completeSetAndAdvance(
   transaction: Db,
   reference: SetReference,
@@ -231,17 +270,18 @@ export function completeSetAndAdvance(
   );
   if (result.changes !== 1)
     throw new Error("Workout set could not be completed.");
-  const next = transaction.getFirstSync<{ id: string; status: Status }>(
-    `SELECT id, status FROM workout_sets
-     WHERE program_id = ? AND session_id = ? AND activity_id = ?
-       AND ((kind = ? AND position > ?) OR (? = 'Warmup' AND kind = 'Main'))
-     ORDER BY CASE kind WHEN 'Warmup' THEN 0 ELSE 1 END, position LIMIT 1`,
-    reference.programId,
-    reference.sessionId,
-    reference.activityId,
-    current.kind,
+  const next = transaction.getFirstSync<{
+    id: string;
+    activityId: string;
+    status: Status;
+  }>(
+    `SELECT w.id, w.activity_id AS activityId, w.status FROM ${SET_SEQUENCE_FROM}
+       AND ${SET_SEQUENCE_KEY} > (?, ?, ?)
+     ORDER BY ${SET_SEQUENCE_ORDER} LIMIT 1`,
+    ...sequenceParameters(reference),
+    current.kind === "Warmup" ? 0 : 1,
     current.position,
-    current.kind,
+    current.activityPosition,
   );
   let nextId: string | null = null;
   if (next?.status === "Planned") {
@@ -251,7 +291,7 @@ export function completeSetAndAdvance(
       nowMs,
       reference.programId,
       reference.sessionId,
-      reference.activityId,
+      next.activityId,
       next.id,
     );
     if (advanced.changes !== 1)
@@ -269,7 +309,8 @@ export function completeSetAndAdvance(
 
 /**
  * Return a done or running set to not started so it can be performed again,
- * along with any later sets in its activity that are done or in progress.
+ * along with any later sets in its activity (or superset) that are done or in
+ * progress.
  * Recorded reps, weight and difficulty are kept in case the set is repeated
  * the same way. Only an in-progress session's sets can be reset.
  */
@@ -286,19 +327,15 @@ export function resetSet(
       (current.setStatus !== "Ready" || current.startMs === null))
   )
     throw new Error("Workout set cannot be reset.");
-  const rank = current.kind === "Warmup" ? 0 : 1;
   transaction.runSync(
     `UPDATE workout_sets SET status = 'Planned', start_ms = NULL, end_ms = NULL
-     WHERE program_id = ? AND session_id = ? AND activity_id = ?
-       AND status IN ('Done', 'Ready')
-       AND (CASE kind WHEN 'Warmup' THEN 0 ELSE 1 END > ?
-         OR (CASE kind WHEN 'Warmup' THEN 0 ELSE 1 END = ? AND position >= ?))`,
-    reference.programId,
-    reference.sessionId,
-    reference.activityId,
-    rank,
-    rank,
+     WHERE status IN ('Done', 'Ready') AND rowid IN (
+       SELECT w.rowid FROM ${SET_SEQUENCE_FROM}
+         AND ${SET_SEQUENCE_KEY} >= (?, ?, ?))`,
+    ...sequenceParameters(reference),
+    current.kind === "Warmup" ? 0 : 1,
     current.position,
+    current.activityPosition,
   );
   transaction.runSync(
     "UPDATE sessions SET last_activity_at_ms = ?, revision = revision + 1 WHERE program_id = ? AND id = ?",

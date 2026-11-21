@@ -3,6 +3,7 @@ import { isDeloadCandidate } from "@activity-log/ui/utils";
 
 import type { DeloadCandidateFacts } from "../repositories/deload-candidate";
 import type { SessionDetail, SessionSet } from "../repositories/session-detail";
+import { supersetRows } from "../repositories/session-detail";
 
 /** Unknown required facts produce an explicit unknown candidate, never invented measurements. */
 export function calculateDeloadCandidate(facts: DeloadCandidateFacts): {
@@ -12,7 +13,7 @@ export function calculateDeloadCandidate(facts: DeloadCandidateFacts): {
   if (!facts.previous) return { candidate: false, partial: false };
   const byId = new Map(facts.exercises.map((item) => [item.id, item]));
   const incomplete = [facts.current, facts.previous].some((session) =>
-    session.activities.some((activity) => {
+    session.activities.flatMap(supersetRows).some((activity) => {
       if (
         !activity.exerciseId ||
         activity.reps === null ||
@@ -57,30 +58,33 @@ export function calculateDeloadCandidate(facts: DeloadCandidateFacts): {
     status: session.status,
     start: session.startMs === null ? undefined : new Date(session.startMs),
     end: session.endMs === null ? undefined : new Date(session.endMs),
-    activities: session.activities.map((activity): Activity => {
-      if (
-        activity.exerciseId === null ||
-        activity.reps === null ||
-        activity.loadType === null ||
-        activity.loadValue === null
-      )
-        throw new Error("Incomplete deload facts.");
-      return {
-        activityId: activity.id,
-        exerciseId: activity.exerciseId,
-        reps: activity.reps,
-        rest: activity.restMinutes ?? 0,
-        load: { type: activity.loadType, value: activity.loadValue },
-        warmupSets: activity.warmupSets.map((set) => ({
-          ...toSet(set),
-          type: "Warmup",
-        })),
-        mainSets: activity.mainSets.map((set) => ({
-          ...toSet(set),
-          type: "Main",
-        })),
-      };
-    }),
+    // Superset members are compared like any other main activity.
+    activities: session.activities
+      .flatMap(supersetRows)
+      .map((activity): Activity => {
+        if (
+          activity.exerciseId === null ||
+          activity.reps === null ||
+          activity.loadType === null ||
+          activity.loadValue === null
+        )
+          throw new Error("Incomplete deload facts.");
+        return {
+          activityId: activity.id,
+          exerciseId: activity.exerciseId,
+          reps: activity.reps,
+          rest: activity.restMinutes ?? 0,
+          load: { type: activity.loadType, value: activity.loadValue },
+          warmupSets: activity.warmupSets.map((set) => ({
+            ...toSet(set),
+            type: "Warmup",
+          })),
+          mainSets: activity.mainSets.map((set) => ({
+            ...toSet(set),
+            type: "Main",
+          })),
+        };
+      }),
   });
   const exercises: Exercise[] = facts.exercises.map((exercise) => {
     if (exercise.loadKind === null) throw new Error("Incomplete deload facts.");

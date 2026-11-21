@@ -122,4 +122,55 @@ describe("exercise insights alternatives", () => {
     ).toHaveLength(0);
     act(() => renderer?.unmount());
   });
+
+  it("calls a superset's main sets supersets and keeps warmup sets", () => {
+    const set = (setType: "Warmup" | "Main", selected: boolean) => ({
+      setType,
+      setNumber: 1,
+      selected,
+      points: [],
+    });
+    const render = (superset: boolean) => {
+      let renderer: ReturnType<typeof create> | undefined;
+      act(() => {
+        renderer = create(
+          <ExerciseInsights
+            exerciseName="Bench"
+            sessionName="Day"
+            insights={[set("Warmup", false), set("Main", true)]}
+            superset={superset}
+          />,
+        );
+      });
+      if (!renderer) throw new Error("Renderer not created");
+      const root = renderer.root;
+      // Expand the warmups so both kinds of chart are shown.
+      act(() => {
+        (
+          root.findByProps({ "data-title": "Warmup Sets" }).props as {
+            onClick: () => void;
+          }
+        ).onClick();
+      });
+      const result = {
+        titles: root
+          .findAll((node) => typeof node.props["data-title"] === "string")
+          .map((node) => node.props["data-title"] as string),
+        texts: root.findAllByType("span").flatMap((node) => node.children),
+      };
+      act(() => renderer?.unmount());
+      return result;
+    };
+    const superset = render(true);
+    expect(superset.titles).toEqual(["Warmup Sets", "Supersets"]);
+    expect(superset.texts).toEqual(
+      expect.arrayContaining(["Warmup Set 1", "Superset 1"]),
+    );
+    expect(superset.texts).not.toContain("Main Set 1");
+    const plain = render(false);
+    expect(plain.titles).toEqual(["Warmup Sets", "Main Sets"]);
+    expect(plain.texts).toEqual(
+      expect.arrayContaining(["Warmup Set 1", "Main Set 1"]),
+    );
+  });
 });

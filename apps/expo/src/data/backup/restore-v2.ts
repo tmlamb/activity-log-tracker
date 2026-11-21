@@ -5,8 +5,17 @@ import type { PortableDataV2 } from "./portable-v2";
 import { parsePortableBackupV2 } from "./portable-v2";
 
 type PreparedRows = ReturnType<typeof prepareLegacyConversion>;
-type PortableActivityFields =
-  PortableDataV2["programs"][number]["sessions"][number]["activities"][number]["alternatives"][number];
+type PortableActivity =
+  PortableDataV2["programs"][number]["sessions"][number]["activities"][number];
+type PortableActivityFields = PortableActivity["alternatives"][number];
+
+/** Every exercise row of an activity: its main rows, then alternatives. */
+function portableRows(activity: PortableActivity): PortableActivityFields[] {
+  return [activity, ...activity.supersets].flatMap((main) => [
+    main,
+    ...main.alternatives,
+  ]);
+}
 
 function unique(values: readonly string[], label: string) {
   if (new Set(values).size !== values.length)
@@ -58,16 +67,10 @@ export function prepareVersion2Restore(contents: string): PreparedRows {
       if (session.lineageId !== null && !lineages.has(session.lineageId))
         throw new Error("The backup references a missing lineage.");
       unique(
-        session.activities.flatMap(({ id, alternatives }) => [
-          id,
-          ...alternatives.map((alternative) => alternative.id),
-        ]),
+        session.activities.flatMap(portableRows).map(({ id }) => id),
         "activity IDs",
       );
-      for (const activity of session.activities.flatMap((item) => [
-        item,
-        ...item.alternatives,
-      ])) {
+      for (const activity of session.activities.flatMap(portableRows)) {
         if (
           activity.exerciseId !== null &&
           !exerciseIds.has(activity.exerciseId)
@@ -181,12 +184,14 @@ function toRows(data: PortableDataV2): PreparedRows {
         activity: PortableActivityFields,
         position: number,
         parentId: string | null,
+        supersetId: string | null,
       ) => {
         history.activities.push({
           program_id: program.id,
           session_id: session.id,
           id: activity.id,
           parent_activity_id: parentId,
+          superset_activity_id: supersetId,
           exercise_id: activity.exerciseId,
           position,
           reps: activity.reps,
@@ -217,12 +222,20 @@ function toRows(data: PortableDataV2): PreparedRows {
           );
         }
       };
-      session.activities.forEach((activity, activityPosition) => {
-        pushActivity(activity, activityPosition, null);
-        activity.alternatives.forEach((alternative, alternativePosition) =>
-          pushActivity(alternative, alternativePosition, activity.id),
-        );
-      });
+      // Superset members are main activities stored right after their leader.
+      let mainPosition = 0;
+      for (const activity of session.activities)
+        for (const main of [activity, ...activity.supersets]) {
+          pushActivity(
+            main,
+            mainPosition++,
+            null,
+            main === activity ? null : activity.id,
+          );
+          main.alternatives.forEach((alternative, alternativePosition) =>
+            pushActivity(alternative, alternativePosition, main.id, null),
+          );
+        }
     });
   });
   return { settings, history };

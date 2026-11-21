@@ -153,6 +153,11 @@ export function CollapsibleSectionBody({
 
 export interface CollapsibleSectionProps {
   title: string;
+  /**
+   * Shown instead of `title` on one line, separated by a muted ` ⇄ `, wrapping
+   * only before a separator; `title` stays the accessibility name.
+   */
+  titleParts?: string[];
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
   children: React.ReactNode;
@@ -183,6 +188,7 @@ export function CollapsibleSection(props: CollapsibleSectionProps) {
 
 function StandaloneCollapsibleSection({
   title,
+  titleParts,
   collapsed,
   onCollapsedChange,
   children,
@@ -200,6 +206,7 @@ function StandaloneCollapsibleSection({
     <View className={containerClassName}>
       <CollapsibleSectionHeader
         title={title}
+        titleParts={titleParts}
         collapsed={collapsed}
         onPress={() => onCollapsedChange(!collapsed)}
         className={headerClassName}

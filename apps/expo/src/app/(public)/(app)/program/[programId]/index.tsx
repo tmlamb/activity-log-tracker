@@ -113,7 +113,6 @@ function WeekRow({
       title={item.title}
       collapsed={collapsed}
       premeasureCollapsedContent={false}
-      titleClassName="leading-tight"
       onCollapsedChange={(next) => {
         const changed = next !== item.collapsedByDefault;
         onOverride(item.key, changed);

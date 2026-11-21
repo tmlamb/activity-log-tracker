@@ -14,13 +14,24 @@ export type SelectionKind = "exercise" | "load" | "template" | "activity";
 
 /** What the advanced activity settings form edits, sent by the session form. */
 export interface ActivitySettingsInput {
+  /**
+   * What is edited: an activity (alternatives and superset members) or one
+   * superset member (alternatives only; its `supersets` is always empty).
+   */
+  role: "activity" | "superset";
   activity: DraftActivity;
+  /** Exercises used elsewhere in a member's superset, hidden from its picks. */
+  otherExerciseIds: string[];
   exercises: SessionEditorExercise[];
   /** Rows already saved in the session, which ask before being removed. */
   savedRowIds: string[];
   /** End time for new sets in a finished session; undefined when planning. */
   terminalEndMs: number | null | undefined;
-  /** Context for weight hints on alternative rows. */
+  /**
+   * Context for weight hints on alternative rows: every main row of the
+   * session in stored order (superset members follow their leader), and the
+   * edited row's index among them.
+   */
   weights: {
     programId: string;
     source: PlanningWeightSource;

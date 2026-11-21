@@ -116,6 +116,12 @@ interface NavigationCardRowProps extends PressableProps {
   cardClassName?: string;
   titleClassName?: string;
   titleNumberOfLines?: number;
+  /**
+   * A muted line under the title. The title and subtitle are then laid out
+   * like the center text: one column, the same size, centered in the row's
+   * normal height. The subtitle wraps as needed.
+   */
+  subtitle?: React.ReactNode;
   centerTextLines?: readonly [React.ReactNode, React.ReactNode?];
   centerTextClassName?: string;
   centerTextColumnWidth?: number;
@@ -139,6 +145,7 @@ export function NavigationCardRow({
   cardClassName,
   titleClassName,
   titleNumberOfLines,
+  subtitle,
   centerTextLines,
   centerTextClassName,
   centerTextColumnWidth,
@@ -153,19 +160,41 @@ export function NavigationCardRow({
   const titlePaddingClassName = multilineEnabled
     ? "pt-4.5 pb-5 leading-tight"
     : undefined;
-  const titleText = (
-    <Text
-      maxFontSizeMultiplier={2.5}
-      className={twMerge(
-        "text-foreground min-w-0 flex-1 pr-2.5 text-xl",
-        titlePaddingClassName,
-        titleClassName,
-      )}
-      numberOfLines={titleNumberOfLines ?? (multilineEnabled ? undefined : 1)}
-    >
-      {title}
-    </Text>
-  );
+  const titleText =
+    subtitle != null ? (
+      // Sized and placed like the center text, so two lines fit a normal
+      // row's height; only a subtitle that wraps further makes it taller.
+      <View className="min-h-[53px] min-w-0 flex-1 justify-center py-1.5 pr-2.5">
+        <Text
+          maxFontSizeMultiplier={1}
+          className={twMerge(
+            "text-foreground text-lg leading-[20px]",
+            titleClassName,
+          )}
+          numberOfLines={titleNumberOfLines}
+        >
+          {title}
+        </Text>
+        <Text
+          maxFontSizeMultiplier={1}
+          className="text-muted text-lg leading-[20px]"
+        >
+          {subtitle}
+        </Text>
+      </View>
+    ) : (
+      <Text
+        maxFontSizeMultiplier={2.5}
+        className={twMerge(
+          "text-foreground min-w-0 flex-1 pr-2.5 text-xl",
+          titlePaddingClassName,
+          titleClassName,
+        )}
+        numberOfLines={titleNumberOfLines ?? (multilineEnabled ? undefined : 1)}
+      >
+        {title}
+      </Text>
+    );
 
   return (
     <PressableThemed className={className} {...pressableProps}>

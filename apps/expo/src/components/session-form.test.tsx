@@ -183,7 +183,19 @@ vi.mock("./PressableThemed", () => ({
 }));
 vi.mock("./SwitchThemed", () => ({ default: () => null }));
 vi.mock("./TextInputThemed", () => ({
-  default: ({ label }: { label: string }) => <div>{label}</div>,
+  default: ({
+    label,
+    editable = true,
+    onChangeText,
+  }: {
+    label: string;
+    editable?: boolean;
+    onChangeText?: (text: string) => void;
+  }) => (
+    <div data-input={label} data-editable={editable} data-change={onChangeText}>
+      {label}
+    </div>
+  ),
 }));
 vi.mock("./Typography", () => ({
   HelperText: ({ children }: PropsWithChildren) => <p>{children}</p>,
@@ -402,7 +414,11 @@ describe("session editor interactions", () => {
     expect(input.weights.parentIndex).toBe(0);
 
     // Advanced settings saves a main exercise and two alternatives.
-    const { alternatives: _none, ...fields } = input.activity;
+    const {
+      alternatives: _none,
+      supersets: _empty,
+      ...fields
+    } = input.activity;
     const alternative = (id: string) => ({
       ...fields,
       id,
@@ -455,7 +471,7 @@ describe("session editor interactions", () => {
         { activityId: "alt-1", exerciseId: "e", name: "Exercise" },
         { activityId: "alt-2", exerciseId: "e", name: "Exercise" },
       ],
-      excludeExerciseIds: ["e", "e"],
+      excludeExerciseIds: ["e"],
     });
     // Picking an alternative swaps it in; the former main becomes one.
     await refocus(() =>
@@ -561,6 +577,125 @@ describe("session editor interactions", () => {
     });
     expect(sessionNames()).toEqual(["Training"]);
     expect(env.back).toHaveBeenCalledOnce();
+    await act(async () => {
+      renderer?.unmount();
+      await Promise.resolve();
+    });
+  });
+
+  it("shows an activity's supersets and keeps them aligned with it", async () => {
+    let renderer: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      renderer = create(<SessionFormScreen />);
+      await Promise.resolve();
+    });
+    if (!renderer) throw new Error("Renderer not created");
+    const root = renderer.root;
+    const click = (label: string) => {
+      const item = root
+        .findAllByType("button")
+        .find((button) => button.props["data-label"] === label);
+      if (!item) throw new Error(`Missing button ${label}`);
+      (item.props as { onClick: () => void }).onClick();
+    };
+    const input = (label: string) =>
+      root.findAllByProps({ "data-input": label })[0]?.props as {
+        "data-editable": boolean;
+        "data-change": (text: string) => void;
+      };
+    await act(async () => {
+      (
+        root.findByProps({ "data-label": "Session Name" }).props as {
+          onChange: () => void;
+        }
+      ).onChange();
+      click("Add Exercise");
+      await Promise.resolve();
+    });
+    await act(async () => {
+      click("Navigate to advanced activity settings form");
+      await Promise.resolve();
+    });
+    const entry = Object.values(useSelectionHandoff.getState().entries)[0];
+    if (entry?.kind !== "activity")
+      throw new Error("Missing activity settings request");
+    expect(entry.input).toMatchObject({
+      role: "activity",
+      otherExerciseIds: [],
+    });
+    const { activity } = entry.input;
+    const { alternatives: _none, supersets: _empty, ...fields } = activity;
+    await act(async () => {
+      env.focused = false;
+      renderer?.update(<SessionFormScreen />);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      useSelectionHandoff.getState().complete(entry.ticket, {
+        kind: "activity",
+        activity: {
+          ...activity,
+          exerciseId: "e",
+          restMinutes: 0,
+          supersets: [
+            {
+              ...fields,
+              id: "member",
+              exerciseId: "e",
+              restMinutes: 0,
+              warmupSets: activity.warmupSets.map((item, index) => ({
+                ...item,
+                id: `member-w${index}`,
+              })),
+              mainSets: activity.mainSets.map((item, index) => ({
+                ...item,
+                id: `member-m${index}`,
+              })),
+              alternatives: [],
+            },
+          ],
+        },
+        exercises: [
+          {
+            id: "e",
+            name: "Exercise",
+            deleted: false,
+            loadKind: null,
+            oneRepMax: null,
+          },
+        ],
+      });
+      await Promise.resolve();
+    });
+    await act(async () => {
+      env.focused = true;
+      renderer?.update(<SessionFormScreen />);
+      await Promise.resolve();
+    });
+    expect(
+      root
+        .findAllByType("span")
+        .some((node) => node.children.includes("1 Superset")),
+    ).toBe(true);
+    expect(input("Rest (minutes)")["data-editable"]).toBe(false);
+
+    // Superset exercises follow the activity's set counts.
+    await act(async () => {
+      input("Main Sets")["data-change"]("4");
+      await Promise.resolve();
+    });
+    await act(async () => {
+      click("Save");
+      await Promise.resolve();
+    });
+    expect(env.alert).not.toHaveBeenCalled();
+    const saved = vi.mocked(actions.createSession).mock.lastCall?.[2];
+    expect(saved?.activities[0]).toMatchObject({
+      restMinutes: 0,
+      supersets: [{ id: "member", restMinutes: 0 }],
+    });
+    expect(saved?.activities[0]?.mainSets).toHaveLength(4);
+    expect(saved?.activities[0]?.supersets[0]?.mainSets).toHaveLength(4);
     await act(async () => {
       renderer?.unmount();
       await Promise.resolve();

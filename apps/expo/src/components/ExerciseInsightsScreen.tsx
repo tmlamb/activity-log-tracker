@@ -37,6 +37,7 @@ export default function ExerciseInsightsScreen() {
       sessionName={series.sessionName}
       insights={insights}
       partial={series.partial}
+      superset={series.superset}
       alternatives={series.alternatives.map((alternative) => ({
         id: alternative.activityId,
         name: alternative.exerciseName,

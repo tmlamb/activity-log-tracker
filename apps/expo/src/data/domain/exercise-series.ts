@@ -29,6 +29,8 @@ export interface ExerciseSeriesProjection {
     points: ExerciseSeriesPoint[];
   }[];
   partial: boolean;
+  /** Main sets are performed as a superset, alternating with other exercises. */
+  superset: boolean;
   alternatives: SeriesAlternative[];
 }
 
@@ -168,6 +170,7 @@ export function buildExerciseSeriesProjection(
     sessionName: facts.selection.sessionName,
     series,
     partial,
+    superset: facts.selection.superset,
     alternatives: facts.alternatives,
   };
 }

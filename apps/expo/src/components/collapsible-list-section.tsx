@@ -32,6 +32,7 @@ export function CollapsibleListSection({
   itemKey,
   listLayout,
   title,
+  titleParts,
   containerClassName,
   headerClassName,
   titleClassName,
@@ -193,6 +194,7 @@ export function CollapsibleListSection({
     <View className={containerClassName} onLayout={handleSectionLayout}>
       <CollapsibleSectionHeader
         title={title}
+        titleParts={titleParts}
         className={headerClassName}
         titleClassName={titleClassName}
         chevronClassName={chevronClassName}

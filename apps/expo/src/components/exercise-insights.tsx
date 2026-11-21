@@ -22,9 +22,11 @@ const numberFormatter = new Intl.NumberFormat("en-US", {
 function VolumeChart({
   insights,
   stack,
+  superset = false,
 }: {
   insights: ExerciseSetInsights;
   stack: { index: number; size: number };
+  superset?: boolean;
 }) {
   const repOnlyValues = insights.points
     .filter(
@@ -38,7 +40,11 @@ function VolumeChart({
   const maxRepOnlyReps = Math.max(...repOnlyValues, 1);
   const currentPointIndex = insights.points.findIndex((point) => point.current);
   const initialScrollIndex = Math.max(currentPointIndex - 4, 0);
-  const setLabel = `${insights.setType} Set ${insights.setNumber}`;
+  // Main sets done in a superset are named like on the session screen.
+  const setLabel =
+    superset && insights.setType === "Main"
+      ? `Superset ${insights.setNumber}`
+      : `${insights.setType} Set ${insights.setNumber}`;
   const chartPoints: BarChartPoint[] = insights.points.map((point) => {
     const repOnly = point.completed && point.reps > 0 && point.weightLbs <= 0;
     const hasPlannedWeight = point.notStarted && point.weightLbs > 0;
@@ -164,12 +170,15 @@ export default function ExerciseInsights({
   sessionName,
   insights,
   partial = false,
+  superset = false,
   alternatives = [],
 }: {
   exerciseName: string;
   sessionName: string;
   insights: ExerciseSetInsights[];
   partial?: boolean;
+  /** Main sets are performed as a superset; warmups are still warmups. */
+  superset?: boolean;
   /** The activity's alternatives; pressing one opens its own insights. */
   alternatives?: { id: string; name: string; onPress: () => void }[];
 }) {
@@ -240,7 +249,6 @@ export default function ExerciseInsights({
           title="Warmup Sets"
           collapsed={warmupSetsCollapsed}
           onCollapsedChange={handleWarmupSetsCollapsedChange}
-          titleClassName="leading-tight"
           premeasureCollapsedContent
         >
           <View className="mb-3">
@@ -255,10 +263,9 @@ export default function ExerciseInsights({
         </CollapsibleSection>
       ) : null}
       <CollapsibleSection
-        title="Main Sets"
+        title={superset ? "Supersets" : "Main Sets"}
         collapsed={mainSetsCollapsed}
         onCollapsedChange={handleMainSetsCollapsedChange}
-        titleClassName="leading-tight"
         premeasureCollapsedContent
       >
         <View className={alternatives.length ? "mb-3" : undefined}>
@@ -267,6 +274,7 @@ export default function ExerciseInsights({
               key={`${setInsights.setType}-${setInsights.setNumber}`}
               insights={setInsights}
               stack={{ index, size: mainSetInsights.length }}
+              superset={superset}
             />
           ))}
         </View>
@@ -276,7 +284,6 @@ export default function ExerciseInsights({
           title="Alternative Exercises"
           collapsed={alternativesCollapsed}
           onCollapsedChange={handleAlternativesCollapsedChange}
-          titleClassName="leading-tight"
           premeasureCollapsedContent
         >
           <View>

@@ -18,7 +18,6 @@ Use `CollapsibleSectionList` with one `CollapsibleSection` per data row:
       title={item.title}
       collapsed={item.collapsed}
       onCollapsedChange={(collapsed) => updateSection(item.id, collapsed)}
-      titleClassName="leading-tight"
     >
       <ExerciseRows exercises={item.exercises} />
     </CollapsibleSection>

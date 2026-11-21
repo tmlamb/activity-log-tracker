@@ -11,6 +11,7 @@ export default function NumberDraftInput({
   stack,
   compact = false,
   error,
+  editable = true,
 }: {
   label: string;
   value: number | null;
@@ -19,12 +20,16 @@ export default function NumberDraftInput({
   stack?: { index: number; size: number };
   compact?: boolean;
   error?: string;
+  /** A read-only input shows `value` as given, in muted text. */
+  editable?: boolean;
 }) {
   const [text, setText] = useState(value === null ? "" : String(value));
   return (
     <TextInputThemed
       label={label}
-      value={text}
+      value={editable ? text : value === null ? "" : String(value)}
+      editable={editable}
+      textInputClassName={editable ? undefined : "text-muted"}
       keyboardType="number-pad"
       numeric
       maxLength={maxLength}

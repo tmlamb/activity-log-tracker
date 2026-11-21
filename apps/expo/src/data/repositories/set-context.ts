@@ -47,11 +47,11 @@ interface ContextRow {
   exerciseName: string | null;
   exerciseDeleted: number | null;
   exerciseRevision: number | null;
+  firstPendingKey: string | null;
   loadKind: SavedExercise["loadKind"];
   barbellId: string | null;
   oneRepMaxValue: number | null;
   oneRepMaxUnit: "lbs" | "kg" | null;
-  firstPendingSetId: string | null;
   warmupSetCount: number;
   mainSetCount: number;
   setIndex: number;
@@ -82,12 +82,18 @@ export function getSetExecutionContext(
        e.name AS exerciseName, e.deleted AS exerciseDeleted, e.revision AS exerciseRevision,
        e.load_kind AS loadKind, e.barbell_id AS barbellId,
        e.one_rep_max_value AS oneRepMaxValue, e.one_rep_max_unit AS oneRepMaxUnit,
+       -- In a superset the first pending set may belong to another exercise.
+       (SELECT pending.activity_id || char(31) || pending.id FROM workout_sets pending
+         JOIN activities member ON member.program_id = pending.program_id
+           AND member.session_id = pending.session_id AND member.id = pending.activity_id
+         WHERE pending.program_id = a.program_id AND pending.session_id = a.session_id
+           AND COALESCE(member.superset_activity_id, member.id) = COALESCE(a.superset_activity_id, a.id)
+           AND pending.status IN ('Planned', 'Ready')
+         ORDER BY CASE pending.kind WHEN 'Warmup' THEN 0 ELSE 1 END, pending.position, member.position
+         LIMIT 1) AS firstPendingKey,
        w.kind, w.position, w.status AS setStatus, w.feedback, w.actual_reps AS actualReps,
        w.weight_value AS weightValue, w.weight_unit AS weightUnit,
        w.start_ms AS startMs, w.end_ms AS endMs,
-       (SELECT id FROM workout_sets WHERE program_id = a.program_id
-         AND session_id = a.session_id AND activity_id = a.id AND status IN ('Planned', 'Ready')
-         ORDER BY CASE kind WHEN 'Warmup' THEN 0 ELSE 1 END, position LIMIT 1) AS firstPendingSetId,
        (SELECT COUNT(*) FROM workout_sets WHERE program_id = a.program_id
          AND session_id = a.session_id AND activity_id = a.id AND kind = 'Warmup') AS warmupSetCount,
        (SELECT COUNT(*) FROM workout_sets WHERE program_id = a.program_id
@@ -192,7 +198,7 @@ export function getSetExecutionContext(
     isStartable:
       (row.sessionStatus === "Planned" || row.sessionStatus === "Ready") &&
       set.status === "Planned" &&
-      row.firstPendingSetId === setId,
+      row.firstPendingKey === `${activityId}\u001f${setId}`,
     canComplete:
       row.sessionStatus === "Ready" &&
       set.status === "Ready" &&

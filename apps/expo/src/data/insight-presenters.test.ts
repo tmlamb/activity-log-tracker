@@ -82,6 +82,7 @@ describe("SQLite insight presentation", () => {
           ],
         },
       ],
+      superset: false,
       alternatives: [],
     };
     const result = presentExerciseInsights(projection);

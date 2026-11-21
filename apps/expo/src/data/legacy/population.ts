@@ -99,6 +99,7 @@ function tables(conversion: Conversion): TableSpec[] {
         "session_id",
         "id",
         "parent_activity_id",
+        "superset_activity_id",
         "exercise_id",
         "position",
         "reps",

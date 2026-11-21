@@ -28,13 +28,20 @@ import {
   useSessionDeloadCandidate,
   useSessionEditorSeed,
 } from "~/data/queries";
+import {
+  supersetRows,
+  supersetSetOrder,
+} from "~/data/repositories/session-detail";
 import useRouter from "~/hooks/use-router";
 
 const completed = (
   set: SessionDetail["activities"][number]["mainSets"][number],
 ) => set.status === "Done" && (set.actualReps ?? 0) > 0;
 const allDone = (activity: SessionActivity) => {
-  const sets = [...activity.warmupSets, ...activity.mainSets];
+  const sets = supersetRows(activity).flatMap((row) => [
+    ...row.warmupSets,
+    ...row.mainSets,
+  ]);
   return sets.length > 0 && sets.every(completed);
 };
 
@@ -118,6 +125,7 @@ const SessionContent = memo(function SessionContent({
       Alert.alert("Session Changed", "The session can no longer be completed.");
   };
   const setsPending = session.activities
+    .flatMap(supersetRows)
     .flatMap((activity) => [...activity.warmupSets, ...activity.mainSets])
     .some((set) => !completed(set));
   const completable =
@@ -272,8 +280,9 @@ const SessionContent = memo(function SessionContent({
 });
 
 /**
- * One exercise's sets. Collapse state lives here, not in the screen: list rows
- * re-render reliably for their own state, as on the program screen's weeks.
+ * One exercise's sets, or a superset's sets alternating between its exercises.
+ * Collapse state lives here, not in the screen: list rows re-render reliably
+ * for their own state, as on the program screen's weeks.
  */
 function ActivityRow({
   activity: item,
@@ -287,14 +296,18 @@ function ActivityRow({
   sessionId: string;
 }) {
   const done = allDone(item);
-  const [collapsed, setCollapsed] = useState(done);
+  // Every exercise starts collapsed, whatever its progress.
+  const [collapsed, setCollapsed] = useState(true);
   // Collapse an exercise automatically when its last set is completed.
   const [wasDone, setWasDone] = useState(done);
   if (done !== wasDone) {
     setWasDone(done);
     if (done) setCollapsed(true);
   }
-  const sets = [...item.warmupSets, ...item.mainSets];
+  const rows = supersetRows(item);
+  const superset = rows.length > 1;
+  const ordered = supersetSetOrder(rows);
+  const sets = ordered.map(({ set }) => set);
   const completionWidth = Math.max(
     0,
     ...sets.flatMap((set) =>
@@ -306,24 +319,31 @@ function ActivityRow({
         : [],
     ),
   );
-  const name = item.exerciseName
-    ? `${item.exerciseName}${item.exerciseDeleted ? " (Deleted)" : ""}`
-    : `Activity ${index + 1}`;
+  const exerciseName = (row: SessionActivity["supersets"][number]) =>
+    row.exerciseName
+      ? `${row.exerciseName}${row.exerciseDeleted ? " (Deleted)" : ""}`
+      : "Unavailable exercise";
+  // A superset lists its exercises separated by a muted " ⇄ "; the joined
+  // name is its accessibility name.
+  const name = superset
+    ? rows.map(exerciseName).join(", ")
+    : item.exerciseName
+      ? exerciseName(item)
+      : `Activity ${index + 1}`;
   return (
     <CollapsibleSection
       title={name}
+      titleParts={superset ? rows.map(exerciseName) : undefined}
       collapsed={collapsed}
-      titleClassName={
-        done ? "text-muted leading-tight" : "text-foreground leading-tight"
-      }
+      titleClassName={done ? "text-muted" : "text-foreground"}
       chevronClassName={collapsed && !done ? "text-primary" : "text-muted"}
       onCollapsedChange={setCollapsed}
     >
-      {sets.map((set, setIndex) => {
+      {ordered.map(({ row, set, kind, index: number }, setIndex) => {
         const title =
-          set.kind === "Warmup"
-            ? `Warmup Set ${item.warmupSets.findIndex((entry) => entry.id === set.id) + 1}`
-            : `Main Set ${item.mainSets.findIndex((entry) => entry.id === set.id) + 1}`;
+          kind === "Warmup"
+            ? `Warmup Set ${number + 1}`
+            : `${superset ? "Superset" : "Main Set"} ${number + 1}`;
         const status =
           set.status === "Planned" && setIndex === 0 ? "Ready" : set.status;
         const lines = completed(set)
@@ -336,14 +356,16 @@ function ActivityRow({
           : undefined;
         return (
           <Link
-            key={set.id}
-            href={`/(public)/(app)/program/${encodeURIComponent(programId)}/session/${encodeURIComponent(sessionId)}/set?workoutSetId=${encodeURIComponent(set.id)}&activityId=${encodeURIComponent(item.id)}&title=${encodeURIComponent(title)}`}
+            key={`${row.id}:${set.id}`}
+            href={`/(public)/(app)/program/${encodeURIComponent(programId)}/session/${encodeURIComponent(sessionId)}/set?workoutSetId=${encodeURIComponent(set.id)}&activityId=${encodeURIComponent(row.id)}&title=${encodeURIComponent(title)}`}
             asChild
           >
             <NavigationCardRow
               title={title}
+              // In a superset, each set names its exercise on its own lines.
+              subtitle={superset ? exerciseName(row) : undefined}
               cardVariants={["multiline"]}
-              titleClassName="py-3"
+              titleClassName={superset ? undefined : "py-3"}
               stack={{ index: setIndex, size: sets.length }}
               cardClassName={setIndex === sets.length - 1 ? "mb-3" : undefined}
               centerTextLines={lines}
@@ -358,7 +380,7 @@ function ActivityRow({
               }
               animateTrailingText
               trailingTextAnimationKey={status}
-              accessibilityLabel={`Navigate to ${title}${lines ? `, completed with ${set.weightValue} ${set.weightUnit} for ${set.actualReps} reps` : ""}, current status: ${status}`}
+              accessibilityLabel={`Navigate to ${title}${superset ? ` of ${exerciseName(row)}` : ""}${lines ? `, completed with ${set.weightValue} ${set.weightUnit} for ${set.actualReps} reps` : ""}, current status: ${status}`}
             />
           </Link>
         );

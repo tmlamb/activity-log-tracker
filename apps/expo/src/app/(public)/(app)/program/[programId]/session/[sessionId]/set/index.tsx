@@ -626,7 +626,6 @@ function SetEditor({
                 title="Advanced"
                 collapsed={advancedCollapsed}
                 onCollapsedChange={setAdvancedCollapsed}
-                titleClassName="leading-tight"
               >
                 <ConfirmButton
                   title="Reset Set?"

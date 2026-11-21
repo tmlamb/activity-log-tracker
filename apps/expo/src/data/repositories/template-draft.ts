@@ -2,10 +2,12 @@ import type {
   SessionActivityFields,
   SessionDetail,
   SessionSet,
+  SessionSupersetMember,
 } from "./session-detail";
 import type {
   DraftAlternative,
   DraftSet,
+  DraftSupersetMember,
   SessionDraft,
 } from "./session-drafts";
 
@@ -84,21 +86,26 @@ export function createTemplateDraft(
       ),
     };
   }
+  function cloneMain(activity: SessionSupersetMember): DraftSupersetMember {
+    const picked = pickMain<SessionActivityFields>(
+      activity,
+      activity.alternatives,
+      usage,
+    );
+    return {
+      ...cloneRow(picked.main),
+      alternatives: picked.alternatives.map(cloneRow),
+    };
+  }
   return {
     name: source.name,
     deload: false,
     startMs: null,
     endMs: null,
-    activities: source.activities.map((activity) => {
-      const picked = pickMain<SessionActivityFields>(
-        activity,
-        activity.alternatives,
-        usage,
-      );
-      return {
-        ...cloneRow(picked.main),
-        alternatives: picked.alternatives.map(cloneRow),
-      };
-    }),
+    // Each superset member picks its own main the same way as its leader.
+    activities: source.activities.map((activity) => ({
+      ...cloneMain(activity),
+      supersets: activity.supersets.map(cloneMain),
+    })),
   };
 }

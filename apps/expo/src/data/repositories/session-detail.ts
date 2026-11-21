@@ -29,9 +29,56 @@ export interface SessionActivityFields {
   mainSets: SessionSet[];
 }
 
-/** A main activity with the alternatives the user may swap in for it. */
-export interface SessionActivity extends SessionActivityFields {
+/** A main activity row with the alternatives the user may swap in for it. */
+export interface SessionSupersetMember extends SessionActivityFields {
   alternatives: SessionActivityFields[];
+}
+
+/**
+ * A main activity, with the superset members performed alternately with it.
+ * Members are main activities themselves, stored right after their leader.
+ */
+export interface SessionActivity extends SessionSupersetMember {
+  supersets: SessionSupersetMember[];
+}
+
+/** An activity's main rows in stored order: the leader, then its members. */
+export function supersetRows<T extends { supersets: readonly unknown[] }>(
+  activity: T,
+): (T | T["supersets"][number])[] {
+  return [activity, ...activity.supersets];
+}
+
+/** One set of a superset row, in performing order (see supersetSetOrder). */
+export interface OrderedSet<
+  T extends { warmupSets: readonly unknown[]; mainSets: readonly unknown[] },
+> {
+  row: T;
+  set: T["warmupSets"][number] | T["mainSets"][number];
+  kind: "Warmup" | "Main";
+  /** The set's number among its row's sets of `kind`, from 0. */
+  index: number;
+}
+
+/**
+ * The order sets of a superset are performed in: each set number of each kind
+ * alternates between the rows, warmups first. Without members this is just
+ * the activity's warmup sets, then its main sets.
+ */
+export function supersetSetOrder<
+  T extends { warmupSets: readonly unknown[]; mainSets: readonly unknown[] },
+>(rows: readonly T[]): OrderedSet<T>[] {
+  const result: OrderedSet<T>[] = [];
+  for (const kind of ["Warmup", "Main"] as const) {
+    const field = kind === "Warmup" ? "warmupSets" : "mainSets";
+    const count = Math.max(0, ...rows.map((row) => row[field].length));
+    for (let index = 0; index < count; index++)
+      for (const row of rows) {
+        const set = row[field][index];
+        if (set !== undefined) result.push({ row, set, kind, index });
+      }
+  }
+  return result;
 }
 
 export interface SessionDetail {
@@ -54,7 +101,11 @@ type SessionRow = Omit<SessionDetail, "activities" | "deload"> & {
 type ActivityRow = Omit<
   SessionActivityFields,
   "warmupSets" | "mainSets" | "exerciseDeleted"
-> & { exerciseDeleted: number | null; parentActivityId: string | null };
+> & {
+  exerciseDeleted: number | null;
+  parentActivityId: string | null;
+  supersetActivityId: string | null;
+};
 type SetRow = SessionSet & { activityId: string };
 
 /** Call in one read transaction so all three queries see the same snapshot. */
@@ -74,7 +125,7 @@ export function getSessionDetail(
   if (!session) return null;
   const activityRows = reader.getAllSync<ActivityRow>(
     `SELECT a.id, a.parent_activity_id AS parentActivityId,
-       a.exercise_id AS exerciseId, e.name AS exerciseName,
+       a.superset_activity_id AS supersetActivityId, a.exercise_id AS exerciseId, e.name AS exerciseName,
        e.deleted AS exerciseDeleted, a.reps, a.load_type AS loadType,
        a.load_value AS loadValue, a.rest_minutes AS restMinutes
      FROM activities a LEFT JOIN exercises e ON e.id = a.exercise_id
@@ -94,9 +145,16 @@ export function getSessionDetail(
   );
   const activities: SessionActivity[] = [];
   const byId = new Map<string, SessionActivityFields>();
-  const mains = new Map<string, SessionActivity>();
-  // Mains come first, so each alternative's parent is already present.
-  for (const { exerciseDeleted, parentActivityId, ...row } of activityRows) {
+  const leaders = new Map<string, SessionActivity>();
+  const mains = new Map<string, SessionSupersetMember>();
+  // Mains come first in stored order, so a member's leader and an
+  // alternative's parent are already present.
+  for (const {
+    exerciseDeleted,
+    parentActivityId,
+    supersetActivityId,
+    ...row
+  } of activityRows) {
     const fields: SessionActivityFields = {
       ...row,
       exerciseDeleted: exerciseDeleted === 1,
@@ -104,10 +162,19 @@ export function getSessionDetail(
       mainSets: [],
     };
     byId.set(fields.id, fields);
-    if (parentActivityId === null) {
-      const main = { ...fields, alternatives: [] };
+    if (parentActivityId === null && supersetActivityId !== null) {
+      const leader = leaders.get(supersetActivityId);
+      if (!leader)
+        throw new Error("A superset member has no leading activity.");
+      const member = { ...fields, alternatives: [] };
+      byId.set(member.id, member);
+      mains.set(member.id, member);
+      leader.supersets.push(member);
+    } else if (parentActivityId === null) {
+      const main = { ...fields, alternatives: [], supersets: [] };
       byId.set(main.id, main);
       mains.set(main.id, main);
+      leaders.set(main.id, main);
       activities.push(main);
     } else {
       const parent = mains.get(parentActivityId);

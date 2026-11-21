@@ -40,6 +40,7 @@ describe("template draft", () => {
           restMinutes: 2,
           warmupSets: [{ ...set, kind: "Warmup" }],
           mainSets: [set, { ...set, id: "second", actualReps: 9 }],
+          supersets: [],
           alternatives: [],
         },
         {
@@ -53,6 +54,7 @@ describe("template draft", () => {
           restMinutes: 2,
           warmupSets: [],
           mainSets: [{ ...set, actualReps: 0 }],
+          supersets: [],
           alternatives: [],
         },
       ],

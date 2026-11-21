@@ -6,6 +6,7 @@ import type {
   DraftActivity,
   DraftAlternative,
   DraftSet,
+  DraftSupersetMember,
   SessionDraft,
 } from "../repositories/session-drafts";
 import type { ExerciseSelectionInput } from "../selection-handoff";
@@ -29,14 +30,21 @@ export function draftFromSession(session: SessionDetail): SessionDraft {
     warmupSets: warmupSets.map(cloneSet),
     mainSets: mainSets.map(cloneSet),
   });
+  const cloneMain = ({
+    alternatives,
+    ...activity
+  }: SessionDetail["activities"][number]["supersets"][number]): DraftSupersetMember => ({
+    ...cloneRow(activity),
+    alternatives: alternatives.map(cloneRow),
+  });
   return {
     name: session.name,
     deload: session.deload,
     startMs: session.startMs,
     endMs: session.endMs,
-    activities: session.activities.map(({ alternatives, ...activity }) => ({
-      ...cloneRow(activity),
-      alternatives: alternatives.map(cloneRow),
+    activities: session.activities.map(({ supersets, ...activity }) => ({
+      ...cloneMain(activity),
+      supersets: supersets.map(cloneMain),
     })),
   };
 }
@@ -62,7 +70,28 @@ export function newDraftActivity(
   createId: () => string,
   terminalEndMs: number | null | undefined,
 ): DraftActivity {
-  return { ...newDraftAlternative(createId, terminalEndMs), alternatives: [] };
+  return {
+    ...newDraftAlternative(createId, terminalEndMs),
+    alternatives: [],
+    supersets: [],
+  };
+}
+
+/** A new superset member planned with its leader's set counts and no rest. */
+export function newDraftSupersetMember(
+  leader: DraftAlternative,
+  createId: () => string,
+  terminalEndMs: number | null | undefined,
+): DraftSupersetMember {
+  return {
+    ...alignSupersetRow(
+      newDraftAlternative(createId, terminalEndMs),
+      leader,
+      createId,
+      terminalEndMs,
+    ),
+    alternatives: [],
+  };
 }
 
 export function newDraftAlternative(
@@ -104,10 +133,16 @@ export function shiftDraftStart(
     startMs: nextStartMs,
     endMs: shift(draft.endMs),
     activities: draft.activities.map((activity) => ({
-      ...shiftRow(activity),
-      alternatives: activity.alternatives.map(shiftRow),
+      ...shiftMain(activity),
+      supersets: activity.supersets.map(shiftMain),
     })),
   };
+  function shiftMain<T extends DraftSupersetMember>(activity: T): T {
+    return {
+      ...shiftRow(activity),
+      alternatives: activity.alternatives.map(shiftRow),
+    };
+  }
   function shiftRow<T extends DraftAlternative>(activity: T): T {
     return {
       ...activity,
@@ -138,43 +173,116 @@ export interface SelectedExercise {
 }
 
 /**
- * Swap an alternative in as the activity's main row, keeping its own plan and
- * sets; the former main takes its place among the alternatives.
+ * Swap an alternative in as a main row (an activity or a superset member),
+ * keeping its own plan and sets; the former main takes its place among the
+ * alternatives. An activity keeps its superset members.
  */
-export function swapAlternative(
-  activity: DraftActivity,
+export function swapAlternative<T extends DraftSupersetMember>(
+  activity: T,
   alternativeId: string,
-): DraftActivity | null {
-  const { alternatives, ...main } = activity;
+): T | null {
+  const { alternatives, ...rest } = activity;
   const index = alternatives.findIndex((item) => item.id === alternativeId);
   const promoted = alternatives[index];
   if (!promoted) return null;
+  const { supersets, ...main } = rest as Omit<T, "alternatives"> & {
+    supersets?: DraftSupersetMember[];
+  };
   return {
     ...promoted,
     alternatives: alternatives.map((item, i) => (i === index ? main : item)),
+    ...(supersets ? { supersets } : {}),
+  } as unknown as T;
+}
+
+/**
+ * Plan a superset row like its leader: the same number of warmup and main sets
+ * (so sets alternate one for one) and no rest between exercises.
+ */
+export function alignSupersetRow<T extends DraftAlternative>(
+  row: T,
+  leader: Pick<DraftAlternative, "warmupSets" | "mainSets">,
+  createId: () => string,
+  terminalEndMs: number | null | undefined,
+): T {
+  let next: T = row.restMinutes === 0 ? row : { ...row, restMinutes: 0 };
+  for (const kind of ["Warmup", "Main"] as const) {
+    const field = kind === "Warmup" ? "warmupSets" : "mainSets";
+    if (next[field].length === leader[field].length) continue;
+    next =
+      resizeSets(
+        next,
+        kind,
+        String(leader[field].length),
+        createId,
+        terminalEndMs,
+      )?.activity ?? next;
+  }
+  return next;
+}
+
+/**
+ * Keep a superset consistent after any edit: while `enabled` (by default, when
+ * the activity has members) nothing in it rests, and every member and member
+ * alternative has the leader's set counts.
+ */
+export function normalizeSuperset(
+  activity: DraftActivity,
+  createId: () => string,
+  terminalEndMs: number | null | undefined,
+  enabled = activity.supersets.length > 0,
+): DraftActivity {
+  if (!enabled) return activity;
+  const noRest = <T extends DraftAlternative>(row: T): T =>
+    row.restMinutes === 0 ? row : { ...row, restMinutes: 0 };
+  const align = <T extends DraftAlternative>(row: T): T =>
+    alignSupersetRow(row, activity, createId, terminalEndMs);
+  return {
+    ...noRest(activity),
+    alternatives: activity.alternatives.map(noRest),
+    supersets: activity.supersets.map((member) => ({
+      ...align(member),
+      alternatives: member.alternatives.map(align),
+    })),
   };
+}
+
+/** Every exercise row of an activity: mains, members and all alternatives. */
+export function activityRows(activity: DraftActivity): DraftAlternative[] {
+  return [activity, ...activity.supersets].flatMap((main) => [
+    main,
+    ...main.alternatives,
+  ]);
 }
 
 /**
  * What an exercise pick for one row of `activity` may offer. Each exercise is
- * used once per activity: the main row lists its alternatives to swap in, and
- * an alternative row hides exercises the activity already uses.
+ * used once per activity, superset members included: a main row (the leader
+ * or a member) lists its own alternatives to swap in, and every row hides the
+ * other exercises the activity already uses. `otherExerciseIds` adds exercises
+ * used outside `activity`, as when a member is edited on its own.
  */
 export function exerciseSelectionInput(
-  activity: DraftActivity,
+  activity: DraftSupersetMember & { supersets?: DraftSupersetMember[] },
   rowId: string,
   name: (exerciseId: string) => string,
+  otherExerciseIds: readonly string[] = [],
 ): ExerciseSelectionInput {
-  const used = (rows: DraftAlternative[]) =>
-    rows.flatMap((row) =>
-      row.id !== rowId && row.exerciseId !== null ? [row.exerciseId] : [],
+  const mains = [activity, ...(activity.supersets ?? [])];
+  const owner = mains.find((main) => main.id === rowId);
+  const ownAlternatives = owner?.alternatives ?? [];
+  const others = mains
+    .flatMap((main) => [main, ...main.alternatives])
+    .flatMap((row) =>
+      row.id !== rowId &&
+      !ownAlternatives.includes(row) &&
+      row.exerciseId !== null
+        ? [row.exerciseId]
+        : [],
     );
-  if (rowId !== activity.id)
-    return {
-      alternatives: [],
-      excludeExerciseIds: used([activity, ...activity.alternatives]),
-    };
-  const alternatives = activity.alternatives.flatMap((row) =>
+  const excluded = [...new Set([...others, ...otherExerciseIds])];
+  if (!owner) return { alternatives: [], excludeExerciseIds: excluded };
+  const alternatives = ownAlternatives.flatMap((row) =>
     row.exerciseId === null
       ? []
       : [
@@ -187,7 +295,9 @@ export function exerciseSelectionInput(
   );
   return {
     alternatives,
-    excludeExerciseIds: alternatives.map((item) => item.exerciseId),
+    excludeExerciseIds: [
+      ...new Set([...alternatives.map((item) => item.exerciseId), ...excluded]),
+    ],
   };
 }
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** The version new backups are written with. */
-export const PORTABLE_BACKUP_VERSION = 3;
+export const PORTABLE_BACKUP_VERSION = 4;
 
 /** Frozen portable model. Timestamps are epoch milliseconds, never Date objects. */
 const id = z.string().refine((value) => value.trim().length > 0);
@@ -36,9 +36,16 @@ const activityFields = {
 };
 const alternative = z.object(activityFields);
 /** Version 3 added alternatives; version-2 backups have none. */
-const activity = z.object({
+const supersetMember = z.object({
   ...activityFields,
   alternatives: z.array(alternative).default([]),
+});
+/**
+ * Version 4 added superset members, performed alternately with their activity;
+ * older backups have none. Older apps reject version 4 rather than drop them.
+ */
+const activity = supersetMember.extend({
+  supersets: z.array(supersetMember).default([]),
 });
 const session = z.object({
   id,
@@ -69,7 +76,11 @@ const preset = z.object({
 });
 export const portableBackupV2Schema = z.object({
   format: z.literal("activity-log-tracker-backup"),
-  version: z.union([z.literal(2), z.literal(PORTABLE_BACKUP_VERSION)]),
+  version: z.union([
+    z.literal(2),
+    z.literal(3),
+    z.literal(PORTABLE_BACKUP_VERSION),
+  ]),
   createdAtMs: validTimestamp,
   data: z.object({
     programs: z.array(

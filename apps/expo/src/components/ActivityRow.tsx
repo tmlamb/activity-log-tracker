@@ -35,7 +35,7 @@ function loadLabel(activity: DraftAlternative) {
 /**
  * One full-bleed planned exercise row: exercise, reorder and remove controls
  * on the left; set counts, reps, rest and load on the right. Used for session
- * activities and for their alternatives.
+ * activities, their alternatives and their superset members.
  */
 export default function ActivityRow({
   activity,
@@ -46,6 +46,9 @@ export default function ActivityRow({
   canMoveDown,
   removeLabel = "Remove exercise from Session",
   alternativeCount = 0,
+  supersetCount = 0,
+  setCountsLocked = false,
+  restLocked = false,
   onSelectExercise,
   onSelectLoad,
   onRemove,
@@ -63,6 +66,11 @@ export default function ActivityRow({
   canMoveDown: boolean;
   removeLabel?: string;
   alternativeCount?: number;
+  supersetCount?: number;
+  /** Set counts follow another row (a superset's leader) and can't be edited. */
+  setCountsLocked?: boolean;
+  /** Rest is fixed at zero (in a superset) and can't be edited. */
+  restLocked?: boolean;
   onSelectExercise: () => void;
   onSelectLoad: () => void;
   onRemove: () => void;
@@ -127,6 +135,14 @@ export default function ActivityRow({
                       className="text-muted text-base leading-tight"
                     >
                       {`${alternativeCount} Alternative${alternativeCount === 1 ? "" : "s"}`}
+                    </Text>
+                  )}
+                  {supersetCount > 0 && (
+                    <Text
+                      maxFontSizeMultiplier={2}
+                      className="text-muted text-base leading-tight"
+                    >
+                      {`${supersetCount} Superset${supersetCount === 1 ? "" : "s"}`}
                     </Text>
                   )}
                 </View>
@@ -212,6 +228,8 @@ export default function ActivityRow({
             stack={{ index: 0, size: 5 }}
             cardVariants={["square", "small", "transparent"]}
             error={setsError}
+            editable={!setCountsLocked}
+            textInputClassName={setCountsLocked ? "text-muted" : undefined}
             onChangeText={(value) => onChangeSetCount("Warmup", value)}
           />
           <TextInputThemed
@@ -227,6 +245,8 @@ export default function ActivityRow({
             stack={{ index: 1, size: 5 }}
             cardVariants={["square", "small", "transparent"]}
             error={setsError}
+            editable={!setCountsLocked}
+            textInputClassName={setCountsLocked ? "text-muted" : undefined}
             onChangeText={(value) => onChangeSetCount("Main", value)}
           />
           <NumberDraftInput
@@ -240,12 +260,14 @@ export default function ActivityRow({
             onChange={(reps) => onChange({ reps })}
           />
           <NumberDraftInput
-            key={`${activity.id}:rest`}
+            // Remount when unlocked so the input shows the current rest.
+            key={`${activity.id}:rest:${restLocked}`}
             compact
             stack={{ index: 3, size: 5 }}
             maxLength={2}
             label="Rest (minutes)"
-            value={activity.restMinutes}
+            editable={!restLocked}
+            value={restLocked ? 0 : activity.restMinutes}
             onChange={(restMinutes) => onChange({ restMinutes })}
           />
           <NavigationCardRow

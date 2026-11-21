@@ -51,8 +51,12 @@ const draft = (): SessionDraft => ({
   startMs: null,
   endMs: null,
   activities: [
-    { ...row("a", "e"), alternatives: [row("a1", "f"), row("a2", "g")] },
-    { ...row("b", "e"), alternatives: [] },
+    {
+      ...row("a", "e"),
+      alternatives: [row("a1", "f"), row("a2", "g")],
+      supersets: [],
+    },
+    { ...row("b", "e"), alternatives: [], supersets: [] },
   ],
 });
 function nth<T>(items: readonly T[], index: number): T {
@@ -301,7 +305,7 @@ describe("activity alternatives", () => {
         ),
       ).toEqual(["a1", "a2"]);
       const backup = serializePortableBackupV2(data, 5);
-      expect(JSON.parse(backup)).toMatchObject({ version: 3 });
+      expect(JSON.parse(backup)).toMatchObject({ version: 4 });
       const restored = createTestDb();
       try {
         transaction(restored, () =>
@@ -319,8 +323,13 @@ describe("activity alternatives", () => {
         for (const program of older.data.programs)
           for (const session of program.sessions)
             session.activities = session.activities.map((activity) => {
-              const { alternatives: _dropped, ...rest } = activity as {
+              const {
+                alternatives: _dropped,
+                supersets: _new,
+                ...rest
+              } = activity as {
                 alternatives: unknown;
+                supersets: unknown;
               };
               return rest;
             });
@@ -352,6 +361,7 @@ describe("activity alternatives", () => {
         value.activities = [
           {
             ...row(`${id}-a`, main),
+            supersets: [],
             alternatives: ["e", "f", "g"]
               .filter((exercise) => exercise !== main)
               .map((exercise) => row(`${id}-${exercise}`, exercise)),
@@ -397,6 +407,7 @@ describe("activity alternatives", () => {
         {
           ...row("old", "g"),
           mainSets: [set("old-m", { status: "Done", actualReps: 9 })],
+          supersets: [],
           alternatives: [row("old-e", "e")],
         },
       ];

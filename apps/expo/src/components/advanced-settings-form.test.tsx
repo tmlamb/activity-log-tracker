@@ -148,15 +148,18 @@ vi.mock("./TextInputThemed", () => ({
   default: ({
     label,
     error,
+    editable = true,
     onChangeText,
   }: {
     label: string;
     error?: string;
+    editable?: boolean;
     onChangeText?: (text: string) => void;
   }) => (
     <input
       data-label={label}
       data-error={error ?? null}
+      data-editable={editable}
       data-change={onChangeText}
     />
   ),
@@ -198,7 +201,9 @@ function request(input?: Partial<ActivitySettingsInput>) {
     activityId: "main",
   };
   useSelectionHandoff.getState().begin(ticket, "activity", {
+    role: "activity",
     activity,
+    otherExerciseIds: [],
     exercises: [],
     savedRowIds: [],
     terminalEndMs: undefined,
@@ -302,8 +307,10 @@ describe("advanced activity settings", () => {
   it("validates new alternatives and saves the edited activity", async () => {
     request();
     const view = await render();
-    expect(view.root.findByType("h2").children).toEqual([
-      "Alternative Exercises",
+    // Alternatives and supersets are both always available.
+    expect(view.root.findAllByType("h2").map((node) => node.children)).toEqual([
+      ["Alternative Exercises"],
+      ["Supersets"],
     ]);
     expect(view.texts()).toContain("Select Exercise");
     await view.click("Add Alternative Exercise");
@@ -485,7 +492,7 @@ describe("advanced activity settings", () => {
       ...newDraftActivity(createId, undefined),
       id: "main",
     };
-    const { alternatives: _none, ...fields } = saved;
+    const { alternatives: _none, supersets: _empty, ...fields } = saved;
     request({
       activity: {
         ...saved,
@@ -501,5 +508,244 @@ describe("advanced activity settings", () => {
       expect.any(Array),
     );
     expect(env.dirty).toBe(false);
+  });
+
+  describe("supersets", () => {
+    const input = (view: Awaited<ReturnType<typeof render>>, label: string) =>
+      view.root.findAllByProps({ "data-label": label });
+    const pendingEntry = (kind: string) => {
+      const pending = Object.values(
+        useSelectionHandoff.getState().entries,
+      ).find(
+        (entry) =>
+          entry.kind === kind && entry.ticket.ownerId !== "session-form",
+      );
+      if (!pending) throw new Error("No picker request");
+      return pending;
+    };
+    const pickExercise = async (
+      view: Awaited<ReturnType<typeof render>>,
+      index: number,
+      exerciseId: string,
+    ) => {
+      await view.click("Navigate to select exercise form", index);
+      await view.pick((pending) =>
+        useSelectionHandoff
+          .getState()
+          .complete(pending, { kind: "exercise", exerciseId }),
+      );
+    };
+
+    it("adds superset exercises planned with the main sets and no rest", async () => {
+      const main = { ...newDraftActivity(createId, undefined), id: "main" };
+      request({
+        activity: { ...main, warmupSets: main.warmupSets.slice(0, 1) },
+      });
+      const view = await render();
+      await view.click("Add Superset Exercise");
+      // Set counts start as the main exercise's; rest can't be edited.
+      expect(
+        ["Warmup Sets", "Main Sets", "Rest (minutes)"].map((label) =>
+          input(view, label).map(
+            (node) => node.props["data-editable"] as boolean,
+          ),
+        ),
+      ).toEqual([[true], [true], [false]]);
+
+      await pickExercise(view, 0, "f");
+      await view.click("Navigate to select exercise form", 1);
+      expect(pendingEntry("exercise").input).toEqual({
+        alternatives: [],
+        excludeExerciseIds: ["f"],
+      });
+      await view.pick((pending) =>
+        useSelectionHandoff
+          .getState()
+          .complete(pending, { kind: "exercise", exerciseId: "e" }),
+      );
+      await view.click("Save");
+      expect(view.result()).toMatchObject({
+        kind: "activity",
+        activity: {
+          exerciseId: "f",
+          restMinutes: 0,
+          supersets: [
+            {
+              exerciseId: "e",
+              restMinutes: 0,
+              warmupSets: [{}],
+              mainSets: [{}, {}, {}],
+              alternatives: [],
+            },
+          ],
+        },
+      });
+    });
+
+    it("shares set counts between the activity and its superset rows", async () => {
+      request();
+      const view = await render();
+      await view.click("Add Superset Exercise");
+      await view.click("Add Superset Exercise");
+      const type = async (label: string, index: number, value: string) =>
+        act(async () => {
+          (
+            input(view, label)[index]?.props as {
+              "data-change": (text: string) => void;
+            }
+          )["data-change"](value);
+          await Promise.resolve();
+        });
+      // Editing either superset row resizes the activity and both rows.
+      await type("Main Sets", 1, "5");
+      await type("Warmup Sets", 0, "1");
+      await pickExercise(view, 1, "e");
+      await pickExercise(view, 2, "f");
+      await view.click("Save");
+      const saved = view.result();
+      if (saved?.kind !== "activity") throw new Error("Not saved");
+      expect(
+        [saved.activity, ...saved.activity.supersets].map((row) => [
+          row.warmupSets.length,
+          row.mainSets.length,
+        ]),
+      ).toEqual([
+        [1, 5],
+        [1, 5],
+        [1, 5],
+      ]);
+    });
+
+    it("requires an exercise on each superset row", async () => {
+      request();
+      const view = await render();
+      await view.click("Add Superset Exercise");
+      await view.click("Collapse Supersets");
+      await view.click("Save");
+      expect(view.result()).toBeNull();
+      expect(view.buttons("Remove superset exercise")).toHaveLength(1);
+      expect(view.texts()).toContain("Required");
+    });
+
+    it("opens a superset exercise's own settings and applies them", async () => {
+      // Routers ignore a second push until focus returns, so this screen's
+      // first push must be the one under test: start with the superset.
+      const main = { ...newDraftActivity(createId, undefined), id: "main" };
+      const { supersets: _none, ...member } = newDraftActivity(
+        createId,
+        undefined,
+      );
+      request({
+        activity: {
+          ...main,
+          exerciseId: "f",
+          restMinutes: 0,
+          supersets: [{ ...member, exerciseId: "e", restMinutes: 0 }],
+        },
+      });
+      const view = await render();
+      await view.click("Navigate to advanced activity settings form");
+      expect(env.push).toHaveBeenLastCalledWith(
+        expect.stringContaining("/session/form/advanced/superset?activityId="),
+      );
+      const pending = pendingEntry("activity");
+      if (pending.kind !== "activity") throw new Error("No settings request");
+      expect(pending.input).toMatchObject({
+        role: "superset",
+        activity: { exerciseId: "e", supersets: [] },
+        otherExerciseIds: ["f"],
+        weights: {
+          parents: [
+            { exerciseId: "f", loadType: "RPE" },
+            { exerciseId: "e", loadType: "RPE" },
+          ],
+          parentIndex: 1,
+        },
+      });
+      const memberId = pending.input.activity.id;
+      const {
+        alternatives: _alternatives,
+        supersets: _supersets,
+        ...fields
+      } = pending.input.activity;
+      await view.pick((ticket) =>
+        useSelectionHandoff.getState().complete(ticket, {
+          kind: "activity",
+          activity: {
+            ...pending.input.activity,
+            alternatives: [{ ...fields, id: "member-alt", exerciseId: "f" }],
+          },
+          exercises: [],
+        }),
+      );
+      await view.click("Save");
+      expect(view.result()).toMatchObject({
+        activity: {
+          supersets: [
+            {
+              id: memberId,
+              alternatives: [{ id: "member-alt", exerciseId: "f" }],
+            },
+          ],
+        },
+      });
+    });
+
+    it("is a superset only while it has superset exercises", async () => {
+      request();
+      const view = await render();
+      const restEditable = () =>
+        input(view, "Rest (minutes)").map(
+          (node) => node.props["data-editable"] as boolean,
+        );
+      await view.click("Add Alternative Exercise");
+      expect(restEditable()).toEqual([true]);
+      // Adding a superset exercise makes this a superset: nothing rests.
+      await view.click("Add Superset Exercise");
+      expect(restEditable()).toEqual([false, false]);
+      // An unsaved superset exercise is removed without asking.
+      await view.click("Remove superset exercise");
+      expect(env.alert).not.toHaveBeenCalled();
+      expect(restEditable()).toEqual([true]);
+    });
+
+    it("limits a superset exercise's settings to alternatives that follow it", async () => {
+      const member = { ...newDraftActivity(createId, undefined), id: "main" };
+      request({
+        role: "superset",
+        activity: { ...member, mainSets: member.mainSets.slice(0, 2) },
+        otherExerciseIds: ["f"],
+      });
+      const view = await render();
+      // No supersets of a superset exercise.
+      expect(view.buttons("Add Superset Exercise")).toHaveLength(0);
+      expect(view.root.findAllByType("h2")).toHaveLength(1);
+      await view.click("Add Alternative Exercise");
+      await view.click("Navigate to select exercise form", 1);
+      expect(pendingEntry("exercise").input).toEqual({
+        alternatives: [],
+        excludeExerciseIds: ["f"],
+      });
+      await view.pick((pending) =>
+        useSelectionHandoff
+          .getState()
+          .complete(pending, { kind: "exercise", exerciseId: "e" }),
+      );
+      await view.click("Save");
+      expect(view.result()).toMatchObject({
+        activity: {
+          restMinutes: 0,
+          supersets: [],
+          alternatives: [
+            {
+              exerciseId: "e",
+              restMinutes: 0,
+              warmupSets: [{}, {}, {}],
+              mainSets: [{}, {}],
+            },
+          ],
+        },
+      });
+    });
   });
 });

@@ -2,6 +2,7 @@ import { normalizeSingleLineText } from "@activity-log/ui/utils";
 
 import type { Db } from "../database/db";
 import type { SessionActivityFields, SessionSet } from "./session-detail";
+import { supersetRows } from "./session-detail";
 
 export type DraftSet = Omit<SessionSet, "kind" | "position">;
 /** One editable exercise row: a main activity's fields or an alternative. */
@@ -12,8 +13,13 @@ export type DraftAlternative = Omit<
   warmupSets: DraftSet[];
   mainSets: DraftSet[];
 };
-export type DraftActivity = DraftAlternative & {
+/** A main exercise row with its alternatives: a superset member, or a leader. */
+export type DraftSupersetMember = DraftAlternative & {
   alternatives: DraftAlternative[];
+};
+/** A planned activity: its main row, alternatives and superset members. */
+export type DraftActivity = DraftSupersetMember & {
+  supersets: DraftSupersetMember[];
 };
 
 export interface SessionDraft {
@@ -41,12 +47,19 @@ interface CurrentSession {
 function validateDraft(draft: SessionDraft) {
   const activityIds = new Set<string>();
   const rows = draft.activities.flatMap((activity) => {
-    if (!Array.isArray(activity.alternatives))
-      throw new Error("An activity is missing its alternatives.");
-    for (const alternative of activity.alternatives)
-      if ("alternatives" in alternative)
-        throw new Error("Alternatives cannot have alternatives.");
-    return [activity, ...activity.alternatives];
+    if (!Array.isArray(activity.supersets))
+      throw new Error("An activity is missing its supersets.");
+    for (const member of activity.supersets)
+      if ("supersets" in member)
+        throw new Error("Superset exercises cannot have supersets.");
+    return [activity, ...activity.supersets].flatMap((main) => {
+      if (!Array.isArray(main.alternatives))
+        throw new Error("An activity is missing its alternatives.");
+      for (const alternative of main.alternatives)
+        if ("alternatives" in alternative || "supersets" in alternative)
+          throw new Error("Alternatives cannot have alternatives.");
+      return [main, ...main.alternatives];
+    });
   });
   for (const activity of rows) {
     if (!activity.id.trim() || activityIds.has(activity.id))
@@ -92,26 +105,39 @@ function insertActivities(
   sessionId: string,
   activities: DraftActivity[],
 ) {
+  // Superset members are main rows stored right after their leader, each
+  // followed by its own alternatives so parents always precede children.
+  let mainPosition = 0;
   const rows: {
     activity: DraftAlternative;
     position: number;
     parentId: string | null;
-  }[] = activities.flatMap((activity, position) => [
-    { activity, position, parentId: null },
-    ...activity.alternatives.map((alternative, alternativePosition) => ({
-      activity: alternative,
-      position: alternativePosition,
-      parentId: activity.id,
-    })),
-  ]);
-  for (const { activity, position, parentId } of rows) {
+    supersetId: string | null;
+  }[] = activities.flatMap((activity) =>
+    supersetRows(activity).flatMap((main) => [
+      {
+        activity: main,
+        position: mainPosition++,
+        parentId: null,
+        supersetId: main === activity ? null : activity.id,
+      },
+      ...main.alternatives.map((alternative, alternativePosition) => ({
+        activity: alternative,
+        position: alternativePosition,
+        parentId: main.id,
+        supersetId: null,
+      })),
+    ]),
+  );
+  for (const { activity, position, parentId, supersetId } of rows) {
     transaction.runSync(
-      `INSERT INTO activities(program_id, session_id, id, parent_activity_id, exercise_id, position, reps, load_type, load_value, rest_minutes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO activities(program_id, session_id, id, parent_activity_id, superset_activity_id, exercise_id, position, reps, load_type, load_value, rest_minutes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       programId,
       sessionId,
       activity.id,
       parentId,
+      supersetId,
       activity.exerciseId,
       position,
       activity.reps,
@@ -217,6 +243,7 @@ export function saveSessionDraft(
     throw new Error("The session changed. Reload before saving.");
   const terminal = current.status === "Done" || current.status === "Incomplete";
   const hasNonterminalSets = draft.activities
+    .flatMap(supersetRows)
     .flatMap((activity) => [activity, ...activity.alternatives])
     .some((activity) =>
       [...activity.warmupSets, ...activity.mainSets].some(

@@ -38,14 +38,16 @@ export function readPortableFactsV2(reader: Db) {
     sessionId: string;
     id: string;
     parentActivityId: string | null;
+    supersetActivityId: string | null;
     exerciseId: string | null;
     reps: number | null;
     loadType: "PERCENT" | "RPE" | null;
     loadValue: number | null;
     restMinutes: number | null;
   }>(
-    // Main activities sort before alternatives so parents exist when nesting.
-    "SELECT program_id AS programId, session_id AS sessionId, id, parent_activity_id AS parentActivityId, exercise_id AS exerciseId, reps, load_type AS loadType, load_value AS loadValue, rest_minutes AS restMinutes FROM activities ORDER BY program_id, session_id, parent_activity_id IS NOT NULL, parent_activity_id, position",
+    // Main activities sort before alternatives so parents exist when nesting;
+    // superset members follow their leader among the main activities.
+    "SELECT program_id AS programId, session_id AS sessionId, id, parent_activity_id AS parentActivityId, superset_activity_id AS supersetActivityId, exercise_id AS exerciseId, reps, load_type AS loadType, load_value AS loadValue, rest_minutes AS restMinutes FROM activities ORDER BY program_id, session_id, parent_activity_id IS NOT NULL, parent_activity_id, position",
   );
   const sets = reader.getAllSync<{
     programId: string;
@@ -173,13 +175,16 @@ export function buildPortableDataV2(
   }
   type PortableActivity =
     PortableDataV2["programs"][number]["sessions"][number]["activities"][number];
+  type PortableMember = PortableActivity["supersets"][number];
   type PortableAlternative = PortableActivity["alternatives"][number];
-  const mainMap = new Map<string, PortableActivity>();
+  const leaderMap = new Map<string, PortableActivity>();
+  const mainMap = new Map<string, PortableMember>();
   const activityMap = new Map<string, PortableAlternative>();
   for (const {
     programId,
     sessionId,
     parentActivityId,
+    supersetActivityId,
     loadType,
     loadValue,
     ...activity
@@ -197,9 +202,24 @@ export function buildPortableDataV2(
       warmupSets: [],
       mainSets: [],
     };
-    if (parentActivityId === null) {
-      const main: PortableActivity = { ...item, alternatives: [] };
+    if (parentActivityId === null && supersetActivityId !== null) {
+      const leader = leaderMap.get(
+        key(programId, sessionId, supersetActivityId),
+      );
+      if (!leader)
+        throw new Error("A superset member has no leading activity.");
+      const member: PortableMember = { ...item, alternatives: [] };
+      leader.supersets.push(member);
+      mainMap.set(key(programId, sessionId, activity.id), member);
+      activityMap.set(key(programId, sessionId, activity.id), member);
+    } else if (parentActivityId === null) {
+      const main: PortableActivity = {
+        ...item,
+        alternatives: [],
+        supersets: [],
+      };
       session.activities.push(main);
+      leaderMap.set(key(programId, sessionId, activity.id), main);
       mainMap.set(key(programId, sessionId, activity.id), main);
       activityMap.set(key(programId, sessionId, activity.id), main);
     } else {
