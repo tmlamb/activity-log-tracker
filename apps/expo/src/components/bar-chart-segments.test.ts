@@ -7,8 +7,10 @@ const lines = (text: string) => [{ text }];
 describe("barSegments", () => {
   it("is one segment for a plain bar", () => {
     expect(
-      barSegments({ type: "bar", lines: lines("4"), dotted: true }, 4),
-    ).toEqual([{ value: 4, tone: "primary", dotted: true, lines: lines("4") }]);
+      barSegments({ type: "bar", lines: lines("4"), outline: "dotted" }, 4),
+    ).toEqual([
+      { value: 4, tone: "primary", outline: "dotted", lines: lines("4") },
+    ]);
   });
 
   it("stacks completed, pending, then further segments, leaving out empty ones", () => {
@@ -19,17 +21,22 @@ describe("barSegments", () => {
         pending: { value: 2, lines: lines("2") },
         segments: [
           { value: 1, tone: "muted", lines: lines("1 Drop") },
-          { value: 0, tone: "muted", dotted: true, lines: lines("0 Drop") },
+          {
+            value: 0,
+            tone: "muted",
+            outline: "dotted",
+            lines: lines("0 Drop"),
+          },
         ],
       },
       3,
     );
     // Nothing is completed: the pending and drop parts make up the bar.
     expect(
-      segments.map(({ value, tone, dotted }) => [value, tone, !!dotted]),
+      segments.map(({ value, tone, outline }) => [value, tone, outline]),
     ).toEqual([
-      [2, "primary", true],
-      [1, "muted", false],
+      [2, "primary", "dotted"],
+      [1, "muted", undefined],
     ]);
   });
 });

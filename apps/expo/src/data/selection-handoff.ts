@@ -2,7 +2,6 @@ import { create } from "zustand";
 
 import type { PlanningWeightSource } from "./repositories/planning-weights";
 import type { DraftActivity } from "./repositories/session-drafts";
-import type { SessionEditorExercise } from "./repositories/session-editor";
 
 export interface SelectionTicket {
   generation: number;
@@ -22,7 +21,6 @@ export interface ActivitySettingsInput {
   activity: DraftActivity;
   /** Exercises used elsewhere in a member's superset, hidden from its picks. */
   otherExerciseIds: string[];
-  exercises: SessionEditorExercise[];
   /** Rows already saved in the session, which ask before being removed. */
   savedRowIds: string[];
   /** End time for new sets in a finished session; undefined when planning. */
@@ -46,7 +44,7 @@ export interface ActivitySettingsInput {
 /** Limits on an exercise pick, sent with an exercise request. */
 export interface ExerciseSelectionInput {
   /** The activity's alternatives, listed first; picking one swaps it in. */
-  alternatives: { activityId: string; exerciseId: string; name: string }[];
+  alternatives: { activityId: string; exerciseId: string }[];
   /** Exercises already used by this activity, hidden from the library list. */
   excludeExerciseIds: string[];
 }
@@ -69,7 +67,6 @@ export type SelectionResult =
   | {
       kind: "activity";
       activity: DraftActivity;
-      exercises: SessionEditorExercise[];
     };
 type Entry = {
   ticket: SelectionTicket;

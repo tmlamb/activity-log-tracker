@@ -20,15 +20,12 @@ import type {
   SessionDraft,
   TemplateSource,
 } from "~/data/repositories/session-drafts";
-import type {
-  SessionEditorExercise,
-  SessionEditorSeed,
-} from "~/data/repositories/session-editor";
+import type { SessionEditorSeed } from "~/data/repositories/session-editor";
 import type {
   SelectionResult,
   SelectionTicket,
 } from "~/data/selection-handoff";
-import ActivityRow, { exerciseLabel } from "~/components/ActivityRow";
+import ActivityRow from "~/components/ActivityRow";
 import Card from "~/components/Card";
 import { PrimaryCardAction } from "~/components/CardRow";
 import ConfirmButton from "~/components/ConfirmButton";
@@ -64,7 +61,11 @@ import {
   shiftDraftStart,
   swapAlternative,
 } from "~/data/domain/session-editor-draft";
-import { useProgramSummaries, useSessionEditorSeed } from "~/data/queries";
+import {
+  useExercisesById,
+  useProgramSummaries,
+  useSessionEditorSeed,
+} from "~/data/queries";
 import { getSavedExercise } from "~/data/repositories/exercises";
 import { getRecentMainUsage } from "~/data/repositories/main-usage";
 import { getPlanningWeightHints } from "~/data/repositories/planning-weights";
@@ -114,9 +115,7 @@ function SessionEditor({
   );
   const [draft, setDraft] = useState(initialDraft);
   const draftRef = useRef(initialDraft);
-  const [exercises, setExercises] = useState<
-    Record<string, SessionEditorExercise>
-  >(() => Object.fromEntries(initial.exercises.map((item) => [item.id, item])));
+  const exercises = useExercisesById();
   const [template, setTemplate] = useState<TemplateSource | null>(null);
   const [fromType, setFromType] = useState<"Scratch" | "Template">();
   const templateRef = useRef<TemplateSource | null>(null);
@@ -168,7 +167,9 @@ function SessionEditor({
       if (alternativeId) {
         updateActivity(
           activityId,
-          (activity) => swapAlternative(activity, alternativeId) ?? activity,
+          (activity) =>
+            swapAlternative(activity, alternativeId, uuidv4, terminalEndMs()) ??
+            activity,
         );
         return;
       }
@@ -181,25 +182,11 @@ function SessionEditor({
       }
       if (!exercise || exercise.deleted) return;
       const selected = exercise;
-      setExercises((previous) => ({
-        ...previous,
-        [selected.id]: {
-          id: selected.id,
-          name: selected.name,
-          deleted: selected.deleted,
-          loadKind: selected.loadKind,
-          oneRepMax: selected.oneRepMax,
-        },
-      }));
       updateActivity(activityId, (activity) =>
         applyExerciseSelection(activity, selected),
       );
     } else if (result.kind === "activity" && ticket.activityId) {
       const activityId = ticket.activityId;
-      setExercises((previous) => ({
-        ...previous,
-        ...Object.fromEntries(result.exercises.map((item) => [item.id, item])),
-      }));
       // Advanced settings may have swapped in an alternative, changing the id.
       updateActivity(activityId, () => result.activity);
     } else if (
@@ -235,11 +222,6 @@ function SessionEditor({
         templateRef.current = sourceRef;
         setTemplate(sourceRef);
         setFromType("Template");
-        setExercises(
-          Object.fromEntries(
-            sourceSeed.exercises.map((item) => [item.id, item]),
-          ),
-        );
         const usage = read((db) =>
           getRecentMainUsage(db, result.programId, source.id),
         );
@@ -271,9 +253,7 @@ function SessionEditor({
       (ticket) =>
         `/(public)/(app)/exercise/select?activityId=${encodeURIComponent(activity.id)}&currentExerciseId=${encodeURIComponent(activity.exerciseId ?? "")}&${ticket}`,
       activity.id,
-      exerciseSelectionInput(activity, activity.id, (id) =>
-        exerciseLabel(exercises[id], id),
-      ),
+      exerciseSelectionInput(activity, activity.id),
     );
   const openLoadSelection = (activity: DraftActivity) =>
     open(
@@ -284,7 +264,6 @@ function SessionEditor({
     );
   const openAdvancedSettings = (activity: DraftActivity) => {
     const mains = draftRef.current.activities.flatMap(supersetRows);
-    const ids = new Set(activityRows(activity).map((item) => item.exerciseId));
     open(
       "activity",
       (ticket) =>
@@ -294,7 +273,6 @@ function SessionEditor({
         role: "activity",
         activity,
         otherExerciseIds: [],
-        exercises: Object.values(exercises).filter((item) => ids.has(item.id)),
         savedRowIds:
           session?.activities
             .flatMap(supersetRows)

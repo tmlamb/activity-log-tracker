@@ -14,7 +14,20 @@ interface Candidate {
   lastActivityAtMs: number | null;
 }
 
-/** Equivalent to finalizeWorkoutSet for all sets owned by one session. */
+/**
+ * SQL for whether a set of `workout_sets` was performed. A selected exercise's
+ * set counts once it has reps; an alternative's only if it was marked done
+ * before the alternative was swapped out.
+ */
+const PERFORMED = `(actual_reps > 0 AND (status = 'Done' OR EXISTS(
+  SELECT 1 FROM activities a WHERE a.program_id = workout_sets.program_id
+    AND a.session_id = workout_sets.session_id AND a.id = workout_sets.activity_id
+    AND a.parent_activity_id IS NULL)))`;
+
+/**
+ * Equivalent to finalizeWorkoutSet for all sets owned by one session, except
+ * alternatives' (see PERFORMED).
+ */
 function finalizeSets(
   transaction: Db,
   programId: string,
@@ -25,15 +38,15 @@ function finalizeSets(
     `UPDATE workout_sets SET
        start_ms = CASE
          WHEN actual_reps > 0 AND status = 'Done' THEN start_ms
-         WHEN actual_reps > 0 THEN CASE WHEN start_ms IS NOT NULL AND start_ms <= COALESCE(end_ms, ?)
+         WHEN ${PERFORMED} THEN CASE WHEN start_ms IS NOT NULL AND start_ms <= COALESCE(end_ms, ?)
            THEN start_ms ELSE COALESCE(end_ms, ?) END
          WHEN start_ms IS NULL THEN NULL
          WHEN start_ms <= COALESCE(end_ms, ?) THEN start_ms ELSE COALESCE(end_ms, ?) END,
        end_ms = CASE
          WHEN actual_reps > 0 AND status = 'Done' THEN end_ms
-         WHEN actual_reps > 0 OR start_ms IS NOT NULL THEN COALESCE(end_ms, ?)
+         WHEN ${PERFORMED} OR start_ms IS NOT NULL THEN COALESCE(end_ms, ?)
          ELSE end_ms END,
-       status = CASE WHEN actual_reps > 0 THEN 'Done' ELSE 'Incomplete' END
+       status = CASE WHEN ${PERFORMED} THEN 'Done' ELSE 'Incomplete' END
      WHERE program_id = ? AND session_id = ?`,
     endMs,
     endMs,

@@ -2,13 +2,21 @@ import type { PropsWithChildren } from "react";
 import { act, create } from "react-test-renderer";
 import { describe, expect, it, vi } from "vitest";
 
+import type { BarChartPoint } from "./BarChart";
 import ExerciseInsights from "./exercise-insights";
+
+const env = vi.hoisted(() => ({ points: [] as BarChartPoint[] }));
 
 vi.mock("react-native", () => ({
   ScrollView: ({ children }: PropsWithChildren) => <div>{children}</div>,
   View: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
-vi.mock("./BarChart", () => ({ default: () => null }));
+vi.mock("./BarChart", () => ({
+  default: ({ points }: { points: BarChartPoint[] }) => {
+    env.points = points;
+    return null;
+  },
+}));
 vi.mock("./Card", () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
@@ -120,6 +128,68 @@ describe("exercise insights alternatives", () => {
     expect(
       renderer?.root.findAllByProps({ "data-title": "Alternative Exercises" }),
     ).toHaveLength(0);
+    act(() => renderer?.unmount());
+  });
+
+  it("outlines the sets of an alternative performed instead", () => {
+    const point = (
+      feedback: "Easy" | "Neutral" | "Hard",
+      overrides: object = {},
+    ) => ({
+      sessionId: feedback,
+      date: new Date(2026, 0, 5),
+      reps: 8,
+      weightLbs: 50,
+      volumeLbs: 400,
+      feedback,
+      current: false,
+      completed: true,
+      notStarted: false,
+      alternativeName: "Dumbbell",
+      ...overrides,
+    });
+    let renderer: ReturnType<typeof create> | undefined;
+    act(() => {
+      renderer = create(
+        <ExerciseInsights
+          exerciseName="Bench"
+          sessionName="Day"
+          insights={[
+            {
+              setType: "Main",
+              setNumber: 1,
+              selected: true,
+              points: [
+                point("Easy"),
+                point("Neutral"),
+                point("Hard"),
+                point("Hard", { alternativeName: undefined }),
+                point("Hard", { weightLbs: 0, volumeLbs: 0 }),
+              ],
+            },
+          ]}
+        />,
+      );
+    });
+    const bars = env.points.map(({ display }) =>
+      display.type === "bar"
+        ? [
+            display.tone,
+            display.outline,
+            display.lines.map(({ text }) => text).join("/"),
+          ]
+        : display.type,
+    );
+    expect(bars).toEqual([
+      ["info", "solid", "8 reps/50 lbs/Alt."],
+      ["muted", "solid", "8 reps/50 lbs/Alt."],
+      ["primary", "solid", "8 reps/50 lbs/Alt."],
+      ["primary", undefined, "8 reps/50 lbs/Hard"],
+      ["primary", "solid", "8 reps/Alt."],
+    ]);
+    expect(env.points[2]?.accessibilityLabel).toBe(
+      "1/5, alternative exercise Dumbbell, Hard, 8 reps at 50 pounds, 400 pounds of volume",
+    );
     act(() => renderer?.unmount());
   });
 

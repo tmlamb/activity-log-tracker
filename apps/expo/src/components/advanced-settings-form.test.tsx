@@ -220,7 +220,6 @@ function request(input?: Partial<ActivitySettingsInput>) {
     role: "activity",
     activity,
     otherExerciseIds: [],
-    exercises: [],
     savedRowIds: [],
     terminalEndMs: undefined,
     weights: {
@@ -366,10 +365,6 @@ describe("advanced activity settings", () => {
         alternatives: [{ exerciseId: "e", loadType: "RPE", loadValue: 8 }],
       },
     });
-    const saved = view.result();
-    expect(
-      saved?.kind === "activity" && saved.exercises.map(({ id }) => id).sort(),
-    ).toEqual(["e", "f"]);
   });
 
   it("swaps an alternative in from the main picker and hides used exercises", async () => {
@@ -409,9 +404,7 @@ describe("advanced activity settings", () => {
     const input = pendingInput();
     const alternativeId = input?.alternatives[0]?.activityId;
     expect(input).toEqual({
-      alternatives: [
-        { activityId: alternativeId, exerciseId: "e", name: "Exercise" },
-      ],
+      alternatives: [{ activityId: alternativeId, exerciseId: "e" }],
       excludeExerciseIds: ["e"],
     });
     await view.pick((pending) =>
@@ -815,7 +808,6 @@ describe("advanced activity settings", () => {
             ...pending.input.activity,
             alternatives: [{ ...fields, id: "member-alt", exerciseId: "f" }],
           },
-          exercises: [],
         }),
       );
       await view.click("Save");

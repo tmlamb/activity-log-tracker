@@ -92,6 +92,24 @@ function sqliteExerciseInput(data: Exercise): ExerciseInput {
   };
 }
 
+/**
+ * Whether `current` differs from `base` only in what removing equipment or
+ * muscle groups takes off an exercise, which this form's links can lead to.
+ */
+function onlyPruned(base: EditorExercise, current: EditorExercise) {
+  return (
+    base.name === current.name &&
+    base.loadKind === current.loadKind &&
+    base.notes === current.notes &&
+    base.deleted === current.deleted &&
+    _.isEqual(base.oneRepMax, current.oneRepMax) &&
+    (current.barbellId === undefined || current.barbellId === base.barbellId) &&
+    (current.primaryMuscles ?? []).every((muscle) =>
+      base.primaryMuscles?.includes(muscle),
+    )
+  );
+}
+
 export default function ExerciseFormScreen() {
   const { exerciseId } = useLocalSearchParams<{ exerciseId?: string }>();
   const library = useExerciseLibrary();
@@ -151,8 +169,8 @@ export default function ExerciseFormScreen() {
 function ExerciseEditor({
   exercise: suppliedExercise,
   exercises,
-  equipment: suppliedEquipment,
-  muscleGroups: suppliedMuscles,
+  equipment,
+  muscleGroups,
   usedInWorkout,
   save,
   remove,
@@ -178,14 +196,23 @@ function ExerciseEditor({
   }>();
   const router = useRouter();
   const headerButton = useHeaderButtonProps();
-  // The form works from the data it opened with; saving checks the captured
+  // The form works from the exercise it opened with; saving checks the captured
   // revision, so a change made elsewhere is reported rather than overwritten.
+  // Equipment and muscle groups stay live, as this form links to their settings.
   const [exercise] = useState(suppliedExercise);
-  const [equipment] = useState(suppliedEquipment);
-  const [muscleGroups] = useState(suppliedMuscles);
   const [newId] = useState(() => uuidv4());
-  const [saveAction] = useState(() => save);
-  const [removeAction] = useState(() => remove);
+  const [actions, setActions] = useState(() => ({
+    revision: suppliedExercise?.revision,
+    save,
+    remove,
+  }));
+  if (
+    exercise &&
+    suppliedExercise &&
+    suppliedExercise.revision !== actions.revision &&
+    onlyPruned(exercise, suppliedExercise)
+  )
+    setActions({ revision: suppliedExercise.revision, save, remove });
   const heaviestBarbell = _.maxBy(equipment.barbells, "value");
   const defaultLoadKind = exercise
     ? exercise.loadKind
@@ -228,21 +255,23 @@ function ExerciseEditor({
   });
   const hasManuallySelectedLoadKindRef = useRef(false);
 
+  const heaviestBarbellId = heaviestBarbell?.barbellId;
   useEffect(() => {
     if (
       selectedLoadKind === "BARBELL" &&
-      heaviestBarbell &&
+      selectedBarbellId !== heaviestBarbellId &&
       (!exercise || selectedBarbellId !== undefined) &&
       !equipment.barbells.some(
         (barbell) => barbell.barbellId === selectedBarbellId,
       )
     ) {
-      setValue("barbellId", heaviestBarbell.barbellId, { shouldDirty: true });
+      // Without any barbells left, this clears the removed one.
+      setValue("barbellId", heaviestBarbellId, { shouldDirty: true });
     }
   }, [
     exercise,
     equipment.barbells,
-    heaviestBarbell,
+    heaviestBarbellId,
     selectedBarbellId,
     selectedLoadKind,
     setValue,
@@ -294,7 +323,7 @@ function ExerciseEditor({
     }
 
     try {
-      saveAction({
+      actions.save({
         exerciseId: exercise?.exerciseId ?? newId,
         name: data.name,
         loadKind: data.loadKind,
@@ -329,7 +358,7 @@ function ExerciseEditor({
   const onDelete = () => {
     if (!exercise || hasLeft()) return;
     try {
-      removeAction(exercise.exerciseId);
+      actions.remove(exercise.exerciseId);
       leaveWithoutWarning(() => router.back());
     } catch {
       Alert.alert(
@@ -564,7 +593,14 @@ function ExerciseEditor({
             )}
           </Animated.View>
         )}
-        <Animated.View layout={LinearTransition} className="gap-10">
+        {/* Remount rather than move when barbells change: that happens as the
+            equipment sheet and keyboard close, when a layout transition can
+            end out of place (react-native-reanimated#10171, fixed in 4.6). */}
+        <Animated.View
+          key={equipment.barbells.map(({ barbellId }) => barbellId).join()}
+          layout={LinearTransition}
+          className="gap-10"
+        >
           <View>
             <View className="mb-2 ml-5 flex-row items-center">
               <SectionHeading placement="inline">

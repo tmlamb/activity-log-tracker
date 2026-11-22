@@ -8,9 +8,18 @@ import type { ExerciseSeriesProjection } from "./domain/exercise-series";
 import type { ProgramInsightProjection } from "./domain/program-insights";
 import type { SetKind } from "./repositories/session-detail";
 
-/** One set's insights; unlike the legacy shape, a set may be a drop set. */
-export type ExerciseSetInsightsView = Omit<ExerciseSetInsights, "setType"> & {
+/**
+ * One set's insights; unlike the legacy shape, a set may be a drop set, and a
+ * point may show the set of an alternative performed in its place.
+ */
+export type ExerciseSetInsightsView = Omit<
+  ExerciseSetInsights,
+  "setType" | "points"
+> & {
   setType: SetKind;
+  points: (ExerciseSetInsights["points"][number] & {
+    alternativeName?: string;
+  })[];
 };
 
 /**

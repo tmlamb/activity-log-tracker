@@ -48,13 +48,16 @@ function VolumeChart({
     const repOnly = point.completed && point.reps > 0 && point.weightLbs <= 0;
     const hasPlannedWeight = point.notStarted && point.weightLbs > 0;
     const dateLabel = point.date ? format(point.date, "M/d") : "--";
+    // A set of the alternative this exercise was swapped out for.
+    const alternative = point.alternativeName !== undefined;
+    const context = `${dateLabel}${point.current ? ", current session" : ""}${alternative ? `, alternative exercise ${point.alternativeName}` : ""}`;
     const accessibilityLabel = point.notStarted
       ? hasPlannedWeight
         ? `${dateLabel}, current session, not started, ${numberFormatter.format(point.reps)} planned reps at ${numberFormatter.format(point.weightLbs)} pounds, ${numberFormatter.format(point.volumeLbs)} pounds of planned volume`
         : `${dateLabel}, current session, not started`
       : repOnly
-        ? `${dateLabel}${point.current ? ", current session" : ""}, ${point.feedback ?? "no difficulty"}, ${numberFormatter.format(point.reps)} reps, no recorded weight`
-        : `${dateLabel}${point.current ? ", current session" : ""}, ${point.feedback ?? "no difficulty"}, ${numberFormatter.format(point.reps)} reps at ${numberFormatter.format(point.weightLbs)} pounds, ${numberFormatter.format(point.volumeLbs)} pounds of volume`;
+        ? `${context}, ${point.feedback ?? "no difficulty"}, ${numberFormatter.format(point.reps)} reps, no recorded weight`
+        : `${context}, ${point.feedback ?? "no difficulty"}, ${numberFormatter.format(point.reps)} reps at ${numberFormatter.format(point.weightLbs)} pounds, ${numberFormatter.format(point.volumeLbs)} pounds of volume`;
     const tone =
       point.feedback === "Easy"
         ? "info"
@@ -65,7 +68,7 @@ function VolumeChart({
       ? {
           type: "bar",
           tone: "muted",
-          dotted: true,
+          outline: "dotted",
           lines: [
             {
               text: `${numberFormatter.format(point.reps)} reps`,
@@ -87,18 +90,23 @@ function VolumeChart({
               type: "bar",
               tone,
               heightRatio: point.reps / maxRepOnlyReps,
-              minimumHeight: 24,
+              minimumHeight: alternative ? 40 : 24,
+              outline: alternative ? "solid" : undefined,
               lines: [
                 {
                   text: `${numberFormatter.format(point.reps)} reps`,
                   strong: true,
                 },
+                ...(alternative
+                  ? [{ text: "Alt.", tabularNumbers: false }]
+                  : []),
               ],
             }
           : point.volumeLbs > 0
             ? {
                 type: "bar",
                 tone,
+                outline: alternative ? "solid" : undefined,
                 lines: [
                   {
                     text: `${numberFormatter.format(point.reps)} reps`,
@@ -108,8 +116,9 @@ function VolumeChart({
                     text: `${numberFormatter.format(point.weightLbs)} lbs`,
                   },
                   {
-                    text:
-                      point.feedback === "Easy" || point.feedback === "Hard"
+                    text: alternative
+                      ? "Alt."
+                      : point.feedback === "Easy" || point.feedback === "Hard"
                         ? point.feedback
                         : " ",
                     tabularNumbers: false,

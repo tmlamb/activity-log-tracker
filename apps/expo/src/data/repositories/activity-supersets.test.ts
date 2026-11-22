@@ -412,12 +412,12 @@ describe("superset drafts", () => {
     if (!value) throw new Error("Missing activity");
     const member = value.supersets[0];
     if (!member) throw new Error("Missing member");
-    expect(swapAlternative(member, "b1")).toMatchObject({
+    expect(swapAlternative(member, "b1", createId, undefined)).toMatchObject({
       id: "b1",
       alternatives: [{ id: "b" }],
     });
     const withAlternative = { ...value, alternatives: [row("a1", "h")] };
-    const swapped = swapAlternative(withAlternative, "a1");
+    const swapped = swapAlternative(withAlternative, "a1", createId, undefined);
     expect(swapped?.supersets).toBe(value.supersets);
     expect(swapped?.alternatives.map((item) => "supersets" in item)).toEqual([
       false,
@@ -427,16 +427,15 @@ describe("superset drafts", () => {
   it("offers each superset row its own alternatives and hides the rest", () => {
     const value = draft().activities[0];
     if (!value) throw new Error("Missing activity");
-    const name = (id: string) => id.toUpperCase();
-    expect(exerciseSelectionInput(value, "a", name)).toEqual({
+    expect(exerciseSelectionInput(value, "a")).toEqual({
       alternatives: [],
       excludeExerciseIds: ["f", "g"],
     });
-    expect(exerciseSelectionInput(value, "b", name)).toEqual({
-      alternatives: [{ activityId: "b1", exerciseId: "g", name: "G" }],
+    expect(exerciseSelectionInput(value, "b")).toEqual({
+      alternatives: [{ activityId: "b1", exerciseId: "g" }],
       excludeExerciseIds: ["g", "e"],
     });
-    expect(exerciseSelectionInput(value, "b1", name, ["x"])).toEqual({
+    expect(exerciseSelectionInput(value, "b1", ["x"])).toEqual({
       alternatives: [],
       excludeExerciseIds: ["e", "f", "x"],
     });

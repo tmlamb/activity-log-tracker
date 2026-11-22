@@ -17,16 +17,16 @@ function Dumbbell({ weight }: { weight: number; unit: "lbs" | "kg" }) {
   const handleColor = useNativeVariable("--muted") as string;
 
   return (
-    <Svg width={130} height={100}>
-      <Rect x={0} y={7} width={36} height={66} rx={5} fill={primaryColor} />
-      <Rect x={37} y={30} width={52} height={20} rx={0} fill={handleColor} />
-      <Rect x={90} y={7} width={36} height={66} rx={5} fill={primaryColor} />
+    <Svg width={130} height={66}>
+      <Rect x={0} y={0} width={36} height={66} rx={5} fill={primaryColor} />
+      <Rect x={37} y={23} width={52} height={20} rx={0} fill={handleColor} />
+      <Rect x={90} y={0} width={36} height={66} rx={5} fill={primaryColor} />
       <Text
         fill={foregroundColor}
         fontSize="14"
         fontWeight="bold"
         x="48.5%"
-        y="41%"
+        y={34}
         alignmentBaseline="middle"
         textAnchor="middle"
       >

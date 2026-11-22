@@ -529,7 +529,9 @@ describe("drop set drafts", () => {
     expect(grown.alternatives[0]?.dropSets).toEqual([]);
     const alternative = grown.alternatives[0];
     if (!alternative) throw new Error("Missing alternative");
-    expect(swapAlternative(grown, alternative.id)?.dropSets).toEqual([]);
+    expect(
+      swapAlternative(grown, alternative.id, createId, undefined)?.dropSets,
+    ).toEqual([]);
   });
 
   it("applies a drop percentage chosen with the load", () => {

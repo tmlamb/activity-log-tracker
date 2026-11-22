@@ -15,13 +15,12 @@ import type {
   DraftAlternative,
   DraftSupersetMember,
 } from "~/data/repositories/session-drafts";
-import type { SessionEditorExercise } from "~/data/repositories/session-editor";
 import type {
   ActivitySettingsInput,
   SelectionResult,
   SelectionTicket,
 } from "~/data/selection-handoff";
-import ActivityRow, { exerciseLabel } from "~/components/ActivityRow";
+import ActivityRow from "~/components/ActivityRow";
 import { PrimaryCardAction } from "~/components/CardRow";
 import { CollapsibleSection } from "~/components/CollapsibleSection";
 import ExerciseSelectCard from "~/components/ExerciseSelectCard";
@@ -41,6 +40,7 @@ import {
   resizeSets,
   swapAlternative,
 } from "~/data/domain/session-editor-draft";
+import { useExercisesById } from "~/data/queries";
 import { getSavedExercise } from "~/data/repositories/exercises";
 import { getAlternativeWeightHints } from "~/data/repositories/planning-weights";
 import { useSelectionHandoff } from "~/data/selection-handoff";
@@ -102,9 +102,7 @@ function AdvancedActivitySettings({
   const [initialDraft] = useState(() => input.activity);
   const [draft, setDraft] = useState(initialDraft);
   const draftRef = useRef(initialDraft);
-  const [exercises, setExercises] = useState<
-    Record<string, SessionEditorExercise>
-  >(() => Object.fromEntries(input.exercises.map((item) => [item.id, item])));
+  const exercises = useExercisesById();
   const [showValidation, setShowValidation] = useState(false);
   const [alternativesCollapsed, setAlternativesCollapsed] = useState(false);
   const [supersetsCollapsed, setSupersetsCollapsed] = useState(false);
@@ -155,12 +153,6 @@ function AdvancedActivitySettings({
   const updateSupersets = (supersets: DraftSupersetMember[]) =>
     updateDraft({ ...draftRef.current, supersets });
 
-  /** Exercises from `rows`, so the selection handoff carries only those. */
-  const exercisesOf = (rows: DraftAlternative[]) => {
-    const ids = new Set(rows.map((row) => row.exerciseId));
-    return Object.values(exercises).filter((item) => ids.has(item.id));
-  };
-
   const applySelection = (
     result: SelectionResult,
     selection: SelectionTicket,
@@ -174,10 +166,6 @@ function AdvancedActivitySettings({
     } else if (result.kind === "activity") {
       // A member's own settings, which may have swapped in an alternative.
       const { supersets: _supersets, ...settings } = result.activity;
-      setExercises((previous) => ({
-        ...previous,
-        ...Object.fromEntries(result.exercises.map((item) => [item.id, item])),
-      }));
       updateSupersets(
         draftRef.current.supersets.map((item) =>
           item.id === rowId ? settings : item,
@@ -188,13 +176,23 @@ function AdvancedActivitySettings({
       if (alternativeId) {
         const previous = draftRef.current;
         if (rowId === previous.id) {
-          const swapped = swapAlternative(previous, alternativeId);
+          const swapped = swapAlternative(
+            previous,
+            alternativeId,
+            uuidv4,
+            input.terminalEndMs,
+          );
           if (swapped) updateDraft(swapped);
         } else
           updateSupersets(
             previous.supersets.map((item) =>
               item.id === rowId
-                ? (swapAlternative(item, alternativeId) ?? item)
+                ? (swapAlternative(
+                    item,
+                    alternativeId,
+                    uuidv4,
+                    input.terminalEndMs,
+                  ) ?? item)
                 : item,
             ),
           );
@@ -209,16 +207,6 @@ function AdvancedActivitySettings({
       }
       if (!exercise || exercise.deleted) return;
       const selected = exercise;
-      setExercises((previous) => ({
-        ...previous,
-        [selected.id]: {
-          id: selected.id,
-          name: selected.name,
-          deleted: selected.deleted,
-          loadKind: selected.loadKind,
-          oneRepMax: selected.oneRepMax,
-        },
-      }));
       updateRow(rowId, (row) => applyExerciseSelection(row, selected));
     }
   };
@@ -233,12 +221,7 @@ function AdvancedActivitySettings({
       (ticket) =>
         `/(public)/(app)/exercise/select?activityId=${encodeURIComponent(row.id)}&currentExerciseId=${encodeURIComponent(row.exerciseId ?? "")}&${ticket}`,
       row.id,
-      exerciseSelectionInput(
-        draftRef.current,
-        row.id,
-        (id) => exerciseLabel(exercises[id], id),
-        input.otherExerciseIds,
-      ),
+      exerciseSelectionInput(draftRef.current, row.id, input.otherExerciseIds),
     );
   const openLoadSelection = (row: DraftAlternative) =>
     open(
@@ -290,7 +273,6 @@ function AdvancedActivitySettings({
             ),
           ]),
         ],
-        exercises: exercisesOf([row, ...row.alternatives]),
         savedRowIds: input.savedRowIds,
         terminalEndMs: input.terminalEndMs,
         weights: {
@@ -456,7 +438,6 @@ function AdvancedActivitySettings({
       !useSelectionHandoff.getState().complete(ticket, {
         kind: "activity",
         activity: value,
-        exercises: Object.values(exercises),
       })
     ) {
       Alert.alert(

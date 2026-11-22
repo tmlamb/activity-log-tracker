@@ -17,6 +17,7 @@ import type {
   SelectionTicket,
 } from "~/data/selection-handoff";
 import { SelectableCardRow } from "~/components/CardRow";
+import { exerciseLabel } from "~/components/exercise-label";
 import { Text } from "~/components/font-scale-text";
 import { useHeaderButtonProps } from "~/components/header-toolbar";
 import MissingDataRedirect from "~/components/MissingDataRedirect";
@@ -105,19 +106,20 @@ function ExercisePicker({
   const names = new Set(
     library.saved.map(({ name }) => normalizeExerciseName(name)),
   );
+  const savedById = new Map(library.saved.map((item) => [item.id, item]));
   const search = normalizeExerciseName(filter);
   // Each exercise is used once per activity; its alternatives are listed first.
   const excluded = new Set(input?.excludeExerciseIds);
   const alternatives: Choice[] = (input?.alternatives ?? [])
-    .filter((item) => normalizeExerciseName(item.name).includes(search))
     .map((item) => ({
-      kind: "alternative",
+      kind: "alternative" as const,
       id: item.activityId,
       exerciseId: item.exerciseId,
-      name: item.name,
+      name: exerciseLabel(savedById.get(item.exerciseId), item.exerciseId),
       loadKind: null,
       muscles: [],
-    }));
+    }))
+    .filter((item) => normalizeExerciseName(item.name).includes(search));
   const saved: Choice[] = library.saved
     .filter(
       (item) =>

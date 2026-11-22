@@ -3,6 +3,8 @@ import { addWeeks, differenceInCalendarWeeks, startOfWeek } from "date-fns";
 import type {
   ExerciseSeriesFacts,
   SeriesAlternative,
+  SeriesAlternativeSetFact,
+  SeriesSession,
   SeriesSetFact,
 } from "../repositories/exercise-series";
 import type { SetKind } from "../repositories/session-detail";
@@ -19,6 +21,11 @@ export interface ExerciseSeriesPoint {
   completed: boolean;
   notStarted: boolean;
   partial: boolean;
+  /**
+   * Set when the point shows a set of an alternative, performed in place of
+   * the exercise's own: the alternative's exercise.
+   */
+  alternativeName?: string;
 }
 export interface ExerciseSeriesProjection {
   exerciseName: string;
@@ -33,6 +40,52 @@ export interface ExerciseSeriesProjection {
   /** Main sets are performed as a superset, alternating with other exercises. */
   superset: boolean;
   alternatives: SeriesAlternative[];
+}
+
+function storedWeightOf(
+  set: Pick<SeriesSetFact, "weightValue" | "weightUnit"> | undefined,
+) {
+  return set?.weightValue !== null &&
+    set?.weightValue !== undefined &&
+    set.weightUnit !== null
+    ? { value: set.weightValue, unit: set.weightUnit }
+    : null;
+}
+
+function weightInLbs(weight: { value: number; unit: "lbs" | "kg" } | null) {
+  if (!weight) return 0;
+  return weight.unit === "kg" ? weight.value * 2.2046226218 : weight.value;
+}
+
+/** The point for a completed set of an alternative. */
+function standInPoint(
+  set: SeriesAlternativeSetFact,
+  session: SeriesSession,
+  current: boolean,
+  nowMs: number,
+): ExerciseSeriesPoint {
+  const weight = storedWeightOf(set);
+  const reps = set.actualReps ?? 0;
+  const weightLbs = weightInLbs(weight);
+  return {
+    sessionId: session.id,
+    dateMs:
+      set.startMs ??
+      set.endMs ??
+      session.startMs ??
+      session.endMs ??
+      (current ? nowMs : null),
+    reps,
+    weightLbs,
+    volumeLbs: reps * weightLbs,
+    feedback: set.feedback,
+    current,
+    completed: true,
+    notStarted: false,
+    // As for the exercise's own sets, only a percent load needs a weight.
+    partial: weight === null && set.loadType === "PERCENT",
+    alternativeName: set.alternativeName ?? "Unavailable exercise",
+  };
 }
 
 /** Construct series from compact facts, after the read transaction releases. */
@@ -54,6 +107,14 @@ export function buildExerciseSeriesProjection(
     group[set.kind].push(set);
     bySession.set(set.sessionId, group);
   }
+  // The set performed instead of each set, when an alternative was swapped in.
+  const standIns = new Map<string, SeriesAlternativeSetFact>();
+  const standInKey = (sessionId: string, kind: SetKind, position: number) =>
+    `${sessionId}\u001f${kind}\u001f${position}`;
+  for (const set of facts.alternativeSets) {
+    const key = standInKey(set.sessionId, set.kind, set.position);
+    if (!standIns.has(key)) standIns.set(key, set);
+  }
   const currentSets = bySession.get(facts.reference.sessionId);
   if (!currentSets) throw new Error("The selected workout set is missing.");
   const selectedSets = [
@@ -61,12 +122,6 @@ export function buildExerciseSeriesProjection(
     ...currentSets.Main,
     ...currentSets.Drop,
   ];
-  const storedWeightOf = (set: SeriesSetFact | undefined) =>
-    set?.weightValue !== null &&
-    set?.weightValue !== undefined &&
-    set.weightUnit !== null
-      ? { value: set.weightValue, unit: set.weightUnit }
-      : null;
   if (!selectedSets.some(({ id }) => id === facts.reference.setId))
     throw new Error("The selected workout set is missing.");
   const max =
@@ -84,16 +139,32 @@ export function buildExerciseSeriesProjection(
       const set = sessionSets?.[setType][index];
       const actual = set?.actualReps ?? 0;
       const completed = set?.status === "Done";
-      const notStarted = current && !!set && actual <= 0;
+      // Only the selected exercise of a session still to be performed has
+      // pending and in-progress sets; otherwise only completed sets count.
+      const performing =
+        current &&
+        !facts.selection.alternative &&
+        (session.status === "Planned" || session.status === "Ready");
+      const notStarted =
+        performing &&
+        (set?.status === "Planned" || set?.status === "Ready") &&
+        actual <= 0;
       const reps = !set
         ? 0
-        : current
-          ? actual > 0
-            ? actual
-            : Math.max(set.plannedReps ?? 0, 0)
-          : set.status === "Done" && actual > 0
+        : notStarted
+          ? Math.max(set.plannedReps ?? 0, 0)
+          : (performing || completed) && actual > 0
             ? actual
             : 0;
+      const standIn =
+        reps > 0 || completed || notStarted
+          ? undefined
+          : standIns.get(standInKey(session.id, setType, index));
+      if (standIn) {
+        const point = standInPoint(standIn, session, current, nowMs);
+        partial ||= point.partial;
+        return point;
+      }
       const activity = set && {
         loadType: set.loadType,
         loadValue: set.loadValue,
@@ -102,7 +173,7 @@ export function buildExerciseSeriesProjection(
       };
       const weight =
         storedWeightOf(set) ??
-        (current && set && activity
+        (current && (notStarted || reps > 0) && set && activity
           ? set.kind === "Drop"
             ? plannedDropSetWeight(
                 activity,
@@ -122,16 +193,12 @@ export function buildExerciseSeriesProjection(
       const pointPartial =
         !!set &&
         ((set.status === "Done" && set.actualReps === null) ||
-          (current && actual <= 0 && set.plannedReps === null) ||
+          (notStarted && set.plannedReps === null) ||
           // No weight means no added load (e.g. bodyweight) unless a percent
           // load can't be resolved without a 1RM.
           (reps > 0 && weight === null && set.loadType === "PERCENT"));
       partial ||= pointPartial;
-      const weightLbs = weight
-        ? weight.unit === "kg"
-          ? weight.value * 2.2046226218
-          : weight.value
-        : 0;
+      const weightLbs = weightInLbs(weight);
       return {
         sessionId: session.id,
         dateMs:

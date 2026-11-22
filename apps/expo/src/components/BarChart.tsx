@@ -220,7 +220,7 @@ export default function BarChart({
                             return (
                               <View
                                 key={`${point.key}-segment-${index}`}
-                                className={`${segment.dotted ? `${classes.border} border-2 border-dotted` : classes.container} items-center justify-end px-0.5 pb-0.5 ${order === 0 ? "rounded-t" : ""}`}
+                                className={`${segment.outline ? `${classes.border} border-2 ${segment.outline === "dotted" ? "border-dotted" : "border-solid"}` : classes.container} items-center justify-end px-0.5 pb-0.5 ${order === 0 ? "rounded-t" : ""}`}
                                 style={{ width: barWidth, height }}
                               >
                                 {segment.lines.map((line, lineIndex) => (
@@ -229,7 +229,7 @@ export default function BarChart({
                                     maxFontSizeMultiplier={1}
                                     adjustsFontSizeToFit
                                     numberOfLines={1}
-                                    className={`${segment.dotted ? classes.outlinedText : classes.text} text-[10px] ${line.strong ? "font-bold" : "font-semibold"} ${line.tabularNumbers === false ? "" : "tabular-nums"}`}
+                                    className={`${segment.outline ? classes.outlinedText : classes.text} text-[10px] ${line.strong ? "font-bold" : "font-semibold"} ${line.tabularNumbers === false ? "" : "tabular-nums"}`}
                                   >
                                     {line.text}
                                   </Text>

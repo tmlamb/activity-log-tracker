@@ -1,8 +1,8 @@
 import { AntDesign } from "@expo/vector-icons";
 
 import type { SessionEditorExercise } from "~/data/repositories/session-editor";
-import { exerciseLabel } from "./ActivityRow";
 import { DetailCardRow } from "./CardRow";
+import { exerciseLabel } from "./exercise-label";
 import { Text } from "./font-scale-text";
 import PressableThemed from "./PressableThemed";
 

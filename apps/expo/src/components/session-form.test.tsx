@@ -7,7 +7,7 @@ import SessionFormScreen from "~/app/(public)/(app)/program/[programId]/session/
 import * as actions from "~/data/actions";
 import { createTestDb } from "~/data/database/test-db";
 import { useSelectionHandoff } from "~/data/selection-handoff";
-import { read, setDatabase } from "~/data/store";
+import { read, setDatabase, write } from "~/data/store";
 
 const env = vi.hoisted(() => ({
   focused: true,
@@ -437,15 +437,6 @@ describe("session editor interactions", () => {
             exerciseId: "e",
             alternatives: [alternative("alt-1"), alternative("alt-2")],
           },
-          exercises: [
-            {
-              id: "e",
-              name: "Exercise",
-              deleted: false,
-              loadKind: null,
-              oneRepMax: null,
-            },
-          ],
         }),
       ).toBe(true),
     );
@@ -458,6 +449,18 @@ describe("session editor interactions", () => {
 
     // Returning from advanced settings must not cancel the next selection,
     // which lists the alternatives to swap in.
+    // Renaming an exercise from a picker shows here too.
+    await act(async () => {
+      write((db) =>
+        db.runSync("UPDATE exercises SET name = 'Renamed' WHERE id = 'e'"),
+      );
+      await Promise.resolve();
+    });
+    expect(
+      root
+        .findAllByType("span")
+        .some((node) => node.children.includes("Renamed")),
+    ).toBe(true);
     await act(async () => {
       click("Navigate to select exercise form");
       await Promise.resolve();
@@ -468,8 +471,8 @@ describe("session editor interactions", () => {
     if (pick?.kind !== "exercise") throw new Error("Missing exercise request");
     expect(pick.input).toEqual({
       alternatives: [
-        { activityId: "alt-1", exerciseId: "e", name: "Exercise" },
-        { activityId: "alt-2", exerciseId: "e", name: "Exercise" },
+        { activityId: "alt-1", exerciseId: "e" },
+        { activityId: "alt-2", exerciseId: "e" },
       ],
       excludeExerciseIds: ["e"],
     });
@@ -655,15 +658,6 @@ describe("session editor interactions", () => {
             },
           ],
         },
-        exercises: [
-          {
-            id: "e",
-            name: "Exercise",
-            deleted: false,
-            loadKind: null,
-            oneRepMax: null,
-          },
-        ],
       });
       await Promise.resolve();
     });

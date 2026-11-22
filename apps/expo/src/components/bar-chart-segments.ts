@@ -1,4 +1,5 @@
 export type BarChartTone = "primary" | "info" | "muted";
+export type BarChartOutline = "dotted" | "solid";
 
 export interface BarChartLine {
   text: string;
@@ -11,8 +12,8 @@ export interface BarChartSegment {
   value: number;
   lines: BarChartLine[];
   tone?: BarChartTone;
-  /** Outlined with a dotted border instead of filled. */
-  dotted?: boolean;
+  /** Outlined with a border of this style instead of filled. */
+  outline?: BarChartOutline;
   /** Room for the segment's lines when it is small next to the others. */
   minimumHeight?: number;
 }
@@ -24,7 +25,7 @@ export type BarChartDisplay =
       tone?: BarChartTone;
       heightRatio?: number;
       minimumHeight?: number;
-      dotted?: boolean;
+      outline?: BarChartOutline;
       /** A dotted part of the value still to come, above the rest. */
       pending?: {
         value: number;
@@ -70,7 +71,7 @@ export function barSegments(
     {
       value: ownValue,
       tone,
-      dotted: display.dotted,
+      outline: display.outline,
       lines: display.lines,
     },
     ...(display.pending && pendingValue > 0
@@ -78,7 +79,7 @@ export function barSegments(
           {
             value: pendingValue,
             tone,
-            dotted: true,
+            outline: "dotted" as const,
             lines: display.pending.lines,
           },
         ]

@@ -25,22 +25,22 @@ export default function SingleWeightChart({
         entering={FadeIn.duration(500)}
         exiting={FadeOut.duration(500)}
       >
-        <Svg width={112} height={132}>
+        <Svg width={112} height={90}>
           <Circle
             cx={56}
-            cy={26}
+            cy={16}
             r={12}
             fill="none"
             stroke={handleColor}
             strokeWidth={8}
           />
-          <Path d="M32 40 L80 40 L100 100 L12 100 Z" fill={handleColor} />
+          <Path d="M32 30 L80 30 L100 90 L12 90 Z" fill={handleColor} />
           <Text
             fill={foregroundColor}
             fontSize="14"
             fontWeight="bold"
             x="50%"
-            y="54%"
+            y={61}
             alignmentBaseline="middle"
             textAnchor="middle"
           >

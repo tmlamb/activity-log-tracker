@@ -21,6 +21,13 @@ const env = vi.hoisted(() => ({
   startSet: vi.fn(),
   reconcileSet: vi.fn(),
 }));
+/** What the exercise form can change, or what follows from it. */
+const edited = vi.hoisted<{
+  notes: string | null;
+  loadType: "PERCENT" | "RPE";
+  weightValue: number | null;
+  target: { value: number; unit: "lbs" | "kg" } | null;
+}>(() => ({ notes: null, loadType: "RPE", weightValue: 40, target: null }));
 vi.mock("react-native", () => ({
   Alert: { alert: env.alert },
   Keyboard: { dismiss: vi.fn(), addListener: () => ({ remove: vi.fn() }) },
@@ -135,7 +142,7 @@ vi.mock("~/data/actions", () => ({
   resetSet: env.resetSet,
 }));
 vi.mock("~/data/queries", () => ({
-  useExerciseDetail: () => ({ id: "e", name: "Exercise", notes: null }),
+  useExerciseDetail: () => ({ id: "e", name: "Exercise", notes: edited.notes }),
   useEquipment: () => ({ barbells: [], plates: [] }),
   useSetContext: () => ({
     reference: {
@@ -160,7 +167,7 @@ vi.mock("~/data/queries", () => ({
       id: "a",
       exerciseId: "e",
       reps: 10,
-      loadType: "RPE",
+      loadType: edited.loadType,
       loadValue: 8,
       restMinutes: 2,
       warmupSetCount: 0,
@@ -182,8 +189,8 @@ vi.mock("~/data/queries", () => ({
       status: env.setStatus,
       feedback: "Neutral",
       actualReps: 0,
-      weightValue: 40,
-      weightUnit: "kg",
+      weightValue: edited.weightValue,
+      weightUnit: edited.weightValue === null ? null : "kg",
       startMs: 1,
       endMs: null,
     },
@@ -196,7 +203,7 @@ vi.mock("~/data/queries", () => ({
             weightUnit: "lbs",
           }
         : null,
-    targetWeight: { value: 40, unit: "kg" },
+    targetWeight: edited.target,
     mainTargetWeight: null,
     hasTemplateHistory: false,
     isStartable: env.startable,
@@ -252,7 +259,23 @@ vi.mock("./font-scale-text", () => ({
 vi.mock("./HeaderAction", () => ({
   HeaderIconAction: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
-vi.mock("./MultilineTextInputThemed", () => ({ default: () => null }));
+vi.mock("./MultilineTextInputThemed", () => ({
+  default: ({
+    label,
+    value,
+    onChangeText,
+  }: {
+    label: string;
+    value: string;
+    onChangeText: (text: string) => void;
+  }) => (
+    <textarea
+      data-label={label}
+      value={value}
+      onChange={() => onChangeText(env.input)}
+    />
+  ),
+}));
 vi.mock("./PlateChart", () => ({ default: () => null }));
 vi.mock("./SegmentedInputThemed", () => ({ default: () => null }));
 vi.mock("./SingleWeightChart", () => ({ default: () => null }));
@@ -327,6 +350,10 @@ beforeEach(() => {
   env.kind = "Main";
   env.setStatus = "Ready";
   env.startable = false;
+  edited.notes = null;
+  edited.loadType = "RPE";
+  edited.weightValue = 40;
+  edited.target = { value: 40, unit: "kg" };
   env.resetSet.mockReset();
   env.patchSet.mockReset();
   env.setExerciseNotes.mockReset();
@@ -515,6 +542,81 @@ describe("set screen interactions", () => {
     act(() => press(renderer, "Back"));
     expect(env.back).toHaveBeenCalledOnce();
     act(() => renderer.unmount());
+  });
+
+  describe("after the exercise was edited from its link", () => {
+    const value = (renderer: ReturnType<typeof create>, label: string) =>
+      renderer.root.findByProps({ "data-label": label }).props.value as string;
+    const revisit = (renderer: ReturnType<typeof create>) =>
+      act(() => renderer.update(<WorkoutSetDetailScreen />));
+
+    it("shows notes saved there, without disturbing notes typed here", () => {
+      edited.notes = "Before";
+      const renderer = render();
+      edited.notes = "After";
+      revisit(renderer);
+      expect(value(renderer, "Notes")).toBe("After");
+      // Typing saves; whitespace alone is stored as no notes.
+      env.input = "  ";
+      change(renderer, "Notes");
+      edited.notes = null;
+      revisit(renderer);
+      expect(value(renderer, "Notes")).toBe("  ");
+      act(() => renderer.unmount());
+    });
+
+    it("keeps typed notes when they fail to save", () => {
+      env.setExerciseNotes.mockImplementation(() => {
+        throw new Error("disk full");
+      });
+      edited.notes = "Before";
+      const renderer = render();
+      env.input = "Typed";
+      change(renderer, "Notes");
+      revisit(renderer);
+      expect(value(renderer, "Notes")).toBe("Typed");
+      act(() => renderer.unmount());
+    });
+
+    it("uses the target weight of a one rep max set there", async () => {
+      edited.loadType = "PERCENT";
+      edited.weightValue = null;
+      edited.target = null;
+      env.setStatus = "Planned";
+      env.startable = true;
+      const renderer = render();
+      edited.target = { value: 60, unit: "kg" };
+      revisit(renderer);
+      await act(async () => {
+        press(renderer, "Start Main Set");
+        await Promise.resolve();
+      });
+      expect(env.startSet).toHaveBeenCalledWith(expect.anything(), {
+        actualReps: null,
+        weight: { value: 60, unit: "kg" },
+        feedback: "Neutral",
+      });
+      act(() => renderer.unmount());
+    });
+
+    it("keeps a weight that was typed or recorded", () => {
+      edited.loadType = "PERCENT";
+      edited.weightValue = null;
+      const renderer = render();
+      env.input = "50";
+      change(renderer, "Weight (kg)");
+      edited.target = { value: 60, unit: "kg" };
+      revisit(renderer);
+      expect(value(renderer, "Weight (kg)")).toBe("50");
+      act(() => renderer.unmount());
+
+      edited.weightValue = 60;
+      const recorded = render();
+      edited.target = { value: 70, unit: "kg" };
+      revisit(recorded);
+      expect(value(recorded, "Weight (kg)")).toBe("60");
+      act(() => recorded.unmount());
+    });
   });
 
   it("preserves the original unit when changing a recorded weight", () => {

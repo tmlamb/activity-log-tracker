@@ -1,11 +1,7 @@
 import { useRef } from "react";
-import { Alert } from "react-native";
+import { Alert, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import Animated, {
-  FadeInUp,
-  FadeOutUp,
-  LinearTransition,
-} from "react-native-reanimated";
+import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
 import { Stack } from "expo-router";
 import { Entypo } from "@expo/vector-icons";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
@@ -51,6 +47,10 @@ export default function ExerciseMusclesScreen() {
     name: "muscleGroups",
   });
 
+  // A new row takes focus, and opening the keyboard can stall the UI thread. Layout
+  // transitions on the content it pushes down could then end without their
+  // final position (react-native-reanimated#10171, fixed in 4.6), leaving that
+  // content on top of the row. So rows fade, but nothing animates its layout.
   const addMuscle = () => {
     append(
       { muscleGroupId: uuidv4(), name: "" },
@@ -102,12 +102,12 @@ export default function ExerciseMusclesScreen() {
         contentContainerClassName="px-5 pt-5 pb-18"
         contentInsetAdjustmentBehavior="automatic"
       >
-        <Animated.View layout={LinearTransition} className="gap-6">
+        <View className="gap-6">
           <HelperText placement="blockStart">
             Add any muscle or muscle group you want to track. Removing a muscle
             also removes it from every exercise when you save.
           </HelperText>
-          <Animated.View layout={LinearTransition}>
+          <View>
             <SectionHeading>Muscle Groups</SectionHeading>
             {fields.map((field, index) => {
               const stack = { index, size: fields.length + 1 };
@@ -117,7 +117,7 @@ export default function ExerciseMusclesScreen() {
                   key={field.muscleGroupId}
                   entering={FadeInUp}
                   exiting={FadeOutUp}
-                  layout={LinearTransition}
+                  collapsable={false}
                 >
                   <Controller
                     name={`muscleGroups.${index}.name`}
@@ -172,7 +172,7 @@ export default function ExerciseMusclesScreen() {
                 </Animated.View>
               );
             })}
-            <Animated.View layout={LinearTransition}>
+            <View>
               <PrimaryCardAction
                 label="Add Muscle"
                 icon={<Entypo name="circle-with-plus" size={20} />}
@@ -183,9 +183,9 @@ export default function ExerciseMusclesScreen() {
                     : undefined
                 }
               />
-            </Animated.View>
-          </Animated.View>
-        </Animated.View>
+            </View>
+          </View>
+        </View>
       </KeyboardAwareScrollView>
     </>
   );

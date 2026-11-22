@@ -1,5 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
+import type { SavedExercise } from "./repositories/exercises";
 import type { SetReference } from "./repositories/sets";
 import { calculateDeloadCandidate } from "./domain/deload-candidate";
 import { buildExerciseSeriesProjection } from "./domain/exercise-series";
@@ -163,6 +164,18 @@ export function useMuscleCatalog() {
 
 export function useExerciseCatalog() {
   return useRead(listSavedExercises);
+}
+
+/**
+ * Saved exercises by ID, deleted ones included. Screens look exercises up here
+ * as they render rather than copying them, so edits made elsewhere show.
+ */
+export function useExercisesById(): Record<string, SavedExercise> {
+  const exercises = useExerciseCatalog();
+  return useMemo(
+    () => Object.fromEntries(exercises.map((item) => [item.id, item])),
+    [exercises],
+  );
 }
 
 export function useExercisePresets() {

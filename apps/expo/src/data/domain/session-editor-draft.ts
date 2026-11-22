@@ -200,11 +200,15 @@ export interface SelectedExercise {
 /**
  * Swap an alternative in as a main row (an activity or a superset member),
  * keeping its own plan and sets; the former main takes its place among the
- * alternatives. An activity keeps its superset members.
+ * alternatives, sets and all, so swapping back continues where it left off.
+ * An activity keeps its superset members. Members follow its set counts (see
+ * normalizeSuperset), so it gets as many sets as they have already performed.
  */
 export function swapAlternative<T extends DraftSupersetMember>(
   activity: T,
   alternativeId: string,
+  createId: () => string,
+  terminalEndMs: number | null | undefined,
 ): T | null {
   const { alternatives, ...rest } = activity;
   const index = alternatives.findIndex((item) => item.id === alternativeId);
@@ -214,10 +218,43 @@ export function swapAlternative<T extends DraftSupersetMember>(
     supersets?: DraftSupersetMember[];
   };
   return {
-    ...promoted,
+    ...fitPerformedSets(
+      promoted,
+      (supersets ?? []).flatMap((member) => [member, ...member.alternatives]),
+      createId,
+      terminalEndMs,
+    ),
     alternatives: alternatives.map((item, i) => (i === index ? main : item)),
     ...(supersets ? { supersets } : {}),
   } as unknown as T;
+}
+
+/** Give a row enough sets to line up with every set `others` have performed. */
+function fitPerformedSets(
+  row: DraftAlternative,
+  others: readonly DraftAlternative[],
+  createId: () => string,
+  terminalEndMs: number | null | undefined,
+): DraftAlternative {
+  let next = row;
+  for (const kind of SET_KINDS) {
+    const field = setField(kind);
+    const performed = Math.max(
+      0,
+      ...others.map((other) =>
+        other[field].reduce(
+          (count, { status }, index) =>
+            status === "Done" || status === "Ready" ? index + 1 : count,
+          0,
+        ),
+      ),
+    );
+    if (next[field].length >= performed) continue;
+    next =
+      resizeSets(next, kind, String(performed), createId, terminalEndMs)
+        ?.activity ?? next;
+  }
+  return next;
 }
 
 /**
@@ -291,7 +328,6 @@ export function activityRows(activity: DraftActivity): DraftAlternative[] {
 export function exerciseSelectionInput(
   activity: DraftSupersetMember & { supersets?: DraftSupersetMember[] },
   rowId: string,
-  name: (exerciseId: string) => string,
   otherExerciseIds: readonly string[] = [],
 ): ExerciseSelectionInput {
   const mains = [activity, ...(activity.supersets ?? [])];
@@ -315,7 +351,6 @@ export function exerciseSelectionInput(
           {
             activityId: row.id,
             exerciseId: row.exerciseId,
-            name: name(row.exerciseId),
           },
         ],
   );

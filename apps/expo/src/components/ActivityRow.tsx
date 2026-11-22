@@ -8,22 +8,12 @@ import type { SessionEditorExercise } from "~/data/repositories/session-editor";
 import { activityErrors } from "~/data/domain/session-editor-draft";
 import Card from "./Card";
 import { NavigationCardRow } from "./CardRow";
+import { exerciseLabel } from "./exercise-label";
 import { Text } from "./font-scale-text";
 import NumberDraftInput from "./NumberDraftInput";
 import PressableThemed from "./PressableThemed";
 import { AnimatedViewStyled } from "./Styled";
 import TextInputThemed from "./TextInputThemed";
-
-export function exerciseLabel(
-  exercise: SessionEditorExercise | undefined,
-  exerciseId: string | null,
-) {
-  return exercise
-    ? `${exercise.name}${exercise.deleted ? " (Deleted)" : ""}`
-    : exerciseId
-      ? "Unavailable exercise"
-      : "Select Exercise";
-}
 
 function loadLabel(activity: DraftAlternative) {
   if (activity.loadType === null || activity.loadValue === null)

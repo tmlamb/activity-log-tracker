@@ -11,7 +11,7 @@ import type * as Store from "~/data/store";
 import ExerciseSelectScreen from "~/app/(public)/(app)/exercise/select/index";
 import { createTestDb } from "~/data/database/test-db";
 import { useSelectionHandoff } from "~/data/selection-handoff";
-import { setDatabase } from "~/data/store";
+import { setDatabase, write } from "~/data/store";
 
 const env = vi.hoisted(() => ({
   params: {},
@@ -194,7 +194,7 @@ const saved = (rows: [string, boolean][]) =>
 describe("exercise select", () => {
   it("lists alternatives first, hides used exercises, and returns a picked alternative", async () => {
     request({
-      alternatives: [{ activityId: "alt", exerciseId: "f", name: "Dumbbell" }],
+      alternatives: [{ activityId: "alt", exerciseId: "f" }],
       excludeExerciseIds: ["f"],
     });
     const view = await render();
@@ -215,6 +215,21 @@ describe("exercise select", () => {
       exerciseId: "f",
       alternativeId: "alt",
     });
+    view.unmount();
+  });
+
+  it("follows an alternative renamed while the picker is open", async () => {
+    request({
+      alternatives: [{ activityId: "alt", exerciseId: "f" }],
+      excludeExerciseIds: ["f"],
+    });
+    const view = await render();
+    act(() =>
+      write((db) => {
+        db.runSync("UPDATE exercises SET name = 'Renamed' WHERE id = 'f'");
+      }),
+    );
+    expect(view.rows()[0]).toEqual(["Renamed", false]);
     view.unmount();
   });
 

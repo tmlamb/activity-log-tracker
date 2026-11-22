@@ -137,9 +137,38 @@ function SetEditor({
       : "",
   );
   const [feedback, setFeedback] = useState(context.set.feedback);
-  const [notes, setNotes] = useState(exercise?.notes ?? "");
+  // Edited here and in the exercise form this screen links to: follow a change
+  // made there, but not this screen's own edits, which are saved as typed.
+  const storedNotes = exercise?.notes ?? "";
+  const [notes, setNotes] = useState(storedNotes);
+  const [seenNotes, setSeenNotes] = useState(storedNotes);
+  if (seenNotes !== storedNotes) {
+    setSeenNotes(storedNotes);
+    if ((notes.trim() ? notes : "") !== storedNotes) setNotes(storedNotes);
+  }
   const [fallbackStart] = useState(Date.now);
-  const [unit] = useState<"lbs" | "kg">(initialWeight?.unit ?? "lbs");
+  const [unit, setUnit] = useState<"lbs" | "kg">(initialWeight?.unit ?? "lbs");
+  // The target follows the exercise's one rep max, which may be set in the
+  // exercise form this screen links to. Keep an untouched weight on target.
+  const { targetWeight } = context;
+  const targetInput =
+    targetWeight && targetWeight.value > 0 ? String(targetWeight.value) : "";
+  const targetUnit = targetWeight?.unit;
+  const [seenTarget, setSeenTarget] = useState({
+    input: targetInput,
+    unit: targetUnit,
+  });
+  if (seenTarget.input !== targetInput || seenTarget.unit !== targetUnit) {
+    setSeenTarget({ input: targetInput, unit: targetUnit });
+    if (
+      context.set.status !== "Done" &&
+      !((context.set.weightValue ?? 0) > 0) &&
+      weightInput === seenTarget.input
+    ) {
+      setWeightInput(targetInput);
+      if (targetUnit) setUnit(targetUnit);
+    }
+  }
   const [advancedCollapsed, setAdvancedCollapsed] = useState(true);
   const leavingRef = useRef(false);
   const allowRemoval = useRef(false);
@@ -606,27 +635,27 @@ function SetEditor({
                   barbell={barbell}
                 />
               )}
+            {displayWeight !== null &&
+              displayWeight !== undefined &&
+              displayWeight > 0 &&
+              context.exercise?.loadKind === "WEIGHT_PAIR" && (
+                <DumbbellChart
+                  className="mx-5"
+                  weight={displayWeight}
+                  unit={unit}
+                />
+              )}
+            {displayWeight !== null &&
+              displayWeight !== undefined &&
+              displayWeight > 0 &&
+              context.exercise?.loadKind === "SINGLE_WEIGHT" && (
+                <SingleWeightChart
+                  className="mx-5"
+                  weight={displayWeight}
+                  unit={unit}
+                />
+              )}
           </Animated.View>
-          {displayWeight !== null &&
-            displayWeight !== undefined &&
-            displayWeight > 0 &&
-            context.exercise?.loadKind === "WEIGHT_PAIR" && (
-              <DumbbellChart
-                className="mx-5"
-                weight={displayWeight}
-                unit={unit}
-              />
-            )}
-          {displayWeight !== null &&
-            displayWeight !== undefined &&
-            displayWeight > 0 &&
-            context.exercise?.loadKind === "SINGLE_WEIGHT" && (
-              <SingleWeightChart
-                className="mx-5"
-                weight={displayWeight}
-                unit={unit}
-              />
-            )}
           {canReset && (
             <Animated.View
               entering={FadeInUp.duration(250)}

@@ -197,7 +197,7 @@ function TrendChart({ insights }: { insights: ProgramInsightsData }) {
                 {
                   value: dropPendingValue,
                   tone: "muted",
-                  dotted: true,
+                  outline: "dotted",
                   lines: dropLines(dropPendingValue),
                   minimumHeight: DROP_SEGMENT_HEIGHT,
                 },

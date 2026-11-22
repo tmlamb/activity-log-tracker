@@ -91,7 +91,7 @@ describe("program insights", () => {
         {
           value: 1,
           tone: "muted",
-          dotted: true,
+          outline: "dotted",
           lines: [{ text: "1" }, { text: "Drop" }],
         },
       ],
