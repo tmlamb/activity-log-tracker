@@ -1,4 +1,4 @@
-import type { PressableProps, View } from "react-native";
+import type { PressableProps, ViewInstance } from "react-native";
 import { Pressable } from "react-native";
 import { twMerge } from "tailwind-merge";
 
@@ -10,7 +10,7 @@ type PressableThemedProps = {
   className?: string;
   variant?: keyof typeof pressableVariant;
   animated?: boolean;
-  ref?: React.Ref<View>;
+  ref?: React.Ref<ViewInstance>;
 } & PressableProps;
 
 export default function PressableThemed({

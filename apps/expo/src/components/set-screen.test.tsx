@@ -8,9 +8,13 @@ const env = vi.hoisted(() => ({
   back: vi.fn(),
   push: vi.fn(),
   alert: vi.fn(),
-  dispatch: vi.fn(),
+  repeat: vi.fn(),
+  disablePrevention: vi.fn(),
+  preventRemove: null as null | boolean,
   input: "8",
-  beforeRemove: null as null | ((event: { data: { action: unknown } }) => void),
+  beforeRemove: null as
+    | null
+    | ((event: { data: { action: unknown }; repeat: () => void }) => void),
   kind: "Main",
   setStatus: "Ready",
   startable: false,
@@ -87,14 +91,18 @@ vi.mock("./PressableThemed", () => ({
 }));
 vi.mock("expo-router/react-navigation", () => ({
   useNavigation: () => ({
-    dispatch: env.dispatch,
     addListener: () => () => undefined,
   }),
   usePreventRemove: (
-    _enabled: boolean,
-    callback: (event: { data: { action: unknown } }) => void,
+    enabled: boolean,
+    callback: (event: {
+      data: { action: unknown };
+      repeat: () => void;
+    }) => void,
   ) => {
+    env.preventRemove = enabled;
     env.beforeRemove = callback;
+    return env.disablePrevention;
   },
 }));
 vi.mock("expo-router", () => {
@@ -123,10 +131,10 @@ vi.mock("expo-router", () => {
       activityId: "a",
       workoutSetId: "set",
     }),
+    useCanGoBack: () => true,
     useRouter: () => ({
       back: env.back,
       push: env.push,
-      canGoBack: () => true,
     }),
   };
 });
@@ -344,7 +352,9 @@ beforeEach(() => {
   env.back.mockClear();
   env.push.mockClear();
   env.alert.mockClear();
-  env.dispatch.mockClear();
+  env.repeat.mockClear();
+  env.disablePrevention.mockClear();
+  env.preventRemove = null;
   env.beforeRemove = null;
   env.input = "8";
   env.kind = "Main";
@@ -480,6 +490,12 @@ describe("set screen interactions", () => {
       { programId: "p", sessionId: "s", activityId: "a", setId: "set" },
       { actualReps: 8, weight: { value: 40, unit: "kg" }, feedback: "Neutral" },
     );
+    // Back is only allowed through once prevention is off, or it is blocked.
+    expect(env.disablePrevention).toHaveBeenCalledOnce();
+    expect(env.disablePrevention.mock.invocationCallOrder[0]).toBeLessThan(
+      env.back.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(env.preventRemove).toBe(false);
     expect(env.back).toHaveBeenCalledOnce();
     act(() => renderer.unmount());
   });
@@ -516,8 +532,9 @@ describe("set screen interactions", () => {
     const renderer = render();
     change(renderer, "Actual Reps");
     const action = { type: "GO_BACK" };
-    act(() => env.beforeRemove?.({ data: { action } }));
-    expect(env.dispatch).toHaveBeenCalledWith(action);
+    act(() => env.beforeRemove?.({ data: { action }, repeat: env.repeat }));
+    expect(env.repeat).toHaveBeenCalledOnce();
+    expect(env.preventRemove).toBe(false);
     expect(env.reconcileSet).not.toHaveBeenCalled();
     act(() => renderer.unmount());
   });
@@ -528,8 +545,9 @@ describe("set screen interactions", () => {
     change(renderer, "Actual Reps");
     expect(env.patchSet).not.toHaveBeenCalled();
     const action = { type: "GO_BACK" };
-    act(() => env.beforeRemove?.({ data: { action } }));
-    expect(env.dispatch).not.toHaveBeenCalled();
+    act(() => env.beforeRemove?.({ data: { action }, repeat: env.repeat }));
+    expect(env.repeat).not.toHaveBeenCalled();
+    expect(env.preventRemove).toBe(true);
     expect(env.alert).toHaveBeenCalledWith(
       "Workout Not Saved",
       "Enter valid numbers before leaving this set.",

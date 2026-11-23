@@ -21,7 +21,10 @@ import { AnimatedLegendListStyled } from "./Styled";
 type ListComponent = ComponentType | ReactElement | null;
 
 interface CollapsibleSectionListProps<ItemT>
-  extends Omit<ScrollViewProps, "children" | "maintainVisibleContentPosition"> {
+  extends Omit<
+    ScrollViewProps,
+    "children" | "maintainVisibleContentPosition" | "stickyHeaderIndices"
+  > {
   className?: string;
   contentContainerClassName?: string;
   data: readonly ItemT[];
@@ -53,24 +56,21 @@ function EndReserve({
   onFinish: (id: number) => void;
 }) {
   const { id, height, phase } = reserve;
-  const style = useAnimatedStyle(
-    () => ({
-      height:
-        phase === "releasing"
-          ? withTiming(
-              0,
-              {
-                duration: collapseAnimationDuration,
-                easing: collapseAnimationEasing,
-              },
-              (finished) => {
-                if (finished) scheduleOnRN(onFinish, id);
-              },
-            )
-          : height,
-    }),
-    [height, id, onFinish, phase],
-  );
+  const style = useAnimatedStyle(() => ({
+    height:
+      phase === "releasing"
+        ? withTiming(
+            0,
+            {
+              duration: collapseAnimationDuration,
+              easing: collapseAnimationEasing,
+            },
+            (finished) => {
+              if (finished) scheduleOnRN(onFinish, id);
+            },
+          )
+        : height,
+  }));
 
   return <Animated.View pointerEvents="none" style={style} />;
 }

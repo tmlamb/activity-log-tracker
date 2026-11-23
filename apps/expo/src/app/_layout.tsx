@@ -43,7 +43,12 @@ export default function RootLayout() {
     </ThemeProvider>
   );
   return posthog ? (
-    <PostHogProvider client={posthog}>{app}</PostHogProvider>
+    // Screens are tracked manually in (public)/_layout.tsx. PostHog's
+    // navigation autocapture relies on @react-navigation context, which Expo
+    // Router no longer exposes.
+    <PostHogProvider client={posthog} autocapture={{ captureScreens: false }}>
+      {app}
+    </PostHogProvider>
   ) : (
     app
   );

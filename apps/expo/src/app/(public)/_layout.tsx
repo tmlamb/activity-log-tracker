@@ -7,7 +7,7 @@ import { captureException, posthog } from "~/utils/posthog";
 export default function PublicLayout() {
   const backgroundColor = useNativeVariable("--background") as string;
   const pathname = usePathname();
-  const params = useGlobalSearchParams();
+  const params = useGlobalSearchParams<Record<string, string | string[]>>();
 
   useEffect(() => {
     posthog?.screen(pathname, params).catch(captureException);

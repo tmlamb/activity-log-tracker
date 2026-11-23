@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Alert } from "react-native";
-import { useNavigation, usePreventRemove } from "expo-router/react-navigation";
+
+import useReleasablePreventRemove from "./use-releasable-prevent-remove";
 
 /**
  * Warn before discarding unsaved changes. Call `leaveWithoutWarning` after a
@@ -8,39 +9,33 @@ import { useNavigation, usePreventRemove } from "expo-router/react-navigation";
  * ignore extra taps while the screen closes instead of saving twice.
  */
 export default function useUnsavedChangesWarning(hasUnsavedChanges: boolean) {
-  const navigation = useNavigation();
-  const allowNextRemoval = useRef(false);
   const left = useRef(false);
 
-  usePreventRemove(hasUnsavedChanges, ({ data }) => {
-    if (allowNextRemoval.current) {
-      allowNextRemoval.current = false;
-      navigation.dispatch(data.action);
-      return;
-    }
-
-    Alert.alert(
-      "Discard Changes?",
-      "You have unsaved changes. Discard them and leave this form?",
-      [
-        { text: "Keep Editing", style: "cancel" },
-        {
-          text: "Discard Changes",
-          style: "destructive",
-          onPress: () => navigation.dispatch(data.action),
-        },
-      ],
-    );
-  });
+  const { release } = useReleasablePreventRemove(
+    hasUnsavedChanges,
+    ({ repeat }) => {
+      Alert.alert(
+        "Discard Changes?",
+        "You have unsaved changes. Discard them and leave this form?",
+        [
+          { text: "Keep Editing", style: "cancel" },
+          { text: "Discard Changes", style: "destructive", onPress: repeat },
+        ],
+      );
+    },
+    {
+      // Still here after all: let save handlers run again.
+      onRearm: () => {
+        left.current = false;
+      },
+    },
+  );
 
   return {
     leaveWithoutWarning: (navigate: () => void) => {
       left.current = true;
-      allowNextRemoval.current = true;
+      release();
       navigate();
-      queueMicrotask(() => {
-        allowNextRemoval.current = false;
-      });
     },
     hasLeft: () => left.current,
   };

@@ -1,7 +1,11 @@
 import { useRef } from "react";
-import { Alert, View } from "react-native";
+import { Alert } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
+import Animated, {
+  FadeInUp,
+  FadeOutUp,
+  LinearTransition,
+} from "react-native-reanimated";
 import { Stack } from "expo-router";
 import { Entypo } from "@expo/vector-icons";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
@@ -193,10 +197,10 @@ export default function EquipmentScreen() {
     });
   };
 
-  // A new row takes focus, and opening the keyboard can stall the UI thread. Layout
-  // transitions on the content it pushes down could then end without their
-  // final position (react-native-reanimated#10171, fixed in 4.6), leaving that
-  // content on top of the row. So rows fade, but nothing animates its layout.
+  // A new row takes focus, and opening the keyboard can stall the UI thread.
+  // The layout transitions on the content it pushes down need Reanimated 4.6+
+  // (react-native-reanimated#10171); before that they could end without their
+  // final position, leaving that content on top of the row.
   const addBarbell = () => {
     appendBarbell(
       { value: "", unit: "lbs", barbellId: uuidv4() },
@@ -250,13 +254,13 @@ export default function EquipmentScreen() {
         contentInsetAdjustmentBehavior="automatic"
         mode="layout"
       >
-        <View className="gap-6">
+        <Animated.View layout={LinearTransition} className="gap-6">
           <HelperText placement="blockStart">
             These settings will be used to calculate which barbell and plates to
             use for each workout set.
           </HelperText>
 
-          <View>
+          <Animated.View layout={LinearTransition}>
             <SectionHeading>Barbell Inventory</SectionHeading>
             {barbellFields.map((item, index) => {
               const stack = { index, size: barbellFields.length + 1 };
@@ -266,7 +270,7 @@ export default function EquipmentScreen() {
                   key={item.barbellId}
                   entering={FadeInUp}
                   exiting={FadeOutUp}
-                  collapsable={false}
+                  layout={LinearTransition}
                 >
                   <Controller
                     name={`barbells.${index}.value`}
@@ -313,7 +317,7 @@ export default function EquipmentScreen() {
                 </Animated.View>
               );
             })}
-            <View>
+            <Animated.View layout={LinearTransition}>
               <PrimaryCardAction
                 label="Add Barbell"
                 icon={<Entypo name="circle-with-plus" size={20} />}
@@ -327,10 +331,10 @@ export default function EquipmentScreen() {
                     : undefined
                 }
               />
-            </View>
-          </View>
+            </Animated.View>
+          </Animated.View>
 
-          <View>
+          <Animated.View layout={LinearTransition}>
             <SectionHeading>Plate Inventory</SectionHeading>
             {plateFields.map((item, index) => {
               const quantity = Number(plates[index]?.quantity ?? item.quantity);
@@ -341,7 +345,7 @@ export default function EquipmentScreen() {
                   key={item.plateId}
                   entering={FadeInUp}
                   exiting={FadeOutUp}
-                  collapsable={false}
+                  layout={LinearTransition}
                 >
                   <Controller
                     name={`plates.${index}.value`}
@@ -396,7 +400,7 @@ export default function EquipmentScreen() {
                 </Animated.View>
               );
             })}
-            <View>
+            <Animated.View layout={LinearTransition}>
               <PrimaryCardAction
                 label="Add Plates"
                 icon={<Entypo name="circle-with-plus" size={20} />}
@@ -411,11 +415,11 @@ export default function EquipmentScreen() {
                     : undefined
                 }
               />
-            </View>
-          </View>
-        </View>
+            </Animated.View>
+          </Animated.View>
+        </Animated.View>
 
-        <View className="mt-10">
+        <Animated.View layout={LinearTransition} className="mt-10">
           <ConfirmButton
             accessibilityLabel="Restore default equipment inventory"
             title="Restore Equipment Defaults?"
@@ -425,7 +429,7 @@ export default function EquipmentScreen() {
           >
             Restore Defaults
           </ConfirmButton>
-        </View>
+        </Animated.View>
       </KeyboardAwareScrollView>
     </>
   );

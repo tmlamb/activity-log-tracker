@@ -18,8 +18,7 @@ import Animated, {
   FadeOutDown,
   LinearTransition,
 } from "react-native-reanimated";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { useNavigation, usePreventRemove } from "expo-router/react-navigation";
+import { Stack, useCanGoBack, useLocalSearchParams } from "expo-router";
 import { Button, Host } from "@expo/ui";
 import {
   accessibilityLabel as accessibilityLabelModifier,
@@ -62,6 +61,7 @@ import {
 } from "~/data/actions";
 import { DEFAULT_DROP_PERCENT } from "~/data/domain/set-execution";
 import { useEquipment, useExerciseDetail, useSetContext } from "~/data/queries";
+import useReleasablePreventRemove from "~/hooks/use-releasable-prevent-remove";
 import useRouter from "~/hooks/use-router";
 
 /** Presses of the start/complete button closer together than this are one. */
@@ -114,7 +114,7 @@ function SetEditor({
   title: string;
 }) {
   const router = useRouter();
-  const navigation = useNavigation();
+  const canGoBack = useCanGoBack();
   const primaryColor = useNativeVariable("--primary") as string;
   const foregroundColor = useNativeVariable("--foreground") as string;
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
@@ -171,7 +171,6 @@ function SetEditor({
   }
   const [advancedCollapsed, setAdvancedCollapsed] = useState(true);
   const leavingRef = useRef(false);
-  const allowRemoval = useRef(false);
   const validateInputs = (before = "leaving this set") => {
     if (
       parseInput(weightInput) === undefined ||
@@ -193,27 +192,31 @@ function SetEditor({
       errorAlert(error);
     }
   };
-  usePreventRemove(true, ({ data }) => {
-    if (allowRemoval.current) {
-      allowRemoval.current = false;
-      navigation.dispatch(data.action);
-      return;
-    }
-    if (leavingRef.current) return;
-    try {
-      validateInputs();
-      if (
-        context.session.status === "Done" ||
-        context.session.status === "Incomplete"
-      )
-        reconcileSet(context.reference, parseInput(repsInput) ?? null);
-    } catch (error) {
-      errorAlert(error);
-      return;
-    }
-    allowRemoval.current = true;
-    navigation.dispatch(data.action);
-  });
+  // Leaving is only allowed once the inputs are valid.
+  const { release } = useReleasablePreventRemove(
+    true,
+    ({ repeat }) => {
+      if (leavingRef.current) return;
+      try {
+        validateInputs();
+        if (
+          context.session.status === "Done" ||
+          context.session.status === "Incomplete"
+        )
+          reconcileSet(context.reference, parseInput(repsInput) ?? null);
+      } catch (error) {
+        errorAlert(error);
+        return;
+      }
+      repeat();
+    },
+    {
+      // Still here after all: accept actions and leave attempts again.
+      onRearm: () => {
+        leavingRef.current = false;
+      },
+    },
+  );
   const navigate = (route: "insights" | "exercise") => {
     try {
       validateInputs();
@@ -319,7 +322,7 @@ function SetEditor({
     if (action !== "complete") return;
     leavingRef.current = true;
     await dismissKeyboardBeforePop();
-    allowRemoval.current = true;
+    release();
     router.back();
   };
   // A done or running set in a session still in progress can be redone.
@@ -370,7 +373,7 @@ function SetEditor({
           ...(Platform.OS === "ios" && { headerBackVisible: false }),
         }}
       />
-      {Platform.OS === "ios" && router.canGoBack() && (
+      {Platform.OS === "ios" && canGoBack && (
         <Stack.Toolbar placement="left">
           <Stack.Toolbar.Button
             icon="chevron.left"

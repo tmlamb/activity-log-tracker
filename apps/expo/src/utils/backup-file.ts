@@ -55,7 +55,7 @@ export const downloadBackupFile = async (
 
   const file = new File(Paths.cache, fileName);
   file.create({ overwrite: true });
-  file.write(contents);
+  await file.write(contents);
 
   await Sharing.shareAsync(file.uri, {
     dialogTitle: "Backup Activity Log Data",

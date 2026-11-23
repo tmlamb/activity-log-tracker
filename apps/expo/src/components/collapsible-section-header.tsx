@@ -1,5 +1,5 @@
-import { Fragment, useEffect } from "react";
-import { Platform } from "react-native";
+import { useEffect } from "react";
+import { Platform, View } from "react-native";
 import {
   useAnimatedStyle,
   useSharedValue,
@@ -24,16 +24,8 @@ interface CollapsibleSectionHeaderProps {
   accessibilityLabel?: string;
 }
 
-/**
- * Keep one title part on one line: its spaces and hyphens no longer allow a
- * line break, so a wrapped title only breaks between parts.
- */
 /** A fixed-width font, so the separator looks the same between any names. */
 const separatorFont = Platform.select({ ios: "Menlo", default: "monospace" });
-
-export function unbreakable(text: string) {
-  return text.replace(/ /g, "\u00A0").replace(/-/g, "\u2011");
-}
 
 export function CollapsibleSectionHeader({
   title,
@@ -66,37 +58,54 @@ export function CollapsibleSectionHeader({
       }
       accessibilityState={{ expanded: !collapsed }}
     >
-      <SectionHeading
-        placement="inline"
-        // Every collapsible header wraps with the same, slightly tight lines.
-        className={twMerge("flex-1 pr-3 leading-[1.15]", titleClassName)}
-      >
-        {titleParts && titleParts.length > 1
-          ? titleParts.map((part, index) => (
-              <Fragment key={`${index}:${part}`}>
-                {/* The only breakable space is before the arrow, which
-                    then starts the next line, joined to the part after it. A
-                    word joiner (U+2060) keeps the arrow with its no-break space,
-                    since some separators (like "|") allow a break after them. */}
-                {index > 0 && (
-                  <>
-                    {" "}
-                    {/* Lighter than the semibold heading so names stand out,
-                        and a touch larger since the glyph reads small. */}
-                    <Text
-                      className="text-muted text-[22px] font-normal"
-                      style={{ fontFamily: separatorFont }}
-                    >
-                      {"\u21C4"}
-                    </Text>
-                    {"\u2060\u00A0"}
-                  </>
-                )}
-                {unbreakable(part)}
-              </Fragment>
-            ))
-          : title}
-      </SectionHeading>
+      {titleParts && titleParts.length > 1 ? (
+        // Each part is its own item in a wrapping row, so a line only ever
+        // breaks between parts and every new line starts with an arrow. A part
+        // too long for a line gets a line of its own and wraps inside its
+        // column, indented past the arrow. Spaces are text, not margins, so
+        // they scale with the font.
+        <View className="flex-1 flex-row flex-wrap pr-3">
+          {titleParts.map((part, index) => (
+            <View
+              key={`${index}:${part}`}
+              className="shrink flex-row items-baseline"
+            >
+              {index > 0 && (
+                <SectionHeading
+                  placement="inline"
+                  className={twMerge("leading-[1.15]", titleClassName)}
+                >
+                  {/* Lighter than the semibold heading so names stand out,
+                      and a touch larger since the glyph reads small. */}
+                  <Text
+                    className="text-muted text-[22px] font-normal"
+                    style={{ fontFamily: separatorFont }}
+                  >
+                    {"\u21C4"}
+                  </Text>
+                  {"\u00A0"}
+                </SectionHeading>
+              )}
+              <SectionHeading
+                placement="inline"
+                className={twMerge("shrink leading-[1.15]", titleClassName)}
+              >
+                {/* The space before the next part ends this one, so a line
+                    never starts with a space. */}
+                {index < titleParts.length - 1 ? `${part}\u00A0` : part}
+              </SectionHeading>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <SectionHeading
+          placement="inline"
+          // Every collapsible header wraps with the same, slightly tight lines.
+          className={twMerge("flex-1 pr-3 leading-[1.15]", titleClassName)}
+        >
+          {title}
+        </SectionHeading>
+      )}
       <AnimatedText
         maxFontSizeMultiplier={2.5}
         className={twMerge("text-muted", chevronClassName)}

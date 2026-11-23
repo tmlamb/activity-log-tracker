@@ -3,12 +3,15 @@ import type { ReactTestInstance } from "react-test-renderer";
 import { act, create } from "react-test-renderer";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  CollapsibleSectionHeader,
-  unbreakable,
-} from "./collapsible-section-header";
+import { CollapsibleSectionHeader } from "./collapsible-section-header";
 
 vi.mock("react-native", () => ({
+  View: ({
+    children,
+    className,
+  }: PropsWithChildren<{ className?: string }>) => (
+    <div className={className}>{children}</div>
+  ),
   Platform: {
     select: (options: { ios?: unknown; default?: unknown }) => options.ios,
   },
@@ -38,7 +41,12 @@ vi.mock("./PressableThemed", () => ({
   default: ({ children }: PropsWithChildren) => <button>{children}</button>,
 }));
 vi.mock("./Typography", () => ({
-  SectionHeading: ({ children }: PropsWithChildren) => <h2>{children}</h2>,
+  SectionHeading: ({
+    children,
+    className,
+  }: PropsWithChildren<{ className?: string }>) => (
+    <h2 className={className}>{children}</h2>
+  ),
 }));
 
 /** The heading's text, with muted runs wrapped in brackets. */
@@ -51,7 +59,7 @@ function headingText(node: ReactTestInstance | string): string {
     : text;
 }
 
-function render(titleParts?: string[]) {
+function renderHeader(titleParts?: string[]) {
   let renderer: ReturnType<typeof create> | undefined;
   act(() => {
     renderer = create(
@@ -60,22 +68,71 @@ function render(titleParts?: string[]) {
         titleParts={titleParts}
         collapsed={false}
         onPress={() => undefined}
+        titleClassName="text-foreground"
       />,
     );
   });
   if (!renderer) throw new Error("Renderer not created");
-  const text = headingText(renderer.root.findByType("h2"));
-  act(() => renderer?.unmount());
+  return renderer;
+}
+
+/** Each wrapping item's text: the unit a line can break before. */
+function items(titleParts: string[]) {
+  const renderer = renderHeader(titleParts);
+  const row = renderer.root.find(
+    (node) =>
+      node.type === "div" &&
+      ((node.props as { className?: string }).className?.includes(
+        "flex-wrap",
+      ) ??
+        false),
+  );
+  const result = row.children.map(headingText);
+  act(() => renderer.unmount());
+  return result;
+}
+
+function render(titleParts?: string[]) {
+  const renderer = renderHeader(titleParts);
+  const text = renderer.root.findAllByType("h2").map(headingText).join("");
+  act(() => renderer.unmount());
   return text;
 }
 
 describe("collapsible section header", () => {
-  it("joins title parts with muted arrows that only break before an arrow", () => {
-    // Only the space before each arrow can break; names and "⇄ " stay whole,
-    // with a word joiner keeping the arrow with its space.
-    expect(render(["Barbell Squat", "Pull-Up", "Barbell Fly"])).toBe(
-      "Barbell\u00A0Squat [\u21C4]\u2060\u00A0Pull\u2011Up [\u21C4]\u2060\u00A0Barbell\u00A0Fly",
-    );
+  it("wraps title parts as whole items that each start with an arrow", () => {
+    // A line can only break between items, so every new line starts with an
+    // arrow; the space before the next part trails the previous one.
+    expect(items(["Barbell Squat", "Pull-Up", "Barbell Fly"])).toEqual([
+      "Barbell Squat\u00A0",
+      "[\u21C4]\u00A0Pull-Up\u00A0",
+      "[\u21C4]\u00A0Barbell Fly",
+    ]);
+  });
+
+  it("lets a long part wrap inside its own item, past the arrow", () => {
+    // Plain spaces, so a part too long for a line wraps within its column
+    // rather than spilling the next arrow onto its last line.
+    const renderer = renderHeader([
+      "Barbell Dip",
+      "Barbell Shrug has such an oddly long name",
+    ]);
+    const names = renderer.root
+      .findAllByType("h2")
+      .filter((node) =>
+        (node.props as { className?: string }).className?.includes("shrink"),
+      );
+    expect(names.map(headingText)).toEqual([
+      "Barbell Dip\u00A0",
+      "Barbell Shrug has such an oddly long name",
+    ]);
+    expect(
+      names.map((node) => (node.props as { className?: string }).className),
+    ).toEqual([
+      "shrink leading-[1.15] text-foreground",
+      "shrink leading-[1.15] text-foreground",
+    ]);
+    act(() => renderer.unmount());
   });
 
   it("sets the separator in a lighter, slightly larger fixed-width font", () => {
@@ -105,11 +162,5 @@ describe("collapsible section header", () => {
   it("shows the title alone without multiple parts", () => {
     expect(render()).toBe("Barbell Squat, Pull-Up");
     expect(render(["Barbell Squat"])).toBe("Barbell Squat, Pull-Up");
-  });
-
-  it("removes line breaks from inside a part", () => {
-    expect(unbreakable("Single-Arm Cable Row")).toBe(
-      "Single\u2011Arm\u00A0Cable\u00A0Row",
-    );
   });
 });

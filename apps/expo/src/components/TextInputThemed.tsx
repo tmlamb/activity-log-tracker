@@ -2,6 +2,7 @@ import type {
   KeyboardTypeOptions,
   LayoutChangeEvent,
   TextInputChangeEvent,
+  TextInputInstance,
   TextInputKeyPressEvent,
 } from "react-native";
 import {
@@ -90,7 +91,7 @@ interface Props {
   editable?: boolean;
   selection?: { start: number; end?: number };
   onKeyPress?: (e: TextInputKeyPressEvent) => void;
-  innerRef?: React.Ref<TextInput>;
+  innerRef?: React.Ref<TextInputInstance>;
   error?: string;
   errorClassName?: string;
   accessibilityLabel?: string;
@@ -224,7 +225,7 @@ export default function TextInputThemed({
   stack,
   cardVariants,
 }: Props) {
-  const inputRef = useRef<TextInput | null>(null);
+  const inputRef = useRef<TextInputInstance | null>(null);
   const { isGrouped, paddingLeft, setLabelWidth } =
     useTextInputThemedLabelSpacing(label != null || leftIconName != null);
 
@@ -237,7 +238,7 @@ export default function TextInputThemed({
   const textAlign = isGrouped && numeric ? "left" : numeric ? "right" : "left";
   const maskDecimalText = numeric && decimalPlaces != null;
 
-  const setInputRef = (node: TextInput | null) => {
+  const setInputRef = (node: TextInputInstance | null) => {
     inputRef.current = node;
     assignRef(innerRef, node);
   };
@@ -314,9 +315,11 @@ export default function TextInputThemed({
             singleLineTextClassName,
             textInputClassName,
           )}
+          // Only set `color` when masking: an inline `color: undefined`
+          // overrides the className's text color.
           style={{
             paddingLeft,
-            color: maskDecimalText ? "transparent" : undefined,
+            ...(maskDecimalText && { color: "transparent" }),
           }}
           placeholder={maskDecimalText ? "" : placeholder}
           maxLength={maxLength}

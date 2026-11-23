@@ -2,6 +2,7 @@ import type { Ref } from "react";
 import type {
   KeyboardTypeOptions,
   TextInputChangeEvent,
+  TextInputInstance,
   TextInputKeyPressEvent,
 } from "react-native";
 import { useRef, useState } from "react";
@@ -50,7 +51,7 @@ interface Props {
   editable?: boolean;
   selection?: { start: number; end?: number };
   onKeyPress?: (e: TextInputKeyPressEvent) => void;
-  innerRef?: Ref<TextInput>;
+  innerRef?: Ref<TextInputInstance>;
   error?: string;
   errorClassName?: string;
   accessibilityLabel?: string;
@@ -90,7 +91,7 @@ export default function MultilineTextInputThemed(props: Props) {
     stack,
     cardVariants,
   } = props;
-  const inputRef = useRef<TextInput | null>(null);
+  const inputRef = useRef<TextInputInstance | null>(null);
   const [internalValue, setInternalValue] = useState(value ?? "");
   const [inputWidth, setInputWidth] = useState(0);
   const [contentHeight, setContentHeight] = useState(minInputHeight);
@@ -120,7 +121,7 @@ export default function MultilineTextInputThemed(props: Props) {
     onChangeText?.(normalizedText);
   };
 
-  const setInputRef = (node: TextInput | null) => {
+  const setInputRef = (node: TextInputInstance | null) => {
     inputRef.current = node;
     assignRef(innerRef, node);
   };

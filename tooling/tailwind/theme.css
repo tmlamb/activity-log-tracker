@@ -91,3 +91,12 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
+
+/*
+ * Tailwind's `tabular-nums` sets `font-variant-numeric`, which React Native has
+ * no equivalent for, so it was dropped on native. `font-variant` maps to RN's
+ * `fontVariant`; adding it here extends the built-in utility.
+ */
+@utility tabular-nums {
+  font-variant: tabular-nums;
+}

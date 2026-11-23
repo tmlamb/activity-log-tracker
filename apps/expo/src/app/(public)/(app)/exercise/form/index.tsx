@@ -653,7 +653,7 @@ function ExerciseEditor({
           {exercise?.deleted ? (
             <PrimaryCardAction
               label="Undo Deletion"
-              onPress={handleSubmit(onSubmit)}
+              onPress={() => void handleSubmit(onSubmit)()}
               accessibilityLabel={`Restore exercise with name ${exercise.name}`}
               cardVariants={["square"]}
             />

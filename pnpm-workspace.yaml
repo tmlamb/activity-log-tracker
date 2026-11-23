@@ -14,10 +14,10 @@ catalog:
 
 catalogs:
   react19:
-    "@types/react": ~19.2.14
-    "@types/react-dom": ~19.2.3
-    react: 19.2.3
-    react-dom: 19.2.3
+    "@types/react": ~19.3.0
+    "@types/react-dom": ~19.3.0
+    react: 19.3.0
+    react-dom: 19.3.0
 
 linkWorkspacePackages: true
 
@@ -32,3 +32,9 @@ overrides:
 publicHoistPattern:
   - "@ianvs/prettier-plugin-sort-imports"
   - prettier-plugin-tailwindcss
+
+peerDependencyRules:
+  allowedVersions:
+    # Nightly pinned for the RN 0.88 AssetRegistry fix (nativewind/react-native-css#504),
+    # which no rc includes yet. Drop this once nativewind ships with a release containing it.
+    nativewind>react-native-css: 0.0.0-nightly.2e152c9

@@ -1,4 +1,8 @@
-import type { KeyboardTypeOptions, LayoutChangeEvent } from "react-native";
+import type {
+  KeyboardTypeOptions,
+  LayoutChangeEvent,
+  TextInputInstance,
+} from "react-native";
 import { useRef, useState } from "react";
 import { Alert, Pressable, TextInput, View } from "react-native";
 import { Entypo, Feather } from "@expo/vector-icons";
@@ -28,7 +32,7 @@ interface InventoryCounterInputRowBaseProps {
   value: string;
   onChangeText: (value: string) => void;
   onBlur?: (event: unknown) => void;
-  innerRef?: React.Ref<TextInput>;
+  innerRef?: React.Ref<TextInputInstance>;
   unit: string;
   inputAccessibilityLabel: string;
   placeholder?: string;
@@ -80,7 +84,7 @@ export default function InventoryCounterInputRow({
   stack,
   trailing,
 }: InventoryCounterInputRowProps) {
-  const inputRef = useRef<TextInput | null>(null);
+  const inputRef = useRef<TextInputInstance | null>(null);
   const [inputWidth, setInputWidth] = useState(3);
   const countText =
     trailing.type === "counter"
@@ -89,7 +93,7 @@ export default function InventoryCounterInputRow({
   const measuredInputText = value.length > 0 ? value : (placeholder ?? "");
   const accessibilityValueText = value ? `${value} ${unit}` : undefined;
 
-  const setInputRef = (node: TextInput | null) => {
+  const setInputRef = (node: TextInputInstance | null) => {
     inputRef.current = node;
     assignRef(innerRef, node);
   };
