@@ -53,7 +53,11 @@ function TemplatePicker({
 }) {
   const router = useRouter();
   const headerButton = useHeaderButtonProps();
-  const [selected, setSelected] = useState<string>();
+  const [selectedId, setSelectedId] = useState<string>();
+  // A session started after its template was selected deselects it.
+  const selected = choices.find(
+    (choice) => choice.sessionId === selectedId && !choice.inProgress,
+  )?.sessionId;
   const done = () => {
     if (!selected || router.isNavigating()) return;
     if (
@@ -111,7 +115,11 @@ function TemplatePicker({
             selected={item.sessionId === selected}
             stack={{ index, size: choices.length }}
             cardVariants={["multiline"]}
-            onPress={() => setSelected(item.sessionId)}
+            disabled={item.inProgress}
+            titleClassName={item.inProgress ? "text-muted" : undefined}
+            trailingText={item.inProgress ? "In Progress" : undefined}
+            trailingTextClassName="text-warning"
+            onPress={() => setSelectedId(item.sessionId)}
           />
         )}
       />

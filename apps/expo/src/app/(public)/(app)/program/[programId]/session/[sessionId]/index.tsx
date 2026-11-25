@@ -313,6 +313,10 @@ function ActivityRow({
   const superset = rows.length > 1;
   const ordered = supersetSetOrder(rows);
   const sets = ordered.map(({ set }) => set);
+  // Started with sets still to do. A finished session has no pending sets.
+  const inProgress =
+    sets.some((set) => set.status !== "Planned") &&
+    sets.some((set) => set.status === "Planned" || set.status === "Ready");
   const completionWidth = Math.max(
     0,
     ...sets.flatMap((set) =>
@@ -341,7 +345,9 @@ function ActivityRow({
       titleParts={superset ? rows.map(exerciseName) : undefined}
       collapsed={collapsed}
       titleClassName={done ? "text-muted" : "text-foreground"}
-      chevronClassName={collapsed && !done ? "text-primary" : "text-muted"}
+      chevronClassName={
+        inProgress ? "text-primary" : done ? "text-muted" : "text-foreground"
+      }
       onCollapsedChange={setCollapsed}
     >
       {ordered.map(({ row, set, kind, index: number }, setIndex) => {

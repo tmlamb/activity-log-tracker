@@ -141,6 +141,27 @@ vi.mock("./CardRow", () => ({
     </button>
   ),
 }));
+vi.mock("./CollapsibleSection", () => ({
+  CollapsibleSection: ({
+    title,
+    collapsed,
+    onCollapsedChange,
+    children,
+  }: PropsWithChildren<{
+    title: string;
+    collapsed: boolean;
+    onCollapsedChange: (collapsed: boolean) => void;
+  }>) => (
+    <section>
+      <h2>{title}</h2>
+      <button
+        data-label={`${collapsed ? "Expand" : "Collapse"} ${title}`}
+        onClick={() => onCollapsedChange(!collapsed)}
+      />
+      {!collapsed && children}
+    </section>
+  ),
+}));
 vi.mock("./ConfirmButton", () => ({ default: () => null }));
 vi.mock("./DateTimeInputThemed", () => ({ default: () => null }));
 vi.mock("./font-scale-text", () => ({

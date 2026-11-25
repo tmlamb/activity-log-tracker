@@ -28,6 +28,7 @@ import type {
 import ActivityRow from "~/components/ActivityRow";
 import Card from "~/components/Card";
 import { PrimaryCardAction } from "~/components/CardRow";
+import { CollapsibleSection } from "~/components/CollapsibleSection";
 import ConfirmButton from "~/components/ConfirmButton";
 import DateTimeInputThemed from "~/components/DateTimeInputThemed";
 import { Text } from "~/components/font-scale-text";
@@ -121,6 +122,7 @@ function SessionEditor({
   const templateRef = useRef<TemplateSource | null>(null);
   const [renameLineage, setRenameLineage] = useState(true);
   const [showValidation, setShowValidation] = useState(false);
+  const [exercisesCollapsed, setExercisesCollapsed] = useState(false);
   const generation = useGeneration();
   const session = initial.session;
   const terminal =
@@ -414,6 +416,9 @@ function SessionEditor({
         !value.activities.flatMap(activityRows).every(isActivityValid))
     ) {
       setShowValidation(true);
+      // Reveal exercises that need fixing.
+      if (!value.activities.flatMap(activityRows).every(isActivityValid))
+        setExercisesCollapsed(false);
       return;
     }
     try {
@@ -651,60 +656,67 @@ function SessionEditor({
                 </HelperText>
               )}
             </Animated.View>
-            <Animated.View layout={LinearTransition.duration(220)}>
-              {draft.activities.map((activity, index) => (
-                <ActivityRow
-                  key={activity.id}
-                  activity={activity}
-                  exercise={
-                    activity.exerciseId
-                      ? exercises[activity.exerciseId]
-                      : undefined
+            <CollapsibleSection
+              title="Exercises"
+              collapsed={exercisesCollapsed}
+              onCollapsedChange={setExercisesCollapsed}
+              headerClassName="pt-0"
+            >
+              <Animated.View layout={LinearTransition.duration(220)}>
+                {draft.activities.map((activity, index) => (
+                  <ActivityRow
+                    key={activity.id}
+                    activity={activity}
+                    exercise={
+                      activity.exerciseId
+                        ? exercises[activity.exerciseId]
+                        : undefined
+                    }
+                    stack={{ index, size: draft.activities.length + 1 }}
+                    showValidation={showValidation}
+                    canMoveUp={index !== 0}
+                    canMoveDown={index !== draft.activities.length - 1}
+                    alternativeCount={activity.alternatives.length}
+                    supersetCount={activity.supersets.length}
+                    restLocked={activity.supersets.length > 0}
+                    onSelectExercise={() => openExerciseSelection(activity)}
+                    onSelectLoad={() => openLoadSelection(activity)}
+                    onRemove={() => removeActivity(activity)}
+                    onMoveUp={() => moveActivity(index, -1)}
+                    onMoveDown={() => moveActivity(index, 1)}
+                    onChangeSetCount={(kind, text) =>
+                      changeSetCount(activity.id, kind, text)
+                    }
+                    onChange={(update) =>
+                      updateActivity(activity.id, (item) => ({
+                        ...item,
+                        ...update,
+                      }))
+                    }
+                    onOpenAdvanced={() => openAdvancedSettings(activity)}
+                  />
+                ))}
+                <PrimaryCardAction
+                  label="Add Exercise"
+                  icon={<Entypo name="circle-with-plus" size={20} />}
+                  cardVariants={["square"]}
+                  stack={{
+                    index: draft.activities.length,
+                    size: draft.activities.length + 1,
+                  }}
+                  disabled={draft.activities.length > 100}
+                  onPress={() =>
+                    updateDraft({
+                      ...draftRef.current,
+                      activities: [
+                        ...draftRef.current.activities,
+                        newDraftActivity(uuidv4, terminalEndMs()),
+                      ],
+                    })
                   }
-                  stack={{ index, size: draft.activities.length + 1 }}
-                  showValidation={showValidation}
-                  canMoveUp={index !== 0}
-                  canMoveDown={index !== draft.activities.length - 1}
-                  alternativeCount={activity.alternatives.length}
-                  supersetCount={activity.supersets.length}
-                  restLocked={activity.supersets.length > 0}
-                  onSelectExercise={() => openExerciseSelection(activity)}
-                  onSelectLoad={() => openLoadSelection(activity)}
-                  onRemove={() => removeActivity(activity)}
-                  onMoveUp={() => moveActivity(index, -1)}
-                  onMoveDown={() => moveActivity(index, 1)}
-                  onChangeSetCount={(kind, text) =>
-                    changeSetCount(activity.id, kind, text)
-                  }
-                  onChange={(update) =>
-                    updateActivity(activity.id, (item) => ({
-                      ...item,
-                      ...update,
-                    }))
-                  }
-                  onOpenAdvanced={() => openAdvancedSettings(activity)}
                 />
-              ))}
-              <PrimaryCardAction
-                label="Add Exercise"
-                icon={<Entypo name="circle-with-plus" size={20} />}
-                cardVariants={["square"]}
-                stack={{
-                  index: draft.activities.length,
-                  size: draft.activities.length + 1,
-                }}
-                disabled={draft.activities.length > 100}
-                onPress={() =>
-                  updateDraft({
-                    ...draftRef.current,
-                    activities: [
-                      ...draftRef.current.activities,
-                      newDraftActivity(uuidv4, terminalEndMs()),
-                    ],
-                  })
-                }
-              />
-            </Animated.View>
+              </Animated.View>
+            </CollapsibleSection>
           </AnimatedViewStyled>
         )}
         {terminal && draft.startMs !== null && (

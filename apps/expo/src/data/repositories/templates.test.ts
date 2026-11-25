@@ -22,7 +22,15 @@ describe("template queries", () => {
         kind: "planned",
         sessionId: "planned",
       });
+      // A lineage with a planned session sorts after more recent ones.
+      db.raw.exec("UPDATE sessions SET start_ms = 900 WHERE id = 'standalone'");
+      expect(
+        listTemplateChoices(db, "p").map(({ sessionId }) => sessionId),
+      ).toEqual(["standalone", "deload"]);
       db.raw.exec("DELETE FROM sessions WHERE id = 'planned'");
+      expect(
+        listTemplateChoices(db, "p").map(({ sessionId }) => sessionId),
+      ).toEqual(["deload", "standalone"]);
       expect(resolveTemplateChoice(db, "p", "deload")).toEqual({
         kind: "template",
         sessionId: "new",
@@ -32,6 +40,21 @@ describe("template queries", () => {
         sessionId: "standalone",
       });
       expect(resolveTemplateChoice(db, "p", "missing")).toBeNull();
+      expect(
+        listTemplateChoices(db, "p").map(({ inProgress }) => inProgress),
+      ).toEqual([false, false]);
+      db.raw
+        .exec(`INSERT INTO sessions(program_id, id, lineage_id, name, position, status, deload, start_ms)
+        VALUES ('p', 'active', 'lineage', 'Active', 5, 'Ready', 0, 700)`);
+      expect(
+        listTemplateChoices(db, "p").map(({ sessionId, inProgress }) => ({
+          sessionId,
+          inProgress,
+        })),
+      ).toEqual([
+        { sessionId: "standalone", inProgress: false },
+        { sessionId: "deload", inProgress: true },
+      ]);
     } finally {
       db.raw.close();
     }

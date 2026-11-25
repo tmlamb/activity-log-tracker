@@ -182,4 +182,45 @@ describe("program insights projection", () => {
       db.raw.close();
     }
   });
+
+  it("orders muscle groups by sets, then reps, then volume completed in the last six weeks", () => {
+    const recent = new Date(2026, 1, 20, 12);
+    const db = createTestDb(`
+      INSERT INTO programs VALUES ('p', 'Program', 0);
+      INSERT INTO sessions(program_id, id, name, position, status, deload, start_ms)
+        VALUES ('p', 'old', 'Old', 0, 'Done', 0, ${start.getTime()}),
+               ('p', 'recent', 'Recent', 1, 'Done', 0, ${recent.getTime()});
+      INSERT INTO exercises(id, name, normalized_name, position, load_kind)
+        VALUES ('arms', 'Arms', 'arms', 0, 'SINGLE_WEIGHT'), ('back', 'Back', 'back', 1, 'SINGLE_WEIGHT'),
+               ('calves', 'Calves', 'calves', 2, 'SINGLE_WEIGHT'), ('legs', 'Legs', 'legs', 3, 'SINGLE_WEIGHT');
+      INSERT INTO muscle_labels VALUES (1, 'Arms', 'arms'), (2, 'Back', 'back'), (3, 'Calves', 'calves'), (4, 'Legs', 'legs');
+      INSERT INTO exercise_muscles VALUES ('arms', 0, 1), ('back', 0, 2), ('calves', 0, 3), ('legs', 0, 4);
+      INSERT INTO activities(program_id, session_id, id, exercise_id, position, reps, load_type, load_value)
+        VALUES ('p', 'old', 'arms', 'arms', 0, 5, 'RPE', 8),
+               ('p', 'recent', 'arms', 'arms', 0, 5, 'RPE', 8),
+               ('p', 'recent', 'back', 'back', 1, 5, 'RPE', 8),
+               ('p', 'recent', 'calves', 'calves', 2, 5, 'RPE', 8),
+               ('p', 'recent', 'legs', 'legs', 3, 5, 'RPE', 8);
+      INSERT INTO workout_sets(program_id, session_id, activity_id, id, kind, position, status, feedback, actual_reps, weight_value, weight_unit)
+        VALUES ('p', 'old', 'arms', 's1', 'Main', 0, 'Done', 'Neutral', 50, 100, 'lbs'),
+               ('p', 'old', 'arms', 's2', 'Main', 1, 'Done', 'Neutral', 50, 100, 'lbs'),
+               ('p', 'old', 'arms', 's3', 'Main', 2, 'Done', 'Neutral', 50, 100, 'lbs'),
+               ('p', 'recent', 'arms', 's1', 'Main', 0, 'Done', 'Neutral', 50, 100, 'lbs'),
+               ('p', 'recent', 'back', 's1', 'Main', 0, 'Done', 'Neutral', 5, 100, 'lbs'),
+               ('p', 'recent', 'back', 's2', 'Main', 1, 'Done', 'Neutral', 5, 100, 'lbs'),
+               ('p', 'recent', 'calves', 's1', 'Main', 0, 'Done', 'Neutral', 8, 10, 'lbs'),
+               ('p', 'recent', 'calves', 's2', 'Main', 1, 'Done', 'Neutral', 8, 10, 'lbs'),
+               ('p', 'recent', 'legs', 's1', 'Main', 0, 'Done', 'Neutral', 5, 50, 'lbs'),
+               ('p', 'recent', 'legs', 's2', 'Main', 1, 'Done', 'Neutral', 5, 50, 'lbs');`);
+    try {
+      const facts = readProgramInsightFacts(db, "p");
+      if (!facts) throw new Error("Missing program");
+      // Arms did the most overall, but mostly more than six weeks ago.
+      expect(
+        buildProgramInsightProjection(facts, recent.getTime()).muscleGroups,
+      ).toEqual(["Calves", "Back", "Legs", "Arms"]);
+    } finally {
+      db.raw.close();
+    }
+  });
 });

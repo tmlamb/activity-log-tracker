@@ -24,8 +24,12 @@ type MuscleMetrics = ProgramInsightMetrics & {
   dropPending: ProgramInsightMetrics;
   partial: boolean;
 };
+/** How many of the latest weeks decide the order of the muscle groups. */
+const RANKING_WEEKS = 6;
+
 export interface ProgramInsightProjection {
   programName: string;
+  /** Most completed sets in recent weeks first; ties by reps, then volume. */
   muscleGroups: string[];
   weeks: {
     week: number;
@@ -263,10 +267,33 @@ export function buildProgramInsightProjection(
       }
     }
   }
+  // Rank muscle groups by work completed in the most recent weeks.
+  const recent = new Map<string, ProgramInsightMetrics>();
+  for (
+    let week = Math.max(lastWeek - RANKING_WEEKS + 1, 1);
+    week <= lastWeek;
+    week++
+  )
+    for (const [key, metrics] of weekly.get(week) ?? []) {
+      const total = recent.get(key) ?? emptyMetrics();
+      total.sets += metrics.sets;
+      total.reps += metrics.reps;
+      total.volumeLbs += metrics.volumeLbs;
+      recent.set(key, total);
+    }
+  const rank = (key: string) => recent.get(key) ?? emptyMetrics();
   return {
     programName: facts.programName,
     partial,
-    muscleGroups: [...names.values()].sort((a, b) => a.localeCompare(b)),
+    muscleGroups: [...names]
+      .sort(
+        ([a, aName], [b, bName]) =>
+          rank(b).sets - rank(a).sets ||
+          rank(b).reps - rank(a).reps ||
+          rank(b).volumeLbs - rank(a).volumeLbs ||
+          aName.localeCompare(bName),
+      )
+      .map(([, name]) => name),
     weeks: Array.from({ length: lastWeek }, (_, index) => ({
       week: index + 1,
       startMs: addDays(start, index * 7).getTime(),
