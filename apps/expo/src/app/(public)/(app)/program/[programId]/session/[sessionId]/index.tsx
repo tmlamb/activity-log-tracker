@@ -301,14 +301,6 @@ function ActivityRow({
   sessionId: string;
 }) {
   const done = allDone(item);
-  // Every exercise starts collapsed, whatever its progress.
-  const [collapsed, setCollapsed] = useState(true);
-  // Collapse an exercise automatically when its last set is completed.
-  const [wasDone, setWasDone] = useState(done);
-  if (done !== wasDone) {
-    setWasDone(done);
-    if (done) setCollapsed(true);
-  }
   const rows = supersetRows(item);
   const superset = rows.length > 1;
   const ordered = supersetSetOrder(rows);
@@ -317,6 +309,14 @@ function ActivityRow({
   const inProgress =
     sets.some((set) => set.status !== "Planned") &&
     sets.some((set) => set.status === "Planned" || set.status === "Ready");
+  // An exercise in progress starts expanded; every other starts collapsed.
+  const [collapsed, setCollapsed] = useState(!inProgress);
+  // Collapse an exercise automatically when its last set is completed.
+  const [wasDone, setWasDone] = useState(done);
+  if (done !== wasDone) {
+    setWasDone(done);
+    if (done) setCollapsed(true);
+  }
   const completionWidth = Math.max(
     0,
     ...sets.flatMap((set) =>

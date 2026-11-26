@@ -315,7 +315,17 @@ describe("session detail exercises", () => {
       session: {
         ...env.seed.session,
         lastActivityAtMs: null,
-        activities: [activity("done", true), activity("open", false)],
+        activities: [
+          activity("done", true),
+          activity("open", false),
+          {
+            ...activity("started", false),
+            mainSets: [
+              set("started-0", true),
+              set("started-1", false, "Main", 1),
+            ],
+          },
+        ],
       },
     };
     let renderer: ReturnType<typeof create> | undefined;
@@ -339,9 +349,11 @@ describe("session detail exercises", () => {
     expect(
       root.findAll((node) => node.props["data-subtitle"] !== undefined),
     ).toHaveLength(0);
-    // Every exercise starts collapsed, finished or not.
+    // Finished and unstarted exercises start collapsed; one in progress
+    // starts expanded.
     expect(header("Exercise done")["data-collapsed"]).toBe(true);
     expect(header("Exercise open")["data-collapsed"]).toBe(true);
+    expect(header("Exercise started")["data-collapsed"]).toBe(false);
     for (const expected of [false, true, false, true]) {
       press("Exercise done");
       expect(header("Exercise done")["data-collapsed"]).toBe(expected);
