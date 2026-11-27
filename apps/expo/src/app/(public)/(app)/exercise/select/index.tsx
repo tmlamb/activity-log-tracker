@@ -37,7 +37,10 @@ import { getSavedExercise } from "~/data/repositories/exercises";
 import { useSelectionHandoff } from "~/data/selection-handoff";
 import { read, useGeneration } from "~/data/store";
 import useRouter from "~/hooks/use-router";
-import { animateListScrollToCenter } from "~/utils/animate-list-scroll";
+import {
+  animateListScrollToCenter,
+  jumpListScrollToCenter,
+} from "~/utils/animate-list-scroll";
 
 /**
  * How long to wait after the picker regains focus before scrolling. Focus
@@ -56,6 +59,12 @@ function SafeAreaInsetsReporter({
   useEffect(() => onChange(insets), [insets, onChange]);
   return null;
 }
+
+/** Matches the list row of the saved exercise `id`. */
+const savedExerciseRow = (id: string) => (row: unknown) => {
+  const { kind, item } = row as { kind: string; item?: Choice };
+  return kind === "item" && item?.kind === "saved" && item.id === id;
+};
 
 type Library = ReturnType<typeof useExerciseLibrary>;
 interface Choice {
@@ -128,6 +137,10 @@ function ExercisePicker({
       ? { kind: "saved", id: currentExerciseId }
       : null,
   );
+  // The picker opens with the exercise it was given already in view.
+  const [openedAtId] = useState(selected?.id);
+  // The list stays hidden while it settles there, which would show as jitter.
+  const [positioning, setPositioning] = useState(Boolean(openedAtId));
   // An exercise added while the picker is open, as from its add button, is
   // selected unless something already is, and scrolled to once back in view.
   const [knownIds, setKnownIds] = useState(
@@ -150,8 +163,17 @@ function ExercisePicker({
   const cancelScroll = useRef<(() => void) | null>(null);
   // The header and the bottom toolbar overlap the list, which the native list
   // insets by this screen's safe area; centering keeps clear of both.
-  const listInsets = useRef<ListInsets>({ top: 0, bottom: 0 });
+  const listInsets = useRef<ListInsets | null>(null);
   useEffect(() => () => cancelScroll.current?.(), []);
+  useEffect(() => {
+    if (!openedAtId) return;
+    cancelScroll.current = jumpListScrollToCenter(
+      () => listRef.current,
+      savedExerciseRow(openedAtId),
+      () => listInsets.current,
+      () => setPositioning(false),
+    );
+  }, [openedAtId]);
   const [filter, setFilter] = useState("");
   const names = new Set(
     library.saved.map(({ name }) => normalizeExerciseName(name)),
@@ -219,15 +241,8 @@ function ExercisePicker({
       cancelScroll.current?.();
       cancelScroll.current = animateListScrollToCenter(
         () => listRef.current,
-        (row) => {
-          const { kind, item } = row as { kind: string; item?: Choice };
-          return (
-            kind === "item" &&
-            item?.kind === "saved" &&
-            item.id === scrollTargetId
-          );
-        },
-        () => listInsets.current,
+        savedExerciseRow(scrollTargetId),
+        () => listInsets.current ?? { top: 0, bottom: 0 },
       );
     }, SCROLL_AFTER_FOCUS_MS);
     return () => clearTimeout(timeout);
@@ -316,11 +331,14 @@ function ExercisePicker({
       />
       <LegendSectionListStyled
         ref={listRef}
-        // Dragging takes over from a scroll to an added exercise.
-        onScrollBeginDrag={() => cancelScroll.current?.()}
+        // Dragging takes over from a scroll to an exercise.
+        onScrollBeginDrag={() => {
+          cancelScroll.current?.();
+          setPositioning(false);
+        }}
         // Lets that scroll reach the list's inset top and bottom.
         scrollToOverflowEnabled
-        className="flex-1"
+        className={positioning ? "flex-1 opacity-0" : "flex-1"}
         contentContainerClassName="px-5 py-5"
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"

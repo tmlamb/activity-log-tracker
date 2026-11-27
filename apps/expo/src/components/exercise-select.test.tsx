@@ -28,6 +28,16 @@ const env = vi.hoisted(() => ({
       () =>
         undefined,
   ),
+  jumpScroll: vi.fn(
+    (
+      _getList: () => unknown,
+      _matches: (row: unknown) => boolean,
+      _getInsets: () => unknown,
+      _onDone: () => void,
+    ) =>
+      () =>
+        undefined,
+  ),
 }));
 vi.mock("react-native-get-random-values", () => ({}));
 vi.mock("~/data/store", async (importOriginal) => ({
@@ -115,15 +125,18 @@ vi.mock("~/components/CardRow", () => ({
 }));
 vi.mock("~/utils/animate-list-scroll", () => ({
   animateListScrollToCenter: env.animateScroll,
+  jumpListScrollToCenter: env.jumpScroll,
 }));
 vi.mock("~/components/Styled", () => ({
   LegendSectionListStyled: ({
     ref,
+    className,
     sections,
     renderSectionHeader,
     renderItem,
   }: {
     ref?: { current: unknown };
+    className: string;
     sections: { key: string; data: unknown[] }[];
     renderSectionHeader: (info: { section: unknown }) => ReactNode;
     renderItem: (info: {
@@ -134,7 +147,7 @@ vi.mock("~/components/Styled", () => ({
   }) => {
     if (ref) ref.current = env.list;
     return (
-      <div>
+      <div data-list={className}>
         {sections.map((section) => (
           <section key={section.key}>
             {renderSectionHeader({ section })}
@@ -185,6 +198,10 @@ async function render() {
           node.props["data-row"] as string,
           node.props["data-selected"] as boolean,
         ]),
+    listClassName: () =>
+      root.find((node) => typeof node.props["data-list"] === "string").props[
+        "data-list"
+      ] as string,
     click: (props: Record<string, string>) =>
       act(() => {
         (root.findByProps(props).props as { onClick: () => void }).onClick();
@@ -199,6 +216,7 @@ beforeEach(() => {
   env.back.mockClear();
   env.alert.mockClear();
   env.animateScroll.mockClear();
+  env.jumpScroll.mockClear();
   env.focused = true;
   vi.useFakeTimers();
   useSelectionHandoff.setState({ entries: {} });
@@ -233,8 +251,10 @@ const addExercise = (id: string, name: string) =>
  * The list the picker scrolled and the screen's insets, checked, and the saved
  * exercise it centers.
  */
-function scrollTarget() {
-  const [getList, matches, getInsets] = env.animateScroll.mock.calls[0] ?? [];
+function scrollTarget(
+  scroll: typeof env.animateScroll | typeof env.jumpScroll = env.animateScroll,
+) {
+  const [getList, matches, getInsets] = scroll.mock.calls[0] ?? [];
   expect(getList?.()).toBe(env.list);
   expect(getInsets?.()).toMatchObject({ top: 70, bottom: 90 });
   const rows = ["e", "n"].flatMap((id) =>
@@ -303,6 +323,28 @@ describe("exercise select", () => {
       ["Dumbbell", false],
       ["Machine", false],
     ]);
+    view.unmount();
+  });
+
+  it("opens on the current exercise without animating", async () => {
+    request();
+    const view = await render();
+    expect(env.jumpScroll).toHaveBeenCalledOnce();
+    expect(scrollTarget(env.jumpScroll)).toEqual("e");
+    expect(env.animateScroll).not.toHaveBeenCalled();
+    // Hidden until the list has settled on the exercise.
+    expect(view.listClassName()).toContain("opacity-0");
+    act(() => env.jumpScroll.mock.calls[0]?.[3]());
+    expect(view.listClassName()).not.toContain("opacity-0");
+    view.unmount();
+  });
+
+  it("opens at the top without a current exercise", async () => {
+    request();
+    env.params = { ...env.params, currentExerciseId: undefined };
+    const view = await render();
+    expect(env.jumpScroll).not.toHaveBeenCalled();
+    expect(view.listClassName()).not.toContain("opacity-0");
     view.unmount();
   });
 

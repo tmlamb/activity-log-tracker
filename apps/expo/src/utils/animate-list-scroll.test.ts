@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ScrollableList } from "./animate-list-scroll";
-import { animateListScrollToCenter } from "./animate-list-scroll";
+import {
+  animateListScrollToCenter,
+  jumpListScrollToCenter,
+} from "./animate-list-scroll";
 
 let frames: ((time: number) => void)[] = [];
 let now = 0;
@@ -111,5 +114,69 @@ describe("animateListScrollToCenter", () => {
     frameAt(0);
     expect(scrollTo).toHaveBeenCalledOnce();
     expect(frames).toHaveLength(0);
+  });
+});
+
+describe("jumpListScrollToCenter", () => {
+  it("jumps once the list is laid out and the insets are known", () => {
+    const { ref, state, scrollTo } = list(100, -70);
+    let known: ReturnType<typeof insets> | null = null;
+    state.scrollLength = 0;
+    jumpListScrollToCenter(
+      () => ref,
+      row("row40"),
+      () => known,
+      vi.fn(),
+    );
+    frameAt(0);
+    state.scrollLength = 500;
+    frameAt(16);
+    expect(scrollTo).not.toHaveBeenCalled();
+    known = insets();
+    frameAt(32);
+    expect(scrollTo.mock.calls).toEqual([[{ y: 1785, animated: false }]]);
+  });
+
+  it("jumps again as the rows it lands on are measured, then is done", () => {
+    const { ref, state, scrollTo } = list(100, -70);
+    const done = vi.fn();
+    jumpListScrollToCenter(() => ref, row("row40"), insets, done);
+    frameAt(0);
+    state.positionAtIndex = (index) => index * 60;
+    frameAt(16);
+    expect(scrollTo.mock.calls.map(([{ y }]) => y)).toEqual([1785, 2185]);
+    // Done only once the target has held still for five more frames.
+    for (let time = 32; time <= 80; time += 16) frameAt(time);
+    expect(done).not.toHaveBeenCalled();
+    frameAt(96);
+    expect(done).toHaveBeenCalledOnce();
+    expect(frames).toHaveLength(0);
+    expect(scrollTo).toHaveBeenCalledTimes(2);
+  });
+
+  it("is done with a list that never appears or a missing row", () => {
+    const never = vi.fn();
+    jumpListScrollToCenter(() => null, row("row40"), insets, never);
+    let waited = 0;
+    for (; frames.length; waited++) frameAt(waited * 16);
+    expect(waited).toBe(30);
+    expect(never).toHaveBeenCalledOnce();
+
+    const { ref, scrollTo } = list(100, -70);
+    const missing = vi.fn();
+    jumpListScrollToCenter(() => ref, row("missing"), insets, missing);
+    frameAt(0);
+    expect(frames).toHaveLength(0);
+    expect(missing).toHaveBeenCalledOnce();
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("stops without being done when cancelled", () => {
+    const { ref, scrollTo } = list(100, -70);
+    const done = vi.fn();
+    jumpListScrollToCenter(() => ref, row("row40"), insets, done)();
+    frameAt(0);
+    expect(scrollTo).not.toHaveBeenCalled();
+    expect(done).not.toHaveBeenCalled();
   });
 });

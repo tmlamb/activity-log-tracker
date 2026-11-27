@@ -25,8 +25,42 @@ export interface ListInsets {
 
 export const CENTER_SCROLL_DURATION_MS = 400;
 
+/** How many frames an opening jump may take to find the list and settle. */
+const JUMP_MAX_FRAMES = 30;
+/** How many frames the target must hold still before a jump is done. */
+const JUMP_SETTLED_FRAMES = 5;
+
 const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
+
+type ListState = ReturnType<ScrollableList["getState"]>;
+
+/**
+ * The native offset that puts the row at `index` in the middle of the area
+ * `insets` leave uncovered, or as close as the top or bottom of the list
+ * allows.
+ */
+function centerOffset(state: ListState, index: number, insets: ListInsets) {
+  // Unmeasured rows report no size until they are first rendered.
+  const averages = Object.values(state.getAverageItemSizes());
+  const size =
+    (state.sizeAtIndex(index) as number | undefined) ??
+    averages[0]?.average ??
+    0;
+  const visibleLength = state.scrollLength - insets.top - insets.bottom;
+  const top = -insets.top;
+  const bottom = Math.max(
+    top,
+    state.contentLength - state.scrollLength + insets.bottom,
+  );
+  return Math.min(
+    bottom,
+    Math.max(
+      top,
+      state.positionAtIndex(index) + size / 2 - insets.top - visibleLength / 2,
+    ),
+  );
+}
 
 /**
  * Smoothly scrolls `list` so the row whose flat list item `matches` sits in
@@ -59,35 +93,65 @@ export function animateListScrollToCenter(
     const index = state.data.findIndex(matches);
     if (index === -1) return;
     start ??= { time, offset: state.scroll };
-    // Unmeasured rows report no size until they are first rendered.
-    const averages = Object.values(state.getAverageItemSizes());
-    const size =
-      (state.sizeAtIndex(index) as number | undefined) ??
-      averages[0]?.average ??
-      0;
-    const insets = getInsets();
-    const visibleLength = state.scrollLength - insets.top - insets.bottom;
-    const top = -insets.top;
-    const bottom = Math.max(
-      top,
-      state.contentLength - state.scrollLength + insets.bottom,
-    );
-    const target = Math.min(
-      bottom,
-      Math.max(
-        top,
-        state.positionAtIndex(index) +
-          size / 2 -
-          insets.top -
-          visibleLength / 2,
-      ),
-    );
+    const target = centerOffset(state, index, getInsets());
     const progress = Math.min(1, (time - start.time) / durationMs);
     list.getNativeScrollRef().scrollTo({
       y: start.offset + (target - start.offset) * easeInOutCubic(progress),
       animated: false,
     });
     if (progress < 1) frame = requestAnimationFrame(step);
+  };
+  frame = requestAnimationFrame(step);
+  return () => {
+    if (frame !== undefined) cancelAnimationFrame(frame);
+  };
+}
+
+/**
+ * Places `list` where `animateListScrollToCenter` would leave it, without the
+ * animation, for a list that opens on a row. It waits for the list to be laid
+ * out and for `getInsets` to report, then repeats the jump while the rows it
+ * lands on are measured and move the target, until the target holds still.
+ *
+ * Each repeat trails the list's own layout by a frame or more, which shows as
+ * the rows shifting and shifting back, so the caller hides the list until
+ * `onDone`. That is called however the jump ends, short of being stopped by
+ * the function this returns.
+ */
+export function jumpListScrollToCenter(
+  getList: () => ScrollableList | null,
+  matches: (item: unknown) => boolean,
+  getInsets: () => ListInsets | null,
+  onDone: () => void,
+): () => void {
+  let frame: number | undefined;
+  let frames = 0;
+  let settled = 0;
+  let lastTarget: number | undefined;
+  const step = () => {
+    frame = undefined;
+    if (!jump() || ++frames >= JUMP_MAX_FRAMES) onDone();
+    else frame = requestAnimationFrame(step);
+  };
+  /** Returns whether the jump has more to do. */
+  const jump = () => {
+    const state = getList()?.getState();
+    const insets = getInsets();
+    if (state && insets && state.scrollLength > 0) {
+      const index = state.data.findIndex(matches);
+      if (index === -1) return false;
+      const target = centerOffset(state, index, insets);
+      if (target === lastTarget) {
+        if (++settled >= JUMP_SETTLED_FRAMES) return false;
+      } else {
+        settled = 0;
+        lastTarget = target;
+        getList()
+          ?.getNativeScrollRef()
+          .scrollTo({ y: target, animated: false });
+      }
+    }
+    return true;
   };
   frame = requestAnimationFrame(step);
   return () => {
