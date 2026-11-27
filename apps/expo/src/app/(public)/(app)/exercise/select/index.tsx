@@ -1,11 +1,17 @@
 import "react-native-get-random-values";
 
+import type { SectionListRef } from "@legendapp/list/section-list";
 import type { Href } from "expo-router";
-import { useState } from "react";
-import { Alert, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, StyleSheet, View } from "react-native";
 import { useNativeVariable } from "react-native-css";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Stack, useLocalSearchParams } from "expo-router";
+import { useIsFocused } from "expo-router/react-navigation";
 import { Host } from "@expo/ui";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { v4 as uuidv4 } from "uuid";
@@ -16,6 +22,7 @@ import type {
   ExerciseSelectionInput,
   SelectionTicket,
 } from "~/data/selection-handoff";
+import type { ListInsets } from "~/utils/animate-list-scroll";
 import { SelectableCardRow } from "~/components/CardRow";
 import { exerciseLabel } from "~/components/exercise-label";
 import { Text } from "~/components/font-scale-text";
@@ -30,6 +37,25 @@ import { getSavedExercise } from "~/data/repositories/exercises";
 import { useSelectionHandoff } from "~/data/selection-handoff";
 import { read, useGeneration } from "~/data/store";
 import useRouter from "~/hooks/use-router";
+import { animateListScrollToCenter } from "~/utils/animate-list-scroll";
+
+/**
+ * How long to wait after the picker regains focus before scrolling. Focus
+ * returns as the modal above starts to close; waiting lets the scroll play
+ * once the picker is in view.
+ */
+const SCROLL_AFTER_FOCUS_MS = 500;
+
+/** Reports the safe area insets of the provider it is rendered in. */
+function SafeAreaInsetsReporter({
+  onChange,
+}: {
+  onChange: (insets: ListInsets) => void;
+}) {
+  const insets = useSafeAreaInsets();
+  useEffect(() => onChange(insets), [insets, onChange]);
+  return null;
+}
 
 type Library = ReturnType<typeof useExerciseLibrary>;
 interface Choice {
@@ -102,6 +128,30 @@ function ExercisePicker({
       ? { kind: "saved", id: currentExerciseId }
       : null,
   );
+  // An exercise added while the picker is open, as from its add button, is
+  // selected unless something already is, and scrolled to once back in view.
+  const [knownIds, setKnownIds] = useState(
+    () => new Set(library.saved.map(({ id }) => id)),
+  );
+  const [scrollTargetId, setScrollTargetId] = useState<string | null>(null);
+  if (library.saved.some(({ id }) => !knownIds.has(id))) {
+    const added = library.saved.find(
+      (item) => !knownIds.has(item.id) && !item.deleted,
+    );
+    setKnownIds(new Set(library.saved.map(({ id }) => id)));
+    if (added) {
+      if (!selected) setSelected({ kind: "saved", id: added.id });
+      setScrollTargetId(added.id);
+    }
+  }
+  const focused = useIsFocused();
+  const listRef = useRef<SectionListRef>(null);
+  const scrolledToId = useRef<string | null>(null);
+  const cancelScroll = useRef<(() => void) | null>(null);
+  // The header and the bottom toolbar overlap the list, which the native list
+  // insets by this screen's safe area; centering keeps clear of both.
+  const listInsets = useRef<ListInsets>({ top: 0, bottom: 0 });
+  useEffect(() => () => cancelScroll.current?.(), []);
   const [filter, setFilter] = useState("");
   const names = new Set(
     library.saved.map(({ name }) => normalizeExerciseName(name)),
@@ -160,6 +210,28 @@ function ExercisePicker({
       key: "unused",
       data: presets,
     });
+  useEffect(() => {
+    if (!focused || !scrollTargetId || scrolledToId.current === scrollTargetId)
+      return;
+    const timeout = setTimeout(() => {
+      scrolledToId.current = scrollTargetId;
+      // A search that hides the added exercise leaves the list where it is.
+      cancelScroll.current?.();
+      cancelScroll.current = animateListScrollToCenter(
+        () => listRef.current,
+        (row) => {
+          const { kind, item } = row as { kind: string; item?: Choice };
+          return (
+            kind === "item" &&
+            item?.kind === "saved" &&
+            item.id === scrollTargetId
+          );
+        },
+        () => listInsets.current,
+      );
+    }, SCROLL_AFTER_FOCUS_MS);
+    return () => clearTimeout(timeout);
+  }, [focused, scrollTargetId]);
   const done = () => {
     // Ignore a second tap while the first is closing this screen.
     if (!selected || router.isNavigating()) return;
@@ -243,6 +315,11 @@ function ExercisePicker({
         hideNavigationBar={false}
       />
       <LegendSectionListStyled
+        ref={listRef}
+        // Dragging takes over from a scroll to an added exercise.
+        onScrollBeginDrag={() => cancelScroll.current?.()}
+        // Lets that scroll reach the list's inset top and bottom.
+        scrollToOverflowEnabled
         className="flex-1"
         contentContainerClassName="px-5 py-5"
         contentInsetAdjustmentBehavior="automatic"
@@ -300,6 +377,15 @@ function ExercisePicker({
           </Animated.View>
         )}
       />
+      {/* Same frame as the list, so the same safe area. A sibling rather than
+      a wrapper, which would hide the list from the native header. */}
+      <SafeAreaProvider pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <SafeAreaInsetsReporter
+          onChange={(insets) => {
+            listInsets.current = insets;
+          }}
+        />
+      </SafeAreaProvider>
       <Host ignoreSafeArea="all">
         <Stack.Toolbar placement="bottom">
           <Stack.Toolbar.SearchBarSlot />

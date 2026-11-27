@@ -17,6 +17,17 @@ const env = vi.hoisted(() => ({
   params: {},
   back: vi.fn(),
   alert: vi.fn(),
+  focused: true,
+  list: { name: "list" },
+  animateScroll: vi.fn(
+    (
+      _getList: () => unknown,
+      _matches: (row: unknown) => boolean,
+      _getInsets: () => unknown,
+    ) =>
+      () =>
+        undefined,
+  ),
 }));
 vi.mock("react-native-get-random-values", () => ({}));
 vi.mock("~/data/store", async (importOriginal) => ({
@@ -25,7 +36,12 @@ vi.mock("~/data/store", async (importOriginal) => ({
 }));
 vi.mock("react-native", () => ({
   Alert: { alert: env.alert },
+  StyleSheet: { absoluteFill: {} },
   View: ({ children }: PropsWithChildren) => <div>{children}</div>,
+}));
+vi.mock("react-native-safe-area-context", () => ({
+  SafeAreaProvider: ({ children }: PropsWithChildren) => <>{children}</>,
+  useSafeAreaInsets: () => ({ top: 70, bottom: 90, left: 0, right: 0 }),
 }));
 vi.mock("react-native-css", () => ({ useNativeVariable: () => "#000" }));
 vi.mock("react-native-reanimated", () => ({
@@ -41,7 +57,7 @@ vi.mock("@expo/vector-icons/MaterialCommunityIcons", () => ({
 }));
 vi.mock("expo-router/react-navigation", () => ({
   useNavigation: () => ({ addListener: () => () => undefined }),
-  useIsFocused: () => true,
+  useIsFocused: () => env.focused,
 }));
 vi.mock("expo-router", () => ({
   Redirect: () => <p>redirected</p>,
@@ -97,12 +113,17 @@ vi.mock("~/components/CardRow", () => ({
     </button>
   ),
 }));
+vi.mock("~/utils/animate-list-scroll", () => ({
+  animateListScrollToCenter: env.animateScroll,
+}));
 vi.mock("~/components/Styled", () => ({
   LegendSectionListStyled: ({
+    ref,
     sections,
     renderSectionHeader,
     renderItem,
   }: {
+    ref?: { current: unknown };
     sections: { key: string; data: unknown[] }[];
     renderSectionHeader: (info: { section: unknown }) => ReactNode;
     renderItem: (info: {
@@ -110,18 +131,21 @@ vi.mock("~/components/Styled", () => ({
       index: number;
       section: unknown;
     }) => ReactNode;
-  }) => (
-    <div>
-      {sections.map((section) => (
-        <section key={section.key}>
-          {renderSectionHeader({ section })}
-          {section.data.map((item, index) => (
-            <div key={index}>{renderItem({ item, index, section })}</div>
-          ))}
-        </section>
-      ))}
-    </div>
-  ),
+  }) => {
+    if (ref) ref.current = env.list;
+    return (
+      <div>
+        {sections.map((section) => (
+          <section key={section.key}>
+            {renderSectionHeader({ section })}
+            {section.data.map((item, index) => (
+              <div key={index}>{renderItem({ item, index, section })}</div>
+            ))}
+          </section>
+        ))}
+      </div>
+    );
+  },
 }));
 
 let raw: DatabaseSync | undefined;
@@ -151,6 +175,7 @@ async function render() {
   const root = renderer.root;
   return {
     unmount: () => act(() => renderer?.unmount()),
+    rerender: () => act(() => renderer?.update(<ExerciseSelectScreen />)),
     headings: () =>
       root.findAllByType("h2").flatMap((node) => node.children as string[]),
     rows: () =>
@@ -173,6 +198,9 @@ beforeEach(() => {
   ).IS_REACT_ACT_ENVIRONMENT = true;
   env.back.mockClear();
   env.alert.mockClear();
+  env.animateScroll.mockClear();
+  env.focused = true;
+  vi.useFakeTimers();
   useSelectionHandoff.setState({ entries: {} });
   const db = createTestDb(`
     INSERT INTO exercises (id, name, normalized_name, position)
@@ -182,11 +210,43 @@ beforeEach(() => {
   setDatabase(db);
 });
 afterEach(() => {
+  vi.useRealTimers();
   useSelectionHandoff.setState({ entries: {} });
   setDatabase(undefined);
   raw?.close();
   raw = undefined;
 });
+
+const addExercise = (id: string, name: string) =>
+  act(() =>
+    write((db) => {
+      db.runSync(
+        "INSERT INTO exercises (id, name, normalized_name, position) VALUES (?, ?, ?, 3)",
+        id,
+        name,
+        name.toLowerCase(),
+      );
+    }),
+  );
+
+/**
+ * The list the picker scrolled and the screen's insets, checked, and the saved
+ * exercise it centers.
+ */
+function scrollTarget() {
+  const [getList, matches, getInsets] = env.animateScroll.mock.calls[0] ?? [];
+  expect(getList?.()).toBe(env.list);
+  expect(getInsets?.()).toMatchObject({ top: 70, bottom: 90 });
+  const rows = ["e", "n"].flatMap((id) =>
+    (["saved", "preset"] as const).map((kind) => ({
+      kind: "item",
+      item: { kind, id },
+    })),
+  );
+  const found = rows.filter((row) => matches?.(row));
+  expect(found).toHaveLength(1);
+  return found[0]?.item.id;
+}
 
 const saved = (rows: [string, boolean][]) =>
   rows.filter(([name]) => ["Bench", "Dumbbell", "Machine"].includes(name));
@@ -243,6 +303,57 @@ describe("exercise select", () => {
       ["Dumbbell", false],
       ["Machine", false],
     ]);
+    view.unmount();
+  });
+
+  it("selects and centers an exercise added while the picker is open", async () => {
+    request();
+    env.params = { ...env.params, currentExerciseId: undefined };
+    const view = await render();
+    expect(saved(view.rows())).toEqual([
+      ["Bench", false],
+      ["Dumbbell", false],
+      ["Machine", false],
+    ]);
+    // The add form covers the picker until it saves and goes back.
+    env.focused = false;
+    addExercise("n", "Curl");
+    expect(env.animateScroll).not.toHaveBeenCalled();
+    env.focused = true;
+    view.rerender();
+    expect(view.rows().slice(0, 4)).toEqual([
+      ["Bench", false],
+      ["Curl", true],
+      ["Dumbbell", false],
+      ["Machine", false],
+    ]);
+    // The scroll waits for the closing modal and this screen to settle.
+    act(() => {
+      vi.advanceTimersByTime(499);
+    });
+    expect(env.animateScroll).not.toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(env.animateScroll).toHaveBeenCalledOnce();
+    expect(scrollTarget()).toEqual("n");
+    view.unmount();
+  });
+
+  it("keeps an existing selection when an exercise is added", async () => {
+    request();
+    const view = await render();
+    addExercise("n", "Curl");
+    expect(view.rows().slice(0, 4)).toEqual([
+      ["Bench", true],
+      ["Curl", false],
+      ["Dumbbell", false],
+      ["Machine", false],
+    ]);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    expect(scrollTarget()).toEqual("n");
     view.unmount();
   });
 });
