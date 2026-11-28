@@ -13,6 +13,9 @@ export function getRecentMainUsage(
   programId: string,
   sourceSessionId: string,
 ): Map<string, number> {
+  // CROSS JOIN keeps `recent` as the outer loop. Without table statistics,
+  // SQLite may otherwise scan every activity in the program and rebuild
+  // `recent` for each one, which takes seconds on a long history.
   const rows = reader.getAllSync<{ exerciseId: string; count: number }>(
     `WITH recent AS (
        SELECT s.id FROM sessions s
@@ -23,8 +26,9 @@ export function getRecentMainUsage(
        LIMIT ?
      )
      SELECT a.exercise_id AS exerciseId, COUNT(DISTINCT a.session_id) AS count
-     FROM activities a JOIN recent ON recent.id = a.session_id
-     WHERE a.program_id = ? AND a.parent_activity_id IS NULL AND a.exercise_id IS NOT NULL
+     FROM recent CROSS JOIN activities a
+       ON a.program_id = ? AND a.session_id = recent.id
+     WHERE a.parent_activity_id IS NULL AND a.exercise_id IS NOT NULL
      GROUP BY a.exercise_id`,
     sourceSessionId,
     programId,
