@@ -106,19 +106,19 @@ export function readProgramInsightFacts(
        e.one_rep_max_unit AS maxUnit, a.reps AS plannedReps, a.load_type AS loadType,
        a.load_value AS loadValue, a.drop_percent AS dropPercent, w.status, w.feedback, w.actual_reps AS actualReps,
        w.weight_value AS weightValue, w.weight_unit AS weightUnit
-     FROM sessions s JOIN activities a ON a.program_id = s.program_id AND a.session_id = s.id
-     JOIN workout_sets w ON w.program_id = a.program_id AND w.session_id = a.session_id AND w.activity_id = a.id AND w.kind IN ('Main', 'Drop')
-     LEFT JOIN exercises e ON e.id = a.exercise_id
-     WHERE s.program_id = ? AND NOT (w.status = 'Done' AND COALESCE(w.actual_reps, 0) > 0)
+     FROM sessions s CROSS JOIN activities a ON a.program_id = s.program_id AND a.session_id = s.id
        -- Unperformed alternatives aren't missed work; only main activities count.
        AND a.parent_activity_id IS NULL
+     CROSS JOIN workout_sets w ON w.program_id = a.program_id AND w.session_id = a.session_id AND w.activity_id = a.id AND w.kind IN ('Main', 'Drop')
+     LEFT JOIN exercises e ON e.id = a.exercise_id
+     WHERE s.program_id = ? AND NOT (w.status = 'Done' AND COALESCE(w.actual_reps, 0) > 0)
      ORDER BY s.position, a.position, ${kindRankSql("w.kind")}, w.position`,
     programId,
   );
   const dropBasis = reader.getAllSync<InsightDropBasis>(
     `SELECT w.session_id AS sessionId, w.activity_id AS activityId, w.kind,
        w.weight_value AS weightValue, w.weight_unit AS weightUnit
-     FROM sessions s JOIN workout_sets w ON w.program_id = s.program_id AND w.session_id = s.id
+     FROM sessions s CROSS JOIN workout_sets w ON w.program_id = s.program_id AND w.session_id = s.id
      WHERE s.program_id = ? AND s.status IN ('Planned', 'Ready')
        AND EXISTS (SELECT 1 FROM workout_sets d WHERE d.program_id = w.program_id
          AND d.session_id = w.session_id AND d.activity_id = w.activity_id

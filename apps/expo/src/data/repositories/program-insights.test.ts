@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Exercise, Program } from "@activity-log/ui/utils";
 import { buildProgramInsights } from "@activity-log/ui/utils";
 
-import type { Db } from "../database/db";
+import type { Db, SqlValue } from "../database/db";
 import { createTestDb } from "../database/test-db";
 import { buildProgramInsightProjection } from "../domain/program-insights";
 import { readProgramInsightFacts } from "./program-insights";
@@ -219,6 +219,44 @@ describe("program insights projection", () => {
       expect(
         buildProgramInsightProjection(facts, recent.getTime()).muscleGroups,
       ).toEqual(["Calves", "Back", "Legs", "Arms"]);
+    } finally {
+      db.raw.close();
+    }
+  });
+
+  it("reads planned drop-set weights from unfinished sessions only, even without table statistics", () => {
+    const { db } = setup();
+    const queries: { sql: string; params: SqlValue[] }[] = [];
+    try {
+      readProgramInsightFacts(
+        {
+          ...db,
+          getAllSync: <T>(sql: string, ...params: SqlValue[]) => {
+            queries.push({ sql, params });
+            return db.getAllSync<T>(sql, ...params);
+          },
+        },
+        "p",
+      );
+      const query = queries.find(
+        ({ sql }) =>
+          sql.includes("'Drop'") && sql.includes("'Planned', 'Ready'"),
+      );
+      if (!query) throw new Error("The drop basis query was not run");
+      const plan = db.raw
+        .prepare(`EXPLAIN QUERY PLAN ${query.sql}`)
+        .all(...query.params)
+        .map((row) => (row as { detail: string }).detail);
+      // Starting from sets instead read every set in the program's history.
+      const sessions = plan.findIndex((detail) =>
+        detail.startsWith("SEARCH s "),
+      );
+      const sets = plan.findIndex(
+        (detail) =>
+          detail.startsWith("SEARCH w ") && detail.includes("session_id=?"),
+      );
+      expect(sessions).toBeGreaterThanOrEqual(0);
+      expect(sets).toBeGreaterThan(sessions);
     } finally {
       db.raw.close();
     }

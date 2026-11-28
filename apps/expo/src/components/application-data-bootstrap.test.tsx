@@ -2,11 +2,14 @@ import type { PropsWithChildren } from "react";
 import { act, create } from "react-test-renderer";
 import { describe, expect, it, vi } from "vitest";
 
+import { captureException } from "~/utils/posthog";
 import { ApplicationDataBootstrap } from "./application-data-bootstrap";
 
 const env = vi.hoisted(() => ({
   change: undefined as ((state: string) => void) | undefined,
   failure: undefined as Error | undefined,
+  database: { name: "database" },
+  optimize: vi.fn(),
   cleanup: vi.fn(),
   refresh: vi.fn(),
 }));
@@ -28,8 +31,9 @@ vi.mock("~/utils/posthog", () => ({ captureException: vi.fn() }));
 vi.mock("~/data/open-database", () => ({
   openDatabase: () => {
     if (env.failure) throw env.failure;
-    return {};
+    return env.database;
   },
+  optimizeDatabase: env.optimize,
 }));
 vi.mock("~/data/actions", () => ({ cleanupInactiveSessions: env.cleanup }));
 vi.mock("~/data/store", () => ({
@@ -69,12 +73,19 @@ describe("application data bootstrap", () => {
     );
 
     env.failure = undefined;
+    // Statistics are optional: a failed optimize is reported, not shown.
+    const optimizeFailure = new Error("database is locked");
+    env.optimize.mockImplementationOnce(() => {
+      throw optimizeFailure;
+    });
     act(() => {
       (
         renderer?.root.findByType("button").props as { onClick: () => void }
       ).onClick();
     });
     expect(JSON.stringify(renderer?.toJSON())).toContain("Existing screen");
+    expect(env.optimize).toHaveBeenCalledExactlyOnceWith(env.database);
+    expect(captureException).toHaveBeenCalledWith(optimizeFailure);
     expect(env.cleanup).toHaveBeenCalledOnce();
 
     act(() => env.change?.("background"));

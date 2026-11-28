@@ -3,8 +3,9 @@ import { Fragment, useEffect, useState } from "react";
 import { AppState, ScrollView } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 
+import type { Db } from "~/data/database/db";
 import { cleanupInactiveSessions } from "~/data/actions";
-import { openDatabase } from "~/data/open-database";
+import { openDatabase, optimizeDatabase } from "~/data/open-database";
 import { useSelectionHandoff } from "~/data/selection-handoff";
 import { refresh, setDatabase, useGeneration } from "~/data/store";
 import { captureException } from "~/utils/posthog";
@@ -19,13 +20,24 @@ let opened = false;
 function ensureDatabase(): unknown {
   if (opened) return undefined;
   try {
-    setDatabase(openDatabase());
+    const db = openDatabase();
+    setDatabase(db);
     opened = true;
+    runOptimize(db);
     cleanupInactiveSessions();
     return undefined;
   } catch (error) {
     captureException(error);
     return error ?? new Error("The workout database could not be opened.");
+  }
+}
+
+/** Statistics only speed up queries, so a failure doesn't stop the app. */
+function runOptimize(db: Db) {
+  try {
+    optimizeDatabase(db);
+  } catch (error) {
+    captureException(error);
   }
 }
 
