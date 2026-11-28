@@ -2,7 +2,7 @@ import "react-native-get-random-values";
 
 import { Alert, ScrollView, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
 
 import ConfirmButton from "~/components/ConfirmButton";
@@ -45,6 +45,7 @@ function ProgramFormContent({
     formState: { isDirty },
   } = useForm<{ name: string }>({ defaultValues: { name: initialName } });
   const { leaveWithoutWarning, hasLeft } = useUnsavedChangesWarning(isDirty);
+  const nameIsBlank = !useWatch({ control, name: "name" }).trim();
 
   function save(name: string) {
     if (hasLeft()) return;
@@ -95,6 +96,7 @@ function ProgramFormContent({
         <Stack.Toolbar.Button
           {...headerButton("primary", "bold")}
           accessibilityLabel="Save Workout Program"
+          disabled={nameIsBlank}
           onPress={() => void handleSubmit((data) => save(data.name))()}
         >
           Save
@@ -121,6 +123,7 @@ function ProgramFormContent({
                 value={value}
                 label="Program Name"
                 maxLength={50}
+                autoFocus={!programId}
                 error={error ? "Required" : undefined}
                 accessibilityLabel="Enter Workout Program Name"
                 testID="program-name-input"

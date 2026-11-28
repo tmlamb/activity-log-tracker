@@ -47,12 +47,14 @@ vi.mock("expo-router", () => ({
       {
         Button: ({
           children,
+          disabled,
           onPress,
         }: {
           children?: ReactNode;
+          disabled?: boolean;
           onPress?: () => void;
         }) => (
-          <button data-label={children} onClick={onPress}>
+          <button data-label={children} disabled={disabled} onClick={onPress}>
             {children}
           </button>
         ),
@@ -99,12 +101,21 @@ vi.mock("./MultilineTextInputThemed", () => ({
   default: ({
     label,
     value,
+    autoFocus,
     onChangeText,
   }: {
     label: string;
     value?: string;
+    autoFocus?: boolean;
     onChangeText: (text: string) => void;
-  }) => <input data-label={label} value={value} data-change={onChangeText} />,
+  }) => (
+    <input
+      data-label={label}
+      value={value}
+      autoFocus={autoFocus}
+      data-change={onChangeText}
+    />
+  ),
 }));
 vi.mock("./PressableThemed", () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,
@@ -125,8 +136,11 @@ const setBarbells = (...barbells: ReturnType<typeof barbell>[]) =>
   replaceEquipmentInventory({ barbells, plates: [] });
 let raw: DatabaseSync | undefined;
 
-async function render(exerciseId?: string) {
-  env.params = exerciseId ? { exerciseId } : {};
+async function render(
+  exerciseId?: string,
+  params: Record<string, string> = {},
+) {
+  env.params = exerciseId ? { exerciseId } : params;
   let renderer: ReturnType<typeof create> | undefined;
   await act(async () => {
     renderer = create(<ExerciseFormScreen />);
@@ -178,6 +192,11 @@ async function render(exerciseId?: string) {
     },
     value: (label: string) =>
       root.findByProps({ "data-label": label }).props.value as string,
+    field: (label: string) =>
+      root.findByProps({ "data-label": label }).props as {
+        disabled?: boolean;
+        autoFocus?: boolean;
+      },
     unmount: () => act(() => renderer?.unmount()),
   };
 }
@@ -241,7 +260,7 @@ describe("exercise form", () => {
 
   it("shows the first barbell added from a new exercise, selected", async () => {
     setBarbells();
-    const view = await render();
+    const view = await render(undefined, { loadKind: "BARBELL" });
     await view.visit(() => setBarbells(barbell("new", 45)));
     expect(view.rows()[0]).toEqual(["45lbs", true]);
     view.unmount();
@@ -291,6 +310,35 @@ describe("exercise form", () => {
       expect.stringContaining("changed while the form was open"),
     );
     expect(saved()?.notes).toBe("Elsewhere");
+    view.unmount();
+  });
+
+  it("opens a new exercise focused on the name, with Save off until it has one", async () => {
+    const view = await render();
+    expect(view.field("Exercise Name").autoFocus).toBe(true);
+    expect(view.field("Save").disabled).toBe(true);
+    await view.type("Exercise Name", "   ");
+    expect(view.field("Save").disabled).toBe(true);
+    await view.type("Exercise Name", "Squat");
+    expect(view.field("Save").disabled).toBe(false);
+    view.unmount();
+  });
+
+  it("opens an existing exercise unfocused, with Save off once the name is cleared", async () => {
+    const view = await render("e");
+    expect(view.field("Exercise Name").autoFocus).toBe(false);
+    expect(view.field("Save").disabled).toBe(false);
+    await view.type("Exercise Name", "");
+    expect(view.field("Save").disabled).toBe(true);
+    view.unmount();
+  });
+
+  it("starts a new exercise on single weight, without a barbell choice", async () => {
+    const view = await render();
+    expect(view.rows()).toEqual([
+      ["Chest", false],
+      ["Triceps", false],
+    ]);
     view.unmount();
   });
 });

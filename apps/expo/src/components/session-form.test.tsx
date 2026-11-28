@@ -47,12 +47,14 @@ vi.mock("expo-router", () => ({
       {
         Button: ({
           children,
+          disabled,
           onPress,
         }: {
           children?: ReactNode;
+          disabled?: boolean;
           onPress?: () => void;
         }) => (
-          <button data-label={children} onClick={onPress}>
+          <button data-label={children} disabled={disabled} onClick={onPress}>
             {children}
           </button>
         ),
@@ -175,15 +177,18 @@ vi.mock("./MultilineTextInputThemed", () => ({
   default: ({
     label,
     value,
+    autoFocus,
     onChangeText,
   }: {
     label: string;
     value: string;
+    autoFocus?: boolean;
     onChangeText: (value: string) => void;
   }) => (
     <input
       data-label={label}
       value={value}
+      autoFocus={autoFocus}
       onChange={() => onChangeText("Training")}
     />
   ),
@@ -270,6 +275,13 @@ describe("session editor interactions", () => {
     expect(
       renderer.root.findAllByProps({ "data-label": "Session Name" }),
     ).toHaveLength(0);
+    const saveDisabled = () =>
+      (
+        renderer?.root.findByProps({ "data-label": "Save" }).props as {
+          disabled?: boolean;
+        }
+      ).disabled;
+    expect(saveDisabled()).toBe(true);
     await act(async () => {
       (
         renderer?.root.findByProps({ "data-label": "Scratch" }).props as {
@@ -278,12 +290,22 @@ describe("session editor interactions", () => {
       ).onClick();
       await Promise.resolve();
     });
-    expect(
-      renderer.root.findByProps({ "data-label": "Session Name" }),
-    ).toBeDefined();
+    const name = () =>
+      renderer?.root.findByProps({ "data-label": "Session Name" }).props as {
+        autoFocus?: boolean;
+        onChange: () => void;
+      };
+    expect(name().autoFocus).toBe(true);
     expect(
       renderer.root.findByProps({ "data-label": "Add Exercise" }),
     ).toBeDefined();
+    // Save stays off until the session has a name.
+    expect(saveDisabled()).toBe(true);
+    await act(async () => {
+      name().onChange();
+      await Promise.resolve();
+    });
+    expect(saveDisabled()).toBe(false);
     await act(async () => {
       renderer?.unmount();
       await Promise.resolve();

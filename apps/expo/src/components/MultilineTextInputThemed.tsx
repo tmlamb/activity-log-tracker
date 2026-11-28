@@ -49,6 +49,7 @@ interface Props {
   clearTextOnFocus?: boolean;
   keyboardType?: KeyboardTypeOptions;
   editable?: boolean;
+  autoFocus?: boolean;
   selection?: { start: number; end?: number };
   onKeyPress?: (e: TextInputKeyPressEvent) => void;
   innerRef?: Ref<TextInputInstance>;
@@ -81,6 +82,7 @@ export default function MultilineTextInputThemed(props: Props) {
     clearTextOnFocus = false,
     keyboardType = "default",
     editable = true,
+    autoFocus = false,
     selection,
     onKeyPress,
     innerRef,
@@ -184,6 +186,7 @@ export default function MultilineTextInputThemed(props: Props) {
             selectTextOnFocus={selectTextOnFocus}
             clearTextOnFocus={clearTextOnFocus}
             editable={editable}
+            autoFocus={autoFocus}
             selection={selection}
             onKeyPress={onKeyPress}
             multiline

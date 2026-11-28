@@ -220,7 +220,7 @@ function ExerciseEditor({
       ? undefined
       : ((isLoadKind(presetLoadKind) ? presetLoadKind : undefined) ??
         inferLoadKindFromName(presetName ?? "") ??
-        "BARBELL");
+        "SINGLE_WEIGHT");
   const [oneRepMaxInput, setOneRepMaxInput] = useState(
     exercise?.oneRepMax?.value && exercise.oneRepMax.value > 0
       ? String(exercise.oneRepMax.value)
@@ -254,6 +254,9 @@ function ExerciseEditor({
     name: "primaryMuscles",
   });
   const hasManuallySelectedLoadKindRef = useRef(false);
+  const nameIsBlank = !selectedName.trim();
+  // Only a blank new exercise opens with the keyboard up.
+  const [focusNameOnOpen] = useState(() => !exercise && !presetName);
 
   const heaviestBarbellId = heaviestBarbell?.barbellId;
   useEffect(() => {
@@ -388,6 +391,7 @@ function ExerciseEditor({
           <Stack.Toolbar.Button
             {...headerButton("primary", "bold")}
             accessibilityLabel="Save exercise"
+            disabled={nameIsBlank}
             onPress={() => void handleSubmit(onSubmit)()}
           >
             Save
@@ -422,6 +426,7 @@ function ExerciseEditor({
                 onBlur={onBlur}
                 value={value}
                 maxLength={50}
+                autoFocus={focusNameOnOpen}
                 error={error?.message}
                 cardVariants={["square"]}
               />
@@ -434,42 +439,6 @@ function ExerciseEditor({
             </HelperText>
           )}
         </View>
-        <Controller
-          name="oneRepMax"
-          control={control}
-          rules={{ required: false, min: 5 }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInputThemed
-              label={`One Rep Max (${exercise?.oneRepMax?.unit ?? "lbs"})`}
-              onChangeText={(text) => {
-                const numericValue = decimalTextToNumber(text);
-                setOneRepMaxInput(text);
-                onChange(
-                  numericValue != null
-                    ? {
-                        unit: value?.unit ?? exercise?.oneRepMax?.unit ?? "lbs",
-                        value: numericValue,
-                      }
-                    : undefined,
-                );
-              }}
-              onBlur={() => {
-                const numericValue = decimalTextToNumber(oneRepMaxInput);
-                setOneRepMaxInput(
-                  numericValue != null ? String(numericValue) : "",
-                );
-                onBlur();
-              }}
-              value={oneRepMaxInput}
-              maxLength={7}
-              keyboardType="decimal-pad"
-              numeric
-              decimalPlaces={2}
-              accessibilityLabel={`One Rep Max in ${exercise?.oneRepMax?.unit === "kg" ? "kilograms" : "pounds"}`}
-              cardVariants={["square"]}
-            />
-          )}
-        />
         <Controller
           name="notes"
           control={control}
@@ -497,6 +466,11 @@ function ExerciseEditor({
                 accessibilityLabel="Exercise equipment style"
                 options={[
                   {
+                    label: "Single",
+                    value: "SINGLE_WEIGHT",
+                    accessibilityLabel: "Exercise uses a single weight",
+                  },
+                  {
                     label: "Barbell",
                     value: "BARBELL",
                     accessibilityLabel: "Exercise uses a barbell",
@@ -505,11 +479,6 @@ function ExerciseEditor({
                     label: "Pair",
                     value: "WEIGHT_PAIR",
                     accessibilityLabel: "Exercise uses a pair of weights",
-                  },
-                  {
-                    label: "Single",
-                    value: "SINGLE_WEIGHT",
-                    accessibilityLabel: "Exercise uses a single weight",
                   },
                 ]}
                 onChange={(nextLoadKind) => {
@@ -650,9 +619,48 @@ function ExerciseEditor({
               )}
             />
           </View>
+          <Controller
+            name="oneRepMax"
+            control={control}
+            rules={{ required: false, min: 5 }}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInputThemed
+                label={`One Rep Max (${exercise?.oneRepMax?.unit ?? "lbs"})`}
+                onChangeText={(text) => {
+                  const numericValue = decimalTextToNumber(text);
+                  setOneRepMaxInput(text);
+                  onChange(
+                    numericValue != null
+                      ? {
+                          unit:
+                            value?.unit ?? exercise?.oneRepMax?.unit ?? "lbs",
+                          value: numericValue,
+                        }
+                      : undefined,
+                  );
+                }}
+                onBlur={() => {
+                  const numericValue = decimalTextToNumber(oneRepMaxInput);
+                  setOneRepMaxInput(
+                    numericValue != null ? String(numericValue) : "",
+                  );
+                  onBlur();
+                }}
+                value={oneRepMaxInput}
+                placeholder="0"
+                maxLength={7}
+                keyboardType="decimal-pad"
+                numeric
+                decimalPlaces={2}
+                accessibilityLabel={`One Rep Max in ${exercise?.oneRepMax?.unit === "kg" ? "kilograms" : "pounds"}`}
+                cardVariants={["square"]}
+              />
+            )}
+          />
           {exercise?.deleted ? (
             <PrimaryCardAction
               label="Undo Deletion"
+              disabled={nameIsBlank}
               onPress={() => void handleSubmit(onSubmit)()}
               accessibilityLabel={`Restore exercise with name ${exercise.name}`}
               cardVariants={["square"]}

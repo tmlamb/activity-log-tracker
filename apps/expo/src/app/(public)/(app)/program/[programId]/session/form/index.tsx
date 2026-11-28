@@ -547,7 +547,9 @@ function SessionEditor({
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button
           {...headerButton("primary", "bold")}
-          disabled={!session && sessionCount > 0 && !fromType}
+          disabled={
+            (!session && sessionCount > 0 && !fromType) || !draft.name.trim()
+          }
           accessibilityLabel="Save session and close form"
           onPress={() => save("save")}
         >
@@ -606,6 +608,8 @@ function SessionEditor({
                 label="Session Name"
                 value={draft.name}
                 maxLength={50}
+                // A new session from scratch opens on its blank name.
+                autoFocus={!session && fromType !== "Template"}
                 error={
                   showValidation && !draft.name.trim() ? "Required" : undefined
                 }

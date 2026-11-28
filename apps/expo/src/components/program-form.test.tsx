@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -22,7 +22,18 @@ vi.mock("expo-router", () => ({
   Redirect: () => <div>Redirect</div>,
   Stack: {
     Screen: () => null,
-    Toolbar: Object.assign(() => null, { Button: () => null }),
+    Toolbar: Object.assign(
+      ({ children }: { children?: ReactNode }) => <>{children}</>,
+      {
+        Button: ({
+          children,
+          disabled,
+        }: {
+          children?: ReactNode;
+          disabled?: boolean;
+        }) => <button disabled={disabled}>{children}</button>,
+      },
+    ),
   },
   useLocalSearchParams: () => ({ programId: environment.programId }),
   useRouter: () => ({ back: vi.fn() }),
@@ -58,7 +69,9 @@ vi.mock("./header-toolbar", () => ({
   headerIcons: { insights: "chart.bar.xaxis.ascending", plus: "plus" },
 }));
 vi.mock("./MultilineTextInputThemed", () => ({
-  default: ({ value }: { value: string }) => <input value={value} readOnly />,
+  default: ({ value, autoFocus }: { value: string; autoFocus?: boolean }) => (
+    <input value={value} data-autofocus={autoFocus} readOnly />
+  ),
 }));
 vi.mock("./Typography", () => ({
   HelperText: ({ children }: PropsWithChildren) => <p>{children}</p>,
@@ -79,6 +92,8 @@ describe("program editor initialization", () => {
     const output = renderToStaticMarkup(<ProgramFormScreen />);
     expect(output).toContain('value="Existing program"');
     expect(output).toContain("Delete This Program");
+    expect(output).toContain('data-autofocus="false"');
+    expect(output).toContain("<button>Save</button>");
   });
 
   it("starts a blank form when creating a program", () => {
@@ -87,5 +102,7 @@ describe("program editor initialization", () => {
     const output = renderToStaticMarkup(<ProgramFormScreen />);
     expect(output).toContain('value=""');
     expect(output).not.toContain("Delete This Program");
+    expect(output).toContain('data-autofocus="true"');
+    expect(output).toContain('<button disabled="">Save</button>');
   });
 });
